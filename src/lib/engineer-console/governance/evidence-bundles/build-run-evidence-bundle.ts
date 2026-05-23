@@ -26,6 +26,7 @@ import {
   type EvidencePolicySummary,
   type EvidenceQualityGateSummary,
   type EvidenceReviewStagesSummary,
+  type EvidencePrRequestsSummary,
   type EvidenceWorkerPlanSummary,
   type RunEvidenceBundleV1,
 } from "./evidence-bundle-types";
@@ -35,6 +36,7 @@ import {
   listReviewStagesForRun,
   summarizeReviewStages,
 } from "../review-stages/review-stage-manager";
+import { summarizePrRequestsForRun } from "../../release/pr-creation/pr-request-manager";
 import { getCompatibilitySummaryForRepo } from "../../repo-intelligence/compatibility/compatibility-manager";
 
 export interface BuildRunEvidenceBundleInput {
@@ -168,6 +170,12 @@ function buildPolicySummary(runId: string): EvidencePolicySummary | null {
   };
 }
 
+function buildPrRequestsSummary(runId: string): EvidencePrRequestsSummary | null {
+  const summary = summarizePrRequestsForRun(runId);
+  if (summary.attemptCount === 0) return null;
+  return summary;
+}
+
 function buildReviewStagesSummary(runId: string): EvidenceReviewStagesSummary | null {
   const stages = listReviewStagesForRun(runId);
   if (stages.length === 0) return null;
@@ -263,6 +271,7 @@ export async function buildRunEvidenceBundle(
     approval: buildApprovalSummary(approvalReport),
     policy: buildPolicySummary(run.id),
     reviewStages: buildReviewStagesSummary(run.id),
+    prRequests: buildPrRequestsSummary(run.id),
     compatibility: buildCompatibilitySummary(task.registeredRepoId),
     audit: buildAuditReference(run.id),
     timestamps: {

@@ -18,7 +18,7 @@ The **VeraLux Engineering Console** is a governed AI engineering control plane w
 | **Vera-Roundtable** | Governance | Append-only hash-chained audit ledger, replay verification, decision/review records, policy results |
 | **Engineering Console** | Target | Extend existing task/run/worker-plan pipeline; do not duplicate IDE or model tool authority |
 
-**Recommended next phase:** ~~Phase G1~~ **implemented** (`docs/audit-ledger.md`). ~~Phase 5A~~ **implemented** (`docs/registered-repos.md`). ~~Phase G2~~ **implemented** (`docs/evidence-bundles.md`). ~~Phase G3~~ **implemented** (`docs/decision-records.md`). ~~Phase 5B~~ **implemented** (`docs/file-index.md`). ~~Phase 5C~~ **implemented** (`docs/code-index.md`). ~~Phase G4~~ **implemented** (`docs/replay-verification.md`). ~~Phase G5~~ **implemented** (`docs/policy-results.md`). ~~Phase 5E~~ **implemented** (`docs/compatibility-analysis.md`). ~~Phase G6~~ **implemented** (`docs/review-stages.md`). Next: **Phase 6 — PR creation**.
+**Recommended next phase:** ~~Phase G1~~ **implemented** (`docs/audit-ledger.md`). ~~Phase 5A~~ **implemented** (`docs/registered-repos.md`). ~~Phase G2~~ **implemented** (`docs/evidence-bundles.md`). ~~Phase G3~~ **implemented** (`docs/decision-records.md`). ~~Phase 5B~~ **implemented** (`docs/file-index.md`). ~~Phase 5C~~ **implemented** (`docs/code-index.md`). ~~Phase G4~~ **implemented** (`docs/replay-verification.md`). ~~Phase G5~~ **implemented** (`docs/policy-results.md`). ~~Phase 5E~~ **implemented** (`docs/compatibility-analysis.md`). ~~Phase G6~~ **implemented** (`docs/review-stages.md`). ~~Phase 6~~ **implemented** (`docs/pr-creation.md`). Next: merge controls / deployment gates.
 
 ---
 
@@ -677,14 +677,17 @@ flowchart TD
 
 ---
 
-### Phase 6 — PR creation (deferred)
+### Phase 6 — PR creation (**implemented**)
 
 | Field | Detail |
 |-------|--------|
-| Goal | PR only after approval + audit + evidence bundle |
-| Donor | vera-builder `routes/pr.ts` **redesigned** |
-| Risk | **High** |
-| Non-goals | Auto-push without human; multi-repo coordinated PRs v1 |
+| Goal | Approval-gated commit + draft GitHub PR via controlled git/gh |
+| Donor | vera-builder `routes/pr.ts` concepts only (redesigned) |
+| Target | `release/pr-creation/` — see `docs/pr-creation.md` |
+| Risk | **High** (mitigated by readiness gates + allowlisted commands) |
+| Tests | Readiness, commit allowlist, PR body redaction, audit events |
+| Acceptance | Blocked runs cannot create PRs; governed runs can open draft PR |
+| Non-goals | Auto-merge, deploy, model-triggered PRs |
 
 ---
 

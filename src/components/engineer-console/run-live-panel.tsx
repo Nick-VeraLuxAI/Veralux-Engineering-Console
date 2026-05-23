@@ -12,6 +12,7 @@ import { DecisionHistoryPanel } from "./decision-history-panel";
 import { ReplayVerificationPanel } from "./replay-verification-panel";
 import { PolicyResultsPanel } from "./policy-results-panel";
 import { ReviewStagesPanel } from "./review-stages-panel";
+import { PrCreationPanel } from "./pr-creation-panel";
 
 interface RunDetailPayload {
   run: EngineeringRun;
@@ -79,6 +80,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
       <ReplayVerificationPanel runId={runId} />
       <PolicyResultsPanel runId={runId} />
       <ReviewStagesPanel runId={runId} />
+      <PrCreationPanel runId={runId} />
 
       <WorkerPlanDraftPanel
         runId={runId}

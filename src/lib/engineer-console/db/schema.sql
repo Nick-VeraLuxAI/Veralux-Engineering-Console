@@ -465,3 +465,34 @@ CREATE INDEX IF NOT EXISTS idx_engineer_review_stages_run_id_stage
 
 CREATE INDEX IF NOT EXISTS idx_engineer_review_stages_run_id_status
   ON engineer_review_stages (run_id, status);
+
+-- Phase 6: approval-gated commit + PR creation
+CREATE TABLE IF NOT EXISTS engineer_pr_requests (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  task_id TEXT,
+  registered_repo_id TEXT,
+  branch_name TEXT NOT NULL,
+  base_branch TEXT NOT NULL,
+  commit_sha TEXT,
+  commit_message TEXT,
+  pr_url TEXT,
+  pr_number TEXT,
+  status TEXT NOT NULL,
+  readiness_status TEXT NOT NULL,
+  readiness_json TEXT NOT NULL,
+  evidence_bundle_id TEXT,
+  evidence_bundle_hash TEXT,
+  policy_result_id TEXT,
+  replay_verification_id TEXT,
+  actor_type TEXT NOT NULL,
+  actor_label TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  completed_at TEXT,
+  error_message TEXT,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_pr_requests_run_id_created_at
+  ON engineer_pr_requests (run_id, created_at DESC);

@@ -13,6 +13,8 @@ export * from "./governance/replay-verification/replay-verification-manager";
 export * from "./governance/policy-results/policy-result-manager";
 export * from "./governance/review-stages/review-stage-manager";
 export * from "./governance/review-stages/review-stage-types";
+export * from "./release/pr-creation/pr-request-manager";
+export * from "./release/pr-creation/pr-creation-types";
 export * from "./repo-intelligence";
 export * from "./quality-gates/quality-gate-runner";
 export * from "./approval/approval-report";

@@ -61,6 +61,12 @@ export interface EvidenceReviewStagesSummary {
   skippedCount: number;
 }
 
+export interface EvidencePrRequestsSummary {
+  attemptCount: number;
+  latestStatus: string | null;
+  latestPrUrl: string | null;
+}
+
 export interface EvidenceCompatibilitySummary {
   breakingCount: number;
   warningCount: number;
@@ -101,6 +107,7 @@ export interface RunEvidenceBundleV1 {
   approval: EvidenceApprovalSummary | null;
   policy: EvidencePolicySummary | null;
   reviewStages: EvidenceReviewStagesSummary | null;
+  prRequests: EvidencePrRequestsSummary | null;
   compatibility: EvidenceCompatibilitySummary | null;
   audit: EvidenceAuditReference;
   timestamps: {
