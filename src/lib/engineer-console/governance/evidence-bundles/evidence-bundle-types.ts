@@ -73,6 +73,13 @@ export interface EvidenceMergeRequestsSummary {
   latestMergeShaPrefix: string | null;
 }
 
+export interface EvidenceDeploymentGatesSummary {
+  readinessCheckCount: number;
+  latestReadinessStatus: string | null;
+  latestApprovalDecision: string | null;
+  latestEnvironmentName: string | null;
+}
+
 export interface EvidenceCompatibilitySummary {
   breakingCount: number;
   warningCount: number;
@@ -115,6 +122,7 @@ export interface RunEvidenceBundleV1 {
   reviewStages: EvidenceReviewStagesSummary | null;
   prRequests: EvidencePrRequestsSummary | null;
   mergeRequests: EvidenceMergeRequestsSummary | null;
+  deploymentGates: EvidenceDeploymentGatesSummary | null;
   compatibility: EvidenceCompatibilitySummary | null;
   audit: EvidenceAuditReference;
   timestamps: {

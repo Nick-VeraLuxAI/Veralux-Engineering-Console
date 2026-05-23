@@ -3,6 +3,7 @@ import path from "path";
 import { getEngineerConsoleDb } from "./client";
 import { applyEngineerConsoleSchemaPatches } from "./schema-patches";
 import { ensureOperatorAccountsBootstrapped } from "../security/operator-account-manager";
+import { ensureDefaultDeploymentEnvironments } from "../release/deployment-gates/deployment-environments";
 
 export function initializeEngineerConsoleDatabase(): void {
   const db = getEngineerConsoleDb();
@@ -11,4 +12,5 @@ export function initializeEngineerConsoleDatabase(): void {
   db.exec(schema);
   applyEngineerConsoleSchemaPatches(db);
   ensureOperatorAccountsBootstrapped();
+  ensureDefaultDeploymentEnvironments();
 }

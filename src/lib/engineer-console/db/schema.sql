@@ -533,6 +533,62 @@ CREATE INDEX IF NOT EXISTS idx_engineer_merge_requests_run_id_created_at
 CREATE INDEX IF NOT EXISTS idx_engineer_merge_requests_pr_request_id
   ON engineer_merge_requests (pr_request_id);
 
+-- Phase 8A: deployment readiness gates (no deploy execution)
+CREATE TABLE IF NOT EXISTS engineer_deployment_environments (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL UNIQUE,
+  environment_type TEXT NOT NULL,
+  description TEXT,
+  required_branch TEXT,
+  deployment_strategy TEXT NOT NULL,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_deployment_environments_active
+  ON engineer_deployment_environments (is_active, name);
+
+CREATE TABLE IF NOT EXISTS engineer_deployment_readiness_checks (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  merge_request_id TEXT,
+  environment_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  readiness_json TEXT NOT NULL,
+  evidence_bundle_id TEXT,
+  evidence_bundle_hash TEXT,
+  policy_result_id TEXT,
+  replay_verification_id TEXT,
+  merge_sha TEXT,
+  actor_type TEXT NOT NULL,
+  actor_label TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE,
+  FOREIGN KEY (environment_id) REFERENCES engineer_deployment_environments (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_deployment_readiness_checks_run_env
+  ON engineer_deployment_readiness_checks (run_id, environment_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS engineer_deployment_approvals (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  readiness_check_id TEXT NOT NULL,
+  environment_id TEXT NOT NULL,
+  decision TEXT NOT NULL,
+  actor_type TEXT NOT NULL,
+  actor_label TEXT,
+  rationale TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE,
+  FOREIGN KEY (readiness_check_id) REFERENCES engineer_deployment_readiness_checks (id),
+  FOREIGN KEY (environment_id) REFERENCES engineer_deployment_environments (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_deployment_approvals_run_id
+  ON engineer_deployment_approvals (run_id, created_at DESC);
+
 -- Phase S1: operator authentication
 CREATE TABLE IF NOT EXISTS engineer_operator_accounts (
   id TEXT PRIMARY KEY NOT NULL,

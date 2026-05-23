@@ -61,6 +61,9 @@ export const AUDIT_EVENT_TYPES = {
   MERGE_STARTED: "MERGE_STARTED",
   MERGE_COMPLETED: "MERGE_COMPLETED",
   MERGE_FAILED: "MERGE_FAILED",
+  DEPLOYMENT_READINESS_EVALUATED: "DEPLOYMENT_READINESS_EVALUATED",
+  DEPLOYMENT_APPROVED: "DEPLOYMENT_APPROVED",
+  DEPLOYMENT_REJECTED: "DEPLOYMENT_REJECTED",
 } as const;
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[keyof typeof AUDIT_EVENT_TYPES];
@@ -84,6 +87,7 @@ export const AUDIT_ENTITY_TYPES = {
   COMPATIBILITY: "compatibility",
   REVIEW_STAGE: "review_stage",
   RELEASE: "release",
+  DEPLOYMENT: "deployment",
 } as const;
 
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[keyof typeof AUDIT_ENTITY_TYPES];

@@ -113,11 +113,11 @@ Payloads include run id, PR/merge request ids, readiness summary counts, PR numb
 - No GitHub App / OAuth identity binding
 - No branch protection rule verification against GitHub API beyond `gh pr view`
 - No merge queue
-- No deployment gates
+- Deployment is separate — see [deployment-gates.md](deployment-gates.md) (readiness/approval only; no deploy execution)
 
 ## Future phases
 
-- Deployment gates and environment promotion
+- Controlled deploy execution after deployment approval
 - GitHub App integration
 - Branch protection verification matrix
 - Merge queue / batch merge support
