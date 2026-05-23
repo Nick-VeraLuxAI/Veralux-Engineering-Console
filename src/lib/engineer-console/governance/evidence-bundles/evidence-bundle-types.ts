@@ -94,6 +94,13 @@ export interface EvidenceDeploymentHealthChecksSummary {
   latestResponseStatus: number | null;
 }
 
+export interface EvidenceDeploymentHealthPolicySummary {
+  resultCount: number;
+  latestStatus: string | null;
+  latestEnvironmentName: string | null;
+  latestRecommendedAction: string | null;
+}
+
 export interface EvidenceCompatibilitySummary {
   breakingCount: number;
   warningCount: number;
@@ -139,6 +146,7 @@ export interface RunEvidenceBundleV1 {
   deploymentGates: EvidenceDeploymentGatesSummary | null;
   deploymentExecutions: EvidenceDeploymentExecutionsSummary | null;
   deploymentHealthChecks: EvidenceDeploymentHealthChecksSummary | null;
+  deploymentHealthPolicy: EvidenceDeploymentHealthPolicySummary | null;
   compatibility: EvidenceCompatibilitySummary | null;
   audit: EvidenceAuditReference;
   timestamps: {

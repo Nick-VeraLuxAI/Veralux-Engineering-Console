@@ -88,6 +88,13 @@ export interface RedactedReplayPackage {
     responseTimeMs: number | null;
     createdAt: string;
   }>;
+  deploymentHealthPolicy: {
+    latestStatus: string | null;
+    latestEnvironmentName: string | null;
+    policyVersion: string | null;
+    policyHashPrefix: string | null;
+    evaluatedAt: string | null;
+  } | null;
   verification: ReplayVerificationResult;
 }
 

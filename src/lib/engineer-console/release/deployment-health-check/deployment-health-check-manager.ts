@@ -323,5 +323,17 @@ export async function createDeploymentHealthCheck(
 
   await refreshRunEvidenceBundle({ runId: input.runId });
 
+  const { runDeploymentHealthPolicyEvaluation } = await import(
+    "../deployment-health-policy/deployment-health-policy-manager"
+  );
+  await runDeploymentHealthPolicyEvaluation(input.runId, {
+    persist: true,
+    audit: true,
+    actorType: input.actorType,
+    actorLabel: input.actorLabel,
+    deploymentExecutionId: execution.id,
+    refreshEvidence: true,
+  });
+
   return getDeploymentHealthCheckById(id)!;
 }

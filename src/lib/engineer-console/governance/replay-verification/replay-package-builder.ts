@@ -8,6 +8,10 @@ import type { RedactedReplayPackage } from "./replay-verification-types";
 import type { ReplayVerificationResult } from "./replay-verification-types";
 import { listDeploymentExecutionsForRun } from "../../release/deployment-execution/deployment-execution-manager";
 import { listDeploymentHealthChecksForRun } from "../../release/deployment-health-check/deployment-health-check-manager";
+import {
+  getLatestDeploymentHealthPolicyResult,
+  parseDeploymentHealthPolicyEvaluation,
+} from "../../release/deployment-health-policy/deployment-health-policy-manager";
 import { verifyRunReplay } from "./verify-run-replay";
 
 const SENSITIVE_PATTERN =
@@ -115,6 +119,18 @@ export function buildRedactedReplayPackage(
       responseTimeMs: c.responseTimeMs,
       createdAt: c.createdAt,
     })),
+    deploymentHealthPolicy: (() => {
+      const latest = getLatestDeploymentHealthPolicyResult(runId);
+      if (!latest) return null;
+      const evaluation = parseDeploymentHealthPolicyEvaluation(latest);
+      return {
+        latestStatus: latest.status,
+        latestEnvironmentName: evaluation.environmentName,
+        policyVersion: latest.policyVersion,
+        policyHashPrefix: latest.policyHash.slice(0, 12),
+        evaluatedAt: evaluation.evaluatedAt,
+      };
+    })(),
     verification: redactObject(verificationResult) as ReplayVerificationResult,
   };
 }

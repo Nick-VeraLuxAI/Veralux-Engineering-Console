@@ -31,6 +31,7 @@ import {
   type EvidenceDeploymentGatesSummary,
   type EvidenceDeploymentExecutionsSummary,
   type EvidenceDeploymentHealthChecksSummary,
+  type EvidenceDeploymentHealthPolicySummary,
   type EvidenceWorkerPlanSummary,
   type RunEvidenceBundleV1,
 } from "./evidence-bundle-types";
@@ -45,6 +46,7 @@ import { summarizeMergeRequestsForRun } from "../../release/merge-controls/merge
 import { summarizeDeploymentGatesForRun } from "../../release/deployment-gates/deployment-gate-manager";
 import { summarizeDeploymentExecutionsForRun } from "../../release/deployment-execution/deployment-execution-manager";
 import { summarizeDeploymentHealthChecksForRun } from "../../release/deployment-health-check/deployment-health-check-manager";
+import { summarizeDeploymentHealthPolicyForRun } from "../../release/deployment-health-policy/deployment-health-policy-manager";
 import { getCompatibilitySummaryForRepo } from "../../repo-intelligence/compatibility/compatibility-manager";
 
 export interface BuildRunEvidenceBundleInput {
@@ -212,6 +214,14 @@ function buildDeploymentHealthChecksSummary(
   return summary;
 }
 
+function buildDeploymentHealthPolicySummary(
+  runId: string,
+): EvidenceDeploymentHealthPolicySummary | null {
+  const summary = summarizeDeploymentHealthPolicyForRun(runId);
+  if (summary.resultCount === 0) return null;
+  return summary;
+}
+
 function buildReviewStagesSummary(runId: string): EvidenceReviewStagesSummary | null {
   const stages = listReviewStagesForRun(runId);
   if (stages.length === 0) return null;
@@ -312,6 +322,7 @@ export async function buildRunEvidenceBundle(
     deploymentGates: buildDeploymentGatesSummary(run.id),
     deploymentExecutions: buildDeploymentExecutionsSummary(run.id),
     deploymentHealthChecks: buildDeploymentHealthChecksSummary(run.id),
+    deploymentHealthPolicy: buildDeploymentHealthPolicySummary(run.id),
     compatibility: buildCompatibilitySummary(task.registeredRepoId),
     audit: buildAuditReference(run.id),
     timestamps: {

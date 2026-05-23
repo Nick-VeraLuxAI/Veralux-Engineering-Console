@@ -651,6 +651,26 @@ CREATE INDEX IF NOT EXISTS idx_engineer_deployment_health_checks_run_id
 CREATE INDEX IF NOT EXISTS idx_engineer_deployment_health_checks_execution_id
   ON engineer_deployment_health_checks (deployment_execution_id, created_at DESC);
 
+-- Phase 8D: deployment health policy interpretation (governance metadata only)
+CREATE TABLE IF NOT EXISTS engineer_deployment_health_policy_results (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  deployment_execution_id TEXT,
+  health_check_id TEXT,
+  environment_id TEXT,
+  status TEXT NOT NULL,
+  policy_version TEXT NOT NULL,
+  policy_hash TEXT NOT NULL,
+  result_json TEXT NOT NULL,
+  actor_type TEXT NOT NULL,
+  actor_label TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_deployment_health_policy_results_run_id
+  ON engineer_deployment_health_policy_results (run_id, created_at DESC);
+
 -- Phase S1: operator authentication
 CREATE TABLE IF NOT EXISTS engineer_operator_accounts (
   id TEXT PRIMARY KEY NOT NULL,

@@ -141,6 +141,12 @@ On the run detail page, **Deployment health checks** panel:
 - Evidence bundles include `deploymentHealthChecks` summary (count, latest status/profile/response)
 - Replay packages include low-risk health check metadata
 
+## Deployment health policies (Phase 8D)
+
+Health checks record probe results. **Deployment health policies** interpret those results as governance metadata (`healthy`, `unhealthy`, `needs_attention`, `not_checked`). See `docs/deployment-health-policies.md`.
+
+Policies do not run HTTP requests or execute deployments.
+
 ## Current limitations
 
 - HTTP GET only; no TCP/TLS custom probes
@@ -148,6 +154,7 @@ On the run detail page, **Deployment health checks** panel:
 - No rollback on unhealthy
 - Profiles require server env configuration
 - Health checks optional — not a deployment gate
+- Health policy is interpretive metadata only in Phase 8D
 
 ## Future
 
