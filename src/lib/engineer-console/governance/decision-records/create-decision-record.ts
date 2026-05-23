@@ -135,6 +135,7 @@ export function createDecisionRecord(input: CreateDecisionRecordInput): Decision
       riskLevel: snapshot.governanceRiskLevel,
       qualityGateState: snapshot.qualityGateState,
       actorType: input.actorType,
+      actorLabel: input.actorLabel,
     });
     auditEventId = auditEvent.id;
     auditChainHash = auditEvent.chainHash;

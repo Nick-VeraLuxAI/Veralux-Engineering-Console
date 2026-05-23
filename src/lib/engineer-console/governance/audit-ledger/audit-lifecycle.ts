@@ -292,39 +292,51 @@ export function auditRunCompleted(
   });
 }
 
-export function auditHumanApproved(runId: string, taskId: string): AuditEventRecord {
+export function auditHumanApproved(
+  runId: string,
+  taskId: string,
+  actorLabel = "operator",
+): AuditEventRecord {
   return requireAuditEvent({
     eventType: AUDIT_EVENT_TYPES.HUMAN_APPROVED,
     entityType: AUDIT_ENTITY_TYPES.APPROVAL,
     entityId: runId,
     actorType: AUDIT_ACTOR_TYPES.HUMAN,
-    actorLabel: "operator",
+    actorLabel,
     taskId,
     runId,
     payload: {},
   });
 }
 
-export function auditHumanRequestFix(runId: string, taskId: string): AuditEventRecord {
+export function auditHumanRequestFix(
+  runId: string,
+  taskId: string,
+  actorLabel = "operator",
+): AuditEventRecord {
   return requireAuditEvent({
     eventType: AUDIT_EVENT_TYPES.HUMAN_REQUEST_FIX,
     entityType: AUDIT_ENTITY_TYPES.APPROVAL,
     entityId: runId,
     actorType: AUDIT_ACTOR_TYPES.HUMAN,
-    actorLabel: "operator",
+    actorLabel,
     taskId,
     runId,
     payload: {},
   });
 }
 
-export function auditHumanStopped(runId: string, taskId: string): AuditEventRecord {
+export function auditHumanStopped(
+  runId: string,
+  taskId: string,
+  actorLabel = "operator",
+): AuditEventRecord {
   return requireAuditEvent({
     eventType: AUDIT_EVENT_TYPES.HUMAN_STOPPED,
     entityType: AUDIT_ENTITY_TYPES.APPROVAL,
     entityId: runId,
     actorType: AUDIT_ACTOR_TYPES.HUMAN,
-    actorLabel: "operator",
+    actorLabel,
     taskId,
     runId,
     payload: {},

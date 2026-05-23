@@ -18,14 +18,19 @@ export function auditDecisionRecorded(
     riskLevel: string | null;
     qualityGateState: string | null;
     actorType: string;
+    actorLabel?: string | null;
   },
 ): AuditEventRecord {
+  const humanLabel =
+    payload.actorLabel?.trim() ||
+    (payload.actorType === AUDIT_ACTOR_TYPES.HUMAN ? "operator" : payload.actorType);
+
   return appendAuditEvent({
     eventType: AUDIT_EVENT_TYPES.DECISION_RECORDED,
     entityType: AUDIT_ENTITY_TYPES.DECISION,
     entityId: decisionRecordId,
     actorType: payload.actorType === AUDIT_ACTOR_TYPES.HUMAN ? AUDIT_ACTOR_TYPES.HUMAN : AUDIT_ACTOR_TYPES.SYSTEM,
-    actorLabel: payload.actorType === AUDIT_ACTOR_TYPES.HUMAN ? "operator" : payload.actorType,
+    actorLabel: payload.actorType === AUDIT_ACTOR_TYPES.HUMAN ? humanLabel : payload.actorType,
     taskId,
     runId,
     payload: {

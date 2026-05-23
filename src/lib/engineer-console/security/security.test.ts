@@ -32,6 +32,9 @@ import {
   getPublicAuthStatus,
 } from "./route-guards";
 import { assertMutationOrigin, validateSameOrigin } from "./same-origin";
+import { isEngineerLoginPath } from "./require-page-auth";
+import { auditDecisionRecorded } from "../governance/decision-records/decision-audit-lifecycle";
+import { AUDIT_ACTOR_TYPES } from "../governance/audit-ledger/audit-event-types";
 import { NextResponse } from "next/server";
 
 const ENV_KEYS = [
@@ -320,6 +323,30 @@ describe("actor identity", () => {
       "custom-local-label",
     );
     expect(actor.actorLabel).toBe("custom-local-label");
+  });
+});
+
+describe("page auth", () => {
+  it("recognizes engineer login paths", () => {
+    expect(isEngineerLoginPath("/engineer/login")).toBe(true);
+    expect(isEngineerLoginPath("/engineer")).toBe(false);
+    expect(isEngineerLoginPath("/engineer/repos")).toBe(false);
+  });
+});
+
+describe("audit actor labels", () => {
+  it("records authenticated label on decision audit events", () => {
+    process.env.ENGINEER_CONSOLE_AUDIT_CHAIN_SCOPE = "actor-label-test";
+    const event = auditDecisionRecorded("run-1", "task-1", "dec-1", {
+      decision: "approved",
+      evidenceBundleHash: "abc",
+      approvalReportId: null,
+      riskLevel: "low",
+      qualityGateState: "passed:1 failed:0 skipped:0",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "admin@example.com",
+    });
+    expect(event.actorLabel).toBe("admin@example.com");
   });
 });
 

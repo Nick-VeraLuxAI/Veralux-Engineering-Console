@@ -256,6 +256,8 @@ export async function handleApprovalAction(
     );
   }
 
+  const humanActorLabel = options.actorLabel ?? "operator";
+
   switch (action) {
     case "approve": {
       updateRun(runId, {
@@ -264,7 +266,7 @@ export async function handleApprovalAction(
         completedAt,
       });
       updateTask(task.id, { status: "approved" });
-      auditHumanApproved(runId, task.id);
+      auditHumanApproved(runId, task.id, humanActorLabel);
       auditRunCompleted(runId, task.id, { via: "human_approve" });
       break;
     }
@@ -275,7 +277,7 @@ export async function handleApprovalAction(
         completedAt,
       });
       updateTask(task.id, { status: "failed" });
-      auditHumanRequestFix(runId, task.id);
+      auditHumanRequestFix(runId, task.id, humanActorLabel);
       auditRunFailed(runId, task.id, { via: "human_request_fix" });
       break;
     case "stop":
@@ -285,7 +287,7 @@ export async function handleApprovalAction(
         completedAt,
       });
       updateTask(task.id, { status: "stopped" });
-      auditHumanStopped(runId, task.id);
+      auditHumanStopped(runId, task.id, humanActorLabel);
       auditRunFailed(runId, task.id, { via: "human_stop" });
       break;
   }
