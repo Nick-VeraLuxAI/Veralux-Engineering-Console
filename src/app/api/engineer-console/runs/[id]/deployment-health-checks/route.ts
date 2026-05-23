@@ -57,16 +57,37 @@ export async function POST(
     return NextResponse.json({ error: "Run not found" }, { status: 404 });
   }
 
-  const body = (await request.json()) as {
+  const body = (await request.json()) as Record<string, unknown> & {
     deploymentExecutionId?: string;
     healthProfile?: string;
     actorLabel?: string;
   };
 
-  if (!body.deploymentExecutionId?.trim()) {
+  const forbiddenClientConfigKeys = [
+    "url",
+    "method",
+    "headers",
+    "body",
+    "expectedStatus",
+    "timeoutMs",
+    "type",
+  ] as const;
+  for (const key of forbiddenClientConfigKeys) {
+    if (body[key] !== undefined && body[key] !== null) {
+      return NextResponse.json(
+        { error: `Client cannot provide health check config field: ${key}` },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (
+    typeof body.deploymentExecutionId !== "string" ||
+    !body.deploymentExecutionId.trim()
+  ) {
     return NextResponse.json({ error: "deploymentExecutionId is required" }, { status: 400 });
   }
-  if (!body.healthProfile?.trim()) {
+  if (typeof body.healthProfile !== "string" || !body.healthProfile.trim()) {
     return NextResponse.json({ error: "healthProfile is required" }, { status: 400 });
   }
 
@@ -74,7 +95,7 @@ export async function POST(
     const actor = resolveHumanActor(auth.operator, body.actorLabel);
     const record = await createDeploymentHealthCheck({
       runId: id,
-      deploymentExecutionId: body.deploymentExecutionId.trim(),
+      deploymentExecutionId: String(body.deploymentExecutionId).trim(),
       healthProfile: body.healthProfile.trim(),
       actorType: actor.actorType,
       actorLabel: actor.actorLabel,

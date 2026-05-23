@@ -13,6 +13,11 @@ export function setHealthCheckFetchForTests(fetchFn: HealthCheckFetchFn | null):
 }
 
 const MAX_BODY_BYTES = 4096;
+const HEALTH_CHECK_HTTP_METHOD = "GET" as const;
+
+export function getHealthCheckHttpMethod(): typeof HEALTH_CHECK_HTTP_METHOD {
+  return HEALTH_CHECK_HTTP_METHOD;
+}
 
 export async function executeHttpHealthCheck(
   profile: HealthCheckProfileConfig,
@@ -23,12 +28,14 @@ export async function executeHttpHealthCheck(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+  const requestInit: RequestInit = {
+    method: HEALTH_CHECK_HTTP_METHOD,
+    signal: controller.signal,
+    redirect: "follow",
+  };
+
   try {
-    const response = await fetchFn(profile.url, {
-      method: "GET",
-      signal: controller.signal,
-      redirect: "follow",
-    });
+    const response = await fetchFn(profile.url, requestInit);
     const body = await response.text();
     const bodySnippet =
       body.length > MAX_BODY_BYTES ? body.slice(0, MAX_BODY_BYTES) : body;

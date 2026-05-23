@@ -63,6 +63,9 @@ import {
   resolveExecutableHealthProfile,
   setHealthCheckProfilesForTests,
 } from "./health-profile-config";
+import type { HealthCheckProfileConfig } from "./deployment-health-check-types";
+import { buildRedactedReplayPackage } from "../../governance/replay-verification/replay-package-builder";
+import { getHealthCheckHttpMethod } from "./execute-http-health-check";
 
 const DEPLOY_PROFILE = {
   name: "staging-dashboard",
@@ -303,6 +306,36 @@ describe("health profile configuration", () => {
     expect(() => resolveExecutableHealthProfile("missing")).toThrow(DeploymentHealthCheckError);
   });
 
+  it("blocks unsupported profile type at readiness", async () => {
+    setHealthCheckProfilesForTests([
+      {
+        ...HEALTH_PROFILE,
+        name: "grpc-probe",
+        type: "grpc",
+      } as HealthCheckProfileConfig,
+    ]);
+    const { run, task } = await seedApprovedRun();
+    const execution = await seedSucceededDeployment(run.id, task.id);
+    const readiness = evaluateDeploymentHealthCheckReadiness(
+      run.id,
+      execution.id,
+      "grpc-probe",
+    );
+    expect(readiness.status).toBe("blocked");
+    expect(
+      readiness.blockers.some(
+        (b) => b.includes("not supported") || b.includes("disabled"),
+      ),
+    ).toBe(true);
+    setHealthCheckProfilesForTests([HEALTH_PROFILE, PRODUCTION_HEALTH]);
+  });
+
+  it("public profiles do not expose expectedStatus or timeoutMs", () => {
+    const json = JSON.stringify(listPublicHealthCheckProfiles());
+    expect(json).not.toContain("expectedStatus");
+    expect(json).not.toContain("timeoutMs");
+  });
+
   it("blocks profile environment mismatch", async () => {
     const { run, task } = await seedApprovedRun();
     const execution = await seedSucceededDeployment(run.id, task.id);
@@ -317,6 +350,31 @@ describe("health profile configuration", () => {
 });
 
 describe("deployment health check authorization", () => {
+  it("allows operator for health check mutation", async () => {
+    const hash = await hashPassword("pass");
+    const operator = createOperatorAccount({
+      email: "op-hc@example.com",
+      displayName: "Operator",
+      passwordHash: hash,
+      role: "operator",
+    });
+    const session = createOperatorSession(operator.id);
+    const result = await authorizeMutation(
+      new Request("http://localhost/", {
+        method: "POST",
+        headers: {
+          host: "localhost",
+          origin: "http://localhost",
+          cookie: `ec_session=${encodeURIComponent(session.sessionToken)}`,
+          [CSRF_HEADER_NAME]: session.csrfToken,
+        },
+      }),
+      { minRole: "operator" },
+    );
+    expect(result).not.toBeInstanceOf(NextResponse);
+    expect((result as { operator: { role: string } }).operator.role).toBe("operator");
+  });
+
   it("rejects viewer for operator-only health check mutation", async () => {
     const hash = await hashPassword("pass");
     const viewer = createOperatorAccount({
@@ -372,6 +430,24 @@ describe("deployment health checks", () => {
         actorLabel: "op@example.com",
       }),
     ).rejects.toThrow(DeploymentHealthCheckError);
+  });
+
+  it("uses only GET for HTTP health checks", () => {
+    expect(getHealthCheckHttpMethod()).toBe("GET");
+  });
+
+  it("ignores client URL and uses profile URL only", async () => {
+    const { run, task } = await seedApprovedRun();
+    const execution = await seedSucceededDeployment(run.id, task.id);
+    await createDeploymentHealthCheck({
+      runId: run.id,
+      deploymentExecutionId: execution.id,
+      healthProfile: "dashboard-staging-health",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "op@example.com",
+    });
+    expect(fetchCalls.every((c) => c.url === HEALTH_PROFILE.url)).toBe(true);
+    expect(fetchCalls.some((c) => c.url.includes("evil.com"))).toBe(false);
   });
 
   it("runs healthy check after successful deployment using configured URL only", async () => {
@@ -446,7 +522,36 @@ describe("deployment health checks", () => {
     expect(pub).not.toHaveProperty("checkedUrl");
   });
 
-  it("emits health check audit events", async () => {
+  it("emits health check audit events on healthy run without secrets", async () => {
+    vi.mocked(mockFetch).mockResolvedValueOnce(
+      new Response("ok api_key=secret123", { status: 200 }),
+    );
+    const { run, task } = await seedApprovedRun();
+    const execution = await seedSucceededDeployment(run.id, task.id);
+    await createDeploymentHealthCheck({
+      runId: run.id,
+      deploymentExecutionId: execution.id,
+      healthProfile: "dashboard-staging-health",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "op@example.com",
+    });
+    const events = listAuditEventsForRun(run.id).filter((e) =>
+      [
+        AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_CHECK_STARTED,
+        AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_CHECK_HEALTHY,
+        AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_CHECK_UNHEALTHY,
+        AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_CHECK_FAILED,
+      ].includes(e.eventType),
+    );
+    const types = events.map((e) => e.eventType);
+    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_CHECK_STARTED);
+    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_CHECK_HEALTHY);
+    const payloads = JSON.stringify(events.map((e) => e.payload));
+    expect(payloads).not.toContain("secret123");
+  });
+
+  it("emits DEPLOYMENT_HEALTH_CHECK_UNHEALTHY on status mismatch", async () => {
+    vi.mocked(mockFetch).mockResolvedValueOnce(new Response("bad", { status: 500 }));
     const { run, task } = await seedApprovedRun();
     const execution = await seedSucceededDeployment(run.id, task.id);
     await createDeploymentHealthCheck({
@@ -457,8 +562,22 @@ describe("deployment health checks", () => {
       actorLabel: "op@example.com",
     });
     const types = listAuditEventsForRun(run.id).map((e) => e.eventType);
-    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_CHECK_STARTED);
-    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_CHECK_HEALTHY);
+    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_CHECK_UNHEALTHY);
+  });
+
+  it("emits DEPLOYMENT_HEALTH_CHECK_FAILED on fetch failure", async () => {
+    vi.mocked(mockFetch).mockRejectedValueOnce(new Error("network down"));
+    const { run, task } = await seedApprovedRun();
+    const execution = await seedSucceededDeployment(run.id, task.id);
+    await createDeploymentHealthCheck({
+      runId: run.id,
+      deploymentExecutionId: execution.id,
+      healthProfile: "dashboard-staging-health",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "op@example.com",
+    });
+    const types = listAuditEventsForRun(run.id).map((e) => e.eventType);
+    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_CHECK_FAILED);
   });
 
   it("allows rerun after prior healthy check", async () => {
@@ -491,6 +610,45 @@ describe("deployment health checks", () => {
         actorLabel: "model",
       }),
     ).rejects.toThrow(DeploymentHealthCheckError);
+  });
+
+  it("replay package excludes full response body", async () => {
+    const { run, task } = await seedApprovedRun();
+    const execution = await seedSucceededDeployment(run.id, task.id);
+    vi.mocked(mockFetch).mockResolvedValueOnce(
+      new Response(`{"token":"secret123","data":"${"x".repeat(5000)}"}`, { status: 200 }),
+    );
+    await createDeploymentHealthCheck({
+      runId: run.id,
+      deploymentExecutionId: execution.id,
+      healthProfile: "dashboard-staging-health",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "op@example.com",
+    });
+    const pkg = buildRedactedReplayPackage(run.id);
+    const json = JSON.stringify(pkg.deploymentHealthChecks);
+    expect(json).not.toContain("secret123");
+    expect(json).not.toContain("outputSummary");
+    expect(pkg.deploymentHealthChecks[0]?.profile).toBe("dashboard-staging-health");
+  });
+
+  it("evidence bundle summary excludes response body", async () => {
+    const { run, task } = await seedApprovedRun();
+    const execution = await seedSucceededDeployment(run.id, task.id);
+    vi.mocked(mockFetch).mockResolvedValueOnce(
+      new Response("token=secret123", { status: 200 }),
+    );
+    await createDeploymentHealthCheck({
+      runId: run.id,
+      deploymentExecutionId: execution.id,
+      healthProfile: "dashboard-staging-health",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "op@example.com",
+    });
+    const bundle = await buildRunEvidenceBundle({ runId: run.id });
+    const json = JSON.stringify(bundle.deploymentHealthChecks);
+    expect(json).not.toContain("secret123");
+    expect(json).not.toContain("outputSummary");
   });
 
   it("updates evidence bundle health summary", async () => {
