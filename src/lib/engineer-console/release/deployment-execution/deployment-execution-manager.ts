@@ -25,7 +25,7 @@ import { evaluateDeploymentExecutionReadiness } from "./evaluate-deployment-exec
 import { executeDeploymentProfile } from "./execute-deployment-profile";
 import {
   buildCommandLabel,
-  getDeploymentProfileByName,
+  resolveExecutableDeploymentProfile,
 } from "./deployment-profile-config";
 import {
   buildOutputSummary,
@@ -153,6 +153,16 @@ export function hasSucceededDeploymentExecutionForApproval(approvalId: string): 
   return !!row;
 }
 
+function hasRunningDeploymentExecutionForApproval(approvalId: string): boolean {
+  const row = getEngineerConsoleDb()
+    .prepare(
+      `SELECT id FROM engineer_deployment_executions
+       WHERE deployment_approval_id = ? AND status = 'running' LIMIT 1`,
+    )
+    .get(approvalId);
+  return !!row;
+}
+
 export function toPublicDeploymentExecution(record: DeploymentExecutionRecord) {
   const environment = record.environmentId
     ? getDeploymentEnvironmentById(record.environmentId)
@@ -224,10 +234,7 @@ export async function createDeploymentExecution(
     throw new DeploymentExecutionError("Deployment approval not found for this run.");
   }
 
-  const profile = getDeploymentProfileByName(input.deploymentProfile);
-  if (!profile) {
-    throw new DeploymentExecutionError("Deployment profile not found.");
-  }
+  const profile = resolveExecutableDeploymentProfile(input.deploymentProfile);
 
   const environment = getDeploymentEnvironmentById(approval.environmentId);
   const merged = resolveLatestMergedMergeRequest(input.runId);
@@ -265,6 +272,17 @@ export async function createDeploymentExecution(
       created_at: now,
       updated_at: now,
     });
+
+  if (hasSucceededDeploymentExecutionForApproval(approval.id)) {
+    throw new DeploymentExecutionError(
+      "A successful deployment execution already exists for this approval.",
+    );
+  }
+  if (hasRunningDeploymentExecutionForApproval(approval.id)) {
+    throw new DeploymentExecutionError(
+      "A deployment execution is already running for this approval.",
+    );
+  }
 
   const startedAt = nowIso();
   updateExecution(id, { status: "running", started_at: startedAt });

@@ -44,6 +44,7 @@ import {
 import {
   setDeploymentProfilesForTests,
   listPublicDeploymentProfiles,
+  resolveExecutableDeploymentProfile,
 } from "./deployment-profile-config";
 import { evaluateDeploymentExecutionReadiness } from "./evaluate-deployment-execution-readiness";
 import {
@@ -274,9 +275,78 @@ describe("deployment profile configuration", () => {
     expect(json).not.toContain('"command"');
     expect(json).not.toContain('"args"');
   });
+
+  it("blocks disabled profile at execution resolve", () => {
+    setDeploymentProfilesForTests([{ ...TEST_PROFILE, allowed: false }]);
+    expect(() => resolveExecutableDeploymentProfile("staging-dashboard")).toThrow(
+      DeploymentExecutionError,
+    );
+    setDeploymentProfilesForTests([TEST_PROFILE, PRODUCTION_PROFILE]);
+  });
+
+  it("blocks unknown profile at execution resolve", () => {
+    expect(() => resolveExecutableDeploymentProfile("does-not-exist")).toThrow(
+      DeploymentExecutionError,
+    );
+  });
+
+  it("blocks github_actions_future strategy even when allowed in JSON", () => {
+    setDeploymentProfilesForTests([
+      {
+        ...TEST_PROFILE,
+        name: "gha-future",
+        strategy: "github_actions_future",
+        allowed: true,
+      },
+    ]);
+    const publicProfiles = listPublicDeploymentProfiles();
+    expect(publicProfiles.find((p) => p.name === "gha-future")?.enabled).toBe(false);
+    expect(() => resolveExecutableDeploymentProfile("gha-future")).toThrow(
+      DeploymentExecutionError,
+    );
+    setDeploymentProfilesForTests([TEST_PROFILE, PRODUCTION_PROFILE]);
+  });
+
+  it("blocks unknown profile name in readiness evaluation", async () => {
+    const { run, task } = await seedApprovedRun();
+    insertPrAndMerge(run.id, task.id);
+    const { approval } = await seedApprovedDeployment(run.id, "staging");
+    const readiness = evaluateDeploymentExecutionReadiness(
+      run.id,
+      approval.id,
+      "unknown-profile",
+    );
+    expect(readiness.status).toBe("blocked");
+    expect(readiness.blockers.some((b) => b.includes("not found"))).toBe(true);
+  });
 });
 
 describe("deployment execution authorization", () => {
+  it("rejects viewer for admin-only execution mutation", async () => {
+    const hash = await hashPassword("pass");
+    const viewer = createOperatorAccount({
+      email: "viewer@example.com",
+      displayName: "Viewer",
+      passwordHash: hash,
+      role: "viewer",
+    });
+    const session = createOperatorSession(viewer.id);
+    const result = await authorizeMutation(
+      new Request("http://localhost/", {
+        method: "POST",
+        headers: {
+          host: "localhost",
+          origin: "http://localhost",
+          cookie: `ec_session=${encodeURIComponent(session.sessionToken)}`,
+          [CSRF_HEADER_NAME]: session.csrfToken,
+        },
+      }),
+      { minRole: "admin" },
+    );
+    expect(result).toBeInstanceOf(NextResponse);
+    expect((result as NextResponse).status).toBe(403);
+  });
+
   it("rejects operator for admin-only execution mutation", async () => {
     const hash = await hashPassword("pass");
     const op = createOperatorAccount({
@@ -371,9 +441,31 @@ describe("deployment execution", () => {
   });
 
   it("redacts secrets from output summary", () => {
-    const summary = redactDeploymentOutput("deploy complete api_key=secret123 token=abc");
+    const summary = redactDeploymentOutput(
+      "deploy complete api_key=secret123 token=abc password=pass authorization=Bearer xyz cookie=sess private_key=pk",
+    );
     expect(summary).not.toContain("secret123");
+    expect(summary).not.toContain("Bearer xyz");
     expect(summary).toContain("[redacted]");
+  });
+
+  it("does not persist raw secrets in database output columns", async () => {
+    const { run, task } = await seedApprovedRun();
+    insertPrAndMerge(run.id, task.id);
+    const { approval } = await seedApprovedDeployment(run.id, "staging");
+    const record = await createDeploymentExecution({
+      runId: run.id,
+      deploymentApprovalId: approval.id,
+      deploymentProfile: "staging-dashboard",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "admin@example.com",
+    });
+    const row = getEngineerConsoleDb()
+      .prepare(`SELECT output_summary, output_hash FROM engineer_deployment_executions WHERE id = ?`)
+      .get(record.id) as { output_summary: string; output_hash: string };
+    expect(row.output_summary).not.toContain("secret123");
+    expect(row.output_hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(row.output_summary.length).toBeLessThanOrEqual(900);
   });
 
   it("does not store full raw logs in public execution shape", async () => {
@@ -415,7 +507,61 @@ describe("deployment execution", () => {
     expect(record.errorMessage).toContain("exited");
   });
 
-  it("emits deployment execution audit events", async () => {
+  it("emits deployment execution audit events on success", async () => {
+    const { run, task } = await seedApprovedRun();
+    insertPrAndMerge(run.id, task.id);
+    const { approval } = await seedApprovedDeployment(run.id, "staging");
+    await createDeploymentExecution({
+      runId: run.id,
+      deploymentApprovalId: approval.id,
+      deploymentProfile: "staging-dashboard",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "admin@example.com",
+    });
+    const events = listAuditEventsForRun(run.id).filter((e) =>
+      [
+        AUDIT_EVENT_TYPES.DEPLOYMENT_EXECUTION_STARTED,
+        AUDIT_EVENT_TYPES.DEPLOYMENT_EXECUTION_SUCCEEDED,
+        AUDIT_EVENT_TYPES.DEPLOYMENT_EXECUTION_FAILED,
+      ].includes(e.eventType),
+    );
+    const types = events.map((e) => e.eventType);
+    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_EXECUTION_STARTED);
+    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_EXECUTION_SUCCEEDED);
+    const payloads = JSON.stringify(events.map((e) => e.payload));
+    expect(payloads).not.toContain("secret123");
+    expect(payloads).not.toMatch(/stdout|stderr/);
+  });
+
+  it("emits DEPLOYMENT_EXECUTION_FAILED on timeout exit", async () => {
+    vi.mocked(mockExecutor.exec).mockResolvedValueOnce({
+      exitCode: 124,
+      stdout: "",
+      stderr: "timed out",
+      timedOut: true,
+    });
+    const { run, task } = await seedApprovedRun();
+    insertPrAndMerge(run.id, task.id);
+    const { approval } = await seedApprovedDeployment(run.id, "staging");
+    const record = await createDeploymentExecution({
+      runId: run.id,
+      deploymentApprovalId: approval.id,
+      deploymentProfile: "staging-dashboard",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "admin@example.com",
+    });
+    expect(record.status).toBe("failed");
+    const types = listAuditEventsForRun(run.id).map((e) => e.eventType);
+    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_EXECUTION_FAILED);
+  });
+
+  it("emits DEPLOYMENT_EXECUTION_FAILED on non-zero exit", async () => {
+    vi.mocked(mockExecutor.exec).mockResolvedValueOnce({
+      exitCode: 1,
+      stdout: "",
+      stderr: "deploy failed",
+      timedOut: false,
+    });
     const { run, task } = await seedApprovedRun();
     insertPrAndMerge(run.id, task.id);
     const { approval } = await seedApprovedDeployment(run.id, "staging");
@@ -427,8 +573,7 @@ describe("deployment execution", () => {
       actorLabel: "admin@example.com",
     });
     const types = listAuditEventsForRun(run.id).map((e) => e.eventType);
-    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_EXECUTION_STARTED);
-    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_EXECUTION_SUCCEEDED);
+    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_EXECUTION_FAILED);
   });
 
   it("prevents duplicate successful execution for same approval", async () => {
@@ -463,6 +608,46 @@ describe("deployment execution", () => {
         actorLabel: "model",
       }),
     ).rejects.toThrow(DeploymentExecutionError);
+  });
+
+  it("rejects client-supplied command override via profile name only", async () => {
+    setDeploymentProfilesForTests([
+      {
+        ...TEST_PROFILE,
+        name: "safe-profile",
+        command: "echo",
+        args: ["from-config"],
+      },
+    ]);
+    const { run, task } = await seedApprovedRun();
+    insertPrAndMerge(run.id, task.id);
+    const { approval } = await seedApprovedDeployment(run.id, "staging");
+    await createDeploymentExecution({
+      runId: run.id,
+      deploymentApprovalId: approval.id,
+      deploymentProfile: "safe-profile",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "admin@example.com",
+    });
+    expect(spawnCalls).toEqual([{ command: "echo", args: ["from-config"] }]);
+    setDeploymentProfilesForTests([TEST_PROFILE, PRODUCTION_PROFILE]);
+  });
+
+  it("blocks execution when disabled profile selected in readiness", async () => {
+    setDeploymentProfilesForTests([{ ...TEST_PROFILE, allowed: false }]);
+    const { run, task } = await seedApprovedRun();
+    insertPrAndMerge(run.id, task.id);
+    const { approval } = await seedApprovedDeployment(run.id, "staging");
+    await expect(
+      createDeploymentExecution({
+        runId: run.id,
+        deploymentApprovalId: approval.id,
+        deploymentProfile: "staging-dashboard",
+        actorType: AUDIT_ACTOR_TYPES.HUMAN,
+        actorLabel: "admin",
+      }),
+    ).rejects.toThrow(DeploymentExecutionError);
+    setDeploymentProfilesForTests([TEST_PROFILE, PRODUCTION_PROFILE]);
   });
 
   it("updates evidence bundle deployment execution summary", async () => {

@@ -7,6 +7,9 @@ const SECRET_PATTERNS = [
   /secret[=:]\s*\S+/gi,
   /password[=:]\s*\S+/gi,
   /token[=:]\s*\S+/gi,
+  /authorization[=:]\s*\S+/gi,
+  /cookie[=:]\s*\S+/gi,
+  /private[_-]?key[=:]\s*\S+/gi,
   /-----BEGIN[A-Z\s]+PRIVATE KEY-----[\s\S]*?-----END[A-Z\s]+PRIVATE KEY-----/gi,
 ];
 

@@ -18,17 +18,14 @@ function assertProfileShape(raw: unknown): DeploymentProfileConfig {
   const workingDirectory = typeof p.workingDirectory === "string" ? p.workingDirectory.trim() : "";
   const command = typeof p.command === "string" ? p.command.trim() : "";
   const args = Array.isArray(p.args) ? p.args.map((a) => String(a)) : [];
-  const allowed = p.allowed === true;
-
   if (!name || !environmentName) {
     throw new DeploymentExecutionError("Deployment profile requires name and environmentName.");
   }
   if (!DEPLOYMENT_PROFILE_STRATEGIES.includes(strategy)) {
     throw new DeploymentExecutionError(`Unsupported deployment profile strategy: ${String(p.strategy)}`);
   }
-  if (strategy === "github_actions_future") {
-    throw new DeploymentExecutionError("github_actions_future profiles are not executable in this phase.");
-  }
+
+  const allowed = p.allowed === true;
   if (!workingDirectory || !command) {
     throw new DeploymentExecutionError("Deployment profile requires workingDirectory and command.");
   }
@@ -36,7 +33,7 @@ function assertProfileShape(raw: unknown): DeploymentProfileConfig {
     throw new DeploymentExecutionError("Deployment profile command/args contain forbidden shell characters.");
   }
 
-  return {
+  return normalizeDeploymentProfile({
     name,
     environmentName,
     strategy,
@@ -48,6 +45,13 @@ function assertProfileShape(raw: unknown): DeploymentProfileConfig {
       typeof p.timeoutMs === "number" && p.timeoutMs > 0
         ? Math.min(p.timeoutMs, 600_000)
         : DEFAULT_TIMEOUT_MS,
+  });
+}
+
+function normalizeDeploymentProfile(profile: DeploymentProfileConfig): DeploymentProfileConfig {
+  return {
+    ...profile,
+    allowed: profile.allowed === true && profile.strategy === "fixed_command",
   };
 }
 
@@ -78,12 +82,29 @@ export function setDeploymentProfilesForTests(profiles: DeploymentProfileConfig[
 }
 
 export function listDeploymentProfiles(): DeploymentProfileConfig[] {
-  if (testProfilesOverride) return [...testProfilesOverride];
-  return loadProfilesFromEnv();
+  const profiles = testProfilesOverride ? [...testProfilesOverride] : loadProfilesFromEnv();
+  return profiles.map(normalizeDeploymentProfile);
 }
 
 export function getDeploymentProfileByName(name: string): DeploymentProfileConfig | null {
   return listDeploymentProfiles().find((p) => p.name === name) ?? null;
+}
+
+/** Resolve a profile for execution; fails closed if missing, disabled, or non-executable strategy. */
+export function resolveExecutableDeploymentProfile(profileName: string): DeploymentProfileConfig {
+  const profile = getDeploymentProfileByName(profileName.trim());
+  if (!profile) {
+    throw new DeploymentExecutionError(`Deployment profile not found: ${profileName}`);
+  }
+  if (!profile.allowed) {
+    throw new DeploymentExecutionError(`Deployment profile is disabled: ${profileName}`);
+  }
+  if (profile.strategy !== "fixed_command") {
+    throw new DeploymentExecutionError(
+      `Deployment profile strategy is not executable: ${profile.strategy}`,
+    );
+  }
+  return profile;
 }
 
 export function listPublicDeploymentProfiles(): DeploymentProfilePublicMetadata[] {

@@ -43,7 +43,7 @@ If unset or empty, **no profiles are available** and execution is blocked.
 
 ### Rules
 
-- `strategy` must be `fixed_command` (`github_actions_future` is reserved, not executable)
+- `strategy` must be `fixed_command` to execute (`github_actions_future` profiles may be listed but are always disabled)
 - `command` + `args` array only — no shell string concatenation
 - `allowed: false` disables a profile
 - `environmentName` must match the deployment approval environment name
