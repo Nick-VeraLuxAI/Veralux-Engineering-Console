@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
@@ -48,7 +50,7 @@ export function PrCreationPanel({ runId }: { runId: string }) {
   const [rationale, setRationale] = useState("");
 
   const loadHistory = useCallback(async () => {
-    const res = await fetch(`/api/engineer-console/runs/${runId}/pr-requests`);
+    const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/pr-requests`);
     if (!res.ok) {
       const body = (await res.json()) as { error?: string };
       throw new Error(body.error ?? `HTTP ${res.status}`);
@@ -73,7 +75,7 @@ export function PrCreationPanel({ runId }: { runId: string }) {
     setBusy("evaluate");
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/runs/${runId}/pr-readiness`);
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/pr-readiness`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Readiness evaluation failed");
       setReadiness(data.readiness as PrReadiness);
@@ -88,7 +90,7 @@ export function PrCreationPanel({ runId }: { runId: string }) {
     setBusy("create");
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/runs/${runId}/pr-requests`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/pr-requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ actorLabel, baseBranch, draft, rationale }),

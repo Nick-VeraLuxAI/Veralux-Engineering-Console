@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useEffect, useState } from "react";
 
 interface AuditEventView {
@@ -26,7 +28,7 @@ export function AuditTimelinePanel({ runId }: { runId: string }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/engineer-console/runs/${runId}/audit-events`);
+        const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/audit-events`);
         if (!res.ok) {
           const body = (await res.json()) as { error?: string };
           throw new Error(body.error ?? `HTTP ${res.status}`);

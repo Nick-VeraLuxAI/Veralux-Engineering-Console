@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useState } from "react";
 import { StatusBadge } from "./status-badge";
 import { RepoFileIndexPanel } from "./repo-file-index-panel";
@@ -31,7 +33,7 @@ export function RegisteredReposPanel({
   const [busy, setBusy] = useState<string | null>(null);
 
   async function refreshList() {
-    const res = await fetch("/api/engineer-console/repos");
+    const res = await engineerConsoleFetch("/api/engineer-console/repos");
     if (res.ok) {
       const data = (await res.json()) as { repos: PublicRegisteredRepo[] };
       setRepos(data.repos);
@@ -43,7 +45,7 @@ export function RegisteredReposPanel({
     setBusy("register");
     setError(null);
     try {
-      const res = await fetch("/api/engineer-console/repos", {
+      const res = await engineerConsoleFetch("/api/engineer-console/repos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name || undefined, path }),
@@ -64,7 +66,7 @@ export function RegisteredReposPanel({
     setBusy(`${action}-${repoId}`);
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/repos/${repoId}/${action}`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/repos/${repoId}/${action}`, {
         method: "POST",
       });
       const data = await res.json();

@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
@@ -27,7 +29,7 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
   const [packageJson, setPackageJson] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/engineer-console/runs/${runId}/replay-verification`);
+    const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/replay-verification`);
     if (res.status === 404) {
       setVerification(null);
       return;
@@ -53,7 +55,7 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/runs/${runId}/replay-verification`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/replay-verification`, {
         method: "POST",
       });
       const data = await res.json();
@@ -71,7 +73,7 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/runs/${runId}/replay-package`);
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/replay-package`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to load replay package");
       setPackageJson(JSON.stringify(data.replayPackage, null, 2));

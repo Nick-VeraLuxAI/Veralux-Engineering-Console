@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useCallback, useEffect, useState } from "react";
 
 interface PublicIndexedFile {
@@ -42,7 +44,7 @@ export function RepoFileIndexPanel({
   const loadFiles = useCallback(async () => {
     setLoadingFiles(true);
     try {
-      const res = await fetch(`/api/engineer-console/repos/${repoId}/files?limit=100`);
+      const res = await engineerConsoleFetch(`/api/engineer-console/repos/${repoId}/files?limit=100`);
       if (!res.ok) {
         const body = (await res.json()) as { error?: string };
         throw new Error(body.error ?? `HTTP ${res.status}`);
@@ -67,7 +69,7 @@ export function RepoFileIndexPanel({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/repos/${repoId}/index`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/repos/${repoId}/index`, {
         method: "POST",
       });
       const data = await res.json();

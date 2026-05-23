@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 export function ApprovalActions({
   runId,
@@ -26,7 +27,7 @@ export function ApprovalActions({
     setLoading(action);
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/runs/${runId}/actions`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/actions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

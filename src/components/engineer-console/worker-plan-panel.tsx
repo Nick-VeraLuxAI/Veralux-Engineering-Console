@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type {
@@ -64,7 +66,7 @@ export function WorkerPlanPanel({
     }
 
     try {
-      const res = await fetch(`/api/engineer-console/runs/${runId}/worker-plan`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/worker-plan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan }),

@@ -5,6 +5,7 @@ import {
 } from "@/lib/engineer-console/repo-intelligence/file-index/file-index-manager";
 import { getRegisteredRepoById } from "@/lib/engineer-console/repo-intelligence/registered-repos/get-repo";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
+import { authorizeRead } from "@/lib/engineer-console/security/route-guards";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,8 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeRead(request);
+  if (auth instanceof NextResponse) return auth;
   const { id } = await context.params;
 
   if (!getRegisteredRepoById(id)) {

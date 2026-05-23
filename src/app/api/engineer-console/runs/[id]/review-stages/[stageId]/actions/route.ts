@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { AUDIT_ACTOR_TYPES } from "@/lib/engineer-console/governance/audit-ledger/audit-event-types";
 import {
   completeReviewStageAction,
   getReviewStageById,
@@ -9,6 +8,13 @@ import { ReviewStageError } from "@/lib/engineer-console/governance/review-stage
 import type { ReviewStageAction } from "@/lib/engineer-console/governance/review-stages/review-stage-types";
 import { getRunById } from "@/lib/engineer-console/run-manager/run-manager";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
+import { resolveHumanActor } from "@/lib/engineer-console/security/actor-identity";
+import {
+  assertReviewStageActionRole,
+  authErrorResponse,
+  authorizeMutation,
+  AuthorizationError,
+} from "@/lib/engineer-console/security/route-guards";
 
 export const runtime = "nodejs";
 
@@ -17,6 +23,9 @@ export async function POST(
   context: { params: Promise<{ id: string; stageId: string }> },
 ) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeMutation(request, { minRole: "operator" });
+  if (auth instanceof NextResponse) return auth;
+
   const { id, stageId } = await context.params;
 
   if (!getRunById(id)) {
@@ -39,15 +48,20 @@ export async function POST(
   }
 
   try {
+    assertReviewStageActionRole(auth.operator, body.action);
+    const actor = resolveHumanActor(auth.operator, body.actorLabel);
     const updated = completeReviewStageAction({
       stageId,
       action: body.action,
-      actorType: AUDIT_ACTOR_TYPES.HUMAN,
-      actorLabel: body.actorLabel ?? "operator",
+      actorType: actor.actorType,
+      actorLabel: actor.actorLabel,
       rationale: body.rationale,
     });
     return NextResponse.json({ ok: true, stage: toPublicReviewStage(updated) });
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return authErrorResponse(error);
+    }
     const message = error instanceof Error ? error.message : String(error);
     const status = error instanceof ReviewStageError ? 400 : 500;
     return NextResponse.json({ error: message }, { status });

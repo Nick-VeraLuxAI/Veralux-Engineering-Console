@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { PublicRegisteredRepo } from "./registered-repos-panel";
@@ -16,7 +18,7 @@ export function CreateTaskForm({ onClose }: { onClose: () => void }) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    void fetch("/api/engineer-console/repos")
+    void engineerConsoleFetch("/api/engineer-console/repos")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.repos) setRepos(data.repos as PublicRegisteredRepo[]);
@@ -35,7 +37,7 @@ export function CreateTaskForm({ onClose }: { onClose: () => void }) {
         payload.targetRepoPath = targetRepoPath;
       }
 
-      const res = await fetch("/api/engineer-console/tasks", {
+      const res = await engineerConsoleFetch("/api/engineer-console/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

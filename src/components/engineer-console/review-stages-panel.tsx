@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
@@ -39,7 +41,7 @@ export function ReviewStagesPanel({ runId }: { runId: string }) {
   const [actorLabel, setActorLabel] = useState("operator");
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/engineer-console/runs/${runId}/review-stages`);
+    const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/review-stages`);
     if (!res.ok) {
       const body = (await res.json()) as { error?: string };
       throw new Error(body.error ?? `HTTP ${res.status}`);
@@ -61,7 +63,7 @@ export function ReviewStagesPanel({ runId }: { runId: string }) {
     setBusy("generate");
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/runs/${runId}/review-stages/generate`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/review-stages/generate`, {
         method: "POST",
       });
       const data = await res.json();
@@ -83,7 +85,7 @@ export function ReviewStagesPanel({ runId }: { runId: string }) {
     setBusy(`${action}-${stageId}`);
     setError(null);
     try {
-      const res = await fetch(
+      const res = await engineerConsoleFetch(
         `/api/engineer-console/runs/${runId}/review-stages/${stageId}/actions`,
         {
           method: "POST",

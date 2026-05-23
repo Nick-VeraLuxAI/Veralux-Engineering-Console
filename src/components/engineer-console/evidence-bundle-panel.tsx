@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useCallback, useEffect, useState } from "react";
 
 interface EvidenceResponse {
@@ -34,7 +36,7 @@ export function EvidenceBundlePanel({ runId }: { runId: string }) {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/engineer-console/runs/${runId}/evidence-bundle`);
+    const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/evidence-bundle`);
     if (res.status === 404) {
       setData(null);
       setMissing(true);
@@ -61,7 +63,7 @@ export function EvidenceBundlePanel({ runId }: { runId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/runs/${runId}/evidence-bundle/regenerate`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/evidence-bundle/regenerate`, {
         method: "POST",
       });
       const body = await res.json();

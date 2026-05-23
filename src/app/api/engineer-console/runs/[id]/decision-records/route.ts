@@ -5,14 +5,17 @@ import {
 } from "@/lib/engineer-console/governance/decision-records/decision-record-manager";
 import { getRunById } from "@/lib/engineer-console/run-manager/run-manager";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
+import { authorizeRead } from "@/lib/engineer-console/security/route-guards";
 
 export const runtime = "nodejs";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeRead(request);
+  if (auth instanceof NextResponse) return auth;
   const { id } = await context.params;
 
   const run = getRunById(id);

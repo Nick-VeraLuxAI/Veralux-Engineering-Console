@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { getEngineerConsoleDb } from "./client";
 import { applyEngineerConsoleSchemaPatches } from "./schema-patches";
+import { ensureOperatorAccountsBootstrapped } from "../security/operator-account-manager";
 
 export function initializeEngineerConsoleDatabase(): void {
   const db = getEngineerConsoleDb();
@@ -9,4 +10,5 @@ export function initializeEngineerConsoleDatabase(): void {
   const schema = fs.readFileSync(schemaPath, "utf8");
   db.exec(schema);
   applyEngineerConsoleSchemaPatches(db);
+  ensureOperatorAccountsBootstrapped();
 }

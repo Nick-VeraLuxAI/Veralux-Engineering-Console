@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useEffect, useState } from "react";
 import type { WorkerPlanValidationError } from "@/lib/engineer-console/worker-plan/worker-plan-types";
 
@@ -40,7 +42,7 @@ export function WorkerPlanDraftPanel({
   } | null>(null);
 
   useEffect(() => {
-    void fetch("/api/engineer-console/model-provider")
+    void engineerConsoleFetch("/api/engineer-console/model-provider")
       .then((res) => res.json())
       .then((data: ProviderInfo) => setProviderInfo(data))
       .catch(() => {
@@ -65,7 +67,7 @@ export function WorkerPlanDraftPanel({
       .filter(Boolean);
 
     try {
-      const res = await fetch(`/api/engineer-console/runs/${runId}/worker-plan-drafts`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/worker-plan-drafts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

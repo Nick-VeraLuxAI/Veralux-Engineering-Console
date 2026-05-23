@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
@@ -50,9 +52,9 @@ export function CompatibilityPanel() {
 
   const load = useCallback(async () => {
     const [runsRes, surfacesRes, linksRes] = await Promise.all([
-      fetch("/api/engineer-console/compatibility/runs?limit=5"),
-      fetch("/api/engineer-console/compatibility/surfaces?limit=50"),
-      fetch(
+      engineerConsoleFetch("/api/engineer-console/compatibility/runs?limit=5"),
+      engineerConsoleFetch("/api/engineer-console/compatibility/surfaces?limit=50"),
+      engineerConsoleFetch(
         `/api/engineer-console/compatibility/links?limit=50${statusFilter ? `&status=${statusFilter}` : ""}`,
       ),
     ]);
@@ -82,7 +84,7 @@ export function CompatibilityPanel() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/engineer-console/compatibility/analyze", { method: "POST" });
+      const res = await engineerConsoleFetch("/api/engineer-console/compatibility/analyze", { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Analysis failed");
       await load();

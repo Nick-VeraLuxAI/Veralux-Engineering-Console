@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useCallback, useEffect, useState } from "react";
 
 interface PublicSymbol {
@@ -47,8 +49,8 @@ export function RepoCodeIndexPanel({
     const q = query.trim() ? `?q=${encodeURIComponent(query.trim())}&limit=30` : "?limit=30";
     try {
       const [symRes, chunkRes] = await Promise.all([
-        fetch(`/api/engineer-console/repos/${repoId}/symbols${q}`),
-        fetch(`/api/engineer-console/repos/${repoId}/chunks${q}`),
+        engineerConsoleFetch(`/api/engineer-console/repos/${repoId}/symbols${q}`),
+        engineerConsoleFetch(`/api/engineer-console/repos/${repoId}/chunks${q}`),
       ]);
       if (symRes.ok) {
         const data = (await symRes.json()) as { symbols: PublicSymbol[]; count: number };
@@ -75,7 +77,7 @@ export function RepoCodeIndexPanel({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/repos/${repoId}/code-index`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/repos/${repoId}/code-index`, {
         method: "POST",
       });
       const data = await res.json();

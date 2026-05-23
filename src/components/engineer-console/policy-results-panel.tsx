@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
@@ -25,7 +27,7 @@ export function PolicyResultsPanel({ runId }: { runId: string }) {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/engineer-console/runs/${runId}/policy-results`);
+    const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/policy-results`);
     if (!res.ok) {
       const body = (await res.json()) as { error?: string };
       throw new Error(body.error ?? `HTTP ${res.status}`);
@@ -47,7 +49,7 @@ export function PolicyResultsPanel({ runId }: { runId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/runs/${runId}/policy-results`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/policy-results`, {
         method: "POST",
       });
       const data = await res.json();

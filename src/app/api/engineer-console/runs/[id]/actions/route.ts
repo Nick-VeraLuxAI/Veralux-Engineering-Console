@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { handleApprovalAction } from "@/lib/engineer-console/orchestrator/run-orchestrator";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
-import { AUDIT_ACTOR_TYPES } from "@/lib/engineer-console/governance/audit-ledger/audit-event-types";
 import { ReviewStageError } from "@/lib/engineer-console/governance/review-stages/review-stage-types";
 import type { ApprovalAction } from "@/lib/engineer-console/types";
+import { resolveHumanActor } from "@/lib/engineer-console/security/actor-identity";
+import {
+  assertRunApprovalRole,
+  authErrorResponse,
+  authorizeMutation,
+  AuthorizationError,
+} from "@/lib/engineer-console/security/route-guards";
 
 export const runtime = "nodejs";
 
@@ -12,6 +18,9 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeMutation(request, { minRole: "operator" });
+  if (auth instanceof NextResponse) return auth;
+
   const { id } = await context.params;
   const body = (await request.json()) as {
     action?: ApprovalAction;
@@ -24,9 +33,11 @@ export async function POST(
   }
 
   try {
+    assertRunApprovalRole(auth.operator, body.action);
+    const actor = resolveHumanActor(auth.operator, body.actorLabel);
     const result = await handleApprovalAction(id, body.action, {
-      actorType: AUDIT_ACTOR_TYPES.HUMAN,
-      actorLabel: body.actorLabel ?? "operator",
+      actorType: actor.actorType,
+      actorLabel: actor.actorLabel,
       rationale: body.rationale,
     });
     if (!result) {
@@ -34,6 +45,9 @@ export async function POST(
     }
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return authErrorResponse(error);
+    }
     const message = error instanceof Error ? error.message : String(error);
     const status = error instanceof ReviewStageError ? 400 : 400;
     return NextResponse.json({ error: message }, { status });

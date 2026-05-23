@@ -7,14 +7,17 @@ import {
 import { ReplayVerificationError } from "@/lib/engineer-console/governance/replay-verification/replay-verification-types";
 import { getRunById } from "@/lib/engineer-console/run-manager/run-manager";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
+import { authorizeMutation, authorizeRead } from "@/lib/engineer-console/security/route-guards";
 
 export const runtime = "nodejs";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeRead(request);
+  if (auth instanceof NextResponse) return auth;
   const { id } = await context.params;
 
   if (!getRunById(id)) {
@@ -32,10 +35,12 @@ export async function GET(
 }
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeMutation(request, { minRole: "operator" });
+  if (auth instanceof NextResponse) return auth;
   const { id } = await context.params;
 
   if (!getRunById(id)) {

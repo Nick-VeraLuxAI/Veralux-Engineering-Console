@@ -7,6 +7,7 @@ import {
 import { getTaskById } from "@/lib/engineer-console/task-manager/task-manager";
 import { getChangedFiles, getDiffSummary } from "@/lib/engineer-console/workspace/git-workspace";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
+import { authorizeRead } from "@/lib/engineer-console/security/route-guards";
 import type { ApprovalReport } from "@/lib/engineer-console/types";
 import {
   getLatestWorkerPlanForRun,
@@ -21,10 +22,12 @@ import {
 export const runtime = "nodejs";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeRead(request);
+  if (auth instanceof NextResponse) return auth;
   const { id } = await context.params;
   const run = getRunById(id);
   if (!run) {

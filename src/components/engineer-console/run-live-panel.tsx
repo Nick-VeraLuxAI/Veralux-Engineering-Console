@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useEffect, useState } from "react";
 import type { ApprovalReport, EngineeringRun, EngineeringTask, QualityGateResult } from "@/lib/engineer-console/types";
 import { StatusBadge } from "./status-badge";
@@ -31,7 +33,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
   useEffect(() => {
     if (terminal) return;
     const interval = setInterval(async () => {
-      const res = await fetch(`/api/engineer-console/runs/${runId}`);
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}`);
       if (res.ok) {
         setData(await res.json());
       }

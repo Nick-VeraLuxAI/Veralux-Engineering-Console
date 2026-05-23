@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -12,7 +14,7 @@ export function StartRunButton({ taskId }: { taskId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/engineer-console/tasks/${taskId}/runs`, {
+      const res = await engineerConsoleFetch(`/api/engineer-console/tasks/${taskId}/runs`, {
         method: "POST",
       });
       const data = await res.json();

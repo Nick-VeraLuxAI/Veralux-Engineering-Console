@@ -8,14 +8,17 @@ import {
 import { ReviewStageError } from "@/lib/engineer-console/governance/review-stages/review-stage-types";
 import { getRunById } from "@/lib/engineer-console/run-manager/run-manager";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
+import { authorizeMutation } from "@/lib/engineer-console/security/route-guards";
 
 export const runtime = "nodejs";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeMutation(request, { minRole: "operator" });
+  if (auth instanceof NextResponse) return auth;
   const { id } = await context.params;
 
   if (!getRunById(id)) {

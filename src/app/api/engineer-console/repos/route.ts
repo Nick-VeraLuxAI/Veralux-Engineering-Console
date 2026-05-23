@@ -6,17 +6,22 @@ import {
 } from "@/lib/engineer-console/repo-intelligence/registered-repos/register-repo";
 import { RegisteredRepoError, RepoPathPolicyError } from "@/lib/engineer-console/repo-intelligence/registered-repos/registered-repo-types";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
+import { authorizeMutation, authorizeRead } from "@/lib/engineer-console/security/route-guards";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeRead(request);
+  if (auth instanceof NextResponse) return auth;
   const repos = listRegisteredRepos().map(toPublicRegisteredRepo);
   return NextResponse.json({ repos });
 }
 
 export async function POST(request: Request) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeMutation(request, { minRole: "operator" });
+  if (auth instanceof NextResponse) return auth;
 
   let body: { path?: string; name?: string; description?: string } = {};
   try {

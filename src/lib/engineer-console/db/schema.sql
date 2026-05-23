@@ -496,3 +496,33 @@ CREATE TABLE IF NOT EXISTS engineer_pr_requests (
 
 CREATE INDEX IF NOT EXISTS idx_engineer_pr_requests_run_id_created_at
   ON engineer_pr_requests (run_id, created_at DESC);
+
+-- Phase S1: operator authentication
+CREATE TABLE IF NOT EXISTS engineer_operator_accounts (
+  id TEXT PRIMARY KEY NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  display_name TEXT NOT NULL DEFAULT '',
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_operator_accounts_email
+  ON engineer_operator_accounts (email);
+
+CREATE TABLE IF NOT EXISTS engineer_operator_sessions (
+  id TEXT PRIMARY KEY NOT NULL,
+  operator_id TEXT NOT NULL,
+  session_hash TEXT NOT NULL UNIQUE,
+  csrf_token_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (operator_id) REFERENCES engineer_operator_accounts (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_operator_sessions_operator_id
+  ON engineer_operator_sessions (operator_id);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_operator_sessions_expires_at
+  ON engineer_operator_sessions (expires_at);

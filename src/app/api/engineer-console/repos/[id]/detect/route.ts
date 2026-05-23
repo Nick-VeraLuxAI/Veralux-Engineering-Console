@@ -5,14 +5,17 @@ import {
 } from "@/lib/engineer-console/repo-intelligence/registered-repos/register-repo";
 import { RegisteredRepoError } from "@/lib/engineer-console/repo-intelligence/registered-repos/registered-repo-types";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
+import { authorizeMutation } from "@/lib/engineer-console/security/route-guards";
 
 export const runtime = "nodejs";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   ensureEngineerConsoleReady();
+  const auth = await authorizeMutation(request, { minRole: "operator" });
+  if (auth instanceof NextResponse) return auth;
   const { id } = await context.params;
 
   try {

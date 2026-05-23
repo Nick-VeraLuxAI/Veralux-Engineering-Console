@@ -1,5 +1,7 @@
 "use client";
 
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+
 import { useCallback, useEffect, useState } from "react";
 
 interface DecisionRecordPublic {
@@ -25,7 +27,7 @@ export function DecisionHistoryPanel({ runId }: { runId: string }) {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/engineer-console/runs/${runId}/decision-records`);
+    const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/decision-records`);
     if (!res.ok) {
       const body = (await res.json()) as { error?: string };
       throw new Error(body.error ?? `HTTP ${res.status}`);
