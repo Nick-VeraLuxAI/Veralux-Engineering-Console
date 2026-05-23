@@ -55,13 +55,26 @@ export function evaluateDeploymentHealthPolicy(
     ? getDeploymentExecutionById(input.deploymentExecutionId)
     : succeededExecutions[0] ?? null;
 
-  if (!execution || execution.runId !== input.runId || execution.status !== "succeeded") {
+  if (!execution || execution.runId !== input.runId) {
     return {
       ...base,
       status: "not_checked",
       recommendedAction:
         "Complete a successful deployment execution before evaluating deployment health policy.",
       warnings: ["No successful deployment execution is available for this run."],
+    };
+  }
+
+  if (execution.status !== "succeeded") {
+    return {
+      ...base,
+      deploymentExecutionId: execution.id,
+      status: "not_checked",
+      recommendedAction:
+        "Deployment health policy requires a successful deployment execution.",
+      warnings: [
+        `Deployment execution is not successful (current status: ${execution.status}).`,
+      ],
     };
   }
 

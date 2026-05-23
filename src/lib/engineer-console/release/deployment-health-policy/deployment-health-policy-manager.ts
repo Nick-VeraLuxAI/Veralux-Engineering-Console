@@ -16,6 +16,7 @@ import type {
 } from "./deployment-health-policy-types";
 import { DeploymentHealthPolicyError } from "./deployment-health-policy-types";
 import { evaluateDeploymentHealthPolicy } from "./evaluate-deployment-health-policy";
+import { toStorableDeploymentHealthPolicyEvaluation } from "./sanitize-deployment-health-policy-evaluation";
 
 interface PolicyResultRow {
   id: string;
@@ -49,6 +50,10 @@ function mapRow(row: PolicyResultRow): DeploymentHealthPolicyResultRecord {
   };
 }
 
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
 function resolveEnvironmentId(evaluation: DeploymentHealthPolicyEvaluation): string | null {
   if (!evaluation.deploymentExecutionId) return null;
   const row = getEngineerConsoleDb()
@@ -63,7 +68,7 @@ function persistPolicyResult(
   actorLabel: string,
 ): DeploymentHealthPolicyResultRecord {
   const id = uuidv4();
-  const createdAt = evaluation.evaluatedAt;
+  const createdAt = nowIso();
   const environmentId = resolveEnvironmentId(evaluation);
 
   getEngineerConsoleDb()
@@ -84,7 +89,7 @@ function persistPolicyResult(
       status: evaluation.status,
       policy_version: evaluation.policyVersion,
       policy_hash: evaluation.policyHash,
-      result_json: JSON.stringify(evaluation),
+      result_json: JSON.stringify(toStorableDeploymentHealthPolicyEvaluation(evaluation)),
       actor_type: actorType,
       actor_label: actorLabel,
       created_at: createdAt,

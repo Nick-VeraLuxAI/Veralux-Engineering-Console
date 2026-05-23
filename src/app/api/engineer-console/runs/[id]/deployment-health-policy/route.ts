@@ -54,7 +54,7 @@ export async function POST(
 
   try {
     const actor = resolveHumanActor(auth.operator, body.actorLabel);
-    const evaluation = await runDeploymentHealthPolicyEvaluation(id, {
+    await runDeploymentHealthPolicyEvaluation(id, {
       persist: true,
       audit: true,
       actorType: actor.actorType,
@@ -66,7 +66,6 @@ export async function POST(
     return NextResponse.json({
       ok: true,
       result: toPublicDeploymentHealthPolicyResult(record),
-      evaluation,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

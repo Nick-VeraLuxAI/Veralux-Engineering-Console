@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { v4 as uuidv4 } from "uuid";
+import { NextResponse } from "next/server";
 import {
   closeEngineerConsoleDb,
   getEngineerConsoleDb,
@@ -27,11 +28,17 @@ import { evaluateDeploymentHealthPolicy } from "./evaluate-deployment-health-pol
 import { DEFAULT_DEPLOYMENT_HEALTH_POLICY } from "./default-deployment-health-policy";
 import { hashDeploymentHealthPolicyDefinition } from "./hash-deployment-health-policy";
 import { DeploymentHealthPolicyError } from "./deployment-health-policy-types";
+import { authorizeMutation } from "../../security/route-guards";
+import { createOperatorAccount } from "../../security/operator-account-manager";
+import { hashPassword } from "../../security/password-hashing";
+import { createOperatorSession } from "../../security/session-manager";
+import { CSRF_HEADER_NAME } from "../../security/csrf";
 import {
   listDeploymentHealthPolicyResultsForRun,
   runDeploymentHealthPolicyEvaluation,
   toPublicDeploymentHealthPolicyResult,
 } from "./deployment-health-policy-manager";
+import { toStorableDeploymentHealthPolicyEvaluation } from "./sanitize-deployment-health-policy-evaluation";
 
 let tmpDb: string;
 
@@ -48,6 +55,9 @@ beforeEach(() => {
   tmpDb = path.join(os.tmpdir(), `engineer-health-policy-${Date.now()}.db`);
   process.env.ENGINEER_CONSOLE_DB_PATH = tmpDb;
   process.env.ENGINEER_CONSOLE_AUDIT_CHAIN_SCOPE = "deployment-health-policy-test";
+  process.env.ENGINEER_CONSOLE_AUTH_ENABLED = "true";
+  process.env.ENGINEER_CONSOLE_SESSION_SECRET = "deployment-health-policy-secret";
+  process.env.ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV = "false";
   resetEngineerConsoleDbForTests();
   initializeEngineerConsoleDatabase();
   setDeploymentProfilesForTests([]);
@@ -66,6 +76,9 @@ afterEach(() => {
   if (fs.existsSync(tmpDb)) fs.unlinkSync(tmpDb);
   delete process.env.ENGINEER_CONSOLE_DB_PATH;
   delete process.env.ENGINEER_CONSOLE_AUDIT_CHAIN_SCOPE;
+  delete process.env.ENGINEER_CONSOLE_AUTH_ENABLED;
+  delete process.env.ENGINEER_CONSOLE_SESSION_SECRET;
+  delete process.env.ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV;
 });
 
 function insertSucceededExecution(
@@ -126,6 +139,7 @@ function insertHealthCheck(
   executionId: string,
   status: string,
   environmentName: string,
+  outputSummary = "[redacted]",
 ): string {
   const env = listDeploymentEnvironments().find((e) => e.name === environmentName)!;
   const id = uuidv4();
@@ -138,7 +152,7 @@ function insertHealthCheck(
          actor_type, actor_label, created_at, completed_at)
        VALUES
         (@id, @run_id, @exec_id, @env_id, 'health-profile', @status,
-         200, 50, '[redacted]', 'abc123', 'human', 'op', @created_at, @completed_at)`,
+         200, 50, @output_summary, 'abc123', 'human', 'op', @created_at, @completed_at)`,
     )
     .run({
       id,
@@ -146,6 +160,7 @@ function insertHealthCheck(
       exec_id: executionId,
       env_id: env.id,
       status,
+      output_summary: outputSummary,
       created_at: now,
       completed_at: now,
     });
@@ -170,6 +185,7 @@ describe("deployment health policy evaluation", () => {
       deploymentExecutionId: execId,
     });
     expect(result.status).toBe("not_checked");
+    expect(result.warnings.some((w) => w.includes("No post-deploy health check"))).toBe(true);
   });
 
   it("returns needs_attention for production without health check", () => {
@@ -211,6 +227,68 @@ describe("deployment health policy evaluation", () => {
     insertHealthCheck(run.id, execId, "failed", "staging");
     const result = evaluateDeploymentHealthPolicy({ runId: run.id });
     expect(result.status).toBe("needs_attention");
+    expect(result.warnings.some((w) => w.includes("failed"))).toBe(true);
+  });
+
+  it("maps pending or running health check to needs_attention", () => {
+    const task = createTask({ title: "Policy", targetRepoPath: "/tmp" });
+    const run = createRun(task.id);
+    const execId = insertSucceededExecution(run.id, "staging");
+    insertHealthCheck(run.id, execId, "running", "staging");
+    const result = evaluateDeploymentHealthPolicy({ runId: run.id });
+    expect(result.status).toBe("needs_attention");
+    expect(result.warnings.some((w) => w.includes("incomplete"))).toBe(true);
+  });
+
+  it("maps pending health check to needs_attention", () => {
+    const task = createTask({ title: "Policy", targetRepoPath: "/tmp" });
+    const run = createRun(task.id);
+    const execId = insertSucceededExecution(run.id, "staging");
+    insertHealthCheck(run.id, execId, "pending", "staging");
+    const result = evaluateDeploymentHealthPolicy({ runId: run.id });
+    expect(result.status).toBe("needs_attention");
+    expect(result.warnings.some((w) => w.includes("pending"))).toBe(true);
+  });
+
+  it("does not use fetch or shell in evaluator source", () => {
+    const evaluatorPath = path.join(
+      __dirname,
+      "evaluate-deployment-health-policy.ts",
+    );
+    const source = fs.readFileSync(evaluatorPath, "utf8");
+    expect(source).not.toMatch(/\bfetch\s*\(/);
+    expect(source).not.toMatch(/child_process|exec\(|spawn\(|shell/);
+    expect(source).not.toContain("execute-http-health-check");
+  });
+
+  it("returns not_checked when deployment execution is not succeeded", () => {
+    const task = createTask({ title: "Policy", targetRepoPath: "/tmp" });
+    const run = createRun(task.id);
+    const execId = insertSucceededExecution(run.id, "staging");
+    getEngineerConsoleDb()
+      .prepare(`UPDATE engineer_deployment_executions SET status = 'failed' WHERE id = ?`)
+      .run(execId);
+    const result = evaluateDeploymentHealthPolicy({
+      runId: run.id,
+      deploymentExecutionId: execId,
+    });
+    expect(result.status).toBe("not_checked");
+    expect(result.warnings.some((w) => w.includes("not successful"))).toBe(true);
+  });
+
+  it("storable evaluation allowlists fields and redacts secrets", () => {
+    const raw = evaluateDeploymentHealthPolicy({ runId: "run-1" });
+    const stored = toStorableDeploymentHealthPolicyEvaluation({
+      ...raw,
+      warnings: ["token=secret123"],
+      blockers: [],
+      recommendedAction: "ok api_key=leak",
+    });
+    const json = JSON.stringify(stored);
+    expect(json).not.toContain("secret123");
+    expect(json).not.toContain("leak");
+    expect(json).not.toContain("output_summary");
+    expect(json).not.toContain("checked_url");
   });
 
   it("produces stable policy hash", () => {
@@ -221,7 +299,83 @@ describe("deployment health policy evaluation", () => {
   });
 });
 
+describe("deployment health policy authorization", () => {
+  it("allows operator for policy evaluation mutation", async () => {
+    const hash = await hashPassword("pass");
+    const operator = createOperatorAccount({
+      email: "op-policy@example.com",
+      displayName: "Operator",
+      passwordHash: hash,
+      role: "operator",
+    });
+    const session = createOperatorSession(operator.id);
+    const result = await authorizeMutation(
+      new Request("http://localhost/", {
+        method: "POST",
+        headers: {
+          host: "localhost",
+          origin: "http://localhost",
+          cookie: `ec_session=${encodeURIComponent(session.sessionToken)}`,
+          [CSRF_HEADER_NAME]: session.csrfToken,
+        },
+      }),
+      { minRole: "operator" },
+    );
+    expect(result).not.toBeInstanceOf(NextResponse);
+    expect((result as { operator: { role: string } }).operator.role).toBe("operator");
+  });
+
+  it("rejects viewer for operator-only policy mutation", async () => {
+    const hash = await hashPassword("pass");
+    const viewer = createOperatorAccount({
+      email: "viewer-policy@example.com",
+      displayName: "Viewer",
+      passwordHash: hash,
+      role: "viewer",
+    });
+    const session = createOperatorSession(viewer.id);
+    const result = await authorizeMutation(
+      new Request("http://localhost/", {
+        method: "POST",
+        headers: {
+          host: "localhost",
+          origin: "http://localhost",
+          cookie: `ec_session=${encodeURIComponent(session.sessionToken)}`,
+          [CSRF_HEADER_NAME]: session.csrfToken,
+        },
+      }),
+      { minRole: "operator" },
+    );
+    expect(result).toBeInstanceOf(NextResponse);
+    expect((result as NextResponse).status).toBe(403);
+  });
+});
+
 describe("deployment health policy manager", () => {
+  it("simulates post-deployment auto-eval as not_checked then healthy after check", async () => {
+    const task = createTask({ title: "Policy", targetRepoPath: "/tmp" });
+    const run = createRun(task.id);
+    const execId = insertSucceededExecution(run.id, "staging");
+
+    await runDeploymentHealthPolicyEvaluation(run.id, {
+      persist: true,
+      audit: false,
+      deploymentExecutionId: execId,
+      refreshEvidence: false,
+    });
+    expect(listDeploymentHealthPolicyResultsForRun(run.id)[0]?.status).toBe("not_checked");
+
+    insertHealthCheck(run.id, execId, "healthy", "staging");
+    const second = await runDeploymentHealthPolicyEvaluation(run.id, {
+      persist: true,
+      audit: false,
+      deploymentExecutionId: execId,
+      refreshEvidence: false,
+    });
+    expect(second.status).toBe("healthy");
+    expect(listDeploymentHealthPolicyResultsForRun(run.id)[0]?.status).toBe("healthy");
+  });
+
   it("persists append-only policy history", async () => {
     const task = createTask({ title: "Policy", targetRepoPath: "/tmp" });
     const run = createRun(task.id);
@@ -244,6 +398,31 @@ describe("deployment health policy manager", () => {
     const history = listDeploymentHealthPolicyResultsForRun(run.id);
     expect(history.length).toBe(2);
     expect(history[0].createdAt >= history[1].createdAt).toBe(true);
+  });
+
+  it("does not persist health check output_summary in result_json", async () => {
+    const task = createTask({ title: "Policy", targetRepoPath: "/tmp" });
+    const run = createRun(task.id);
+    const execId = insertSucceededExecution(run.id, "staging");
+    insertHealthCheck(
+      run.id,
+      execId,
+      "healthy",
+      "staging",
+      "body token=secret123 password=pass",
+    );
+
+    await runDeploymentHealthPolicyEvaluation(run.id, {
+      persist: true,
+      audit: false,
+      refreshEvidence: false,
+    });
+
+    const row = getEngineerConsoleDb()
+      .prepare(`SELECT result_json FROM engineer_deployment_health_policy_results WHERE run_id = ?`)
+      .get(run.id) as { result_json: string };
+    expect(row.result_json).not.toContain("secret123");
+    expect(row.result_json).not.toContain("password=pass");
   });
 
   it("emits audit event on evaluation", async () => {
@@ -296,6 +475,46 @@ describe("deployment health policy manager", () => {
         actorLabel: "model",
       }),
     ).rejects.toThrow(DeploymentHealthPolicyError);
+  });
+
+  it("emits DEPLOYMENT_HEALTH_POLICY_FAILED when persistence path throws", async () => {
+    const task = createTask({ title: "Policy", targetRepoPath: "/tmp" });
+    const run = createRun(task.id);
+    const execId = insertSucceededExecution(run.id, "staging");
+    insertHealthCheck(run.id, execId, "healthy", "staging");
+
+    const refreshSpy = vi
+      .spyOn(
+        await import("../../governance/evidence-bundles/evidence-bundle-manager"),
+        "refreshRunEvidenceBundle",
+      )
+      .mockRejectedValueOnce(new Error("evidence refresh failed"));
+
+    await expect(
+      runDeploymentHealthPolicyEvaluation(run.id, {
+        persist: true,
+        audit: true,
+        actorLabel: "op@example.com",
+        refreshEvidence: true,
+      }),
+    ).rejects.toThrow();
+
+    const types = listAuditEventsForRun(run.id).map((e) => e.eventType);
+    expect(types).toContain(AUDIT_EVENT_TYPES.DEPLOYMENT_HEALTH_POLICY_FAILED);
+    refreshSpy.mockRestore();
+  });
+
+  it("wires auto-eval hooks in deployment execution and health check managers", () => {
+    const executionManager = fs.readFileSync(
+      path.join(__dirname, "../deployment-execution/deployment-execution-manager.ts"),
+      "utf8",
+    );
+    const healthCheckManager = fs.readFileSync(
+      path.join(__dirname, "../deployment-health-check/deployment-health-check-manager.ts"),
+      "utf8",
+    );
+    expect(executionManager).toContain("runDeploymentHealthPolicyEvaluation");
+    expect(healthCheckManager).toContain("runDeploymentHealthPolicyEvaluation");
   });
 
   it("includes policy summary in evidence and replay package", async () => {

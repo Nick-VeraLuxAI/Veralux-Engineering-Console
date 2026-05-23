@@ -55,6 +55,8 @@ Manually:
 | GET | `/api/engineer-console/runs/[id]/deployment-health-policy` | viewer+ — latest + history |
 | POST | same | operator+ — evaluate and persist |
 
+POST returns `{ ok, result }` with the redacted public result shape only (not the full internal evaluation object).
+
 ## Audit events
 
 Entity type: `deployment`
