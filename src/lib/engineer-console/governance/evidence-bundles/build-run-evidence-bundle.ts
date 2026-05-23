@@ -32,6 +32,7 @@ import {
   type EvidenceDeploymentExecutionsSummary,
   type EvidenceDeploymentHealthChecksSummary,
   type EvidenceDeploymentHealthPolicySummary,
+  type EvidenceReleaseChecklistSummary,
   type EvidenceWorkerPlanSummary,
   type RunEvidenceBundleV1,
 } from "./evidence-bundle-types";
@@ -47,6 +48,7 @@ import { summarizeDeploymentGatesForRun } from "../../release/deployment-gates/d
 import { summarizeDeploymentExecutionsForRun } from "../../release/deployment-execution/deployment-execution-manager";
 import { summarizeDeploymentHealthChecksForRun } from "../../release/deployment-health-check/deployment-health-check-manager";
 import { summarizeDeploymentHealthPolicyForRun } from "../../release/deployment-health-policy/deployment-health-policy-manager";
+import { summarizeReleaseChecklistForRun } from "../../release/release-checklist/release-checklist-manager";
 import { getCompatibilitySummaryForRepo } from "../../repo-intelligence/compatibility/compatibility-manager";
 
 export interface BuildRunEvidenceBundleInput {
@@ -222,6 +224,14 @@ function buildDeploymentHealthPolicySummary(
   return summary;
 }
 
+function buildReleaseChecklistSummary(runId: string): EvidenceReleaseChecklistSummary | null {
+  const summary = summarizeReleaseChecklistForRun(runId);
+  if (summary.evaluationCount === 0 && summary.latestStatus === "not_started") {
+    return null;
+  }
+  return summary;
+}
+
 function buildReviewStagesSummary(runId: string): EvidenceReviewStagesSummary | null {
   const stages = listReviewStagesForRun(runId);
   if (stages.length === 0) return null;
@@ -323,6 +333,7 @@ export async function buildRunEvidenceBundle(
     deploymentExecutions: buildDeploymentExecutionsSummary(run.id),
     deploymentHealthChecks: buildDeploymentHealthChecksSummary(run.id),
     deploymentHealthPolicy: buildDeploymentHealthPolicySummary(run.id),
+    releaseChecklist: buildReleaseChecklistSummary(run.id),
     compatibility: buildCompatibilitySummary(task.registeredRepoId),
     audit: buildAuditReference(run.id),
     timestamps: {

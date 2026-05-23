@@ -671,6 +671,22 @@ CREATE TABLE IF NOT EXISTS engineer_deployment_health_policy_results (
 CREATE INDEX IF NOT EXISTS idx_engineer_deployment_health_policy_results_run_id
   ON engineer_deployment_health_policy_results (run_id, created_at DESC);
 
+-- Phase 8E: advisory release completion checklist (metadata only)
+CREATE TABLE IF NOT EXISTS engineer_release_checklists (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  checklist_json TEXT NOT NULL,
+  evidence_bundle_id TEXT,
+  evidence_bundle_hash TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_release_checklists_run_id
+  ON engineer_release_checklists (run_id, created_at DESC);
+
 -- Phase S1: operator authentication
 CREATE TABLE IF NOT EXISTS engineer_operator_accounts (
   id TEXT PRIMARY KEY NOT NULL,

@@ -12,6 +12,7 @@ import {
   getLatestDeploymentHealthPolicyResult,
   parseDeploymentHealthPolicyEvaluation,
 } from "../../release/deployment-health-policy/deployment-health-policy-manager";
+import { summarizeReleaseChecklistForRun } from "../../release/release-checklist/release-checklist-manager";
 import { verifyRunReplay } from "./verify-run-replay";
 
 const SENSITIVE_PATTERN =
@@ -129,6 +130,18 @@ export function buildRedactedReplayPackage(
         policyVersion: latest.policyVersion,
         policyHashPrefix: latest.policyHash.slice(0, 12),
         evaluatedAt: evaluation.evaluatedAt,
+      };
+    })(),
+    releaseChecklist: (() => {
+      const summary = summarizeReleaseChecklistForRun(runId);
+      if (summary.evaluationCount === 0 && summary.latestStatus === "not_started") {
+        return null;
+      }
+      return {
+        latestStatus: summary.latestStatus,
+        blockerCount: summary.blockerCount,
+        needsAttentionCount: summary.needsAttentionCount,
+        latestRecommendedAction: summary.latestRecommendedAction,
       };
     })(),
     verification: redactObject(verificationResult) as ReplayVerificationResult,

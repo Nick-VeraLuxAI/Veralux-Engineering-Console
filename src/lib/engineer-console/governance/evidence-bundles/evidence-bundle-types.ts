@@ -101,6 +101,14 @@ export interface EvidenceDeploymentHealthPolicySummary {
   latestRecommendedAction: string | null;
 }
 
+export interface EvidenceReleaseChecklistSummary {
+  evaluationCount: number;
+  latestStatus: string | null;
+  latestRecommendedAction: string | null;
+  blockerCount: number;
+  needsAttentionCount: number;
+}
+
 export interface EvidenceCompatibilitySummary {
   breakingCount: number;
   warningCount: number;
@@ -147,6 +155,7 @@ export interface RunEvidenceBundleV1 {
   deploymentExecutions: EvidenceDeploymentExecutionsSummary | null;
   deploymentHealthChecks: EvidenceDeploymentHealthChecksSummary | null;
   deploymentHealthPolicy: EvidenceDeploymentHealthPolicySummary | null;
+  releaseChecklist: EvidenceReleaseChecklistSummary | null;
   compatibility: EvidenceCompatibilitySummary | null;
   audit: EvidenceAuditReference;
   timestamps: {

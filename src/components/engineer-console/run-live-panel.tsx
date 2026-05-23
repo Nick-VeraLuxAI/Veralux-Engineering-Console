@@ -20,6 +20,7 @@ import { DeploymentGatesPanel } from "./deployment-gates-panel";
 import { DeploymentExecutionPanel } from "./deployment-execution-panel";
 import { DeploymentHealthChecksPanel } from "./deployment-health-checks-panel";
 import { DeploymentHealthPolicyPanel } from "./deployment-health-policy-panel";
+import { ReleaseChecklistPanel } from "./release-checklist-panel";
 
 interface RunDetailPayload {
   run: EngineeringRun;
@@ -93,6 +94,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
       <DeploymentExecutionPanel runId={runId} />
       <DeploymentHealthChecksPanel runId={runId} />
       <DeploymentHealthPolicyPanel runId={runId} />
+      <ReleaseChecklistPanel runId={runId} />
 
       <WorkerPlanDraftPanel
         runId={runId}

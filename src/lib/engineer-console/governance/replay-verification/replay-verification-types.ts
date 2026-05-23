@@ -95,6 +95,12 @@ export interface RedactedReplayPackage {
     policyHashPrefix: string | null;
     evaluatedAt: string | null;
   } | null;
+  releaseChecklist: {
+    latestStatus: string | null;
+    blockerCount: number;
+    needsAttentionCount: number;
+    latestRecommendedAction: string | null;
+  } | null;
   verification: ReplayVerificationResult;
 }
 
