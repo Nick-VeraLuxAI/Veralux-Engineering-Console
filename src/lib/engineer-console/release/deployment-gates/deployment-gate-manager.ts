@@ -123,6 +123,13 @@ export function getDeploymentReadinessCheckById(id: string): DeploymentReadiness
   return row ? mapReadinessRow(row) : null;
 }
 
+export function getDeploymentApprovalById(id: string): DeploymentApprovalRecord | null {
+  const row = getEngineerConsoleDb()
+    .prepare(`SELECT * FROM engineer_deployment_approvals WHERE id = ?`)
+    .get(id) as ApprovalRow | undefined;
+  return row ? mapApprovalRow(row) : null;
+}
+
 export function listDeploymentApprovalsForRun(runId: string): DeploymentApprovalRecord[] {
   const rows = getEngineerConsoleDb()
     .prepare(

@@ -72,6 +72,14 @@ export interface RedactedReplayPackage {
     riskLevel: string | null;
     canApprove: boolean | null;
   } | null;
+  deploymentExecutions: Array<{
+    id: string;
+    status: string;
+    profile: string;
+    exitCode: number | null;
+    outputHashPrefix: string | null;
+    createdAt: string;
+  }>;
   verification: ReplayVerificationResult;
 }
 

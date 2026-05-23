@@ -44,7 +44,7 @@ Deployment approval **records governance intent only**. It:
 - Stores a row in `engineer_deployment_approvals`
 - Links to the readiness check and evidence/policy/replay references
 
-It does **not** run deploy scripts, change infrastructure, or trigger CI/CD.
+It does **not** run deploy scripts, change infrastructure, or trigger CI/CD. Controlled deployment execution is Phase 8B — see [deployment-execution.md](deployment-execution.md).
 
 ## What this phase does not do
 
@@ -139,7 +139,7 @@ When deployment readiness checks exist, evidence bundles include a low-risk `dep
 
 ## Future phases
 
-- Controlled deploy execution behind additional gates
+- Additional execution profiles and health checks (see deployment-execution.md)
 - Rollback controls
 - GitHub Actions / workflow integration
 - Environment secrets and promotion pipelines

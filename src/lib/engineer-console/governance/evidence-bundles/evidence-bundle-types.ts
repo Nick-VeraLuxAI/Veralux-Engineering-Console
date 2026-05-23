@@ -80,6 +80,13 @@ export interface EvidenceDeploymentGatesSummary {
   latestEnvironmentName: string | null;
 }
 
+export interface EvidenceDeploymentExecutionsSummary {
+  executionCount: number;
+  latestStatus: string | null;
+  latestProfile: string | null;
+  latestExitCode: number | null;
+}
+
 export interface EvidenceCompatibilitySummary {
   breakingCount: number;
   warningCount: number;
@@ -123,6 +130,7 @@ export interface RunEvidenceBundleV1 {
   prRequests: EvidencePrRequestsSummary | null;
   mergeRequests: EvidenceMergeRequestsSummary | null;
   deploymentGates: EvidenceDeploymentGatesSummary | null;
+  deploymentExecutions: EvidenceDeploymentExecutionsSummary | null;
   compatibility: EvidenceCompatibilitySummary | null;
   audit: EvidenceAuditReference;
   timestamps: {

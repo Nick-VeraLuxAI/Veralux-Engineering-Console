@@ -589,6 +589,40 @@ CREATE TABLE IF NOT EXISTS engineer_deployment_approvals (
 CREATE INDEX IF NOT EXISTS idx_engineer_deployment_approvals_run_id
   ON engineer_deployment_approvals (run_id, created_at DESC);
 
+-- Phase 8B: controlled deployment execution (profile-gated, admin-only)
+CREATE TABLE IF NOT EXISTS engineer_deployment_executions (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  deployment_approval_id TEXT NOT NULL,
+  readiness_check_id TEXT,
+  environment_id TEXT,
+  merge_request_id TEXT,
+  deployment_profile TEXT NOT NULL,
+  status TEXT NOT NULL,
+  started_at TEXT,
+  completed_at TEXT,
+  actor_type TEXT NOT NULL,
+  actor_label TEXT,
+  command_label TEXT,
+  exit_code INTEGER,
+  output_summary TEXT,
+  output_hash TEXT,
+  error_message TEXT,
+  evidence_bundle_id TEXT,
+  evidence_bundle_hash TEXT,
+  audit_event_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE,
+  FOREIGN KEY (deployment_approval_id) REFERENCES engineer_deployment_approvals (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_deployment_executions_run_id
+  ON engineer_deployment_executions (run_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_deployment_executions_approval_id
+  ON engineer_deployment_executions (deployment_approval_id);
+
 -- Phase S1: operator authentication
 CREATE TABLE IF NOT EXISTS engineer_operator_accounts (
   id TEXT PRIMARY KEY NOT NULL,

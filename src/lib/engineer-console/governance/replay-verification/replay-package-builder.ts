@@ -6,6 +6,7 @@ import { getTaskById } from "../../task-manager/task-manager";
 import { getEvidenceBundleForRun } from "../evidence-bundles/evidence-bundle-manager";
 import type { RedactedReplayPackage } from "./replay-verification-types";
 import type { ReplayVerificationResult } from "./replay-verification-types";
+import { listDeploymentExecutionsForRun } from "../../release/deployment-execution/deployment-execution-manager";
 import { verifyRunReplay } from "./verify-run-replay";
 
 const SENSITIVE_PATTERN =
@@ -97,6 +98,14 @@ export function buildRedactedReplayPackage(
           canApprove: bundleParsed.governance.canApprove,
         }
       : null,
+    deploymentExecutions: listDeploymentExecutionsForRun(runId).map((e) => ({
+      id: e.id,
+      status: e.status,
+      profile: e.deploymentProfile,
+      exitCode: e.exitCode,
+      outputHashPrefix: e.outputHash?.slice(0, 12) ?? null,
+      createdAt: e.createdAt,
+    })),
     verification: redactObject(verificationResult) as ReplayVerificationResult,
   };
 }
