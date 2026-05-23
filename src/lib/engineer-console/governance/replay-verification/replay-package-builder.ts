@@ -7,6 +7,7 @@ import { getEvidenceBundleForRun } from "../evidence-bundles/evidence-bundle-man
 import type { RedactedReplayPackage } from "./replay-verification-types";
 import type { ReplayVerificationResult } from "./replay-verification-types";
 import { listDeploymentExecutionsForRun } from "../../release/deployment-execution/deployment-execution-manager";
+import { listDeploymentHealthChecksForRun } from "../../release/deployment-health-check/deployment-health-check-manager";
 import { verifyRunReplay } from "./verify-run-replay";
 
 const SENSITIVE_PATTERN =
@@ -105,6 +106,14 @@ export function buildRedactedReplayPackage(
       exitCode: e.exitCode,
       outputHashPrefix: e.outputHash?.slice(0, 12) ?? null,
       createdAt: e.createdAt,
+    })),
+    deploymentHealthChecks: listDeploymentHealthChecksForRun(runId).map((c) => ({
+      id: c.id,
+      status: c.status,
+      profile: c.healthProfile,
+      responseStatus: c.responseStatus,
+      responseTimeMs: c.responseTimeMs,
+      createdAt: c.createdAt,
     })),
     verification: redactObject(verificationResult) as ReplayVerificationResult,
   };

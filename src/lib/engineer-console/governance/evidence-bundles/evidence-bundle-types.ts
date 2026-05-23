@@ -87,6 +87,13 @@ export interface EvidenceDeploymentExecutionsSummary {
   latestExitCode: number | null;
 }
 
+export interface EvidenceDeploymentHealthChecksSummary {
+  checkCount: number;
+  latestStatus: string | null;
+  latestProfile: string | null;
+  latestResponseStatus: number | null;
+}
+
 export interface EvidenceCompatibilitySummary {
   breakingCount: number;
   warningCount: number;
@@ -131,6 +138,7 @@ export interface RunEvidenceBundleV1 {
   mergeRequests: EvidenceMergeRequestsSummary | null;
   deploymentGates: EvidenceDeploymentGatesSummary | null;
   deploymentExecutions: EvidenceDeploymentExecutionsSummary | null;
+  deploymentHealthChecks: EvidenceDeploymentHealthChecksSummary | null;
   compatibility: EvidenceCompatibilitySummary | null;
   audit: EvidenceAuditReference;
   timestamps: {

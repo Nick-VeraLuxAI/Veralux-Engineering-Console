@@ -18,6 +18,7 @@ import { PrCreationPanel } from "./pr-creation-panel";
 import { MergeControlsPanel } from "./merge-controls-panel";
 import { DeploymentGatesPanel } from "./deployment-gates-panel";
 import { DeploymentExecutionPanel } from "./deployment-execution-panel";
+import { DeploymentHealthChecksPanel } from "./deployment-health-checks-panel";
 
 interface RunDetailPayload {
   run: EngineeringRun;
@@ -89,6 +90,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
       <MergeControlsPanel runId={runId} />
       <DeploymentGatesPanel runId={runId} />
       <DeploymentExecutionPanel runId={runId} />
+      <DeploymentHealthChecksPanel runId={runId} />
 
       <WorkerPlanDraftPanel
         runId={runId}

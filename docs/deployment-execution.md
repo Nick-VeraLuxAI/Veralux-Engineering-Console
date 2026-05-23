@@ -122,7 +122,7 @@ Payloads include run id, execution id, environment, profile name, exit code, out
 
 - No rollback execution
 - No GitHub Actions or cloud provider integration
-- No deployment health checks post-execute
+- Post-deploy health checks are a separate phase — see `docs/deployment-health-checks.md`
 - One successful execution per approval
 - Profiles require server env configuration (no UI editor)
 - `command_label` stored for audit/ops but not exposed via public API
@@ -132,5 +132,5 @@ Payloads include run id, execution id, environment, profile name, exit code, out
 - Rollback controls
 - GitHub Actions workflow integration (`github_actions_future` strategy)
 - Cloud provider adapters
-- Post-deploy health verification
+- Additional health policy gates (optional requirement before release sign-off)
 - GitHub App deployment identity

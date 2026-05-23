@@ -80,6 +80,14 @@ export interface RedactedReplayPackage {
     outputHashPrefix: string | null;
     createdAt: string;
   }>;
+  deploymentHealthChecks: Array<{
+    id: string;
+    status: string;
+    profile: string;
+    responseStatus: number | null;
+    responseTimeMs: number | null;
+    createdAt: string;
+  }>;
   verification: ReplayVerificationResult;
 }
 

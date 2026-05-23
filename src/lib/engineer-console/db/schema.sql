@@ -623,6 +623,34 @@ CREATE INDEX IF NOT EXISTS idx_engineer_deployment_executions_run_id
 CREATE INDEX IF NOT EXISTS idx_engineer_deployment_executions_approval_id
   ON engineer_deployment_executions (deployment_approval_id);
 
+-- Phase 8C: post-deployment HTTP health checks (read-only, profile-gated)
+CREATE TABLE IF NOT EXISTS engineer_deployment_health_checks (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  deployment_execution_id TEXT NOT NULL,
+  environment_id TEXT,
+  health_profile TEXT NOT NULL,
+  status TEXT NOT NULL,
+  checked_url TEXT,
+  response_status INTEGER,
+  response_time_ms INTEGER,
+  output_summary TEXT,
+  output_hash TEXT,
+  error_message TEXT,
+  actor_type TEXT NOT NULL,
+  actor_label TEXT,
+  created_at TEXT NOT NULL,
+  completed_at TEXT,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE,
+  FOREIGN KEY (deployment_execution_id) REFERENCES engineer_deployment_executions (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_deployment_health_checks_run_id
+  ON engineer_deployment_health_checks (run_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_deployment_health_checks_execution_id
+  ON engineer_deployment_health_checks (deployment_execution_id, created_at DESC);
+
 -- Phase S1: operator authentication
 CREATE TABLE IF NOT EXISTS engineer_operator_accounts (
   id TEXT PRIMARY KEY NOT NULL,
