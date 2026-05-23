@@ -61,7 +61,7 @@ export async function POST(
 
   try {
     const actor = resolveHumanActor(auth.operator, body.actorLabel);
-    const record = createDeploymentApproval({
+    const record = await createDeploymentApproval({
       runId: id,
       readinessCheckId: body.readinessCheckId.trim(),
       decision: body.decision,

@@ -15,15 +15,19 @@ export function auditDeploymentReadinessEvaluated(
     warningCount: number;
     mergeRequestId?: string | null;
     mergeShaPrefix?: string | null;
-    actorLabel?: string;
+    actorType: string;
+    actorLabel: string;
   },
 ): AuditEventRecord {
   return requireAuditEvent({
     eventType: AUDIT_EVENT_TYPES.DEPLOYMENT_READINESS_EVALUATED,
     entityType: AUDIT_ENTITY_TYPES.DEPLOYMENT,
     entityId: payload.readinessCheckId,
-    actorType: AUDIT_ACTOR_TYPES.SYSTEM,
-    actorLabel: payload.actorLabel ?? "system",
+    actorType:
+      payload.actorType === AUDIT_ACTOR_TYPES.HUMAN
+        ? AUDIT_ACTOR_TYPES.HUMAN
+        : AUDIT_ACTOR_TYPES.SYSTEM,
+    actorLabel: payload.actorLabel,
     taskId: taskId ?? undefined,
     runId,
     payload: {

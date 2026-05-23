@@ -6,7 +6,10 @@ import {
   auditDeploymentReadinessEvaluated,
   auditDeploymentRejected,
 } from "../../governance/audit-ledger/deployment-audit-lifecycle";
-import { getEvidenceBundleForRun } from "../../governance/evidence-bundles/evidence-bundle-manager";
+import {
+  getEvidenceBundleForRun,
+  refreshRunEvidenceBundle,
+} from "../../governance/evidence-bundles/evidence-bundle-manager";
 import { getLatestPolicyResult } from "../../governance/policy-results/policy-result-manager";
 import { getLatestReplayVerification } from "../../governance/replay-verification/replay-verification-manager";
 import { getRunById } from "../../run-manager/run-manager";
@@ -197,15 +200,16 @@ export function createDeploymentReadinessCheck(
     warningCount: readiness.warnings.length,
     mergeRequestId: mergedRequest?.id ?? null,
     mergeShaPrefix: mergedRequest?.mergeSha?.slice(0, 12) ?? null,
+    actorType: input.actorType,
     actorLabel: input.actorLabel,
   });
 
   return getDeploymentReadinessCheckById(id)!;
 }
 
-export function createDeploymentApproval(
+export async function createDeploymentApproval(
   input: CreateDeploymentApprovalInput,
-): DeploymentApprovalRecord {
+): Promise<DeploymentApprovalRecord> {
   if (input.actorType === AUDIT_ACTOR_TYPES.MODEL) {
     throw new DeploymentGateError("Models cannot approve deployment readiness.");
   }
@@ -238,14 +242,22 @@ export function createDeploymentApproval(
   }
 
   if (input.decision === "approved") {
-    if (check.status === "blocked" || readiness.status === "blocked") {
+    const currentReadiness = evaluateDeploymentReadiness(input.runId, check.environmentId);
+    if (
+      check.status === "blocked" ||
+      readiness.status === "blocked" ||
+      currentReadiness.status === "blocked"
+    ) {
       throw new DeploymentGateError(
-        `Deployment approval blocked: ${readiness.blockers[0] ?? "readiness check failed"}`,
+        `Deployment approval blocked: ${currentReadiness.blockers[0] ?? readiness.blockers[0] ?? "readiness check failed"}`,
       );
     }
 
+    const effectiveStatus =
+      currentReadiness.status === "requires_review" ? "requires_review" : check.status;
+
     const needsRationale =
-      readiness.status === "requires_review" || environment.environmentType === "production";
+      effectiveStatus === "requires_review" || environment.environmentType === "production";
 
     if (needsRationale && !input.rationale?.trim()) {
       throw new DeploymentGateError(
@@ -279,6 +291,8 @@ export function createDeploymentApproval(
       rationale: input.rationale?.trim() || null,
       created_at: now,
     });
+
+  await refreshRunEvidenceBundle({ runId: input.runId });
 
   if (input.decision === "approved") {
     auditDeploymentApproved(input.runId, task.id, {
