@@ -1,7 +1,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { v4 as uuidv4 } from "uuid";
 import { NextResponse } from "next/server";
 import {
@@ -41,6 +41,7 @@ import {
   toPublicReleaseChecklist,
 } from "./release-checklist-manager";
 import { ReleaseChecklistError } from "./release-checklist-types";
+import { toStorableReleaseChecklistEvaluation } from "./sanitize-release-checklist-evaluation";
 
 let tmpDb: string;
 
@@ -380,6 +381,42 @@ describe("buildReleaseChecklist", () => {
     );
   });
 
+  it("needs_attention when deployment approved but not executed", async () => {
+    const { run, task } = await seedApprovedRun();
+    ensureReplayStatusPassed(run.id);
+    const prId = insertPrRequest(run.id, task.id);
+    insertMergedMerge(run.id, prId, task.id);
+    const staging = listDeploymentEnvironments().find((e) => e.name === "staging")!;
+    const readinessId = uuidv4();
+    const approvalId = uuidv4();
+    const now = new Date().toISOString();
+    getEngineerConsoleDb()
+      .prepare(
+        `INSERT INTO engineer_deployment_readiness_checks
+          (id, run_id, environment_id, status, readiness_json, actor_type, actor_label, created_at)
+         VALUES (@id, @run_id, @env_id, 'passed', '{}', 'human', 'admin', @created_at)`,
+      )
+      .run({ id: readinessId, run_id: run.id, env_id: staging.id, created_at: now });
+    getEngineerConsoleDb()
+      .prepare(
+        `INSERT INTO engineer_deployment_approvals
+          (id, run_id, readiness_check_id, environment_id, decision, actor_type, actor_label, created_at)
+         VALUES (@id, @run_id, @readiness_id, @env_id, 'approved', 'human', 'admin', @created_at)`,
+      )
+      .run({
+        id: approvalId,
+        run_id: run.id,
+        readiness_id: readinessId,
+        env_id: staging.id,
+        created_at: now,
+      });
+    const checklist = buildReleaseChecklist(run.id);
+    expect(checklist.items.find((i) => i.id === "deployment_approved")?.status).toBe("complete");
+    expect(checklist.items.find((i) => i.id === "deployment_executed")?.status).toBe(
+      "needs_attention",
+    );
+  });
+
   it("blocks when deployment execution failed", async () => {
     const { run, task } = await seedApprovedRun();
     ensureReplayStatusPassed(run.id);
@@ -434,13 +471,44 @@ describe("buildReleaseChecklist", () => {
     expect(checklist.status).toBe("complete");
   });
 
-  it("does not use fetch or shell in builder source", () => {
-    const source = fs.readFileSync(
-      path.join(__dirname, "build-release-checklist.ts"),
-      "utf8",
-    );
-    expect(source).not.toMatch(/\bfetch\s*\(/);
-    expect(source).not.toMatch(/child_process|exec\(|spawn\(|shell/);
+  it("does not use fetch or shell in builder or manager source", () => {
+    for (const file of ["build-release-checklist.ts", "release-checklist-manager.ts"]) {
+      const source = fs.readFileSync(path.join(__dirname, file), "utf8");
+      expect(source).not.toMatch(/\bfetch\s*\(/);
+      expect(source).not.toMatch(/child_process|exec\(|spawn\(|shell/);
+      expect(source).not.toMatch(/createDeploymentExecution|createMergeRequest/);
+    }
+  });
+
+  it("storable evaluation redacts secret-like strings", () => {
+    const stored = toStorableReleaseChecklistEvaluation({
+      runId: "run-1",
+      status: "blocked",
+      evaluatedAt: new Date().toISOString(),
+      items: [
+        {
+          id: "evidence_bundle",
+          label: "Evidence",
+          status: "blocked",
+          severity: "critical",
+          summary: "token=secret123",
+          referenceId: null,
+          referenceHash: null,
+          recommendedAction: "fix api_key=leak",
+        },
+      ],
+      blockers: ["password=pass"],
+      needsAttention: [],
+      recommendedAction: "bearer xyz",
+      evidenceBundleId: null,
+      evidenceBundleHash: null,
+    });
+    const json = JSON.stringify(stored);
+    expect(json).not.toContain("secret123");
+    expect(json).not.toContain("leak");
+    expect(json).not.toContain("password=pass");
+    expect(json).not.toContain("stdout");
+    expect(json).not.toContain("diffSummary");
   });
 });
 
@@ -493,6 +561,59 @@ describe("release checklist manager", () => {
     ).rejects.toThrow(ReleaseChecklistError);
   });
 
+  it("does not refresh evidence bundle on default POST evaluation path", async () => {
+    const { run } = await seedApprovedRun();
+    const refreshSpy = vi
+      .spyOn(
+        await import("../../governance/evidence-bundles/evidence-bundle-manager"),
+        "refreshRunEvidenceBundle",
+      )
+      .mockResolvedValue({} as never);
+
+    await runReleaseChecklistEvaluation(run.id, {
+      persist: true,
+      audit: false,
+      refreshEvidence: false,
+    });
+
+    expect(refreshSpy).not.toHaveBeenCalled();
+    refreshSpy.mockRestore();
+  });
+
+  it("emits RELEASE_CHECKLIST_FAILED when evaluation path throws", async () => {
+    const { run } = await seedApprovedRun();
+    const refreshSpy = vi
+      .spyOn(
+        await import("../../governance/evidence-bundles/evidence-bundle-manager"),
+        "refreshRunEvidenceBundle",
+      )
+      .mockRejectedValueOnce(new Error("evidence refresh failed"));
+
+    await expect(
+      runReleaseChecklistEvaluation(run.id, {
+        persist: true,
+        audit: true,
+        actorLabel: "op@example.com",
+        refreshEvidence: true,
+      }),
+    ).rejects.toThrow();
+
+    const types = listAuditEventsForRun(run.id).map((e) => e.eventType);
+    expect(types).toContain(AUDIT_EVENT_TYPES.RELEASE_CHECKLIST_FAILED);
+    refreshSpy.mockRestore();
+  });
+
+  it("persists checklist_json via storable redaction path", async () => {
+    const { run } = await seedApprovedRun();
+    await runReleaseChecklistEvaluation(run.id, { persist: true, audit: false });
+    const row = getEngineerConsoleDb()
+      .prepare(`SELECT checklist_json FROM engineer_release_checklists WHERE run_id = ?`)
+      .get(run.id) as { checklist_json: string };
+    expect(row.checklist_json).not.toContain("stdout");
+    expect(row.checklist_json).not.toContain("diffSummary");
+    expect(row.checklist_json).not.toContain("rawResponse");
+  });
+
   it("includes checklist summary in evidence and replay package", async () => {
     const { run, task } = await seedApprovedRun();
     const prId = insertPrRequest(run.id, task.id);
@@ -503,6 +624,8 @@ describe("release checklist manager", () => {
     const replay = buildRedactedReplayPackage(run.id);
     expect(replay.releaseChecklist?.latestStatus).toBeTruthy();
     expect(JSON.stringify(replay.releaseChecklist)).not.toContain("stdout");
+    expect(JSON.stringify(replay.releaseChecklist)).not.toContain("items");
+    expect(JSON.stringify(bundle.releaseChecklist)).not.toContain("items");
   });
 });
 

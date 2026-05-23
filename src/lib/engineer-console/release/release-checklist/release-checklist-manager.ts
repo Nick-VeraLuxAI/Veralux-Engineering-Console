@@ -8,6 +8,7 @@ import {
   auditReleaseChecklistFailed,
 } from "./release-checklist-audit-lifecycle";
 import { buildReleaseChecklist } from "./build-release-checklist";
+import { toStorableReleaseChecklistEvaluation } from "./sanitize-release-checklist-evaluation";
 import type {
   ReleaseChecklistEvaluation,
   ReleaseChecklistRecord,
@@ -46,15 +47,7 @@ function mapRow(row: ChecklistRow): ReleaseChecklistRecord {
 function persistChecklist(evaluation: ReleaseChecklistEvaluation): ReleaseChecklistRecord {
   const id = uuidv4();
   const now = nowIso();
-  const checklistJson = JSON.stringify({
-    runId: evaluation.runId,
-    status: evaluation.status,
-    evaluatedAt: evaluation.evaluatedAt,
-    items: evaluation.items,
-    blockers: evaluation.blockers,
-    needsAttention: evaluation.needsAttention,
-    recommendedAction: evaluation.recommendedAction,
-  });
+  const checklistJson = JSON.stringify(toStorableReleaseChecklistEvaluation(evaluation));
 
   getEngineerConsoleDb()
     .prepare(

@@ -489,14 +489,19 @@ export function buildReleaseChecklist(runId: string): ReleaseChecklistEvaluation
   }
 
   if (deployExec.executionCount === 0) {
+    const approvedNoExec = deployGates.latestApprovalDecision === "approved";
     items.push(
       item(
         "deployment_executed",
         "Deployment executed",
-        "not_started",
+        approvedNoExec ? "needs_attention" : "not_started",
         "high",
-        "No deployment execution recorded.",
-        "Execute deployment after approval.",
+        approvedNoExec
+          ? "Deployment is approved but has not been executed."
+          : "No deployment execution recorded.",
+        approvedNoExec
+          ? "Execute deployment for the approved environment."
+          : "Execute deployment after approval.",
       ),
     );
   } else {

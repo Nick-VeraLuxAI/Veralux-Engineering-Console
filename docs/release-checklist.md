@@ -75,12 +75,17 @@ POST returns `{ ok, checklist }` with the public checklist shape only.
 
 The **Release checklist** panel on the run detail page shows overall status, items, blockers, needs-attention list, recommended action, evidence hash prefix, and an **Evaluate checklist** button. It does not include deploy, merge, or rollback controls.
 
+## Persistence
+
+Checklist history is **append-only** (new row per POST evaluation). The latest row is returned as `latest` on GET.
+
 ## Current limitations
 
 - Checklist is computed from database state only (no live GitHub/cloud calls during evaluation).
-- GET `computed` may differ from latest persisted until operator runs POST.
-- Evidence refresh is **not** triggered automatically on checklist evaluation (avoids circular regeneration).
+- GET returns both `latest` (last persisted evaluation) and `computed` (live DB-state snapshot); they may differ until the operator runs POST.
+- POST does **not** refresh the evidence bundle by default (avoids circular regeneration with checklist summaries).
 - `not_checked` health policy on staging is treated as acceptable for item-level completion.
+- PR created but not merged maps to **needs_attention** (not a hard block).
 
 ## Future work
 
