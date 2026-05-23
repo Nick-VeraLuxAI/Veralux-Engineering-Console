@@ -497,6 +497,42 @@ CREATE TABLE IF NOT EXISTS engineer_pr_requests (
 CREATE INDEX IF NOT EXISTS idx_engineer_pr_requests_run_id_created_at
   ON engineer_pr_requests (run_id, created_at DESC);
 
+-- Phase 7: approval-gated PR merge controls
+CREATE TABLE IF NOT EXISTS engineer_merge_requests (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  pr_request_id TEXT NOT NULL,
+  task_id TEXT,
+  registered_repo_id TEXT,
+  pr_url TEXT,
+  pr_number TEXT,
+  base_branch TEXT,
+  head_branch TEXT,
+  commit_sha TEXT,
+  merge_sha TEXT,
+  status TEXT NOT NULL,
+  readiness_status TEXT NOT NULL,
+  readiness_json TEXT NOT NULL,
+  evidence_bundle_id TEXT,
+  evidence_bundle_hash TEXT,
+  policy_result_id TEXT,
+  replay_verification_id TEXT,
+  actor_type TEXT NOT NULL,
+  actor_label TEXT,
+  rationale TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  completed_at TEXT,
+  error_message TEXT,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_merge_requests_run_id_created_at
+  ON engineer_merge_requests (run_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_merge_requests_pr_request_id
+  ON engineer_merge_requests (pr_request_id);
+
 -- Phase S1: operator authentication
 CREATE TABLE IF NOT EXISTS engineer_operator_accounts (
   id TEXT PRIMARY KEY NOT NULL,

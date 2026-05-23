@@ -15,6 +15,7 @@ import { ReplayVerificationPanel } from "./replay-verification-panel";
 import { PolicyResultsPanel } from "./policy-results-panel";
 import { ReviewStagesPanel } from "./review-stages-panel";
 import { PrCreationPanel } from "./pr-creation-panel";
+import { MergeControlsPanel } from "./merge-controls-panel";
 
 interface RunDetailPayload {
   run: EngineeringRun;
@@ -83,6 +84,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
       <PolicyResultsPanel runId={runId} />
       <ReviewStagesPanel runId={runId} />
       <PrCreationPanel runId={runId} />
+      <MergeControlsPanel runId={runId} />
 
       <WorkerPlanDraftPanel
         runId={runId}

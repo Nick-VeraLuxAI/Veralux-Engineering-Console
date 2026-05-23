@@ -67,6 +67,12 @@ export interface EvidencePrRequestsSummary {
   latestPrUrl: string | null;
 }
 
+export interface EvidenceMergeRequestsSummary {
+  attemptCount: number;
+  latestStatus: string | null;
+  latestMergeShaPrefix: string | null;
+}
+
 export interface EvidenceCompatibilitySummary {
   breakingCount: number;
   warningCount: number;
@@ -108,6 +114,7 @@ export interface RunEvidenceBundleV1 {
   policy: EvidencePolicySummary | null;
   reviewStages: EvidenceReviewStagesSummary | null;
   prRequests: EvidencePrRequestsSummary | null;
+  mergeRequests: EvidenceMergeRequestsSummary | null;
   compatibility: EvidenceCompatibilitySummary | null;
   audit: EvidenceAuditReference;
   timestamps: {

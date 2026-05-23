@@ -27,6 +27,7 @@ import {
   type EvidenceQualityGateSummary,
   type EvidenceReviewStagesSummary,
   type EvidencePrRequestsSummary,
+  type EvidenceMergeRequestsSummary,
   type EvidenceWorkerPlanSummary,
   type RunEvidenceBundleV1,
 } from "./evidence-bundle-types";
@@ -37,6 +38,7 @@ import {
   summarizeReviewStages,
 } from "../review-stages/review-stage-manager";
 import { summarizePrRequestsForRun } from "../../release/pr-creation/pr-request-manager";
+import { summarizeMergeRequestsForRun } from "../../release/merge-controls/merge-request-manager";
 import { getCompatibilitySummaryForRepo } from "../../repo-intelligence/compatibility/compatibility-manager";
 
 export interface BuildRunEvidenceBundleInput {
@@ -176,6 +178,12 @@ function buildPrRequestsSummary(runId: string): EvidencePrRequestsSummary | null
   return summary;
 }
 
+function buildMergeRequestsSummary(runId: string): EvidenceMergeRequestsSummary | null {
+  const summary = summarizeMergeRequestsForRun(runId);
+  if (summary.attemptCount === 0) return null;
+  return summary;
+}
+
 function buildReviewStagesSummary(runId: string): EvidenceReviewStagesSummary | null {
   const stages = listReviewStagesForRun(runId);
   if (stages.length === 0) return null;
@@ -272,6 +280,7 @@ export async function buildRunEvidenceBundle(
     policy: buildPolicySummary(run.id),
     reviewStages: buildReviewStagesSummary(run.id),
     prRequests: buildPrRequestsSummary(run.id),
+    mergeRequests: buildMergeRequestsSummary(run.id),
     compatibility: buildCompatibilitySummary(task.registeredRepoId),
     audit: buildAuditReference(run.id),
     timestamps: {

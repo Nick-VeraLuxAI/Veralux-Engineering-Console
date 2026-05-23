@@ -133,14 +133,14 @@ Entity type: `release`
 
 - Single-repo PRs only (no coordinated multi-repo changesets)
 - Default base branch `main` (operator override in UI)
-- No merge controls or branch protection integration
+- PR creation only — merge is a separate admin step ([merge-controls.md](merge-controls.md))
 - No RBAC/SSO for release actions
 - Requires local `gh` CLI (no embedded OAuth app in this phase)
 
 ## Future phases
 
-- Merge controls and branch protection checks
-- Deployment gates (separate from PR creation)
+- Branch protection verification beyond local `gh`
+- Deployment gates (separate from PR creation and merge)
 - RBAC/SSO for release operators
 - Multi-repo coordinated PRs
 - GitHub App integration without local `gh` dependency
