@@ -3,7 +3,7 @@
 **Audit date:** 2026-05-24  
 **Scope:** VeraLux Engineering Console — controlled **internal** production use  
 **Auditor role:** Principal production-readiness / security / release-engineering review  
-**Code baseline:** Post Q4 (`backup:db:verify`, `verify:ci`, stable E2E on `NODE_ENV=test` + `next start`)
+**Code baseline:** Post Q5-ext (`backup:db:secure`, optional age/gpg/rsync, active `.github/workflows/ci.yml`)
 
 ---
 
@@ -21,16 +21,16 @@ It is **not** ready for unattended multi-tenant SaaS, compliance-only sign-off w
 
 ---
 
-## 2. Readiness score: **79 / 100**
+## 2. Readiness score: **84 / 100**
 
 | Area | Weight | Score | Notes |
 |------|--------|-------|-------|
 | Security | 25% | 20/25 | Auth fail-closed in prod; CSRF + same-origin; admin-only release mutations |
-| Data durability | 20% | 14/20 | Local backup+verify strong; no off-host encryption |
+| Data durability | 20% | 17/20 | `backup:db:secure` + age/gpg/rsync opt-in; operator runs off-host copy |
 | Release lifecycle | 20% | 18/20 | Full module coverage; gates optional but implemented |
-| Testing | 15% | 13/15 | 385 unit + E2E + `verify:ci`; browser gaps documented |
-| Operations docs | 10% | 9/10 | Runbook, env ref, architecture, backup, CI docs |
-| Production config | 10% | 5/10 | `.env.production.example` added; no active CI workflow |
+| Testing | 15% | 14/15 | Unit + E2E + `verify:ci`; CI workflow in repo |
+| Operations docs | 10% | 10/10 | Off-host backup doc + audit |
+| Production config | 10% | 5/10 | `.env.production.example`; encryption env documented |
 
 ---
 
@@ -106,14 +106,24 @@ Deployment approval and health checks use operator/admin per route; see `env-ref
 | Active DB safety | Verify and retention never overwrite active path |
 | Vitest | `backup-restore.test.ts`, `backup-retention.test.ts` |
 
-### Remaining gaps (by design in Q4)
+### Q5-ext tooling
 
-- No S3/rsync/cloud replication
-- No encryption at rest (age/GPG) in tooling
-- No automated alerting on backup failure (operator must monitor cron exit code / JSON `ok`)
+| Command | Purpose |
+|---------|---------|
+| `npm run backup:db:secure` | Verify → optional encrypt → optional rsync |
+| `npm run backup:db:encrypt` | age/gpg latest backup + metadata |
+| `npm run backup:db:offhost` | rsync to `ENGINEER_CONSOLE_BACKUP_RSYNC_TARGET` |
+
+See [offhost-encrypted-backups.md](./offhost-encrypted-backups.md).
+
+### Remaining gaps
+
+- No in-app S3/cloud SDK (`s3_future` stub only)
+- No automated alerting on backup failure (monitor JSON `ok` / exit code)
 - Single-node SQLite — no HA failover
+- Plaintext backups retained after encryption (by design)
 
-**Recommendations:** Daily `backup:db:verify` cron + off-host copy of `backups/` + monthly restore drill on staging copy.
+**Recommendations:** Daily `npm run backup:db:secure` with encryption + rsync + monthly restore drill on staging copy.
 
 ---
 
@@ -158,7 +168,7 @@ All phases implemented with dedicated modules, API routes, UI panels, and Vitest
 - Hard-gate **banner** on run page not asserted in browser (API-only in gates suite)
 - Full deploy/health DB seed avoided in browser (SSR risk)
 - No visual/a11y regression suite
-- **No active `.github/workflows/`** — draft only at [github-actions-ci-draft.yml](./github-actions-ci-draft.yml)
+- GitHub Actions runs `verify:ci` — see [.github/workflows/ci.yml](../.github/workflows/ci.yml)
 
 ---
 
@@ -215,15 +225,15 @@ Use [.env.production.example](../.env.production.example) as the template.
 
 | ID | Risk | Severity | Likelihood | Current mitigation | Recommended fix | Phase |
 |----|------|----------|------------|-------------------|-----------------|-------|
-| R1 | SQLite single-node data loss | High | Medium | `backup:db:verify`, WAL backup | Off-host encrypted copies + alerting | Q5-ext |
+| R1 | SQLite single-node data loss | High | Medium | `backup:db:secure`, WAL backup | Operator rsync + alerting on failure | Ops |
 | R2 | Trusted-local misconfiguration in prod | Critical | Low | `validateAuthConfig` blocks auth-off in prod | CI env template lint | Q5-ext |
 | R3 | Session secret compromise | High | Low | HttpOnly cookie, secure in prod | Secret rotation + Redis sessions | 10 |
 | R4 | Deployment profile arbitrary command | Critical | Medium | Admin-only API; `allowed` flag | Dedicated deploy user, sudoers allowlist | Ops |
 | R5 | Shared host `gh` token | High | Medium | OS user isolation | GitHub App scoped install | 9B |
 | R6 | No login rate limiting | Medium | Medium | Network ACL | Reverse-proxy rate limits | Ops |
 | R7 | Checklist/sign-off ≠ compliance | Medium | High | Training; gates optional | Enable hard gates in prod | Now |
-| R8 | Backup files contain full DB | High | Medium | Gitignored `backups/` | Encrypt at rest off-host | Q5-ext |
-| R9 | No CI workflow in repo | Medium | High | `verify:ci` script + draft YAML | Enable Actions from draft | Q5-ext |
+| R8 | Backup files contain full DB | High | Medium | Gitignored `backups/`; optional age/gpg | Encrypt + restrict off-host access | Ops |
+| R9 | CI not run on fork without Actions | Low | Medium | `.github/workflows/ci.yml` | Branch protection required checks | Ops |
 | R10 | Concurrent SQLite writers | Medium | Low | Single app instance assumed | Postgres HA | 10 |
 | R11 | Kimi API key in env | Medium | Low | Server-only routes | Secrets manager injection | Ops |
 | R12 | Audit chain scope collision | Low | Medium | Env var documented | Unique scope per deploy | Now |
@@ -235,7 +245,7 @@ Use [.env.production.example](../.env.production.example) as the template.
 1. **Production auth on** with strong `ENGINEER_CONSOLE_SESSION_SECRET`; disable trusted-local.
 2. **Set `ENGINEER_CONSOLE_REPO_ROOTS`** to client-approved directories only.
 3. **TLS / HTTPS** at reverse proxy; same-origin for console origin.
-4. **Scheduled `backup:db:verify`** with off-host copy of backup artifacts (not just local disk).
+4. **Scheduled `backup:db:secure`** (or verify + encrypt + rsync) with off-host copy of artifacts.
 5. **Rotate bootstrap admin**; individual operator accounts (no shared password).
 6. **Enable hard release gates** in production after staging dry run (`RELEASE_GATES_ENABLED=true`).
 7. **Review deployment/health JSON** — default `allowed: false` until explicitly approved.
@@ -247,7 +257,7 @@ Use [.env.production.example](../.env.production.example) as the template.
 
 ## 11. Should-fix before external demo
 
-1. Enable GitHub Actions from [github-actions-ci-draft.yml](./github-actions-ci-draft.yml).
+1. Require GitHub Actions `verify` job on pull requests (workflow already in repo).
 2. Document and test restore drill on non-production host monthly.
 3. Reverse-proxy rate limits on `/api/engineer-console/auth/login`.
 4. Dedicated `gh` service account for demos (not engineer laptop token).
@@ -261,9 +271,8 @@ Use [.env.production.example](../.env.production.example) as the template.
 
 | Priority | Phase | Outcome |
 |----------|-------|---------|
-| 1 | **Q5-ext — Off-host encrypted backups** | age/GPG + rsync/S3 + alert on `backup:db:verify` failure |
-| 2 | **Q5-ext — CI activation** | Commit workflow from draft; `verify:ci` on PR |
-| 3 | **9B — External CI correlation** | Workflow run IDs on deploy/sign-off rows |
+| 1 | **Ops — Backup alerting** | PagerDuty/cron mail on `backup:db:secure` exit ≠ 0 |
+| 2 | **9B — External CI correlation** | Workflow run IDs on deploy/sign-off rows |
 | 4 | **10 — HA datastore** | Postgres + horizontal app tier |
 | 5 | **9D — SSO / RBAC** | Enterprise IdP |
 

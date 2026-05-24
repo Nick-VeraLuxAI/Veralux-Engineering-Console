@@ -1,7 +1,3 @@
-# Reference copy of the CI workflow (Phase Q4 draft → Q5-ext active).
-# **Active workflow:** [.github/workflows/ci.yml](../.github/workflows/ci.yml)
-# Update both files when changing CI behavior.
-
 name: Engineer Console CI
 
 on:
@@ -15,15 +11,15 @@ jobs:
     timeout-minutes: 30
 
     env:
-      # Playwright trusted-local E2E (see playwright.e2e-local.config.ts)
       ENGINEER_CONSOLE_DB_PATH: data/e2e-local.db
       ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV: "true"
       ENGINEER_CONSOLE_AUTH_ENABLED: "false"
       ENGINEER_CONSOLE_MODEL_PROVIDER: mock
+      ENGINEER_CONSOLE_AUDIT_CHAIN_SCOPE: e2e-ci
       ENGINEER_CONSOLE_RELEASE_GATES_ENABLED: "false"
       ENGINEER_CONSOLE_DEPLOYMENT_PROFILES_JSON: "[]"
-      # Backup step uses default ./data/engineer-console.db unless overridden:
-      # ENGINEER_CONSOLE_DB_PATH: data/engineer-console.db
+      ENGINEER_CONSOLE_BACKUP_ENCRYPTION_MODE: none
+      ENGINEER_CONSOLE_BACKUP_OFFHOST_MODE: none
 
     steps:
       - name: Checkout
@@ -54,18 +50,10 @@ jobs:
             test-results/
           if-no-files-found: ignore
 
-      - name: Upload backup artifacts on failure
+      - name: Upload backup metadata on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: engineer-console-backups
-          path: backups/
+          name: engineer-console-backup-metadata
+          path: backups/*.metadata.json
           if-no-files-found: ignore
-
-# Notes:
-# - verify:ci runs unit tests, build, all E2E configs, then backup:db:verify.
-# - E2E configs set ENGINEER_CONSOLE_DB_PATH per suite; backup step may init
-#   ./data/engineer-console.db if missing (see backup-and-verify-db.mjs).
-# - Do not store ENGINEER_CONSOLE_SESSION_SECRET or production DB paths in YAML.
-# - For scheduled backups only, use a separate cron workflow calling
-#   npm run backup:db:verify with retention env vars (see sqlite-backup-restore.md).

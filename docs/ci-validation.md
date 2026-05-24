@@ -49,9 +49,11 @@ No cloud credentials required. Auth E2E uses seeded operators in `data/e2e-auth.
 
 See [e2e-smoke-tests.md](./e2e-smoke-tests.md) for suite details.
 
-## GitHub Actions draft
+## GitHub Actions
 
-A **documentation-only** workflow template lives at [github-actions-ci-draft.yml](./github-actions-ci-draft.yml). Copy into `.github/workflows/` when the repo adopts Actions.
+**Active workflow:** [.github/workflows/ci.yml](../.github/workflows/ci.yml) runs `npm run verify:ci` on pull requests and pushes to `main` / `master`.
+
+Reference copy: [github-actions-ci-draft.yml](./github-actions-ci-draft.yml).
 
 ## Troubleshooting
 

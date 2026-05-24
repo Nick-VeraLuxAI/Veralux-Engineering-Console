@@ -138,8 +138,11 @@ Stop or quiesce heavy write load when possible; online backup is consistent but 
 |---------|-------------|
 | `npm run backup:db` | Create timestamped backup under `backups/` |
 | `npm run backup:db:verify` | Backup + verify + optional retention (cron-friendly) |
+| `npm run backup:db:secure` | Verify + optional encrypt + optional off-host copy |
+| `npm run backup:db:encrypt` | Encrypt latest backup (`age` / `gpg`, opt-in) |
+| `npm run backup:db:offhost` | Rsync latest backup to env target (opt-in) |
 | `npm run verify:db-backup -- <file>` | Restore verification drill on existing file |
 | `npm run verify:ci` | Full local CI validation (see [ci-validation.md](./ci-validation.md)) |
 | `npm run engineer-console:init-db` | Initialize schema on empty DB |
 
-See also [operator-runbook.md](./operator-runbook.md), [env-reference.md](./env-reference.md), and [ci-validation.md](./ci-validation.md).
+See also [operator-runbook.md](./operator-runbook.md), [env-reference.md](./env-reference.md), [offhost-encrypted-backups.md](./offhost-encrypted-backups.md), and [ci-validation.md](./ci-validation.md).

@@ -19,6 +19,9 @@
     "engineer-console:init-db": "tsx scripts/engineer-console/init-db.ts",
     "backup:db": "node scripts/backup-engineer-console-db.mjs",
     "backup:db:verify": "node scripts/engineer-console/backup-and-verify-db.mjs",
+    "backup:db:encrypt": "node scripts/engineer-console/encrypt-latest-backup.mjs",
+    "backup:db:offhost": "node scripts/engineer-console/copy-backup-offhost.mjs",
+    "backup:db:secure": "node scripts/engineer-console/backup-secure-pipeline.mjs",
     "verify:db-backup": "node scripts/verify-engineer-console-db-backup.mjs",
     "verify:ci": "node scripts/verify-engineer-console-ci.mjs"
   },

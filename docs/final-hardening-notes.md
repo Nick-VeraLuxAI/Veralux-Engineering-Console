@@ -11,7 +11,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 | Gap | Risk | Notes |
 |-----|------|-------|
 | Browser E2E scope | Phase Q2 done (local) | `tests/e2e/fixtures.ts` + `db-fixtures.ts`; release panels, hard gates, auth roles; no full deploy/health seed in browser (SSR risk); no mocked `gh` click-through |
-| SQLite backup/restore | Phase Q4 done (local) | `backup:db:verify`, retention env, `verify:ci`; no cloud replication or encryption |
+| SQLite backup/restore | Phase Q5-ext (local + opt-in off-host) | `backup:db:secure`, age/gpg/rsync scripts; CI in `.github/workflows/ci.yml` |
 | No route handler integration tests | HTTP contract drift | Few tests import Next.js route modules directly |
 | Release sign-off API route | Low | Logic covered in `release-signoff.test.ts`; GET/POST route not invoked end-to-end |
 | Concurrent operators / SQLite locking | Medium | Single-writer assumption; no stress tests |
@@ -45,7 +45,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 ## Recommended technical debt (priority order)
 
-1. **Enable GitHub Actions** — copy [github-actions-ci-draft.yml](./github-actions-ci-draft.yml) to `.github/workflows/`; runs `npm run verify:ci`.
+1. **GitHub Actions branch protection** — require `verify` job from [.github/workflows/ci.yml](../.github/workflows/ci.yml).
 2. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
 3. **Operator admin UI** — create/disable operators without SQL.
 4. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.
@@ -82,7 +82,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 ### Operations
 
 - [x] Backup tooling for `ENGINEER_CONSOLE_DB_PATH` — `npm run backup:db`, `npm run verify:db-backup`, `npm run backup:db:verify` ([sqlite-backup-restore.md](./sqlite-backup-restore.md))
-- [ ] Scheduled **off-host** backup replication and **encryption at rest** (cron-friendly local backup+verify is implemented; cloud providers not integrated)
+- [ ] Scheduled **off-host** backup replication configured on production host (`backup:db:secure` + rsync; see [offhost-encrypted-backups.md](./offhost-encrypted-backups.md))
 - [ ] `ENGINEER_CONSOLE_AUDIT_CHAIN_SCOPE` unique per environment
 - [ ] Deployment/health profile JSON in version control with change review
 - [ ] Runbook distributed: [operator-runbook.md](./operator-runbook.md)
@@ -97,7 +97,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 ### Verification
 
-- [ ] `npm run verify:ci` in CI on every merge ([ci-validation.md](./ci-validation.md))
+- [x] `npm run verify:ci` in GitHub Actions ([ci-validation.md](./ci-validation.md))
 - [ ] One full [end-to-end-demo-script.md](./end-to-end-demo-script.md) dry run on staging
 - [ ] Audit verify endpoint checked after restore drill
 
@@ -118,7 +118,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 ## Suggested next phase (single recommendation)
 
-**Phase Q5 — Off-host encrypted backups:** Wrap `backup:db:verify` artifacts with age/GPG and push to object storage or rsync target with alerting on verify failure (no change to console product behavior).
+**Ops — Backup alerting:** Monitor `npm run backup:db:secure` exit code and JSON `ok` on production cron hosts.
 
 **Phase 9B — External CI correlation:** Attach workflow run ids to deployment/sign-off rows and evidence summaries without triggering GitHub Actions from the console.
 

@@ -24,7 +24,19 @@ npm run backup:db:verify          # cron-friendly backup + verify
 npm run verify:db-backup -- backups/engineer-console-<timestamp>.db
 ```
 
-See [sqlite-backup-restore.md](./sqlite-backup-restore.md) and [production-readiness-audit.md](./production-readiness-audit.md).
+See [sqlite-backup-restore.md](./sqlite-backup-restore.md), [offhost-encrypted-backups.md](./offhost-encrypted-backups.md), and [production-readiness-audit.md](./production-readiness-audit.md).
+
+## Backup encryption and off-host copy
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ENGINEER_CONSOLE_BACKUP_ENCRYPTION_MODE` | No | `none` | `age`, `gpg`, or `none` |
+| `ENGINEER_CONSOLE_BACKUP_AGE_RECIPIENT` | If mode `age` | — | age public key (`age1...`) |
+| `ENGINEER_CONSOLE_BACKUP_GPG_RECIPIENT` | If mode `gpg` | — | GPG recipient |
+| `ENGINEER_CONSOLE_BACKUP_OFFHOST_MODE` | No | `none` | `rsync`, `s3_future` (not implemented), or `none` |
+| `ENGINEER_CONSOLE_BACKUP_RSYNC_TARGET` | If mode `rsync` | — | e.g. `user@host:/path/` (env only) |
+
+Scripts: `backup:db:encrypt`, `backup:db:offhost`, `backup:db:secure`.
 
 ## Authentication and sessions
 
