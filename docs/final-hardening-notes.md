@@ -2,7 +2,7 @@
 
 Post Phase 8F audit for production readiness and client use. Documentation-only assessment; no code changes in this pass.
 
-**Verification at time of writing:** `npm test` (355 tests), `npm run build` — see bottom for command output.
+**Verification at time of writing:** `npm test`, `npm run build`, `npm run test:e2e`, `npm run test:e2e:auth`, `npm run test:e2e:gates` — see [e2e-smoke-tests.md](./e2e-smoke-tests.md).
 
 ---
 
@@ -10,7 +10,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 | Gap | Risk | Notes |
 |-----|------|-------|
-| Browser E2E scope | Phase Q1 smoke only | Playwright covers page load + panel wiring; not full release lifecycle in browser |
+| Browser E2E scope | Phase Q2 done (local) | `tests/e2e/fixtures.ts` + `db-fixtures.ts`; release panels, hard gates, auth roles; no full deploy/health seed in browser (SSR risk); no mocked `gh` click-through |
 | No route handler integration tests | HTTP contract drift | Few tests import Next.js route modules directly |
 | Release sign-off API route | Low | Logic covered in `release-signoff.test.ts`; GET/POST route not invoked end-to-end |
 | Concurrent operators / SQLite locking | Medium | Single-writer assumption; no stress tests |
@@ -44,7 +44,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 ## Recommended technical debt (priority order)
 
-1. **Expand E2E** — mocked `gh`/deploy paths, hard gates enabled, CI job (see [e2e-smoke-tests.md](./e2e-smoke-tests.md)).
+1. **E2E in CI** — run `test:all` on pull requests; optional mocked `gh` button click (see [e2e-smoke-tests.md](./e2e-smoke-tests.md)).
 2. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
 3. **Operator admin UI** — create/disable operators without SQL.
 4. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.

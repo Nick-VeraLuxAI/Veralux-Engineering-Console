@@ -10,10 +10,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test && playwright test -c playwright.release-panels.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:auth": "playwright test --config=playwright.auth.config.ts",
-    "test:all": "npm test && npm run build && npm run test:e2e && npm run test:e2e:auth",
+    "test:e2e:gates": "playwright test --config=playwright.release-gates.config.ts",
+    "test:all": "npm test && npm run build && npm run test:e2e && npm run test:e2e:gates && npm run test:e2e:auth",
+    "test:e2e:release": "playwright test -c playwright.release-panels.config.ts",
     "engineer-console:init-db": "tsx scripts/engineer-console/init-db.ts"
   },
   "dependencies": {

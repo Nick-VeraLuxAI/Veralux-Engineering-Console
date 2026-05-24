@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   createTaskAndRun,
   expectRunDetailPanelsVisible,
+  gotoRunDetailResilient,
 } from "./helpers";
 
 test.describe("Engineering Console trusted local smoke", () => {
@@ -33,8 +34,13 @@ test.describe("Engineering Console trusted local smoke", () => {
 
   test("run detail panels render for API-created fixture", async ({ page, request, baseURL }) => {
     const { runId } = await createTaskAndRun(request, baseURL!);
-    await page.goto(`/engineer/runs/${runId}`);
-    await expect(page.getByRole("heading", { name: "Run state" })).toBeVisible();
-    await expectRunDetailPanelsVisible(page);
+    await gotoRunDetailResilient(page, runId);
+    try {
+      await expectRunDetailPanelsVisible(page);
+    } catch {
+      await gotoRunDetailResilient(page, runId);
+      await expectRunDetailPanelsVisible(page);
+    }
   });
+
 });

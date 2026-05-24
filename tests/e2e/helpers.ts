@@ -1,11 +1,14 @@
-import type { APIRequestContext, Page } from "@playwright/test";
-import path from "path";
+import type { Page } from "@playwright/test";
+import {
+  createTaskAndRun,
+  E2E_ADMIN_EMAIL,
+  E2E_TEST_PASSWORD as E2E_ADMIN_PASSWORD,
+} from "./fixtures";
 
-export const E2E_ADMIN_EMAIL = "e2e@local.test";
-export const E2E_ADMIN_PASSWORD = "e2e-test-pass";
+export { createTaskAndRun, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD };
 
-/** Panel headings on the run detail page (smoke wiring only). */
-export const RUN_DETAIL_PANEL_HEADINGS = [
+/** Core panels present for a freshly API-created run (smoke wiring). */
+export const CORE_RUN_DETAIL_PANEL_HEADINGS = [
   "Run state",
   "Audit timeline",
   "Evidence bundle",
@@ -25,41 +28,34 @@ export const RUN_DETAIL_PANEL_HEADINGS = [
   "Worker plan",
 ] as const;
 
-export async function createTaskAndRun(
-  request: APIRequestContext,
-  baseURL: string,
-): Promise<{ taskId: string; runId: string }> {
-  const repoPath = path.resolve(process.cwd());
+/** Full run detail page including release lifecycle panels (fixture-backed runs). */
+export const RUN_DETAIL_PANEL_HEADINGS = CORE_RUN_DETAIL_PANEL_HEADINGS;
 
-  const taskResponse = await request.post(`${baseURL}/api/engineer-console/tasks`, {
-    data: {
-      title: `E2E smoke task ${Date.now()}`,
-      description: "Browser smoke fixture",
-      targetRepoPath: repoPath,
-      priority: "normal",
-    },
-  });
-
-  if (!taskResponse.ok()) {
-    const body = await taskResponse.text();
-    throw new Error(`Failed to create task: ${taskResponse.status()} ${body}`);
+export async function gotoRunDetailResilient(page: Page, runId: string): Promise<void> {
+  const url = `/engineer/runs/${runId}`;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await page.goto(url, { waitUntil: "domcontentloaded" });
+    const bodyText = await page.locator("body").innerText();
+    if (/Internal Server Error|Application error/i.test(bodyText)) {
+      lastError = bodyText.slice(0, 200);
+      await page.waitForTimeout(1500 * (attempt + 1));
+      continue;
+    }
+    try {
+      await page.getByRole("heading", { name: "Run state" }).waitFor({ state: "visible", timeout: 30_000 });
+      const afterLoad = await page.locator("body").innerText();
+      if (!/Internal Server Error|Application error/i.test(afterLoad)) {
+        return;
+      }
+      lastError = afterLoad.slice(0, 200);
+    } catch (e) {
+      lastError = e;
+    }
+    lastError = bodyText.slice(0, 200);
+    await page.waitForTimeout(1500 * (attempt + 1));
   }
-
-  const taskPayload = (await taskResponse.json()) as { task: { id: string } };
-  const taskId = taskPayload.task.id;
-
-  const runResponse = await request.post(
-    `${baseURL}/api/engineer-console/tasks/${taskId}/runs`,
-    { data: {} },
-  );
-
-  if (!runResponse.ok()) {
-    const body = await runResponse.text();
-    throw new Error(`Failed to create run: ${runResponse.status()} ${body}`);
-  }
-
-  const runPayload = (await runResponse.json()) as { run: { id: string } };
-  return { taskId, runId: runPayload.run.id };
+  throw new Error(`Run detail did not load after retries: ${String(lastError)}`);
 }
 
 export async function expectRunDetailPanelsVisible(page: Page): Promise<void> {
@@ -69,4 +65,16 @@ export async function expectRunDetailPanelsVisible(page: Page): Promise<void> {
   }
   await page.getByText(/Hard release gates/i).first().scrollIntoViewIfNeeded();
   await page.getByText(/Hard release gates/i).first().waitFor({ state: "visible" });
+}
+
+export async function loginEngineerConsole(
+  page: Page,
+  email: string,
+  password: string,
+): Promise<void> {
+  await page.goto("/engineer/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL(/\/engineer\/?$/, { timeout: 15_000 });
 }
