@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { createReleaseRecordsOnlyRun, expectReleasePanelsVisible } from "./fixtures";
+import {
+  createReleaseRecordsOnlyRun,
+  expectReleasePanelsVisible,
+  waitForTasksMutationReady,
+} from "./fixtures";
 import { gotoRunDetailResilient } from "./helpers";
+
+test.describe.configure({ mode: "serial" });
 
 test.describe("Release lifecycle panels (fixture-driven)", () => {
   test("renders release panels with seeded PR/merge and empty deploy states", async ({
@@ -8,6 +14,7 @@ test.describe("Release lifecycle panels (fixture-driven)", () => {
     request,
     baseURL,
   }) => {
+    await waitForTasksMutationReady(request, baseURL!);
     const { runId } = await createReleaseRecordsOnlyRun(request, baseURL!);
     await expect
       .poll(async () => {
@@ -18,7 +25,7 @@ test.describe("Release lifecycle panels (fixture-driven)", () => {
       })
       .toBe(true);
 
-    await gotoRunDetailResilient(page, runId);
+    await gotoRunDetailResilient(page, runId, request, baseURL!);
     await expect(page.getByRole("heading", { name: "PR creation" })).toBeVisible({
       timeout: 30_000,
     });
@@ -32,7 +39,7 @@ test.describe("Release lifecycle panels (fixture-driven)", () => {
     const mergeSection = page
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Merge controls", exact: true }) });
-    await expect(mergeSection.getByText(/#42|merged/i).first()).toBeVisible();
+    await expect(mergeSection.getByLabel(/PR request/i)).toContainText(/#42/i);
 
     const deployExec = page
       .locator("section")

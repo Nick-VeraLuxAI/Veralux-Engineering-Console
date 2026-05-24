@@ -1,4 +1,4 @@
-# Browser E2E smoke tests (Phase Q1 + Q2)
+# Browser E2E smoke tests (Phase Q1 + Q2 + Q3.5)
 
 ## Purpose
 
@@ -8,8 +8,8 @@ Playwright browser tests verify Engineering Console UI routing, panel wiring, fi
 
 | Suite | Config | Mode |
 |-------|--------|------|
-| `engineer-console-smoke.spec.ts` | `playwright.config.ts` | Trusted local (no login) |
-| `zz-release-panels-smoke.spec.ts` | `playwright.release-panels.config.ts` | Trusted local + DB fixtures (second invocation) |
+| `engineer-console-smoke.spec.ts` | `playwright.e2e-local.config.ts` | Trusted local (no login) |
+| `zz-release-panels-smoke.spec.ts` | `playwright.e2e-local.config.ts` | Same server as smoke (DB fixtures) |
 | `zz-hard-release-gates-smoke.spec.ts` | `playwright.release-gates.config.ts` | Trusted local, gates **enabled** (runs after release panels warmup) |
 | `auth-smoke.spec.ts` | `playwright.auth.config.ts` | Auth enabled (production build) |
 | `auth-roles-smoke.spec.ts` | `playwright.auth.config.ts` | Viewer / operator / admin |
@@ -17,7 +17,7 @@ Playwright browser tests verify Engineering Console UI routing, panel wiring, fi
 **Q1 (navigation & wiring)**
 
 - Dashboard, repos, compatibility, task form
-- Run detail panel headings (API-created run)
+- Run detail API fixture + panel headings (API-created run; retries on navigation)
 
 **Q2 (fixtures & mocks)**
 
@@ -56,7 +56,7 @@ npm install
 npx playwright install chromium   # first time only
 npm test
 npm run build
-npm run test:e2e                  # trusted local + release panels (two Playwright runs)
+npm run test:e2e                  # trusted local smoke + release panels (one dev server)
 npm run test:e2e:release          # release panels only
 npm run test:e2e:auth             # auth + roles (builds app)
 npm run test:e2e:gates            # hard release gates enabled
@@ -69,10 +69,11 @@ Optional: `npm run test:e2e:ui`
 
 Set by Playwright `webServer` configs — do not point at production databases.
 
-**Trusted local (`test:e2e`)** — port 3000, `./data/e2e-local.db`
+**Trusted local (`test:e2e`)** — port 3000, `./data/e2e-local.db`, `NODE_ENV=test`, `next start`
 
 | Variable | Value |
 |----------|--------|
+| `NODE_ENV` | `test` (auth off without production lockout) |
 | `ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV` | `true` |
 | `ENGINEER_CONSOLE_AUTH_ENABLED` | `false` |
 | `ENGINEER_CONSOLE_MODEL_PROVIDER` | `mock` |
@@ -98,9 +99,11 @@ Set by Playwright `webServer` configs — do not point at production databases.
 ## How to run locally
 
 1. Free ports **3000** (trusted), **3001** (auth), **3002** (gates), or set `E2E_PORT` / `E2E_AUTH_PORT` / `E2E_GATES_PORT`.
-2. `npm run test:e2e` — `init-db`, `next dev` on port 3000; runs `engineer-console-smoke`, then a second Playwright process for `zz-release-panels-smoke` (fresh server, avoids dev instability).
-3. `npm run test:e2e:gates` — same port as trusted local (run standalone), `./data/e2e-gates.db`, hard gates enabled.
-4. `npm run test:e2e:auth` — `init-db`, seeds operators, `build`, `next start` on port 3001. Role tests use in-page `fetch` with session cookies (Playwright `request` context does not receive `Secure` cookies in production mode).
+2. `npm run test:e2e` — `rm -rf .next`, `init-db`, `NODE_ENV=test` production build, `next start` on port 3000; smoke + release panels in one run (`playwright.e2e-local.config.ts`). `NODE_ENV=test` keeps trusted-local auth off without `next dev` manifest races.
+3. `npm run test:e2e:gates` — port **3002**, `./data/e2e-gates.db`, hard gates enabled; same `NODE_ENV=test` + `next start` pattern (`rm -rf .next` in script).
+4. `npm run test:e2e:auth` — port 3001; `rm -rf .next`, production `build`, `next start` with auth enabled. Role tests use in-page `fetch` with session cookies (Playwright `request` context does not receive `Secure` cookies in production mode).
+
+**Recommended `test:all` order:** unit → build → `test:e2e` → `test:e2e:gates` → `test:e2e:auth` (auth rebuilds `.next` for production; trusted/gates scripts clear `.next` before their own build).
 
 ## Troubleshooting
 
@@ -113,10 +116,10 @@ Set by Playwright `webServer` configs — do not point at production databases.
 | Auth `webServer` / `_document` errors | `rm -rf .next` then re-run `test:e2e:auth` (dev E2E can leave a stale `.next`) |
 | Chromium missing | `npx playwright install chromium` |
 | DB fixture race | Tests use `workers: 1`; do not parallelize E2E locally |
-| Run page `Internal Server Error` | Transient `next dev` compile race; tests retry navigation; delete `data/e2e-*.db` and re-run |
+| Run page `Internal Server Error` | Q3.5: trusted/gates use `next start` (not `next dev`); API readiness poll + navigation retries in helpers |
 | Full deploy/health DB seed | Can SSR-error the run page; release smoke uses PR/merge seed + empty deploy state only |
-| Hard gate banner in browser | Run-page SSR under `next dev` is flaky; `test:e2e:gates` asserts APIs instead |
-| `.next` after auth E2E | Run `rm -rf .next` before trusted/gates E2E if dev server fails to start |
+| Hard gate banner in browser | `test:e2e:gates` asserts APIs; banner SSR not required for gate coverage |
+| `.next` stale mix | `test:e2e` / `test:e2e:gates` run `rm -rf .next` before build; re-run if you manually mixed `next dev` with E2E builds |
 
 ## Future E2E expansion
 

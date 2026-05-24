@@ -1,9 +1,14 @@
 import { expect, test } from "@playwright/test";
 import {
   createTaskAndRun,
+  waitForRunDetailApiReady,
+} from "./fixtures";
+import {
   expectRunDetailPanelsVisible,
   gotoRunDetailResilient,
 } from "./helpers";
+
+test.describe.configure({ mode: "serial" });
 
 test.describe("Engineering Console trusted local smoke", () => {
   test("dashboard loads without login in trusted local mode", async ({ page }) => {
@@ -32,15 +37,24 @@ test.describe("Engineering Console trusted local smoke", () => {
     await expect(page.getByRole("heading", { name: "Create engineering task" })).toBeVisible();
   });
 
-  test("run detail panels render for API-created fixture", async ({ page, request, baseURL }) => {
-    const { runId } = await createTaskAndRun(request, baseURL!);
-    await gotoRunDetailResilient(page, runId);
-    try {
+  test.describe("run detail", () => {
+    test.describe.configure({ retries: 2 });
+
+    test("API fixture is readable before navigation", async ({ request, baseURL }) => {
+      const { runId } = await createTaskAndRun(request, baseURL!);
+      await waitForRunDetailApiReady(request, baseURL!, runId);
+      const res = await request.get(`${baseURL}/api/engineer-console/runs/${runId}`);
+      expect(res.ok()).toBe(true);
+      const payload = (await res.json()) as { run: { id: string }; task: { id: string } };
+      expect(payload.run.id).toBe(runId);
+      expect(payload.task.id).toBeTruthy();
+    });
+
+    test("panels render for API-created fixture", async ({ page, request, baseURL }) => {
+      const { runId } = await createTaskAndRun(request, baseURL!);
+      await gotoRunDetailResilient(page, runId, request, baseURL!);
       await expectRunDetailPanelsVisible(page);
-    } catch {
-      await gotoRunDetailResilient(page, runId);
-      await expectRunDetailPanelsVisible(page);
-    }
+    });
   });
 
 });

@@ -2,7 +2,7 @@
 
 Post Phase 8F audit for production readiness and client use. Documentation-only assessment; no code changes in this pass.
 
-**Verification at time of writing:** `npm test` (375), `npm run build`, `npm run backup:db`, `npm run verify:db-backup`, `npm run test:e2e:auth`, `npm run test:e2e:gates` — see [e2e-smoke-tests.md](./e2e-smoke-tests.md). `test:e2e` run-detail smoke can be flaky under `next dev` (retry or `rm -rf .next`).
+**Verification at time of writing:** `npm test`, `npm run build`, `npm run test:e2e`, `npm run test:e2e:gates`, `npm run test:e2e:auth` — see [e2e-smoke-tests.md](./e2e-smoke-tests.md) (Q3.5 stability patch).
 
 ---
 

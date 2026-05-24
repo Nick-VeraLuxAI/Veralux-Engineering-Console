@@ -2,7 +2,7 @@ import baseConfig from "./playwright.config";
 import { E2E_GATES_AUDIT_SCOPE, E2E_GATES_DB_PATH } from "./tests/e2e/env";
 
 /** Use 3000 when running standalone; set E2E_GATES_PORT=3002 if 3000 is busy. */
-const port = Number(process.env.E2E_GATES_PORT ?? 3000);
+const port = Number(process.env.E2E_GATES_PORT ?? 3002);
 
 const baseWebServer = baseConfig.webServer;
 const baseEnv =
@@ -22,7 +22,9 @@ export default {
     command: [
       "npm run engineer-console:init-db",
       "&&",
-      "npx next dev --port " + String(port),
+      "NODE_ENV=test npm run build",
+      "&&",
+      "NODE_ENV=test npx next start -p " + String(port),
     ].join(" "),
     url: `http://127.0.0.1:${port}/engineer`,
     reuseExistingServer: false,
@@ -30,7 +32,7 @@ export default {
     env: {
       ...baseEnv,
       PORT: String(port),
-      NODE_ENV: "development",
+      NODE_ENV: "test",
       ENGINEER_CONSOLE_DB_PATH: E2E_GATES_DB_PATH,
       ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV: "true",
       ENGINEER_CONSOLE_AUTH_ENABLED: "false",

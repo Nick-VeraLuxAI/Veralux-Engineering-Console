@@ -3,12 +3,16 @@ import { E2E_LOCAL_DB_PATH } from "./tests/e2e/env";
 
 const port = Number(process.env.E2E_PORT ?? 3000);
 
+/**
+ * Trusted-local smoke + release panels on one `next start` instance.
+ * NODE_ENV=test keeps auth disabled (see auth-config) without `next dev` manifest races.
+ */
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["**/engineer-console-smoke.spec.ts"],
+  testMatch: ["**/engineer-console-smoke.spec.ts", "**/zz-release-panels-smoke.spec.ts"],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 1 : 1,
   workers: 1,
   reporter: process.env.CI ? "github" : "list",
   timeout: 120_000,

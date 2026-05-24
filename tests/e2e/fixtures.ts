@@ -37,6 +37,52 @@ async function mutationHeaders(
   return me.csrfToken ? { [CSRF_HEADER_NAME]: me.csrfToken } : {};
 }
 
+/** Poll run detail API until the server returns a readable payload (DB visible to app). */
+/** Wait until task mutations succeed (dev server finished recompiling hot routes). */
+export async function waitForTasksMutationReady(
+  request: APIRequestContext,
+  baseURL: string,
+): Promise<void> {
+  const repoPath = path.resolve(process.cwd());
+  await expect
+    .poll(
+      async () => {
+        const res = await request.post(`${baseURL}/api/engineer-console/tasks`, {
+          data: {
+            title: `E2E readiness ${Date.now()}`,
+            description: "readiness probe",
+            targetRepoPath: repoPath,
+            priority: "normal",
+          },
+        });
+        return res.ok();
+      },
+      { timeout: 120_000, intervals: [500, 1000, 2000, 3000] },
+    )
+    .toBe(true);
+}
+
+export async function waitForRunDetailApiReady(
+  request: APIRequestContext,
+  baseURL: string,
+  runId: string,
+): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const res = await request.get(`${baseURL}/api/engineer-console/runs/${runId}`);
+        if (!res.ok()) return false;
+        const payload = (await res.json()) as {
+          run?: { id?: string };
+          task?: { id?: string };
+        };
+        return Boolean(payload.run?.id && payload.task?.id);
+      },
+      { timeout: 60_000, intervals: [500, 1000, 2000] },
+    )
+    .toBe(true);
+}
+
 export async function waitForRunSettled(
   request: APIRequestContext,
   baseURL: string,
@@ -72,7 +118,7 @@ export async function createTaskAndRun(
   const headers = await mutationHeaders(request, baseURL);
 
   let lastError = "unknown";
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < 8; attempt++) {
     const taskResponse = await request.post(`${baseURL}/api/engineer-console/tasks`, {
       headers,
       data: {
@@ -84,8 +130,9 @@ export async function createTaskAndRun(
     });
 
     if (!taskResponse.ok()) {
-      lastError = `task ${taskResponse.status()} ${await taskResponse.text()}`;
-      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+      const body = (await taskResponse.text()).slice(0, 500);
+      lastError = `task ${taskResponse.status()} ${body}`;
+      await new Promise((r) => setTimeout(r, 1000 * Math.min(attempt + 1, 6)));
       continue;
     }
 
