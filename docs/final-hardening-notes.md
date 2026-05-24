@@ -1,6 +1,6 @@
 # Final hardening notes — Engineering Console
 
-Post Phase 8F audit for production readiness and client use. Documentation-only assessment; no code changes in this pass.
+Post Phase 8F audit for production readiness and client use. Phase Q5 production readiness audit: [production-readiness-audit.md](./production-readiness-audit.md).
 
 **Verification at time of writing:** `npm run verify:ci` (unit, build, E2E, `backup:db:verify`) — see [ci-validation.md](./ci-validation.md) and [e2e-smoke-tests.md](./e2e-smoke-tests.md) (Q3.5 / Q4).
 
@@ -112,6 +112,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 | [env-reference.md](./env-reference.md) | Configuration catalog |
 | [current-architecture.md](./current-architecture.md) | System map |
 | [final-hardening-notes.md](./final-hardening-notes.md) | This file |
+| [production-readiness-audit.md](./production-readiness-audit.md) | Q5 readiness score, risk register, prod checklist |
 
 ---
 

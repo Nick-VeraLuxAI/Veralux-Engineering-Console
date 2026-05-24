@@ -1,6 +1,6 @@
 # Engineering Console — Environment variable reference
 
-All variables are read from the process environment at server startup (Next.js server routes and `ensureEngineerConsoleReady`). There is no `.env.example` in-repo; use `.env.local` for local development.
+All variables are read from the process environment at server startup (Next.js server routes and `ensureEngineerConsoleReady`). Use `.env.local` for local development and [.env.production.example](../.env.production.example) as the production template (placeholders only).
 
 ## Core runtime
 
@@ -20,10 +20,11 @@ Backup and restore verification (does not change the live DB file):
 
 ```bash
 npm run backup:db
+npm run backup:db:verify          # cron-friendly backup + verify
 npm run verify:db-backup -- backups/engineer-console-<timestamp>.db
 ```
 
-See [sqlite-backup-restore.md](./sqlite-backup-restore.md).
+See [sqlite-backup-restore.md](./sqlite-backup-restore.md) and [production-readiness-audit.md](./production-readiness-audit.md).
 
 ## Authentication and sessions
 
@@ -125,6 +126,10 @@ ENGINEER_CONSOLE_REPO_ROOTS=/Users/you/projects
 ENGINEER_CONSOLE_MODEL_PROVIDER=mock
 ENGINEER_CONSOLE_DB_PATH=./data/engineer-console.db
 ```
+
+## Example: production (template)
+
+See [.env.production.example](../.env.production.example) for a full commented template with placeholders only.
 
 ## Example: staging operator workstation (auth on)
 

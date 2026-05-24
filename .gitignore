@@ -34,6 +34,7 @@ yarn-error.log*
 
 # env files
 .env*
+!.env.production.example
 
 # engineer console local data
 /data/

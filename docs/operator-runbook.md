@@ -332,7 +332,7 @@ Details: [release-signoff.md](./release-signoff.md).
 |---------|--------|
 | Schema errors | Re-run `npm run engineer-console:init-db` on correct `ENGINEER_CONSOLE_DB_PATH` |
 | Wrong data | Confirm single DB path across processes |
-| Backup / restore drill | `npm run backup:db` then `npm run verify:db-backup -- <backup.db>` — see [sqlite-backup-restore.md](./sqlite-backup-restore.md) |
+| Backup / restore drill | `npm run backup:db:verify` (cron) or `backup:db` + `verify:db-backup -- <file>` — see [sqlite-backup-restore.md](./sqlite-backup-restore.md) |
 
 ### Model provider
 
