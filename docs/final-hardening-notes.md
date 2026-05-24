@@ -10,7 +10,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 | Gap | Risk | Notes |
 |-----|------|-------|
-| No Playwright/Cypress E2E | UI regressions undetected | All coverage is Vitest on lib + API guards; run page has 15+ panels untested in browser |
+| Browser E2E scope | Phase Q1 smoke only | Playwright covers page load + panel wiring; not full release lifecycle in browser |
 | No route handler integration tests | HTTP contract drift | Few tests import Next.js route modules directly |
 | Release sign-off API route | Low | Logic covered in `release-signoff.test.ts`; GET/POST route not invoked end-to-end |
 | Concurrent operators / SQLite locking | Medium | Single-writer assumption; no stress tests |
@@ -44,7 +44,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 ## Recommended technical debt (priority order)
 
-1. **E2E smoke test** — login → create task → mock draft → execute plan → approve (admin).
+1. **Expand E2E** — mocked `gh`/deploy paths, hard gates enabled, CI job (see [e2e-smoke-tests.md](./e2e-smoke-tests.md)).
 2. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
 3. **Operator admin UI** — create/disable operators without SQL.
 4. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.

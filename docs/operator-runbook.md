@@ -5,6 +5,7 @@ Operational guide for VeraLux Engineering Console through Phase 8F. Pair with [e
 ## Prerequisites
 
 - Node.js 20+ and `npm install` in the console repo
+- Optional browser smoke: `npx playwright install chromium` then `npm run test:e2e` (see [e2e-smoke-tests.md](./e2e-smoke-tests.md))
 - Target git repositories on disk (absolute paths)
 - For PR/merge: `git` and `gh` CLI authenticated on the host
 - For Kimi drafts: `ENGINEER_CONSOLE_MODEL_PROVIDER=kimi` and `KIMI_API_KEY`
