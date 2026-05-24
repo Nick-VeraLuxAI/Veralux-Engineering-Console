@@ -3,6 +3,7 @@
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { HardReleaseGateBanner } from "./hard-release-gate-banner";
 import { StatusBadge } from "./status-badge";
 
 interface DeploymentEnvironment {
@@ -195,6 +196,8 @@ export function DeploymentGatesPanel({ runId }: { runId: string }) {
         Deployment approval records readiness only. It does not deploy. No deploy button in this
         phase.
       </p>
+
+      <HardReleaseGateBanner runId={runId} action="deployment_approval_approve" />
 
       {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
 

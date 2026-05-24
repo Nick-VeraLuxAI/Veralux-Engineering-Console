@@ -25,6 +25,10 @@ import type {
   MergeRequestRecord,
   MergeRequestStatus,
 } from "./merge-control-types";
+import {
+  assertHardReleaseGateOrThrow,
+  ReleaseGateError,
+} from "../release-gates/release-gate-manager";
 import { MergeControlError } from "./merge-control-types";
 
 interface MergeRequestRow {
@@ -213,6 +217,17 @@ export async function createMergeRequest(input: CreateMergeRequestInput): Promis
   const prRequest = getPrRequestById(input.prRequestId);
   if (!prRequest || prRequest.runId !== input.runId) {
     throw new MergeControlError("PR request not found for this run.");
+  }
+
+  try {
+    assertHardReleaseGateOrThrow(input.runId, "merge", {
+      actorLabel: input.actorLabel ?? "admin",
+    });
+  } catch (error) {
+    if (error instanceof ReleaseGateError) {
+      throw new MergeControlError(error.message);
+    }
+    throw error;
   }
 
   const readiness = await evaluateMergeReadiness(input.runId, input.prRequestId);

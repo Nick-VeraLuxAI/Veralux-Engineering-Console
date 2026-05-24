@@ -3,6 +3,7 @@
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { HardReleaseGateBanner } from "./hard-release-gate-banner";
 import { StatusBadge } from "./status-badge";
 
 interface MergeReadiness {
@@ -152,6 +153,8 @@ export function MergeControlsPanel({ runId }: { runId: string }) {
       <p className="mb-4 text-sm text-[var(--muted)]">
         Admin-only, readiness-gated PR merge. No deployment or auto-merge.
       </p>
+
+      <HardReleaseGateBanner runId={runId} action="merge" />
 
       {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
 

@@ -46,7 +46,9 @@ Hard release-completion gates are deferred to a future phase.
 
 ## Relationship to release sign-off
 
-The release checklist is **advisory**. **Release sign-off** (Phase 8F) is a separate **admin-only** governance record (`completed`, `completed_with_exceptions`, `rejected`) that requires a persisted checklist evaluation. Sign-off does not deploy or rollback.
+The release checklist is **advisory** unless [hard release gates](./hard-release-gates.md) are enabled. **Release sign-off** (Phase 8F) is a separate **admin-only** governance record (`completed`, `completed_with_exceptions`, `rejected`) that requires a persisted checklist evaluation. Sign-off does not deploy or rollback.
+
+When `ENGINEER_CONSOLE_RELEASE_GATES_ENABLED=true`, a **blocked** checklist blocks merge approval paths, deployment execution, and certain sign-off decisions.
 
 ## Relationship to deployment health policies
 

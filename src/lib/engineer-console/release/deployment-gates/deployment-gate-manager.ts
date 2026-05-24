@@ -26,6 +26,10 @@ import type {
   DeploymentReadinessCheckRecord,
   DeploymentReadinessResult,
 } from "./deployment-gate-types";
+import {
+  assertHardReleaseGateOrThrow,
+  ReleaseGateError,
+} from "../release-gates/release-gate-manager";
 import { DeploymentGateError } from "./deployment-gate-types";
 
 interface ReadinessCheckRow {
@@ -249,6 +253,17 @@ export async function createDeploymentApproval(
   }
 
   if (input.decision === "approved") {
+    try {
+      assertHardReleaseGateOrThrow(input.runId, "deployment_approval_approve", {
+        actorLabel: input.actorLabel ?? "admin",
+      });
+    } catch (error) {
+      if (error instanceof ReleaseGateError) {
+        throw new DeploymentGateError(error.message);
+      }
+      throw error;
+    }
+
     const currentReadiness = evaluateDeploymentReadiness(input.runId, check.environmentId);
     if (
       check.status === "blocked" ||

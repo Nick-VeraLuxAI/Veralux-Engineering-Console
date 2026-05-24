@@ -115,6 +115,6 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 ## Suggested next phase (single recommendation)
 
-**Phase 9A — Hard release gates:** Wire release checklist `blocked` and sign-off `rejected` into deployment execution and merge APIs as configurable fail-closed checks, behind `ENGINEER_CONSOLE_RELEASE_GATES_ENABLED`, with tests and no automatic rollback.
+**Phase 9B — External CI correlation:** Attach workflow run ids to deployment/sign-off rows and evidence summaries without triggering GitHub Actions from the console.
 
-This closes the largest process gap between “advisory checklist” and “client expects console to stop bad deploys.”
+Phase 9A hard release gates are implemented; see [hard-release-gates.md](./hard-release-gates.md).

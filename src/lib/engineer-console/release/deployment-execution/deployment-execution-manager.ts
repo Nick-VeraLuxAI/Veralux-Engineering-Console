@@ -20,6 +20,10 @@ import type {
   DeploymentExecutionRecord,
   DeploymentExecutionStatus,
 } from "./deployment-execution-types";
+import {
+  assertHardReleaseGateOrThrow,
+  ReleaseGateError,
+} from "../release-gates/release-gate-manager";
 import { DeploymentExecutionError } from "./deployment-execution-types";
 import { evaluateDeploymentExecutionReadiness } from "./evaluate-deployment-execution-readiness";
 import { executeDeploymentProfile } from "./execute-deployment-profile";
@@ -206,6 +210,18 @@ export async function createDeploymentExecution(
 ): Promise<DeploymentExecutionRecord> {
   if (input.actorType === AUDIT_ACTOR_TYPES.MODEL) {
     throw new DeploymentExecutionError("Models cannot execute deployments.");
+  }
+
+  try {
+    assertHardReleaseGateOrThrow(input.runId, "deployment_execution", {
+      actorLabel: input.actorLabel ?? "admin",
+      context: { deploymentApprovalId: input.deploymentApprovalId },
+    });
+  } catch (error) {
+    if (error instanceof ReleaseGateError) {
+      throw new DeploymentExecutionError(error.message);
+    }
+    throw error;
   }
 
   const readiness = evaluateDeploymentExecutionReadiness(

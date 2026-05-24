@@ -62,6 +62,10 @@ Before execution, the system requires:
 7. Profile exists, enabled, and matches environment
 8. No prior **successful** execution for the same approval
 
+### Hard release gates (Phase 9A, optional)
+
+When `ENGINEER_CONSOLE_RELEASE_GATES_ENABLED=true`, execution is also blocked if the persisted release checklist is missing/blocked, policy/replay/reviews fail, or the latest sign-off is `rejected`. See [hard-release-gates.md](./hard-release-gates.md).
+
 ## Admin-only behavior
 
 | Role | List profiles | List executions | Execute POST |

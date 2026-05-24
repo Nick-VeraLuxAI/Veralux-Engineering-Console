@@ -4,7 +4,7 @@
 
 Release sign-off is an **admin-only**, **append-only** human governance record that marks whether a run’s release process is considered finished from an operational perspective. It captures a redacted snapshot of checklist, evidence, deployment, health policy, replay, policy, and review context at sign-off time.
 
-Sign-off is **not** a deployment action and **not** a hard gate on merges or deploys today.
+Sign-off is **not** a deployment action. With `ENGINEER_CONSOLE_RELEASE_GATES_ENABLED=false` (default), sign-off does not block merges or deploys. With hard gates enabled, see [hard-release-gates.md](./hard-release-gates.md).
 
 ## Sign-off decisions
 

@@ -62,6 +62,14 @@ Public status: `GET /api/engineer-console/model-provider` (no secrets).
 
 See [engineer-console-mvp.md](./engineer-console-mvp.md).
 
+## Hard release gates
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ENGINEER_CONSOLE_RELEASE_GATES_ENABLED` | No | `false` | When `true`, fail-closed checks on merge, deployment approval/execution, and sign-off |
+
+See [hard-release-gates.md](./hard-release-gates.md).
+
 ## Deployment execution profiles
 
 | Variable | Required | Default | Description |

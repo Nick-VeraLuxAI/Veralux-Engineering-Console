@@ -30,6 +30,10 @@ Readiness status: `passed` | `blocked` | `requires_review`
 
 - Policy `requires_review` or other warnings — admin must provide **rationale** on merge POST
 
+### Hard release gates (Phase 9A, optional)
+
+When `ENGINEER_CONSOLE_RELEASE_GATES_ENABLED=true`, merge POST is fail-closed on policy/replay/review/evidence blockers even if other UI paths were advisory. See [hard-release-gates.md](./hard-release-gates.md).
+
 ## Admin-only behavior
 
 | Role | Merge readiness GET | Merge POST |

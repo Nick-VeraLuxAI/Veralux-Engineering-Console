@@ -19,6 +19,10 @@ import type {
 } from "./release-signoff-types";
 import { ReleaseSignoffError } from "./release-signoff-types";
 import {
+  assertHardReleaseGateOrThrow,
+  ReleaseGateError,
+} from "../release-gates/release-gate-manager";
+import {
   normalizeSignoffRationale,
   validateReleaseSignoffDecision,
 } from "./validate-release-signoff-decision";
@@ -58,6 +62,32 @@ export function createReleaseSignoff(input: CreateReleaseSignoffInput): ReleaseS
 
     const checklistStatus = checklist.status as ReleaseChecklistStatus;
     const rationale = normalizeSignoffRationale(input.rationale);
+
+    if (input.decision === "completed") {
+      try {
+        assertHardReleaseGateOrThrow(input.runId, "release_signoff_completed", {
+          actorLabel: input.actorLabel?.trim() || "admin",
+          context: { signoffRationale: rationale },
+        });
+      } catch (error) {
+        if (error instanceof ReleaseGateError) {
+          throw new ReleaseSignoffError(error.message);
+        }
+        throw error;
+      }
+    } else if (input.decision === "completed_with_exceptions") {
+      try {
+        assertHardReleaseGateOrThrow(input.runId, "release_signoff_completed_with_exceptions", {
+          actorLabel: input.actorLabel?.trim() || "admin",
+          context: { signoffRationale: rationale },
+        });
+      } catch (error) {
+        if (error instanceof ReleaseGateError) {
+          throw new ReleaseSignoffError(error.message);
+        }
+        throw error;
+      }
+    }
 
     validateReleaseSignoffDecision({
       decision: input.decision,

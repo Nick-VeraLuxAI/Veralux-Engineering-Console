@@ -3,6 +3,7 @@
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { HardReleaseGateBanner } from "./hard-release-gate-banner";
 import { StatusBadge } from "./status-badge";
 
 interface ChecklistSummary {
@@ -114,6 +115,8 @@ export function ReleaseSignoffPanel({ runId }: { runId: string }) {
         Admin-only governance record. Sign-off records completion only — it does not deploy,
         rollback, or trigger CI/CD.
       </p>
+
+      <HardReleaseGateBanner runId={runId} action="release_signoff_completed" />
 
       {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
 

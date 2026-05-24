@@ -3,6 +3,7 @@
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { HardReleaseGateBanner } from "./hard-release-gate-banner";
 import { StatusBadge } from "./status-badge";
 
 interface DeploymentProfile {
@@ -162,6 +163,8 @@ export function DeploymentExecutionPanel({ runId }: { runId: string }) {
         Runs a preconfigured deployment profile after deployment approval. No arbitrary commands.
         No automatic rollback.
       </p>
+
+      <HardReleaseGateBanner runId={runId} action="deployment_execution" />
 
       {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
 
