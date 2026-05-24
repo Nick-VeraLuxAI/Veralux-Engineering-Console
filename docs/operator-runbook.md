@@ -332,6 +332,7 @@ Details: [release-signoff.md](./release-signoff.md).
 |---------|--------|
 | Schema errors | Re-run `npm run engineer-console:init-db` on correct `ENGINEER_CONSOLE_DB_PATH` |
 | Wrong data | Confirm single DB path across processes |
+| Backup / restore drill | `npm run backup:db` then `npm run verify:db-backup -- <backup.db>` — see [sqlite-backup-restore.md](./sqlite-backup-restore.md) |
 
 ### Model provider
 
@@ -372,4 +373,5 @@ Details: [release-signoff.md](./release-signoff.md).
 | Env vars | [env-reference.md](./env-reference.md) |
 | Architecture | [current-architecture.md](./current-architecture.md) |
 | Demo script | [end-to-end-demo-script.md](./end-to-end-demo-script.md) |
+| SQLite backup / restore | [sqlite-backup-restore.md](./sqlite-backup-restore.md) |
 | Hardening gaps | [final-hardening-notes.md](./final-hardening-notes.md) |

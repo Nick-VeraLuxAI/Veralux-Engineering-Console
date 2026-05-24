@@ -16,6 +16,15 @@ Initialize schema:
 npm run engineer-console:init-db
 ```
 
+Backup and restore verification (does not change the live DB file):
+
+```bash
+npm run backup:db
+npm run verify:db-backup -- backups/engineer-console-<timestamp>.db
+```
+
+See [sqlite-backup-restore.md](./sqlite-backup-restore.md).
+
 ## Authentication and sessions
 
 | Variable | Required | Default | Description |

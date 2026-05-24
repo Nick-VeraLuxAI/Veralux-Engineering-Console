@@ -2,7 +2,7 @@
 
 Post Phase 8F audit for production readiness and client use. Documentation-only assessment; no code changes in this pass.
 
-**Verification at time of writing:** `npm test`, `npm run build`, `npm run test:e2e`, `npm run test:e2e:auth`, `npm run test:e2e:gates` — see [e2e-smoke-tests.md](./e2e-smoke-tests.md).
+**Verification at time of writing:** `npm test` (375), `npm run build`, `npm run backup:db`, `npm run verify:db-backup`, `npm run test:e2e:auth`, `npm run test:e2e:gates` — see [e2e-smoke-tests.md](./e2e-smoke-tests.md). `test:e2e` run-detail smoke can be flaky under `next dev` (retry or `rm -rf .next`).
 
 ---
 
@@ -11,6 +11,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 | Gap | Risk | Notes |
 |-----|------|-------|
 | Browser E2E scope | Phase Q2 done (local) | `tests/e2e/fixtures.ts` + `db-fixtures.ts`; release panels, hard gates, auth roles; no full deploy/health seed in browser (SSR risk); no mocked `gh` click-through |
+| SQLite backup/restore | Phase Q3 tooling | `backup:db`, `verify:db-backup`, Vitest in `backup-restore.test.ts`; no automated schedule or cloud replication |
 | No route handler integration tests | HTTP contract drift | Few tests import Next.js route modules directly |
 | Release sign-off API route | Low | Logic covered in `release-signoff.test.ts`; GET/POST route not invoked end-to-end |
 | Concurrent operators / SQLite locking | Medium | Single-writer assumption; no stress tests |
@@ -27,7 +28,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 | Risk | Severity | Mitigation today | Recommended fix |
 |------|----------|------------------|-----------------|
-| SQLite on app disk | High | Single-node only | Postgres + backups for multi-instance |
+| SQLite on app disk | High | Single-node only; `npm run backup:db` + verify drill | Postgres + scheduled off-host backups |
 | Session store in SQLite | High | Host compromise = session theft | Redis sessions + rotation |
 | Trusted local dev mis-set in prod | Critical | `NODE_ENV=production` blocks | CI check env templates |
 | `ENGINEER_CONSOLE_SESSION_SECRET` rotation | Medium | Manual | Secret rotation runbook + dual-key window |
@@ -80,7 +81,8 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 ### Operations
 
-- [ ] Backup strategy for `ENGINEER_CONSOLE_DB_PATH` (frequency + restore test)
+- [x] Backup tooling for `ENGINEER_CONSOLE_DB_PATH` — `npm run backup:db`, `npm run verify:db-backup` ([sqlite-backup-restore.md](./sqlite-backup-restore.md))
+- [ ] Scheduled off-host backup replication and encryption
 - [ ] `ENGINEER_CONSOLE_AUDIT_CHAIN_SCOPE` unique per environment
 - [ ] Deployment/health profile JSON in version control with change review
 - [ ] Runbook distributed: [operator-runbook.md](./operator-runbook.md)
