@@ -36,7 +36,16 @@ See [sqlite-backup-restore.md](./sqlite-backup-restore.md), [offhost-encrypted-b
 | `ENGINEER_CONSOLE_BACKUP_OFFHOST_MODE` | No | `none` | `rsync`, `s3_future` (not implemented), or `none` |
 | `ENGINEER_CONSOLE_BACKUP_RSYNC_TARGET` | If mode `rsync` | — | e.g. `user@host:/path/` (env only) |
 
-Scripts: `backup:db:encrypt`, `backup:db:offhost`, `backup:db:secure`.
+Scripts: `backup:db:encrypt`, `backup:db:offhost`, `backup:db:secure`, `backup:db:alert`.
+
+## Backup alerting
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ENGINEER_CONSOLE_BACKUP_ALERT_MODE` | No | `none` | `webhook` or `none` |
+| `ENGINEER_CONSOLE_BACKUP_ALERT_WEBHOOK_URL` | If mode `webhook` | — | Alert endpoint (env only; not logged) |
+| `ENGINEER_CONSOLE_BACKUP_ALERT_ON_SUCCESS` | No | `false` | Notify on successful backup when `true` |
+| `ENGINEER_CONSOLE_INSTANCE_LABEL` | No | OS hostname | Instance label in webhook payload |
 
 ## Authentication and sessions
 

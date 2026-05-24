@@ -297,6 +297,31 @@ Details: [release-signoff.md](./release-signoff.md).
 
 ---
 
+## Backup alerting
+
+`npm run backup:db:alert` wraps `backup:db:secure` and optionally POSTs a JSON alert when the pipeline fails.
+
+| Variable | Purpose |
+|----------|---------|
+| `ENGINEER_CONSOLE_BACKUP_ALERT_MODE` | `none` (default) or `webhook` |
+| `ENGINEER_CONSOLE_BACKUP_ALERT_WEBHOOK_URL` | Server env only; never logged |
+| `ENGINEER_CONSOLE_BACKUP_ALERT_ON_SUCCESS` | `true` to notify on success too |
+| `ENGINEER_CONSOLE_INSTANCE_LABEL` | Optional label in alert payload |
+
+Exit codes: `0` success, `1` backup failure, `2` backup OK but webhook delivery failed.
+
+See [offhost-encrypted-backups.md](./offhost-encrypted-backups.md) and [examples/cron-backup-alert.example](./examples/cron-backup-alert.example).
+
+---
+
+## Staging dry run
+
+Before production launch, complete [staging-dry-run-checklist.md](./staging-dry-run-checklist.md) on a staging host (auth on, gates on, full release path with safe profiles).
+
+After staging passes, use [production-launch-checklist.md](./production-launch-checklist.md) for go/no-go.
+
+---
+
 ## Troubleshooting
 
 ### Auth / CSRF
@@ -374,4 +399,8 @@ Details: [release-signoff.md](./release-signoff.md).
 | Architecture | [current-architecture.md](./current-architecture.md) |
 | Demo script | [end-to-end-demo-script.md](./end-to-end-demo-script.md) |
 | SQLite backup / restore | [sqlite-backup-restore.md](./sqlite-backup-restore.md) |
+| Off-host / encrypted backups | [offhost-encrypted-backups.md](./offhost-encrypted-backups.md) |
+| Staging dry run | [staging-dry-run-checklist.md](./staging-dry-run-checklist.md) |
+| Production launch | [production-launch-checklist.md](./production-launch-checklist.md) |
+| Production readiness | [production-readiness-audit.md](./production-readiness-audit.md) |
 | Hardening gaps | [final-hardening-notes.md](./final-hardening-notes.md) |

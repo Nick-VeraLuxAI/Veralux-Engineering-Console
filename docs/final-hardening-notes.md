@@ -11,7 +11,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 | Gap | Risk | Notes |
 |-----|------|-------|
 | Browser E2E scope | Phase Q2 done (local) | `tests/e2e/fixtures.ts` + `db-fixtures.ts`; release panels, hard gates, auth roles; no full deploy/health seed in browser (SSR risk); no mocked `gh` click-through |
-| SQLite backup/restore | Phase Q5-ext (local + opt-in off-host) | `backup:db:secure`, age/gpg/rsync scripts; CI in `.github/workflows/ci.yml` |
+| SQLite backup/restore | Phase Q5-ext + Ops alerting | `backup:db:secure`, `backup:db:alert`, age/gpg/rsync; CI in `.github/workflows/ci.yml` |
 | No route handler integration tests | HTTP contract drift | Few tests import Next.js route modules directly |
 | Release sign-off API route | Low | Logic covered in `release-signoff.test.ts`; GET/POST route not invoked end-to-end |
 | Concurrent operators / SQLite locking | Medium | Single-writer assumption; no stress tests |
@@ -45,7 +45,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 ## Recommended technical debt (priority order)
 
-1. **GitHub Actions branch protection** — require `verify` job from [.github/workflows/ci.yml](../.github/workflows/ci.yml).
+1. **Staging dry run** — complete [staging-dry-run-checklist.md](./staging-dry-run-checklist.md) before production.
 2. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
 3. **Operator admin UI** — create/disable operators without SQL.
 4. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.
@@ -82,7 +82,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 ### Operations
 
 - [x] Backup tooling for `ENGINEER_CONSOLE_DB_PATH` — `npm run backup:db`, `npm run verify:db-backup`, `npm run backup:db:verify` ([sqlite-backup-restore.md](./sqlite-backup-restore.md))
-- [ ] Scheduled **off-host** backup replication configured on production host (`backup:db:secure` + rsync; see [offhost-encrypted-backups.md](./offhost-encrypted-backups.md))
+- [ ] Scheduled **off-host** backup + **alerting** on production (`backup:db:alert`; see [offhost-encrypted-backups.md](./offhost-encrypted-backups.md), [examples/cron-backup-alert.example](./examples/cron-backup-alert.example))
 - [ ] `ENGINEER_CONSOLE_AUDIT_CHAIN_SCOPE` unique per environment
 - [ ] Deployment/health profile JSON in version control with change review
 - [ ] Runbook distributed: [operator-runbook.md](./operator-runbook.md)
@@ -118,7 +118,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 ## Suggested next phase (single recommendation)
 
-**Ops — Backup alerting:** Monitor `npm run backup:db:secure` exit code and JSON `ok` on production cron hosts.
+**Production launch:** Complete [production-launch-checklist.md](./production-launch-checklist.md) after staging dry run.
 
 **Phase 9B — External CI correlation:** Attach workflow run ids to deployment/sign-off rows and evidence summaries without triggering GitHub Actions from the console.
 

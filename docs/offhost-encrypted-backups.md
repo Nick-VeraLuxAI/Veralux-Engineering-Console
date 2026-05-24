@@ -12,6 +12,7 @@ Extend local SQLite backup tooling with **optional** encryption and off-host cop
 | Encrypt latest artifacts | `npm run backup:db:encrypt` | Off (`none`) |
 | Copy to remote host | `npm run backup:db:offhost` | Off (`none`)| 
 | Full pipeline | `npm run backup:db:secure` | Runs verify → optional encrypt → optional off-host |
+| Alert wrapper | `npm run backup:db:alert` | Runs secure pipeline + optional webhook on failure |
 
 Unencrypted backups under `backups/` are **never deleted** by encryption scripts.
 
@@ -38,6 +39,23 @@ Targets and recipients come **only** from server environment (cron, systemd, sec
 `s3_future` is documented for future work; it is **not** implemented.
 
 See also [.env.production.example](../.env.production.example).
+
+## Backup alerting
+
+| Variable | Values | Default |
+|----------|--------|---------|
+| `ENGINEER_CONSOLE_BACKUP_ALERT_MODE` | `none`, `webhook` | `none` |
+| `ENGINEER_CONSOLE_BACKUP_ALERT_WEBHOOK_URL` | HTTPS (or internal HTTP) endpoint | — |
+| `ENGINEER_CONSOLE_BACKUP_ALERT_ON_SUCCESS` | `true`, `false` | `false` |
+| `ENGINEER_CONSOLE_INSTANCE_LABEL` | Host label in payload | OS hostname |
+
+```bash
+npm run backup:db:alert   # runs backup:db:secure, alerts on failure by default
+```
+
+Webhook payloads include status, timestamp, backup basename, encrypt/off-host flags, and error summary only — no secrets or full paths.
+
+Cron example: [examples/cron-backup-alert.example](./examples/cron-backup-alert.example).
 
 ## Cron example (encrypt + rsync)
 

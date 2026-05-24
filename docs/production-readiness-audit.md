@@ -21,12 +21,12 @@ It is **not** ready for unattended multi-tenant SaaS, compliance-only sign-off w
 
 ---
 
-## 2. Readiness score: **84 / 100**
+## 2. Readiness score: **86 / 100**
 
 | Area | Weight | Score | Notes |
 |------|--------|-------|-------|
 | Security | 25% | 20/25 | Auth fail-closed in prod; CSRF + same-origin; admin-only release mutations |
-| Data durability | 20% | 17/20 | `backup:db:secure` + age/gpg/rsync opt-in; operator runs off-host copy |
+| Data durability | 20% | 18/20 | `backup:db:alert` + secure pipeline; operator configures webhook/rsync |
 | Release lifecycle | 20% | 18/20 | Full module coverage; gates optional but implemented |
 | Testing | 15% | 14/15 | Unit + E2E + `verify:ci`; CI workflow in repo |
 | Operations docs | 10% | 10/10 | Off-host backup doc + audit |
@@ -111,6 +111,7 @@ Deployment approval and health checks use operator/admin per route; see `env-ref
 | Command | Purpose |
 |---------|---------|
 | `npm run backup:db:secure` | Verify → optional encrypt → optional rsync |
+| `npm run backup:db:alert` | Secure pipeline + optional webhook on failure |
 | `npm run backup:db:encrypt` | age/gpg latest backup + metadata |
 | `npm run backup:db:offhost` | rsync to `ENGINEER_CONSOLE_BACKUP_RSYNC_TARGET` |
 
@@ -119,7 +120,7 @@ See [offhost-encrypted-backups.md](./offhost-encrypted-backups.md).
 ### Remaining gaps
 
 - No in-app S3/cloud SDK (`s3_future` stub only)
-- No automated alerting on backup failure (monitor JSON `ok` / exit code)
+- Webhook alerting is operator-configured (`backup:db:alert`); no built-in PagerDuty integration
 - Single-node SQLite — no HA failover
 - Plaintext backups retained after encryption (by design)
 
@@ -271,8 +272,8 @@ Use [.env.production.example](../.env.production.example) as the template.
 
 | Priority | Phase | Outcome |
 |----------|-------|---------|
-| 1 | **Ops — Backup alerting** | PagerDuty/cron mail on `backup:db:secure` exit ≠ 0 |
-| 2 | **9B — External CI correlation** | Workflow run IDs on deploy/sign-off rows |
+| 1 | **9B — External CI correlation** | Workflow run IDs on deploy/sign-off rows |
+| 2 | **Production launch** | [production-launch-checklist.md](./production-launch-checklist.md) after [staging dry run](./staging-dry-run-checklist.md) |
 | 4 | **10 — HA datastore** | Postgres + horizontal app tier |
 | 5 | **9D — SSO / RBAC** | Enterprise IdP |
 

@@ -139,6 +139,7 @@ Stop or quiesce heavy write load when possible; online backup is consistent but 
 | `npm run backup:db` | Create timestamped backup under `backups/` |
 | `npm run backup:db:verify` | Backup + verify + optional retention (cron-friendly) |
 | `npm run backup:db:secure` | Verify + optional encrypt + optional off-host copy |
+| `npm run backup:db:alert` | Secure pipeline + optional webhook alert on failure |
 | `npm run backup:db:encrypt` | Encrypt latest backup (`age` / `gpg`, opt-in) |
 | `npm run backup:db:offhost` | Rsync latest backup to env target (opt-in) |
 | `npm run verify:db-backup -- <file>` | Restore verification drill on existing file |
