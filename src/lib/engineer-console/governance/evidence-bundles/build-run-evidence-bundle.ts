@@ -33,6 +33,7 @@ import {
   type EvidenceDeploymentHealthChecksSummary,
   type EvidenceDeploymentHealthPolicySummary,
   type EvidenceReleaseChecklistSummary,
+  type EvidenceReleaseSignoffSummary,
   type EvidenceWorkerPlanSummary,
   type RunEvidenceBundleV1,
 } from "./evidence-bundle-types";
@@ -49,6 +50,7 @@ import { summarizeDeploymentExecutionsForRun } from "../../release/deployment-ex
 import { summarizeDeploymentHealthChecksForRun } from "../../release/deployment-health-check/deployment-health-check-manager";
 import { summarizeDeploymentHealthPolicyForRun } from "../../release/deployment-health-policy/deployment-health-policy-manager";
 import { summarizeReleaseChecklistForRun } from "../../release/release-checklist/release-checklist-manager";
+import { summarizeReleaseSignoffForRun } from "../../release/release-signoff/release-signoff-manager";
 import { getCompatibilitySummaryForRepo } from "../../repo-intelligence/compatibility/compatibility-manager";
 
 export interface BuildRunEvidenceBundleInput {
@@ -232,6 +234,12 @@ function buildReleaseChecklistSummary(runId: string): EvidenceReleaseChecklistSu
   return summary;
 }
 
+function buildReleaseSignoffSummary(runId: string): EvidenceReleaseSignoffSummary | null {
+  const summary = summarizeReleaseSignoffForRun(runId);
+  if (summary.signoffCount === 0) return null;
+  return summary;
+}
+
 function buildReviewStagesSummary(runId: string): EvidenceReviewStagesSummary | null {
   const stages = listReviewStagesForRun(runId);
   if (stages.length === 0) return null;
@@ -334,6 +342,7 @@ export async function buildRunEvidenceBundle(
     deploymentHealthChecks: buildDeploymentHealthChecksSummary(run.id),
     deploymentHealthPolicy: buildDeploymentHealthPolicySummary(run.id),
     releaseChecklist: buildReleaseChecklistSummary(run.id),
+    releaseSignoff: buildReleaseSignoffSummary(run.id),
     compatibility: buildCompatibilitySummary(task.registeredRepoId),
     audit: buildAuditReference(run.id),
     timestamps: {

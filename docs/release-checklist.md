@@ -44,6 +44,10 @@ Each item includes: label, status, severity, summary, optional reference id/hash
 
 Hard release-completion gates are deferred to a future phase.
 
+## Relationship to release sign-off
+
+The release checklist is **advisory**. **Release sign-off** (Phase 8F) is a separate **admin-only** governance record (`completed`, `completed_with_exceptions`, `rejected`) that requires a persisted checklist evaluation. Sign-off does not deploy or rollback.
+
 ## Relationship to deployment health policies
 
 Health policy (Phase 8D) interprets post-deploy health checks. The release checklist surfaces the latest health policy status:

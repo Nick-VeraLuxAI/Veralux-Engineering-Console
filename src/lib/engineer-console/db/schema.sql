@@ -687,6 +687,28 @@ CREATE TABLE IF NOT EXISTS engineer_release_checklists (
 CREATE INDEX IF NOT EXISTS idx_engineer_release_checklists_run_id
   ON engineer_release_checklists (run_id, created_at DESC);
 
+-- Phase 8F: admin-only release completion sign-off (governance record only)
+CREATE TABLE IF NOT EXISTS engineer_release_signoffs (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  release_checklist_id TEXT,
+  release_checklist_status TEXT,
+  decision TEXT NOT NULL,
+  actor_type TEXT NOT NULL,
+  actor_label TEXT,
+  rationale TEXT,
+  evidence_bundle_id TEXT,
+  evidence_bundle_hash TEXT,
+  audit_event_id TEXT,
+  audit_chain_hash TEXT,
+  signoff_snapshot_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_release_signoffs_run_id
+  ON engineer_release_signoffs (run_id, created_at DESC);
+
 -- Phase S1: operator authentication
 CREATE TABLE IF NOT EXISTS engineer_operator_accounts (
   id TEXT PRIMARY KEY NOT NULL,

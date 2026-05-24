@@ -13,6 +13,7 @@ import {
   parseDeploymentHealthPolicyEvaluation,
 } from "../../release/deployment-health-policy/deployment-health-policy-manager";
 import { summarizeReleaseChecklistForRun } from "../../release/release-checklist/release-checklist-manager";
+import { summarizeReleaseSignoffForRun } from "../../release/release-signoff/release-signoff-manager";
 import { verifyRunReplay } from "./verify-run-replay";
 
 const SENSITIVE_PATTERN =
@@ -142,6 +143,16 @@ export function buildRedactedReplayPackage(
         blockerCount: summary.blockerCount,
         needsAttentionCount: summary.needsAttentionCount,
         latestRecommendedAction: summary.latestRecommendedAction,
+      };
+    })(),
+    releaseSignoff: (() => {
+      const summary = summarizeReleaseSignoffForRun(runId);
+      if (summary.signoffCount === 0) return null;
+      return {
+        signoffCount: summary.signoffCount,
+        latestDecision: summary.latestDecision,
+        latestChecklistStatus: summary.latestChecklistStatus,
+        latestCreatedAt: summary.latestCreatedAt,
       };
     })(),
     verification: redactObject(verificationResult) as ReplayVerificationResult,

@@ -21,6 +21,7 @@ import { DeploymentExecutionPanel } from "./deployment-execution-panel";
 import { DeploymentHealthChecksPanel } from "./deployment-health-checks-panel";
 import { DeploymentHealthPolicyPanel } from "./deployment-health-policy-panel";
 import { ReleaseChecklistPanel } from "./release-checklist-panel";
+import { ReleaseSignoffPanel } from "./release-signoff-panel";
 
 interface RunDetailPayload {
   run: EngineeringRun;
@@ -95,6 +96,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
       <DeploymentHealthChecksPanel runId={runId} />
       <DeploymentHealthPolicyPanel runId={runId} />
       <ReleaseChecklistPanel runId={runId} />
+      <ReleaseSignoffPanel runId={runId} />
 
       <WorkerPlanDraftPanel
         runId={runId}

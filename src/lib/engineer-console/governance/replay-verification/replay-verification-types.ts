@@ -101,6 +101,12 @@ export interface RedactedReplayPackage {
     needsAttentionCount: number;
     latestRecommendedAction: string | null;
   } | null;
+  releaseSignoff: {
+    signoffCount: number;
+    latestDecision: string | null;
+    latestChecklistStatus: string | null;
+    latestCreatedAt: string | null;
+  } | null;
   verification: ReplayVerificationResult;
 }
 
