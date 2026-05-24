@@ -2,7 +2,7 @@
 
 Post Phase 8F audit for production readiness and client use. Documentation-only assessment; no code changes in this pass.
 
-**Verification at time of writing:** `npm test`, `npm run build`, `npm run test:e2e`, `npm run test:e2e:gates`, `npm run test:e2e:auth` — see [e2e-smoke-tests.md](./e2e-smoke-tests.md) (Q3.5 stability patch).
+**Verification at time of writing:** `npm run verify:ci` (unit, build, E2E, `backup:db:verify`) — see [ci-validation.md](./ci-validation.md) and [e2e-smoke-tests.md](./e2e-smoke-tests.md) (Q3.5 / Q4).
 
 ---
 
@@ -11,7 +11,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 | Gap | Risk | Notes |
 |-----|------|-------|
 | Browser E2E scope | Phase Q2 done (local) | `tests/e2e/fixtures.ts` + `db-fixtures.ts`; release panels, hard gates, auth roles; no full deploy/health seed in browser (SSR risk); no mocked `gh` click-through |
-| SQLite backup/restore | Phase Q3 tooling | `backup:db`, `verify:db-backup`, Vitest in `backup-restore.test.ts`; no automated schedule or cloud replication |
+| SQLite backup/restore | Phase Q4 done (local) | `backup:db:verify`, retention env, `verify:ci`; no cloud replication or encryption |
 | No route handler integration tests | HTTP contract drift | Few tests import Next.js route modules directly |
 | Release sign-off API route | Low | Logic covered in `release-signoff.test.ts`; GET/POST route not invoked end-to-end |
 | Concurrent operators / SQLite locking | Medium | Single-writer assumption; no stress tests |
@@ -28,7 +28,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 | Risk | Severity | Mitigation today | Recommended fix |
 |------|----------|------------------|-----------------|
-| SQLite on app disk | High | Single-node only; `npm run backup:db` + verify drill | Postgres + scheduled off-host backups |
+| SQLite on app disk | High | Single-node; cron `backup:db:verify` + off-host copy | Postgres + encrypted off-host backups |
 | Session store in SQLite | High | Host compromise = session theft | Redis sessions + rotation |
 | Trusted local dev mis-set in prod | Critical | `NODE_ENV=production` blocks | CI check env templates |
 | `ENGINEER_CONSOLE_SESSION_SECRET` rotation | Medium | Manual | Secret rotation runbook + dual-key window |
@@ -45,7 +45,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 ## Recommended technical debt (priority order)
 
-1. **E2E in CI** — run `test:all` on pull requests; optional mocked `gh` button click (see [e2e-smoke-tests.md](./e2e-smoke-tests.md)).
+1. **Enable GitHub Actions** — copy [github-actions-ci-draft.yml](./github-actions-ci-draft.yml) to `.github/workflows/`; runs `npm run verify:ci`.
 2. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
 3. **Operator admin UI** — create/disable operators without SQL.
 4. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.
@@ -81,8 +81,8 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 ### Operations
 
-- [x] Backup tooling for `ENGINEER_CONSOLE_DB_PATH` — `npm run backup:db`, `npm run verify:db-backup` ([sqlite-backup-restore.md](./sqlite-backup-restore.md))
-- [ ] Scheduled off-host backup replication and encryption
+- [x] Backup tooling for `ENGINEER_CONSOLE_DB_PATH` — `npm run backup:db`, `npm run verify:db-backup`, `npm run backup:db:verify` ([sqlite-backup-restore.md](./sqlite-backup-restore.md))
+- [ ] Scheduled **off-host** backup replication and **encryption at rest** (cron-friendly local backup+verify is implemented; cloud providers not integrated)
 - [ ] `ENGINEER_CONSOLE_AUDIT_CHAIN_SCOPE` unique per environment
 - [ ] Deployment/health profile JSON in version control with change review
 - [ ] Runbook distributed: [operator-runbook.md](./operator-runbook.md)
@@ -97,7 +97,7 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 
 ### Verification
 
-- [ ] `npm test` and `npm run build` in CI on every merge
+- [ ] `npm run verify:ci` in CI on every merge ([ci-validation.md](./ci-validation.md))
 - [ ] One full [end-to-end-demo-script.md](./end-to-end-demo-script.md) dry run on staging
 - [ ] Audit verify endpoint checked after restore drill
 
@@ -116,6 +116,8 @@ Post Phase 8F audit for production readiness and client use. Documentation-only 
 ---
 
 ## Suggested next phase (single recommendation)
+
+**Phase Q5 — Off-host encrypted backups:** Wrap `backup:db:verify` artifacts with age/GPG and push to object storage or rsync target with alerting on verify failure (no change to console product behavior).
 
 **Phase 9B — External CI correlation:** Attach workflow run ids to deployment/sign-off rows and evidence summaries without triggering GitHub Actions from the console.
 

@@ -12,6 +12,33 @@ The Engineering Console stores governance, release, audit, and operator data in 
 
 The backup script reads the same path as the running server (`getEngineerConsoleDbPath()`). E2E and auth tests use separate files under `data/e2e-*.db`; back up the path your deployment actually uses.
 
+## Cron-friendly backup + verify
+
+Single command for schedulers (cron, systemd timer, CI):
+
+```bash
+npm run backup:db:verify
+```
+
+Behavior:
+
+1. Creates a timestamped backup under `backups/` (never overwrites the active DB file).
+2. Runs restore verification on the new backup (temp copy only).
+3. Optionally applies retention cleanup (see below).
+4. Prints human-readable lines to **stderr** and one **JSON** object on **stdout** (`ok`, paths, verify summary).
+5. Exit `0` on success, non-zero on failure.
+
+Example cron (daily at 02:15 UTC, with 14-day retention):
+
+```cron
+15 2 * * * cd /opt/veralux-engineering-console && \
+  ENGINEER_CONSOLE_DB_PATH=/var/lib/engineer-console/engineer-console.db \
+  ENGINEER_CONSOLE_BACKUP_RETENTION_DAYS=14 \
+  /usr/bin/npm run backup:db:verify >>/var/log/engineer-console-backup.log 2>&1
+```
+
+If the database file is missing (fresh host), the script runs `npm run engineer-console:init-db` once, then backs up.
+
 ## Manual backup
 
 ```bash
@@ -36,13 +63,32 @@ npm run verify:db-backup -- backups/engineer-console-20260524120000.db
 
 Exit code `0` = PASS, `1` = FAIL.
 
+## Retention (opt-in)
+
+Retention runs only when env vars are set (e.g. on `backup:db:verify`). Default: **no deletions**.
+
+| Variable | Behavior |
+|----------|----------|
+| `ENGINEER_CONSOLE_BACKUP_RETENTION_COUNT` | Keep newest N backups matching `engineer-console-YYYYMMDD-HHMMSS.db` |
+| `ENGINEER_CONSOLE_BACKUP_RETENTION_DAYS` | Delete matching backups older than N days (UTC slug / mtime) |
+
+Rules:
+
+- Deletes only `engineer-console-*.db` backups and their `.metadata.json` siblings.
+- Never deletes the active `ENGINEER_CONSOLE_DB_PATH` file, even if it lives under `backups/`.
+- Does not delete unrelated files (manual exports, notes).
+- Logs each deletion to stderr.
+
+Both vars may be set; a file is removed if it is outside the count window **or** older than the day threshold.
+
 ## Recommended production backup cadence
 
 | Tier | Cadence | Notes |
 |------|---------|--------|
-| Minimum | Daily | Copy backup + metadata off-host |
+| Minimum | Daily | `backup:db:verify` + copy JSON stdout / files off-host |
 | Recommended | Every 6–12 hours | For active operator teams |
 | Before release | On demand | Before deploy or schema change |
+| Restore drill | Monthly | `verify:db-backup` on a copied artifact; optional staging boot |
 
 Stop or quiesce heavy write load when possible; online backup is consistent but very high write rates increase WAL size during backup.
 
@@ -83,8 +129,7 @@ Stop or quiesce heavy write load when possible; online backup is consistent but 
 ## Future options
 
 - Encrypted backups (age/gpg) at rest
-- Off-host replication (S3, rsync, object storage)
-- Scheduled backup service (cron + alerting on verify failure)
+- Off-host replication (S3, rsync, object storage) — not implemented in Phase Q4
 - Postgres migration for multi-instance deployments
 
 ## Related commands
@@ -92,7 +137,9 @@ Stop or quiesce heavy write load when possible; online backup is consistent but 
 | Command | Description |
 |---------|-------------|
 | `npm run backup:db` | Create timestamped backup under `backups/` |
-| `npm run verify:db-backup -- <file>` | Restore verification drill |
+| `npm run backup:db:verify` | Backup + verify + optional retention (cron-friendly) |
+| `npm run verify:db-backup -- <file>` | Restore verification drill on existing file |
+| `npm run verify:ci` | Full local CI validation (see [ci-validation.md](./ci-validation.md)) |
 | `npm run engineer-console:init-db` | Initialize schema on empty DB |
 
-See also [operator-runbook.md](./operator-runbook.md) and [env-reference.md](./env-reference.md).
+See also [operator-runbook.md](./operator-runbook.md), [env-reference.md](./env-reference.md), and [ci-validation.md](./ci-validation.md).

@@ -18,7 +18,9 @@
     "test:e2e:release": "playwright test -c playwright.release-panels.config.ts",
     "engineer-console:init-db": "tsx scripts/engineer-console/init-db.ts",
     "backup:db": "node scripts/backup-engineer-console-db.mjs",
-    "verify:db-backup": "node scripts/verify-engineer-console-db-backup.mjs"
+    "backup:db:verify": "node scripts/engineer-console/backup-and-verify-db.mjs",
+    "verify:db-backup": "node scripts/verify-engineer-console-db-backup.mjs",
+    "verify:ci": "node scripts/verify-engineer-console-ci.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

@@ -9,6 +9,9 @@ const DEFAULT_DB_PATH = path.join(process.cwd(), "data", "engineer-console.db");
 const BACKUP_DIR = path.join(process.cwd(), "backups");
 const METADATA_VERSION = 1;
 
+/** Matches `engineer-console-YYYYMMDD-HHMMSS.db` (UTC slug from backup). */
+export const BACKUP_FILE_NAME_PATTERN = /^engineer-console-\d{8}-\d{6}\.db$/i;
+
 /** Tables expected after a full schema init (see schema.sql). */
 export const EXPECTED_TABLES = [
   "engineer_registered_repos",
@@ -306,4 +309,206 @@ export function verifyEngineerConsoleBackup(backupPath, options = {}) {
 
 export function libDir() {
   return path.dirname(fileURLToPath(import.meta.url));
+}
+
+export function isEngineerConsoleBackupFileName(fileName) {
+  return BACKUP_FILE_NAME_PATTERN.test(fileName);
+}
+
+function backupCreatedAtFromFileName(fileName) {
+  const match = fileName.match(/^engineer-console-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.db$/i);
+  if (!match) return null;
+  const [, y, mo, d, h, mi, s] = match;
+  return new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}Z`);
+}
+
+/**
+ * @param {string} backupDir
+ * @returns {{ backupPath: string, metadataPath: string, fileName: string, sortKey: number }[]}
+ */
+export function listEngineerConsoleBackups(backupDir) {
+  const resolvedDir = path.resolve(backupDir);
+  if (!fs.existsSync(resolvedDir)) {
+    return [];
+  }
+
+  const entries = [];
+  for (const fileName of fs.readdirSync(resolvedDir)) {
+    if (!isEngineerConsoleBackupFileName(fileName)) continue;
+    const backupPath = path.join(resolvedDir, fileName);
+    const stat = fs.statSync(backupPath);
+    const createdAt = backupCreatedAtFromFileName(fileName);
+    const sortKey = createdAt ? createdAt.getTime() : stat.mtimeMs;
+    entries.push({
+      backupPath,
+      metadataPath: metadataPathForBackup(backupPath),
+      fileName,
+      sortKey,
+    });
+  }
+
+  return entries.sort((a, b) => b.sortKey - a.sortKey);
+}
+
+/**
+ * @param {object} [env]
+ * @returns {{ retentionCount?: number, retentionDays?: number }}
+ */
+export function parseBackupRetentionEnv(env = process.env) {
+  const out = {};
+  const countRaw = env.ENGINEER_CONSOLE_BACKUP_RETENTION_COUNT?.trim();
+  const daysRaw = env.ENGINEER_CONSOLE_BACKUP_RETENTION_DAYS?.trim();
+  if (countRaw) {
+    const count = Number.parseInt(countRaw, 10);
+    if (Number.isFinite(count) && count > 0) out.retentionCount = count;
+  }
+  if (daysRaw) {
+    const days = Number.parseInt(daysRaw, 10);
+    if (Number.isFinite(days) && days > 0) out.retentionDays = days;
+  }
+  return out;
+}
+
+/**
+ * Opt-in retention: no env set => no deletions.
+ * Deletes backup + sibling metadata when eligible; never touches active DB.
+ *
+ * @param {object} options
+ * @param {string} [options.backupDir]
+ * @param {string} [options.activeDbPath]
+ * @param {number} [options.retentionCount]
+ * @param {number} [options.retentionDays]
+ * @param {(line: string) => void} [options.log]
+ */
+export function applyBackupRetention(options = {}) {
+  const backupDir = path.resolve(options.backupDir ?? BACKUP_DIR);
+  const activeDbPath = path.resolve(options.activeDbPath ?? resolveDbPath());
+  const log = options.log ?? (() => {});
+  const retentionCount = options.retentionCount;
+  const retentionDays = options.retentionDays;
+
+  if (!retentionCount && !retentionDays) {
+    return { enabled: false, deleted: [], skipped: [], considered: [] };
+  }
+
+  const backups = listEngineerConsoleBackups(backupDir);
+  const deletePaths = new Set();
+
+  if (retentionCount && backups.length > retentionCount) {
+    for (const entry of backups.slice(retentionCount)) {
+      deletePaths.add(entry.backupPath);
+    }
+  }
+
+  if (retentionDays) {
+    const cutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    for (const entry of backups) {
+      if (entry.sortKey < cutoffMs) {
+        deletePaths.add(entry.backupPath);
+      }
+    }
+  }
+
+  const deleted = [];
+  const skipped = [];
+
+  for (const backupPath of deletePaths) {
+    const resolvedBackup = path.resolve(backupPath);
+    if (resolvedBackup === activeDbPath) {
+      skipped.push({ backupPath: resolvedBackup, reason: "active_db" });
+      log(`retention: skip active database path ${resolvedBackup}`);
+      continue;
+    }
+    if (!fs.existsSync(resolvedBackup)) {
+      continue;
+    }
+    if (!isEngineerConsoleBackupFileName(path.basename(resolvedBackup))) {
+      skipped.push({ backupPath: resolvedBackup, reason: "not_backup_pattern" });
+      log(`retention: skip non-matching name ${resolvedBackup}`);
+      continue;
+    }
+
+    const metadataPath = metadataPathForBackup(resolvedBackup);
+    const hadMetadata = fs.existsSync(metadataPath);
+    fs.unlinkSync(resolvedBackup);
+    if (hadMetadata) {
+      fs.unlinkSync(metadataPath);
+      log(`retention: deleted metadata ${metadataPath}`);
+    }
+    deleted.push({ backupPath: resolvedBackup, metadataPath: hadMetadata ? metadataPath : null });
+    log(`retention: deleted ${resolvedBackup}`);
+  }
+
+  return {
+    enabled: true,
+    retentionCount: retentionCount ?? null,
+    retentionDays: retentionDays ?? null,
+    deleted,
+    skipped,
+    considered: backups.map((b) => b.backupPath),
+  };
+}
+
+/**
+ * @param {object} [options]
+ * @param {string} [options.sourcePath]
+ * @param {string} [options.backupDir]
+ * @param {string} [options.activeDbPath]
+ * @param {boolean} [options.runRetention]
+ * @param {number} [options.retentionCount]
+ * @param {number} [options.retentionDays]
+ * @param {(line: string) => void} [options.log]
+ */
+export async function backupAndVerifyEngineerConsoleDb(options = {}) {
+  const activeDbPath = path.resolve(options.activeDbPath ?? resolveDbPath());
+  const backupDir = path.resolve(options.backupDir ?? BACKUP_DIR);
+  const log = options.log ?? (() => {});
+
+  const { backupPath, metadataPath, metadata } = await backupEngineerConsoleDb({
+    sourcePath: options.sourcePath ?? activeDbPath,
+    backupDir,
+    now: options.now,
+  });
+
+  const verify = verifyEngineerConsoleBackup(backupPath, { activeDbPath });
+
+  let retention = { enabled: false, deleted: [], skipped: [], considered: [] };
+  const retentionEnv = parseBackupRetentionEnv();
+  const shouldRetain =
+    options.runRetention !== false &&
+    (options.retentionCount || options.retentionDays || retentionEnv.retentionCount || retentionEnv.retentionDays);
+
+  if (shouldRetain) {
+    retention = applyBackupRetention({
+      backupDir,
+      activeDbPath,
+      retentionCount: options.retentionCount ?? retentionEnv.retentionCount,
+      retentionDays: options.retentionDays ?? retentionEnv.retentionDays,
+      log,
+    });
+  }
+
+  const ok = verify.ok;
+  return {
+    ok,
+    backupPath,
+    metadataPath,
+    metadata: {
+      createdAt: metadata.createdAt,
+      fileSizeBytes: metadata.fileSizeBytes,
+      sha256: metadata.sha256,
+      sourcePath: metadata.sourcePath,
+    },
+    verify: {
+      ok: verify.ok,
+      errors: verify.errors,
+      checks: verify.checks.map((c) => ({ name: c.name, ok: c.ok })),
+    },
+    retention: {
+      enabled: retention.enabled,
+      deletedCount: retention.deleted.length,
+      deleted: retention.deleted.map((d) => d.backupPath),
+      skipped: retention.skipped,
+    },
+  };
 }

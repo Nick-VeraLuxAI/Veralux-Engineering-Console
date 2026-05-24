@@ -1,0 +1,71 @@
+# Documentation-only GitHub Actions workflow draft (Phase Q4).
+# Copy to .github/workflows/engineer-console-ci.yml when enabling CI.
+# Not active unless committed under .github/workflows/.
+
+name: Engineer Console CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # Playwright trusted-local E2E (see playwright.e2e-local.config.ts)
+      ENGINEER_CONSOLE_DB_PATH: data/e2e-local.db
+      ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV: "true"
+      ENGINEER_CONSOLE_AUTH_ENABLED: "false"
+      ENGINEER_CONSOLE_MODEL_PROVIDER: mock
+      ENGINEER_CONSOLE_RELEASE_GATES_ENABLED: "false"
+      ENGINEER_CONSOLE_DEPLOYMENT_PROFILES_JSON: "[]"
+      # Backup step uses default ./data/engineer-console.db unless overridden:
+      # ENGINEER_CONSOLE_DB_PATH: data/engineer-console.db
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Run CI validation
+        run: npm run verify:ci
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+      - name: Upload backup artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineer-console-backups
+          path: backups/
+          if-no-files-found: ignore
+
+# Notes:
+# - verify:ci runs unit tests, build, all E2E configs, then backup:db:verify.
+# - E2E configs set ENGINEER_CONSOLE_DB_PATH per suite; backup step may init
+#   ./data/engineer-console.db if missing (see backup-and-verify-db.mjs).
+# - Do not store ENGINEER_CONSOLE_SESSION_SECRET or production DB paths in YAML.
+# - For scheduled backups only, use a separate cron workflow calling
+#   npm run backup:db:verify with retention env vars (see sqlite-backup-restore.md).
