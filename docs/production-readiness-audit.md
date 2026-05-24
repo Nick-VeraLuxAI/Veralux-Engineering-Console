@@ -5,6 +5,8 @@
 **Auditor role:** Principal production-readiness / security / release-engineering review  
 **Code baseline:** Post Q5-ext (`backup:db:secure`, optional age/gpg/rsync, active `.github/workflows/ci.yml`)
 
+**Staging dry run report:** [staging-dry-run-report.md](./staging-dry-run-report.md) (2026-05-24 — technical baseline PASS; staging-host checklist not evidenced)
+
 ---
 
 ## 1. Executive verdict

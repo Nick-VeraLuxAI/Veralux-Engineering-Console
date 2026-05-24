@@ -91,4 +91,4 @@ Use **staging** deployment and health profiles with `allowed: false` until delib
 | Engineering lead | | | |
 | Operations | | | |
 
-**Reference:** [production-launch-checklist.md](./production-launch-checklist.md), [production-readiness-audit.md](./production-readiness-audit.md)
+**Reference:** [staging-dry-run-report.md](./staging-dry-run-report.md), [production-launch-checklist.md](./production-launch-checklist.md), [production-readiness-audit.md](./production-readiness-audit.md)
