@@ -6,6 +6,14 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 ---
 
+## Staging findings resolved
+
+| Finding | Resolution |
+|---------|------------|
+| PR creation retry after partial failure attempted `git commit` again on a clean tree | Fixed: PR creation now resumes the latest request, reuses an existing run commit when present, skips redundant push when the branch is already on origin, and records an existing PR instead of creating duplicates. Covered by `pr-creation.test.ts` and clean `verify:ci`. |
+
+---
+
 ## Missing or thin test coverage
 
 | Gap | Risk | Notes |
@@ -111,6 +119,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 | [end-to-end-demo-script.md](./end-to-end-demo-script.md) | Sales/engineering demo |
 | [env-reference.md](./env-reference.md) | Configuration catalog |
 | [current-architecture.md](./current-architecture.md) | System map |
+| [operator-ux-audit.md](./operator-ux-audit.md) | Operator workflow UX audit, information architecture recommendation, and phased redesign backlog |
 | [final-hardening-notes.md](./final-hardening-notes.md) | This file |
 | [production-readiness-audit.md](./production-readiness-audit.md) | Q5 readiness score, risk register, prod checklist |
 
@@ -119,6 +128,8 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 ## Suggested next phase (single recommendation)
 
 **Production launch:** Complete [production-launch-checklist.md](./production-launch-checklist.md) after staging dry run.
+
+For operator-facing polish and staging usability hardening, see [operator-ux-audit.md](./operator-ux-audit.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
 
 **Phase 9B — External CI correlation:** Attach workflow run ids to deployment/sign-off rows and evidence summaries without triggering GitHub Actions from the console.
 

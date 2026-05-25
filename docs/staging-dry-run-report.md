@@ -59,7 +59,7 @@
 | 20 | D | Evidence bundle | **Pass (proxy)** | Unit tests |
 | 21 | D | Replay verification | **Pass (proxy)** | Unit tests |
 | 22 | D | Approval path | **Not executed** | Staging UI path |
-| 23 | E | PR creation | **Pass (proxy)** | E2E release panels + unit; **no real `gh` on staging** |
+| 23 | E | PR creation | **Partial pass / bug found (fixed locally)** | Staging found a retry bug after partial PR failure: commit + branch push succeeded, but retry attempted `git commit` again on a clean tree. Fix applied on current branch: retry now reuses existing commit / pushed branch / existing PR when present. Local/unit retest passed; staging app-driven retest still required. |
 | 24 | E | Merge controls | **Pass (proxy)** | E2E fixture merge UI; **no real merge on staging** |
 | 25 | E | Deployment readiness | **Pass (proxy)** | Unit tests |
 | 26 | E | Deployment approval | **Pass (proxy)** | Unit tests |
@@ -87,8 +87,17 @@
 | SDR-5 | Medium | Real `gh` PR create/merge not run on staging host | Release |
 | SDR-6 | Medium | Deployment execution and health check against staging profiles not run | Release |
 | SDR-7 | Low | Branch protection requiring GitHub Actions `verify` job not verified in this review | CI |
+| SDR-8 | High | PR creation retry after partial failure was not idempotent: a retry attempted `git commit` again after the run commit and branch push had already succeeded | Release |
 
-**No critical product code defects** were identified during automated verification.
+**Update:** SDR-8 is fixed on the current branch with idempotent retry/resume handling and local verification, but the staging UI flow still needs one operator retest before this report can mark PR creation fully passed on staging.
+
+---
+
+## 4A. Operator UX note
+
+Separate from the technical readiness findings above, the staging dry run also exposed significant operator-workflow friction: manual `runId` handling, raw worker-plan JSON editing, unclear approval control placement, difficult PR retry interpretation, and weak next-action guidance across the run page.
+
+See [operator-ux-audit.md](./operator-ux-audit.md) for the full UX journey map, severity-ranked issue inventory, information-architecture recommendation, and phased redesign backlog. These items do **not** require weakening governance behavior, but several are strong candidates to fix before production operator use and before external demos.
 
 ---
 
@@ -127,6 +136,9 @@
 ## 8. PR / merge / deployment / health
 
 - **Automated:** Hard gates API blocked without merge; release panels render fixture PR/merge; deployment modules have extensive Vitest coverage.
+- **Staging finding (fixed locally):** PR creation initially had a partial-failure retry bug. After a commit and branch push succeeded, retrying **Create draft PR** attempted a second `git commit` instead of resuming from the recorded commit/branch state.
+- **Fix applied:** PR creation now resumes the latest PR request, reuses an existing run commit, skips redundant push when the remote branch already matches, and records an existing PR instead of creating a duplicate.
+- **Retest result:** Local unit coverage and clean `verify:ci` pass with the retry path covered; app-driven staging retest is still required to close item 23 fully.
 - **Staging gap:** Items **23–28** need a staging host with `gh`, deployment profiles JSON, and health profiles JSON as documented in [end-to-end-demo-script.md](./end-to-end-demo-script.md).
 
 ---
@@ -202,9 +214,9 @@ Prior audit ([production-readiness-audit.md](./production-readiness-audit.md)) w
 
 | Command | Result |
 |---------|--------|
-| `npm test` | **418 passed** (44 files) |
+| `npm test` | **432 passed** (45 files) |
 | `npm run build` | **Pass** |
-| `npm run verify:ci` | **PASS (91s)** |
+| `npm run verify:ci` | **PASS (93s)** |
 | `npm run backup:db:secure` | **Pass** (`ok: true`) |
 | `npm run backup:db:alert` | **Pass** (mode `none`) |
 
