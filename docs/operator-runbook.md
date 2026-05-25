@@ -1,6 +1,6 @@
 # Engineering Console — Operator runbook
 
-Operational guide for VeraLux Engineering Console through Phase UX-10. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
+Operational guide for VeraLux Engineering Console through Phase UX-11. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
 
 ## Prerequisites
 
@@ -209,22 +209,20 @@ UX-6 task guidance:
 
 When you open `/engineer/runs/[id]`, the page now starts with:
 
-1. **Run Command Center** — current lifecycle stage, next recommended action, blockers, warnings, and safe follow-up actions.
-2. **Lifecycle** stepper — workflow order from task through sign-off with links to the relevant panel.
-3. **Current Action** — a compact summary of the active step, why it matters, and the top blockers or warnings.
-4. **Run state** — branch, status, current step, and risk summary.
-5. **Quick navigation** — sticky jump links to Current action, Worker plan, Approval, Evidence, Replay, Policy, Reviews, PR, Merge, Deploy, Checklist, Sign-off, and Audit.
-6. **Expert summary** — a compact, read-only status strip for repeat operators.
-7. **Section groups** — **Active Work**, **Governance & Review**, **PR & Release**, and **Technical Audit**.
-8. **Detailed panels inside the groups** — all existing panels remain available for detailed review and actions.
+1. **Run workspace top bar** — task title, run status, current stage, blocker and warning counts, and one navigation-only current-issue button.
+2. **Workspace tabs** — **Overview**, **Work Plan**, **Review**, **PR**, **Release**, and **Audit**.
+3. **Overview view** — Run Command Center, Lifecycle, Quick navigation, Expert summary, Current Action, and Run state.
+4. **Issue Center** — a bottom-right overlay that lists derived active issues and routes to the relevant workspace view and panel.
+5. **Detailed panels inside the views** — all existing panels remain available for detailed review and actions.
 
-The command center, current-action zone, grouped sections, and approval action card are **guidance-first** surfaces. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
+The run workspace, Issue Center, command center, and current-action zone are **guidance-first** surfaces. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
 
-UX-8 navigation behavior:
+UX-11 navigation behavior:
 
-- clicking a quick-nav or lifecycle anchor expands the relevant section group first
-- blocker links now point directly to the relevant panel instead of relying on “see below” copy
-- technical-detail jump links now open the right area for PR readiness, replay details, evidence details, release-gate raw details, and audit-chain diagnostics
+- clicking a workspace tab changes presentation only and does not trigger mutations
+- deep links such as `#pr-creation`, `#review-stages`, `#release-signoff`, and `#audit-timeline` now open the correct workspace view before scrolling
+- Issue Center items now route directly to the matching workspace view and panel
+- technical-detail jump links still open the right area for PR readiness, replay details, evidence details, release-gate raw details, and audit-chain diagnostics
 
 Safe keyboard shortcuts:
 
@@ -603,16 +601,14 @@ After staging passes, use [production-launch-checklist.md](./production-launch-c
 
 ---
 
-## Quick reference — run page surfaces (top to bottom)
+## Quick reference — run workspace views
 
-1. Run Command Center  
-2. Lifecycle  
-3. Current Action  
-4. Run state  
-5. Active Work group  
-6. Governance & Review group  
-7. PR & Release group  
-8. Technical Audit group
+1. **Overview** — command center, lifecycle, quick nav, expert summary, current action, run state  
+2. **Work Plan** — worker plan draft, worker plan, changed files, quality gates  
+3. **Review** — approval actions, evidence, decision history, replay, policy, review stages, approval report  
+4. **PR** — PR creation plus PR state and history  
+5. **Release** — merge, deployment, health, checklist, sign-off  
+6. **Audit** — audit timeline and chain diagnostics
 
 ---
 

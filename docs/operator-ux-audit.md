@@ -153,6 +153,20 @@ UX-10 improves repeat triage and handoff clarity, but it intentionally does **no
 
 ---
 
+## UX-11 implementation note
+
+UX-11 is now implemented on the run detail page:
+
+- the run page is now presented as a focused **Run Workspace** with **Overview**, **Work Plan**, **Review**, **PR**, **Release**, and **Audit** views
+- a persistent top status bar now keeps the task title, run status, current stage, blocker/warning counts, and primary next action visible while operators switch views
+- a read-only **Issue Center** overlay now derives critical, warning, and info issues from existing run summary data only and routes the operator to the matching view and anchor
+- deep links such as `#pr-creation`, `#review-stages`, `#release-signoff`, and `#audit-timeline` now open the right workspace view before scrolling
+- existing audit, PR, release, and technical panels still remain available; UX-11 changes navigation and presentation only
+
+UX-11 improves run-page focus and problem routing, but it intentionally does **not** add automation, backend state for issues, hidden assignment logic, workflow bypasses, or any governance change.
+
+---
+
 ## Current operator journey
 
 | Step | What the operator sees | What the operator does | Next action obvious? | Button easy to find? | Language understandable? | State clear? | Could do wrong thing? | Recovery guidance |
@@ -544,4 +558,4 @@ This preserves every panel while removing the burden of reading them in raw top-
 
 **Next phase:** **Team-aware queue coordination**
 
-UX-1 through UX-10 now cover orientation, worker-plan authoring, approval/review discoverability, PR/release retry clarity, run-page density, setup readiness, staging onboarding, plain-English terminology help, repeat-operator navigation speed, multi-run dashboard triage, saved queue presets, stale-run visibility, and handoff guidance. The highest remaining operator-value-to-risk item is durable team coordination: shared saved views, explicit ownership, and escalation policies that still preserve current governance boundaries.
+UX-1 through UX-11 now cover orientation, worker-plan authoring, approval/review discoverability, PR/release retry clarity, run-page density, setup readiness, staging onboarding, plain-English terminology help, repeat-operator navigation speed, multi-run dashboard triage, saved queue presets, stale-run visibility, handoff guidance, and focused run-workspace navigation. The highest remaining operator-value-to-risk item is still durable team coordination: shared saved views, explicit ownership, and escalation policies that preserve current governance boundaries.

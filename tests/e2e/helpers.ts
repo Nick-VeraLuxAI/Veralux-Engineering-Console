@@ -36,10 +36,12 @@ export const CORE_RUN_DETAIL_PANEL_HEADINGS = [
 ] as const;
 
 export const RUN_DETAIL_GROUP_HEADINGS = [
-  "Active Work",
-  "Governance & Review",
-  "PR & Release",
-  "Technical Audit",
+  "Overview",
+  "Work Plan",
+  "Review",
+  "PR",
+  "Release",
+  "Audit",
 ] as const;
 
 /** Full run detail page including release lifecycle panels (fixture-backed runs). */
@@ -79,6 +81,10 @@ export async function gotoRunDetailResilient(
       await page
         .getByRole("heading", { name: "Run state", exact: true })
         .waitFor({ state: "visible", timeout: 45_000 });
+      await page.locator('[data-run-workspace-ready="true"]').waitFor({
+        state: "visible",
+        timeout: 45_000,
+      });
       const afterLoad = await page.locator("body").innerText();
       if (!/Internal Server Error|Application error/i.test(afterLoad)) {
         return;
@@ -97,36 +103,70 @@ export async function gotoRunDetailResilient(
 }
 
 export async function expectRunDetailPanelsVisible(page: Page): Promise<void> {
-  await page
-    .getByRole("heading", { name: "Run state", exact: true })
-    .waitFor({ state: "visible", timeout: 30_000 });
-
-  await page
-    .getByRole("heading", { name: /Current action:/i })
-    .waitFor({ state: "visible", timeout: 30_000 });
+  await page.getByRole("heading", { name: "Run workspace", exact: true }).waitFor({
+    state: "visible",
+    timeout: 30_000,
+  });
 
   for (const heading of RUN_DETAIL_GROUP_HEADINGS) {
-    const section = page.locator("section").filter({
-      has: page.getByRole("heading", { name: heading, exact: true }),
-    }).first();
-    await section.scrollIntoViewIfNeeded({ timeout: 30_000 });
-    await section.waitFor({ state: "visible", timeout: 30_000 });
-    const toggle = section.getByRole("button", { name: /Show details|Hide details/i });
-    if (await toggle.isVisible()) {
-      const label = await toggle.innerText();
-      if (/show details/i.test(label)) {
-        await toggle.click();
-      }
-    }
+    await page.getByRole("tab", { name: heading, exact: true }).waitFor({
+      state: "visible",
+      timeout: 30_000,
+    });
   }
 
-  for (const heading of RUN_DETAIL_PANEL_HEADINGS) {
-    const locator = page.getByRole("heading", { name: heading, exact: true });
-    await locator.scrollIntoViewIfNeeded({ timeout: 30_000 });
-    await locator.waitFor({ state: "visible", timeout: 30_000 });
+  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await page.getByRole("heading", { name: "Run state", exact: true }).waitFor({
+    state: "visible",
+    timeout: 30_000,
+  });
+  await page.getByRole("heading", { name: /Current action:/i }).waitFor({
+    state: "visible",
+    timeout: 30_000,
+  });
+
+  await page.getByRole("tab", { name: "Work Plan", exact: true }).click();
+  await page.getByRole("heading", { name: "Worker plan", exact: true }).waitFor({
+    state: "visible",
+    timeout: 30_000,
+  });
+
+  await page.getByRole("tab", { name: "Review", exact: true }).click();
+  for (const heading of ["Evidence bundle", "Decision history", "Replay verification", "Policy results", "Review stages"] as const) {
+    await page.getByRole("heading", { name: heading, exact: true }).waitFor({
+      state: "visible",
+      timeout: 30_000,
+    });
   }
-  await page.getByText(/Hard release gates/i).first().scrollIntoViewIfNeeded();
+
+  await page.getByRole("tab", { name: "PR", exact: true }).click();
+  await page.getByRole("heading", { name: "PR creation", exact: true }).waitFor({
+    state: "visible",
+    timeout: 30_000,
+  });
+
+  await page.getByRole("tab", { name: "Release", exact: true }).click();
+  for (const heading of [
+    "Merge controls",
+    "Deployment gates",
+    "Deployment execution",
+    "Deployment health checks",
+    "Deployment health policy",
+    "Release checklist",
+    "Release sign-off",
+  ] as const) {
+    await page.getByRole("heading", { name: heading, exact: true }).waitFor({
+      state: "visible",
+      timeout: 30_000,
+    });
+  }
   await page.getByText(/Hard release gates/i).first().waitFor({ state: "visible" });
+
+  await page.getByRole("tab", { name: "Audit", exact: true }).click();
+  await page.getByRole("heading", { name: "Audit timeline", exact: true }).waitFor({
+    state: "visible",
+    timeout: 30_000,
+  });
 }
 
 export async function loginEngineerConsole(

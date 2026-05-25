@@ -1,6 +1,6 @@
 # Engineering Console operator UX guide
 
-Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, UX-9, and UX-10 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
+Operator-facing guide for the UX-1 through UX-11 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
 
 ---
 
@@ -220,6 +220,27 @@ UX-10 improves repeat triage and operator handoff without adding any workflow au
 
 ---
 
+## What changed in UX-11
+
+UX-11 converts the run detail page from one long panel stack into a focused **Run Workspace** without changing workflow authority:
+
+1. **Run workspace tabs**  
+   The run page now opens inside six focused views: **Overview**, **Work Plan**, **Review**, **PR**, **Release**, and **Audit**. Only one workspace view is visually dominant at a time, but the underlying panels stay mounted so form state is preserved.
+
+2. **Persistent top status bar**  
+   A sticky top bar now shows the task title, run status, current stage, blocker and warning counts, and the current recommended action. The bar can only navigate; it does not expose approval, PR, merge, deploy, or sign-off mutations.
+
+3. **Issue Center overlay**  
+   A bottom-right **Issue Center** now derives active critical, warning, and info issues from the existing run summary. It is UI-only and read-only. Clicking an issue routes the operator to the relevant workspace view and panel.
+
+4. **Deep-link routing**  
+   Panel links such as `#pr-creation`, `#review-stages`, `#release-signoff`, and `#audit-timeline` now open the correct workspace view before scrolling to the target panel.
+
+5. **Focused technical layout**  
+   Existing panels still remain available, including audit history, release controls, policy detail, and technical diagnostics. UX-11 changes navigation and presentation order only; it does not remove detail or hide issues permanently.
+
+---
+
 ## What the command center does
 
 The command center is a **read-only orientation layer**. It helps operators answer:
@@ -250,30 +271,18 @@ Clicking a step jumps to the relevant panel or, for `Task`, back to the task det
 
 ## Where technical details live
 
-UX-1 through UX-10 did **not** remove technical detail from the run page.
+UX-1 through UX-11 did **not** remove technical detail from the run page.
 
-The detailed panels still live below the command center, lifecycle stepper, and current-action zone:
+The detailed panels now live inside workspace views:
 
-- worker plan draft
-- worker plan
-- changed files
-- quality gates
-- evidence bundle
-- replay verification
-- policy results
-- review stages
-- approval report
-- PR creation
-- merge controls
-- deployment gates
-- deployment execution
-- deployment health checks
-- deployment health policy
-- release checklist
-- release sign-off
-- audit timeline
+- **Overview**: command center, lifecycle, quick navigation, expert summary, current action, run state, issue summary
+- **Work Plan**: worker plan draft, worker plan, changed files, quality gates
+- **Review**: approval actions, evidence bundle, decision history, replay verification, policy results, review stages, approval report
+- **PR**: PR creation and PR state/history detail
+- **Release**: merge controls, deployment gates, deployment execution, deployment health checks, deployment health policy, release checklist, release sign-off
+- **Audit**: audit timeline, chain diagnostics, and technical verification detail
 
-Use the top-of-page guidance to orient first, then open the section group and specific panel you need.
+Use the workspace tabs or Issue Center first, then open the panel you need.
 
 ---
 
@@ -322,13 +331,14 @@ Decision guidance:
 - PR creation, merge, deployment, and sign-off are still manual and role-gated.
 - Hard release gates still enforce the same backend checks.
 - The new PR retry guidance does not bypass readiness checks, auto-create PRs, or merge/deploy automatically.
+- The run workspace tabs and Issue Center do not create mutations on navigation.
 - Technical detail remains available for audit and replay review.
 
 ---
 
 ## Current UX limits
 
-UX-1 through UX-10 now cover orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, setup onboarding, terminology clarity, repeat-operator navigation speed, dashboard-level queue triage, saved queue presets, stale-run visibility, and handoff guidance, but they do **not** yet solve:
+UX-1 through UX-11 now cover orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, setup onboarding, terminology clarity, repeat-operator navigation speed, dashboard-level queue triage, saved queue presets, stale-run visibility, handoff guidance, and focused run-workspace navigation, but they do **not** yet solve:
 
 - durable team-shared saved views beyond URL and local browser memory
 - explicit assignment, SLA, or escalation workflow across operators

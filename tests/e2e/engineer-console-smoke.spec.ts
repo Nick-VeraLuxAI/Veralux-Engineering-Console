@@ -6,7 +6,6 @@ import {
   waitForRunDetailApiReady,
 } from "./fixtures";
 import {
-  expectRunDetailPanelsVisible,
   gotoRunDetailResilient,
   RUN_DETAIL_GROUP_HEADINGS,
 } from "./helpers";
@@ -109,37 +108,72 @@ test.describe("Engineering Console trusted local smoke", () => {
       expect(payload.task.id).toBeTruthy();
     });
 
-    test("panels render for governance-ready fixture", async ({ page, request, baseURL }) => {
+    test("workspace tabs and issue center render for governance-ready fixture", async ({
+      page,
+      request,
+      baseURL,
+    }) => {
       const { runId } = await createRunWithGovernanceFixture(request, baseURL!);
       await gotoRunDetailResilient(page, runId, request, baseURL!);
+      await expect(
+        page.getByRole("heading", { name: "Run workspace", exact: true }),
+      ).toBeVisible();
+      for (const heading of RUN_DETAIL_GROUP_HEADINGS) {
+        await expect(page.getByRole("tab", { name: heading, exact: true })).toBeVisible();
+      }
+      const issueCenter = page.locator("aside").filter({
+        has: page.getByText("Issue Center", { exact: true }),
+      });
+      await expect(issueCenter).toBeVisible();
       await expect(
         page.getByRole("heading", { name: "Run Command Center", exact: true }),
       ).toBeVisible();
       await expect(page.getByRole("heading", { name: /Current action:/i })).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: "Approval actions", exact: true }),
+        page.getByRole("heading", { name: "Lifecycle", exact: true }),
       ).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Lifecycle", exact: true })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Quick navigation", exact: true })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Expert summary", exact: true })).toBeVisible();
-      await expect(page.getByText("Next recommended action")).toBeVisible();
-      for (const heading of RUN_DETAIL_GROUP_HEADINGS) {
-        await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
-      }
+      await expect(
+        page.getByRole("heading", { name: "Quick navigation", exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Expert summary", exact: true }),
+      ).toBeVisible();
+      await expect(page.getByRole("button", { name: /Open issue:/i })).toBeVisible();
+    });
 
-      const quickNav = page.getByRole("navigation", { name: "Run quick navigation" });
-      await quickNav.getByRole("link", { name: "PR", exact: true }).click();
-      await expect(page.locator("#pr-release").getByRole("button", { name: /Hide details/i })).toBeVisible();
+    test("PR and audit workspace views are reachable from the run workspace", async ({
+      page,
+      request,
+      baseURL,
+    }) => {
+      const { runId } = await createTaskAndRun(request, baseURL!, {
+        title: `Deep link workspace test ${Date.now()}`,
+        description: "Verify PR and audit deep links open the correct workspace views.",
+      });
+      await gotoRunDetailResilient(page, runId, request, baseURL!);
+
+      await expect(page.locator('a[href="#pr-creation"]').first()).toBeVisible();
+      await expect(page.locator('a[href="#audit-timeline"]').first()).toBeVisible();
+
+      await page.getByRole("tab", { name: "PR", exact: true }).click();
+      await expect(page.getByRole("tab", { name: "PR", exact: true })).toHaveAttribute(
+        "aria-selected",
+        "true",
+        { timeout: 15_000 },
+      );
       await expect(page.getByRole("heading", { name: "PR creation", exact: true })).toBeVisible();
 
-      await quickNav.getByRole("link", { name: "Audit", exact: true }).click();
-      await expect(
-        page.locator("#technical-audit").getByRole("button", { name: /Hide details/i }),
-      ).toBeVisible();
+      await expect(page.getByRole("tab", { name: "Audit", exact: true })).toHaveAttribute(
+        "aria-selected",
+        "false",
+      );
+      await page.getByRole("tab", { name: "Audit", exact: true }).click();
       await expect(page.getByRole("heading", { name: "Audit timeline", exact: true })).toBeVisible();
-
-      await expectRunDetailPanelsVisible(page);
-      await expect(page.getByText("What is an evidence bundle?")).toBeVisible();
+      await expect(page.getByRole("tab", { name: "Audit", exact: true })).toHaveAttribute(
+        "aria-selected",
+        "true",
+        { timeout: 15_000 },
+      );
     });
 
     test("guided worker-plan builder supports README smoke helper", async ({
@@ -153,6 +187,7 @@ test.describe("Engineering Console trusted local smoke", () => {
       });
 
       await gotoRunDetailResilient(page, runId, request, baseURL!);
+      await page.getByRole("tab", { name: "Work Plan", exact: true }).click();
       await expect(page.getByRole("heading", { name: "Guided worker-plan builder" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Create README smoke plan" })).toBeVisible();
 
