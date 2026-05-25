@@ -1,9 +1,12 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { RunApprovalActionCard } from "@/components/engineer-console/run-approval-action-card";
+import { ReviewStagesPanel } from "@/components/engineer-console/review-stages-panel";
 import { RunCommandCenter } from "@/components/engineer-console/run-command-center";
 import { RunLifecycleStepper } from "@/components/engineer-console/run-lifecycle-stepper";
 import {
+  deriveRunApprovalActionCardState,
   deriveRunCommandCenterState,
   deriveRunLifecycleSteps,
 } from "./derive-run-ux";
@@ -12,6 +15,25 @@ import type { RunWorkflowSummary } from "./run-ux-types";
 vi.mock("@/components/engineer-console/status-badge", () => ({
   StatusBadge: ({ status }: { status: string }) =>
     React.createElement("span", null, status),
+}));
+
+vi.mock("@/components/engineer-console/approval-actions", () => ({
+  ApprovalActions: ({
+    showApprove,
+    showRequestFix,
+    showStop,
+  }: {
+    showApprove?: boolean;
+    showRequestFix?: boolean;
+    showStop?: boolean;
+  }) =>
+    React.createElement(
+      "div",
+      null,
+      showApprove ? "Approve run" : "",
+      showRequestFix ? "Request Fix" : "",
+      showStop ? "Stop Run" : "",
+    ),
 }));
 
 function buildSummary(
@@ -257,6 +279,197 @@ describe("UX-1 run guidance", () => {
     expect(guidance.warnings.some((item) => /Senior review is required/i.test(item.text))).toBe(
       true,
     );
+  });
+
+  it("approval action card renders", () => {
+    const summary = buildSummary();
+    const state = deriveRunApprovalActionCardState(summary);
+    const html = renderToStaticMarkup(
+      React.createElement(RunApprovalActionCard, {
+        runId: "run-1",
+        state,
+      }),
+    );
+
+    expect(html).toContain("Approval actions");
+    expect(html).toContain("Current approval state");
+  });
+
+  it("approve is visible when run is ready", () => {
+    const summary = buildSummary();
+    const state = deriveRunApprovalActionCardState(summary);
+
+    expect(state.approvalAvailable).toBe(true);
+    expect(state.showApprove).toBe(true);
+    expect(state.nextRequiredAction).toBe("Approve run.");
+  });
+
+  it("request fix is visible when worker plan executed", () => {
+    const summary = buildSummary({
+      run: {
+        id: "run-1",
+        status: "failed",
+        currentStep: "worker_plan_execution_failed",
+        branchName: "engineer/test-run",
+        riskLevel: "low",
+        agentMessage: null,
+      },
+    });
+    const state = deriveRunApprovalActionCardState(summary);
+
+    expect(state.showRequestFix).toBe(true);
+  });
+
+  it("stop is visible when run is active or failed", () => {
+    const activeState = deriveRunApprovalActionCardState(buildSummary());
+    const failedState = deriveRunApprovalActionCardState(
+      buildSummary({
+        run: {
+          id: "run-1",
+          status: "failed",
+          currentStep: "fix_requested",
+          branchName: "engineer/test-run",
+          riskLevel: "medium",
+          agentMessage: null,
+        },
+      }),
+    );
+
+    expect(activeState.showStop).toBe(true);
+    expect(failedState.showStop).toBe(true);
+  });
+
+  it("rationale requirement is shown when policy requires review", () => {
+    const summary = buildSummary({
+      policy: {
+        exists: true,
+        status: "requires_review",
+        blockers: [],
+        warnings: [],
+        reviewRequired: ["Senior review required."],
+        recommendedNextAction: "Complete review before approval.",
+      },
+      review: {
+        stageCount: 1,
+        requiredCount: 1,
+        approvedCount: 1,
+        pendingCount: 0,
+        rejectedCount: 0,
+        skippedCount: 0,
+      },
+    });
+    const state = deriveRunApprovalActionCardState(summary);
+
+    expect(state.rationale.approve).toBe("required");
+    expect(state.nextRequiredAction).toBe("Provide rationale and approve run.");
+  });
+
+  it("approval blocked message points to review stages when reviews pending", () => {
+    const summary = buildSummary({
+      policy: {
+        exists: true,
+        status: "requires_review",
+        blockers: [],
+        warnings: [],
+        reviewRequired: ["Senior review required."],
+        recommendedNextAction: "Complete review before approval.",
+      },
+      review: {
+        stageCount: 1,
+        requiredCount: 1,
+        approvedCount: 0,
+        pendingCount: 1,
+        rejectedCount: 0,
+        skippedCount: 0,
+      },
+    });
+    const state = deriveRunApprovalActionCardState(summary);
+
+    expect(state.primaryHref).toBe("#review-stages");
+    expect(state.nextRequiredAction).toBe("Complete required review stages.");
+    expect(state.blockers.some((item) => /pending/i.test(item.text))).toBe(true);
+  });
+
+  it("review stages panel explains pending, approved, and rejected states", () => {
+    const summary = buildSummary({
+      policy: {
+        exists: true,
+        status: "requires_review",
+        blockers: [],
+        warnings: [],
+        reviewRequired: ["Senior review required."],
+        recommendedNextAction: "Complete review before approval.",
+      },
+      review: {
+        stageCount: 3,
+        requiredCount: 3,
+        approvedCount: 1,
+        pendingCount: 1,
+        rejectedCount: 1,
+        skippedCount: 0,
+      },
+    });
+
+    const html = renderToStaticMarkup(
+      React.createElement(ReviewStagesPanel, {
+        runId: "run-1",
+        workflowSummary: summary,
+        initialStages: [
+          {
+            id: "stage-pending",
+            stage: "architecture_review",
+            status: "pending",
+            required: true,
+            reason: "Large diff requires architecture review.",
+            reviewerActorLabel: null,
+            reviewerNotes: null,
+            evidenceBundleHashPrefix: "abc123def456",
+            policyResultId: "policy-1",
+            policyVersion: "1.0.0",
+            completedAt: null,
+          },
+          {
+            id: "stage-approved",
+            stage: "implementation_review",
+            status: "approved",
+            required: true,
+            reason: "Implementation review required.",
+            reviewerActorLabel: "admin-reviewer",
+            reviewerNotes: "Approved",
+            evidenceBundleHashPrefix: "abc123def456",
+            policyResultId: "policy-1",
+            policyVersion: "1.0.0",
+            completedAt: "2026-05-25T00:00:00.000Z",
+          },
+          {
+            id: "stage-rejected",
+            stage: "risky_diff_review",
+            status: "rejected",
+            required: true,
+            reason: "Risky diff review required.",
+            reviewerActorLabel: "operator-reviewer",
+            reviewerNotes: "Rejected for missing rationale",
+            evidenceBundleHashPrefix: "abc123def456",
+            policyResultId: "policy-1",
+            policyVersion: "1.0.0",
+            completedAt: "2026-05-25T00:00:00.000Z",
+          },
+        ],
+        initialSummary: {
+          requiredCount: 3,
+          approvedCount: 1,
+          rejectedCount: 1,
+          pendingCount: 1,
+          skippedCount: 0,
+        },
+      }),
+    );
+
+    expect(html).toContain("Complete required review stages before final run approval.");
+    expect(html).toContain("Pending");
+    expect(html).toContain("Approved");
+    expect(html).toContain("Rejected");
+    expect(html).toContain("Why review is required:");
   });
 
   it("approved run produces PR guidance", () => {

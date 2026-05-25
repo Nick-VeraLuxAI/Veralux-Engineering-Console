@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  createRunWithGovernanceFixture,
   createTaskAndRun,
   waitForRunDetailApiReady,
 } from "./fixtures";
@@ -50,11 +51,14 @@ test.describe("Engineering Console trusted local smoke", () => {
       expect(payload.task.id).toBeTruthy();
     });
 
-    test("panels render for API-created fixture", async ({ page, request, baseURL }) => {
-      const { runId } = await createTaskAndRun(request, baseURL!);
+    test("panels render for governance-ready fixture", async ({ page, request, baseURL }) => {
+      const { runId } = await createRunWithGovernanceFixture(request, baseURL!);
       await gotoRunDetailResilient(page, runId, request, baseURL!);
       await expect(
         page.getByRole("heading", { name: "Run Command Center", exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Approval actions", exact: true }),
       ).toBeVisible();
       await expect(page.getByRole("heading", { name: "Lifecycle", exact: true })).toBeVisible();
       await expect(page.getByText("Next recommended action")).toBeVisible();

@@ -176,6 +176,32 @@ export interface RunSecondaryActionSummary {
   href?: string;
 }
 
+export type RunApprovalActionTone = "ready" | "blocked" | "warning" | "complete";
+
+export interface RunApprovalRationaleState {
+  approve: "optional" | "required";
+  requestFix: "required";
+  stop: "required";
+  guidance: string[];
+}
+
+export interface RunApprovalActionCardState {
+  showCard: boolean;
+  tone: RunApprovalActionTone;
+  currentStateLabel: string;
+  currentStateDetail: string;
+  approvalAvailable: boolean;
+  nextRequiredAction: string;
+  blockers: RunGuidanceItem[];
+  warnings: RunGuidanceItem[];
+  primaryHref: string;
+  primaryLabel: string;
+  showApprove: boolean;
+  showRequestFix: boolean;
+  showStop: boolean;
+  rationale: RunApprovalRationaleState;
+}
+
 export interface RunCommandCenterState {
   currentStageId: RunLifecycleStepId;
   currentStageLabel: string;

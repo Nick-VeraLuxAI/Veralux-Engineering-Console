@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import type { ApprovalReport, EngineeringRun, EngineeringTask, QualityGateResult } from "@/lib/engineer-console/types";
 import {
   deriveRunCommandCenterState,
+  deriveRunApprovalActionCardState,
   deriveRunLifecycleSteps,
 } from "@/lib/engineer-console/run-ux/derive-run-ux";
 import {
@@ -36,6 +37,7 @@ import { ReleaseChecklistPanel } from "./release-checklist-panel";
 import { ReleaseSignoffPanel } from "./release-signoff-panel";
 import { RunCommandCenter } from "./run-command-center";
 import { RunLifecycleStepper } from "./run-lifecycle-stepper";
+import { RunApprovalActionCard } from "./run-approval-action-card";
 
 interface RunDetailPayload {
   run: EngineeringRun;
@@ -66,11 +68,14 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
 
   const report = data.approvalReport;
   const guidance = deriveRunCommandCenterState(data.uxSummary);
+  const approvalCardState = deriveRunApprovalActionCardState(data.uxSummary);
   const lifecycleSteps = deriveRunLifecycleSteps(data.uxSummary);
 
   return (
     <div className="space-y-6">
       <RunCommandCenter summary={data.uxSummary} guidance={guidance} />
+
+      <RunApprovalActionCard runId={runId} state={approvalCardState} />
 
       <RunLifecycleStepper
         steps={lifecycleSteps}
@@ -128,7 +133,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         <PolicyResultsPanel runId={runId} />
       </div>
       <div id={RUN_PANEL_IDS.reviewStages} className="scroll-mt-24">
-        <ReviewStagesPanel runId={runId} />
+        <ReviewStagesPanel runId={runId} workflowSummary={data.uxSummary} />
       </div>
       <div id={RUN_PANEL_IDS.prCreation} className="scroll-mt-24">
         <PrCreationPanel runId={runId} />
@@ -233,6 +238,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
           className="scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
         >
           <h2 className="mb-3 font-semibold">Approval report</h2>
+          <p className="mb-2 text-xs text-[var(--muted)]">
+            The approval action card near the top of the page summarizes what to do next. This
+            panel keeps the detailed approval report and the same auditable action controls.
+          </p>
           <p className="mb-2 text-sm">{report.taskSummary}</p>
           <p className="mb-2 text-sm text-[var(--muted)]">{report.recommendedNextAction}</p>
           {report.workerPlan && (
@@ -255,8 +264,18 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
           <pre className="mb-4 max-h-40 overflow-auto rounded bg-[var(--background)] p-3 text-xs">
             {report.diffSummary}
           </pre>
-          {data.run.status === "waiting_for_approval" && (
-            <ApprovalActions runId={runId} canApprove={report.canApprove} />
+          {(approvalCardState.showApprove ||
+            approvalCardState.showRequestFix ||
+            approvalCardState.showStop) && (
+            <ApprovalActions
+              runId={runId}
+              canApprove={approvalCardState.approvalAvailable}
+              approvalRequiresRationale={approvalCardState.rationale.approve === "required"}
+              showApprove={approvalCardState.showApprove}
+              showRequestFix={approvalCardState.showRequestFix}
+              showStop={approvalCardState.showStop}
+              rationaleGuidance={approvalCardState.rationale.guidance}
+            />
           )}
         </section>
       )}

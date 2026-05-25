@@ -50,6 +50,18 @@ UX-2 is now implemented in the worker-plan flow:
 
 UX-2 improves safety-preserving usability, but it intentionally does **not** auto-execute worker plans, weaken validation, bypass path allowlists, or change governance authority. The next backlog item is **UX-3 — approval and review visibility**.
 
+## UX-3 implementation note
+
+UX-3 is now implemented in the approval and review flow:
+
+- a top-of-page **Approval actions** card now shows the current approval state, approval availability, next required action, and visible **Approve run** / **Request Fix** / **Stop Run** controls when relevant
+- rationale requirements are now visible before action, including the policy-driven case where approval rationale is required because status is `requires_review`
+- the **Review stages** panel now summarizes required, pending, approved, rejected, and skipped states and explains why review is required
+- policy and command-center guidance now point operators to **Review stages** before final approval when senior review is still pending
+- operator-facing approval language now uses plain-English copy while preserving the same backend statuses, review-stage enforcement, and decision-record creation
+
+UX-3 improves discoverability and sequencing, but it intentionally does **not** auto-approve, weaken rationale requirements, bypass review stages, allow models to approve, or change the backend authority model. The next backlog item is **UX-4 — PR retry and release blocker clarity**.
+
 ---
 
 ## Current operator journey
@@ -437,6 +449,6 @@ This preserves every panel while removing the burden of reading them in raw top-
 
 ## Recommended immediate next phase
 
-**Next phase:** **UX-1 — Command center skeleton and lifecycle hierarchy**
+**Next phase:** **UX-4 — PR retry and release blocker clarity**
 
-It delivers the highest operator-value-to-risk ratio because it improves discoverability, sequencing, and confidence without touching core governance behavior. UX-1 also creates the structural foundation for UX-2 through UX-5.
+UX-1, UX-2, and UX-3 now cover orientation, worker-plan authoring, and approval/review discoverability. The highest remaining operator-value-to-risk item is making PR retry state and later release blockers as legible as the new approval flow without changing release-gate enforcement.

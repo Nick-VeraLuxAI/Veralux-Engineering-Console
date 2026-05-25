@@ -104,11 +104,12 @@ Link `registered_repo_id` when using a registered repo for PR/verify gates.
 When you open `/engineer/runs/[id]`, the page now starts with:
 
 1. **Run Command Center** — current lifecycle stage, next recommended action, blockers, warnings, and safe follow-up actions.
-2. **Lifecycle** stepper — workflow order from task through sign-off with links to the relevant panel.
-3. **Guided worker-plan flow** — model draft review, guided builder, intent preview, and advanced JSON mode.
-4. **Technical panels** below — all existing panels remain available for detailed review and actions.
+2. **Approval actions** — current approval state, whether approval is available, rationale guidance, and visible **Approve run** / **Request Fix** / **Stop Run** controls when relevant.
+3. **Lifecycle** stepper — workflow order from task through sign-off with links to the relevant panel.
+4. **Guided worker-plan flow** — model draft review, guided builder, intent preview, and advanced JSON mode.
+5. **Technical panels** below — all existing panels remain available for detailed review and actions.
 
-The command center and lifecycle stepper are **guidance only**. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
+The command center, approval action card, and lifecycle stepper are **guidance-first** surfaces. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
 
 Details: [operator-ux-guide.md](./operator-ux-guide.md), [operator-ux-audit.md](./operator-ux-audit.md).
 
@@ -171,7 +172,7 @@ Failed gates block PR readiness and policy pass.
 
 ## Approval flow
 
-**UI:** Run page → **Approval** — **Approve**, **Request fix**, or **Stop**.
+**UI:** Run page → **Approval actions** card near the top, then the detailed **Approval report** panel below.
 
 **API:** `POST /runs/[id]/actions` with `{ action, rationale? }`.
 
@@ -181,7 +182,22 @@ Failed gates block PR readiness and policy pass.
 | `request_fix` | operator+ | Rationale required |
 | `stop` | operator+ | Rationale required |
 
-Creates decision records and audit events.
+Operator guidance:
+
+1. Read the **current approval state** and **next required action** in the top approval card.
+2. If the card says review is still required, open **Review stages** first.
+3. Read the visible rationale guidance before clicking.
+4. Use **Approve run** only when approval is available.
+5. Use **Request Fix** when the run should go back for correction.
+6. Use **Stop Run** when the run should end without approval.
+
+Rationale rules:
+
+- `approve`: rationale is optional unless policy status is `requires_review`
+- `request_fix`: rationale required
+- `stop`: rationale required
+
+Creates decision records and audit events. The approval card and approval report panel reuse the same backend action handlers.
 
 Details: [decision-records.md](./decision-records.md).
 
@@ -193,7 +209,23 @@ Details: [decision-records.md](./decision-records.md).
 
 **API:** `POST .../review-stages/generate`, `POST .../review-stages/[stageId]/actions`.
 
-Required stages must be approved before PR/deploy readiness passes.
+Required stages must be approved before final run approval.
+
+Operator flow:
+
+1. If policy says senior review is required, open **Review stages** from the command center or approval card.
+2. Use **Generate / reconcile** if required stages have not been created yet.
+3. Review the summary counts for required, pending, approved, rejected, and skipped stages.
+4. Read the stage reason to understand why review is required.
+5. Complete required stages before returning to the **Approval actions** card.
+
+Rules:
+
+- `approve` stage: admin only
+- `reject` stage: operator+ with rationale
+- `skip` stage: operator+ with rationale, optional stages only
+
+After all required stages are approved, final run approval becomes available in the approval section.
 
 Details: [review-stages.md](./review-stages.md).
 

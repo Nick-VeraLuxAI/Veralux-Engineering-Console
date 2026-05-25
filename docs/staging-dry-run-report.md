@@ -101,6 +101,8 @@ UX-1 now adds a **Run Command Center** and **Lifecycle** stepper at the top of t
 
 UX-2 now improves the worker-plan flow with a **Guided worker-plan builder**, visible `runId` context instead of manual lookup, task-vs-plan intent preview, model-draft comparison warnings, and safer advanced JSON guidance. These changes reduce staging friction without weakening validation or execution controls.
 
+UX-3 now improves approval/review discoverability with a top-of-page **Approval actions** card, visible rationale requirements before submit, clearer **Request Fix** / **Stop Run** affordances, and stronger review-stage guidance when policy requires senior review. These changes preserve the same human approval, rationale, and decision-record rules.
+
 See [operator-ux-audit.md](./operator-ux-audit.md) for the full UX journey map, severity-ranked issue inventory, information-architecture recommendation, and phased redesign backlog, and [operator-ux-guide.md](./operator-ux-guide.md) for the new operator-facing usage notes. The remaining UX items still do **not** require weakening governance behavior, but several are strong candidates to fix before production operator use and before external demos.
 
 ---

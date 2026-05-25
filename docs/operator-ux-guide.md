@@ -1,6 +1,6 @@
 # Engineering Console operator UX guide
 
-Operator-facing guide for the UX-1 and UX-2 run page updates. Pair with [operator-runbook.md](./operator-runbook.md) for the full workflow and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
+Operator-facing guide for the UX-1, UX-2, and UX-3 run page updates. Pair with [operator-runbook.md](./operator-runbook.md) for the full workflow and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
 
 ---
 
@@ -39,6 +39,27 @@ The worker-plan area now starts with a safer default workflow:
 
 ---
 
+## What changed in UX-3
+
+The approval and review flow now starts with a clearer operator decision layer:
+
+1. **Approval action card**  
+   A dedicated card now appears near the top of the run page when approval or review guidance matters. It shows the current approval state, whether final approval is available, blocking reasons, the next required action, and visible buttons for **Approve run**, **Request Fix**, and **Stop Run** when relevant.
+
+2. **Visible rationale rules**  
+   The approval controls now explain rationale requirements before the operator clicks. The UI distinguishes optional approval rationale from required rationale, and it keeps required rationale visible for **Request Fix** and **Stop Run**.
+
+3. **Review-stage guidance**  
+   The **Review stages** panel now summarizes required, pending, approved, rejected, and skipped counts, explains why review is required, and tells the operator that required review stages must be completed before final approval.
+
+4. **Policy-to-review connection**  
+   When policy status is `requires_review`, the policy panel and the approval card now point operators directly to the **Review stages** panel instead of making them infer the next step.
+
+5. **Approval-language cleanup**  
+   Operator-facing copy now uses plain-English phrases like "Senior review required before approval" and "Approval is blocked until these items are complete" while preserving the underlying raw statuses in the technical panels and APIs.
+
+---
+
 ## What the command center does
 
 The command center is a **read-only orientation layer**. It helps operators answer:
@@ -69,7 +90,7 @@ Clicking a step jumps to the relevant panel or, for `Task`, back to the task det
 
 ## Where technical details live
 
-UX-1 and UX-2 did **not** remove technical detail from the run page.
+UX-1, UX-2, and UX-3 did **not** remove technical detail from the run page.
 
 The detailed panels still live below the command center and lifecycle stepper:
 
@@ -112,12 +133,32 @@ The README smoke helper is only a template shortcut. It does **not** execute aut
 
 ---
 
+## Approval and review flow
+
+The intended UX-3 approval path is now:
+
+1. Check the **Approval actions** card near the top of the run page.
+2. Read the current approval state and next required action.
+3. If review is still pending, open **Review stages** and complete the required review stages first.
+4. Read the rationale guidance before choosing **Approve run**, **Request Fix**, or **Stop Run**.
+5. Use the detailed **Approval report** panel for diff/governance detail and the same auditable actions.
+
+Decision guidance:
+
+- **Approve run**: use when the run is ready and you want the lifecycle to continue toward PR creation.
+- **Request Fix**: use when the run should go back for correction and the next operator needs a clear reason.
+- **Stop Run**: use when this run should end without approval and the audit history should explain why.
+
+---
+
 ## What did not change
 
 - No governance rules were changed.
 - Worker plans still require explicit human execution.
 - Backend worker-plan validation still enforces `runId`, `allowedFiles`, protected-path rules, and allowed operation types.
 - Approval, request-fix, and stop still remain human decisions.
+- Required review stages still block final approval.
+- Policy status `requires_review` still requires human rationale for final approval.
 - PR creation, merge, deployment, and sign-off are still manual and role-gated.
 - Hard release gates still enforce the same backend checks.
 - Technical detail remains available for audit and replay review.
@@ -126,10 +167,10 @@ The README smoke helper is only a template shortcut. It does **not** execute aut
 
 ## Current UX limits
 
-UX-1 and UX-2 improve orientation, worker-plan authoring, and mismatch visibility, but they do **not** yet solve:
+UX-1, UX-2, and UX-3 improve orientation, worker-plan authoring, mismatch visibility, and approval discoverability, but they do **not** yet solve:
 
-- approval control prominence
 - PR retry state clarity
 - advanced panel collapsing and progressive disclosure
+- release-blocker checklist mapping across later panels
 
 Those remain in the next phases documented in [operator-ux-audit.md](./operator-ux-audit.md).

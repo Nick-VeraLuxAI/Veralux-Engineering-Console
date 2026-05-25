@@ -1,4 +1,5 @@
 import {
+  type RunApprovalActionCardState,
   RUN_PANEL_IDS,
   type RunCommandCenterState,
   type RunGuidanceItem,
@@ -116,17 +117,19 @@ function pushAll(target: RunGuidanceItem[], items: string[], href: string): void
 
 function buildSecondaryActions(summary: RunWorkflowSummary): RunSecondaryActionSummary[] {
   const actions: RunSecondaryActionSummary[] = [];
+  const approvalCardRelevant =
+    summary.workerPlan.executionStatus === "executed" || summary.run.status === "waiting_for_approval";
 
-  if (summary.run.status === "waiting_for_approval") {
+  if (approvalCardRelevant && !approvalComplete(summary)) {
     actions.push(
       {
         label: "Request Fix",
-        description: "Available from the approval section when changes are needed.",
+        description: "Request Fix - send this run back for correction.",
         href: panelHref(RUN_PANEL_IDS.approval),
       },
       {
-        label: "Stop",
-        description: "Available from the approval section when this run should end.",
+        label: "Stop Run",
+        description: "Stop Run - end this run without approval.",
         href: panelHref(RUN_PANEL_IDS.approval),
       },
     );
@@ -155,12 +158,319 @@ function buildSecondaryActions(summary: RunWorkflowSummary): RunSecondaryActionS
   return actions;
 }
 
+export function deriveRunApprovalActionCardState(
+  summary: RunWorkflowSummary,
+): RunApprovalActionCardState {
+  const blockers: RunGuidanceItem[] = [];
+  const warnings: RunGuidanceItem[] = [];
+  const policyRequiresReview = summary.policy.status === "requires_review";
+  const policyBlocked = summary.policy.status === "blocked";
+  const reviewPending = summary.review.pendingCount > 0;
+  const reviewRejected = summary.review.rejectedCount > 0;
+  const reviewNeedsGeneration = reviewRequired(summary) && summary.review.stageCount === 0;
+  const approvalRecorded = approvalComplete(summary);
+  const latestDecision = summary.approval.latestDecision;
+  const showCard =
+    summary.workerPlan.executionStatus === "executed" ||
+    summary.run.status === "waiting_for_approval" ||
+    latestDecision !== null ||
+    reviewRequired(summary);
+
+  if (!showCard) {
+    return {
+      showCard: false,
+      tone: "warning",
+      currentStateLabel: "Approval state unavailable.",
+      currentStateDetail: "Approval guidance becomes visible after the run reaches the review or approval stages.",
+      approvalAvailable: false,
+      nextRequiredAction: "Complete earlier lifecycle steps first.",
+      blockers,
+      warnings,
+      primaryHref: panelHref(RUN_PANEL_IDS.approval),
+      primaryLabel: "Open approval report",
+      showApprove: false,
+      showRequestFix: false,
+      showStop: false,
+      rationale: {
+        approve: "optional",
+        requestFix: "required",
+        stop: "required",
+        guidance: [],
+      },
+    };
+  }
+
+  if (approvalRecorded) {
+    return {
+      showCard: true,
+      tone: "complete",
+      currentStateLabel: "Approved by operator.",
+      currentStateDetail:
+        "A final approval decision is recorded. Downstream PR and release controls remain manual.",
+      approvalAvailable: false,
+      nextRequiredAction: "Open PR creation.",
+      blockers,
+      warnings,
+      primaryHref: panelHref(RUN_PANEL_IDS.prCreation),
+      primaryLabel: "Open PR creation",
+      showApprove: false,
+      showRequestFix: false,
+      showStop: false,
+      rationale: {
+        approve: policyRequiresReview ? "required" : "optional",
+        requestFix: "required",
+        stop: "required",
+        guidance: [],
+      },
+    };
+  }
+
+  if (latestDecision === "request_fix") {
+    return {
+      showCard: true,
+      tone: "blocked",
+      currentStateLabel: "Request Fix recorded.",
+      currentStateDetail:
+        "A human decision already sent this run back for correction. Review the rationale in the decision history before retrying.",
+      approvalAvailable: false,
+      nextRequiredAction: "Review requested fixes before starting another run.",
+      blockers,
+      warnings,
+      primaryHref: panelHref(RUN_PANEL_IDS.auditTimeline),
+      primaryLabel: "Review decision history",
+      showApprove: false,
+      showRequestFix: false,
+      showStop: false,
+      rationale: {
+        approve: "optional",
+        requestFix: "required",
+        stop: "required",
+        guidance: [],
+      },
+    };
+  }
+
+  if (latestDecision === "stopped" || summary.run.currentStep === "stopped_by_operator") {
+    return {
+      showCard: true,
+      tone: "blocked",
+      currentStateLabel: "Run stopped.",
+      currentStateDetail:
+        "This run was ended without approval. Start a new run only if work should resume.",
+      approvalAvailable: false,
+      nextRequiredAction: "Review audit history before creating another run.",
+      blockers,
+      warnings,
+      primaryHref: panelHref(RUN_PANEL_IDS.auditTimeline),
+      primaryLabel: "Review audit timeline",
+      showApprove: false,
+      showRequestFix: false,
+      showStop: false,
+      rationale: {
+        approve: "optional",
+        requestFix: "required",
+        stop: "required",
+        guidance: [],
+      },
+    };
+  }
+
+  const approvalAvailable =
+    summary.run.status === "waiting_for_approval" &&
+    summary.approval.canApprove &&
+    !policyBlocked &&
+    !reviewPending &&
+    !reviewRejected &&
+    !reviewNeedsGeneration;
+  const approveRequiresRationale = policyRequiresReview;
+
+  if (policyRequiresReview) {
+    warnings.push({
+      text: "Senior review required before approval.",
+      href: panelHref(RUN_PANEL_IDS.reviewStages),
+    });
+  }
+  if (policyBlocked) {
+    pushAll(blockers, summary.policy.blockers, panelHref(RUN_PANEL_IDS.policy));
+  }
+  if (reviewNeedsGeneration) {
+    blockers.push({
+      text: "Generate required review stages before final run approval.",
+      href: panelHref(RUN_PANEL_IDS.reviewStages),
+    });
+  }
+  if (reviewPending) {
+    blockers.push({
+      text: `${countLabel(summary.review.pendingCount, "required review stage")} still pending.`,
+      href: panelHref(RUN_PANEL_IDS.reviewStages),
+    });
+  }
+  if (reviewRejected) {
+    blockers.push({
+      text: `${countLabel(summary.review.rejectedCount, "required review stage")} rejected.`,
+      href: panelHref(RUN_PANEL_IDS.reviewStages),
+    });
+  }
+  if (!summary.approval.canApprove) {
+    if (summary.approval.governanceIssues.length > 0) {
+      pushAll(blockers, summary.approval.governanceIssues, panelHref(RUN_PANEL_IDS.approval));
+    } else if (summary.run.status === "waiting_for_approval") {
+      blockers.push({
+        text: "Approval is blocked until these items are complete.",
+        href: panelHref(RUN_PANEL_IDS.approval),
+      });
+    }
+  }
+
+  const rationaleGuidance = [
+    approveRequiresRationale
+      ? "Approval requires rationale because policy status is requires_review."
+      : "Approval rationale is optional when approval is available.",
+    "Request Fix requires a reason so the next operator understands what failed.",
+    "Stop Run requires a reason for audit history.",
+  ];
+
+  if (approvalAvailable) {
+    return {
+      showCard: true,
+      tone: approveRequiresRationale ? "warning" : "ready",
+      currentStateLabel: approveRequiresRationale
+        ? "Ready for approval with rationale."
+        : "Ready for approval.",
+      currentStateDetail:
+        "Required review and governance checks are in place. Final human approval happens here before PR work can continue.",
+      approvalAvailable: true,
+      nextRequiredAction: approveRequiresRationale
+        ? "Provide rationale and approve run."
+        : "Approve run.",
+      blockers,
+      warnings,
+      primaryHref: panelHref(RUN_PANEL_IDS.approval),
+      primaryLabel: "Open approval report",
+      showApprove: true,
+      showRequestFix: true,
+      showStop: true,
+      rationale: {
+        approve: approveRequiresRationale ? "required" : "optional",
+        requestFix: "required",
+        stop: "required",
+        guidance: rationaleGuidance,
+      },
+    };
+  }
+
+  if (policyBlocked) {
+    return {
+      showCard: true,
+      tone: "blocked",
+      currentStateLabel: "Approval is blocked until these items are complete.",
+      currentStateDetail:
+        "Policy evaluation found blockers that must be resolved before final run approval can happen.",
+      approvalAvailable: false,
+      nextRequiredAction: "Resolve policy blockers before approval.",
+      blockers,
+      warnings,
+      primaryHref: panelHref(RUN_PANEL_IDS.policy),
+      primaryLabel: "Open policy results",
+      showApprove: true,
+      showRequestFix: true,
+      showStop: true,
+      rationale: {
+        approve: approveRequiresRationale ? "required" : "optional",
+        requestFix: "required",
+        stop: "required",
+        guidance: rationaleGuidance,
+      },
+    };
+  }
+
+  if (reviewNeedsGeneration || reviewPending || reviewRejected) {
+    return {
+      showCard: true,
+      tone: reviewRejected ? "blocked" : "warning",
+      currentStateLabel: "Senior review required before approval.",
+      currentStateDetail:
+        "The policy and review-stage flow still need human review work before final run approval can happen.",
+      approvalAvailable: false,
+      nextRequiredAction: reviewNeedsGeneration
+        ? "Generate required review stages."
+        : "Complete required review stages.",
+      blockers,
+      warnings,
+      primaryHref: panelHref(RUN_PANEL_IDS.reviewStages),
+      primaryLabel: "Open review stages",
+      showApprove: true,
+      showRequestFix: true,
+      showStop: true,
+      rationale: {
+        approve: approveRequiresRationale ? "required" : "optional",
+        requestFix: "required",
+        stop: "required",
+        guidance: rationaleGuidance,
+      },
+    };
+  }
+
+  if (summary.run.status === "waiting_for_approval") {
+    return {
+      showCard: true,
+      tone: "blocked",
+      currentStateLabel: "Approval is blocked until these items are complete.",
+      currentStateDetail:
+        "The run is in the approval step, but governance or quality conditions still prevent final approval.",
+      approvalAvailable: false,
+      nextRequiredAction:
+        summary.approval.recommendedNextAction ?? "Review approval blockers before continuing.",
+      blockers,
+      warnings,
+      primaryHref: panelHref(RUN_PANEL_IDS.approval),
+      primaryLabel: "Open approval report",
+      showApprove: true,
+      showRequestFix: true,
+      showStop: true,
+      rationale: {
+        approve: approveRequiresRationale ? "required" : "optional",
+        requestFix: "required",
+        stop: "required",
+        guidance: rationaleGuidance,
+      },
+    };
+  }
+
+  return {
+    showCard: true,
+    tone: summary.run.status === "failed" ? "blocked" : "warning",
+    currentStateLabel:
+      summary.run.status === "failed"
+        ? "Run did not reach final approval."
+        : "Approval guidance available.",
+    currentStateDetail:
+      "Use Request Fix or Stop Run if this run should not proceed. Final approval only becomes available after the run returns to the approval step.",
+    approvalAvailable: false,
+    nextRequiredAction: "Review run state and decide whether to request fix or stop run.",
+    blockers,
+    warnings,
+    primaryHref: panelHref(RUN_PANEL_IDS.runState),
+    primaryLabel: "Review run state",
+    showApprove: false,
+    showRequestFix: summary.workerPlan.executionStatus === "executed",
+    showStop: !approvalComplete(summary),
+    rationale: {
+      approve: approveRequiresRationale ? "required" : "optional",
+      requestFix: "required",
+      stop: "required",
+      guidance: rationaleGuidance,
+    },
+  };
+}
+
 export function deriveRunCommandCenterState(
   summary: RunWorkflowSummary,
 ): RunCommandCenterState {
   const blockers: RunGuidanceItem[] = [];
   const warnings: RunGuidanceItem[] = [];
   const secondaryActions = buildSecondaryActions(summary);
+  const approvalState = deriveRunApprovalActionCardState(summary);
 
   const workerPlanComplete = summary.workerPlan.executionStatus === "executed";
   const workerPlanBlocked =
@@ -423,7 +733,7 @@ export function deriveRunCommandCenterState(
     return {
       currentStageId: "review",
       currentStageLabel: STEP_LABELS.review,
-      nextRecommendedAction: "Complete required review stages and provide rationale where needed.",
+      nextRecommendedAction: "Complete required review stages.",
       explanation:
         "This run needs human review before approval. Complete all required review stages before taking a final decision.",
       primaryAction: {
@@ -447,9 +757,7 @@ export function deriveRunCommandCenterState(
     return {
       currentStageId: "approval",
       currentStageLabel: STEP_LABELS.approval,
-      nextRecommendedAction: summary.approval.canApprove
-        ? "Approve the run or request changes."
-        : summary.approval.recommendedNextAction ?? "Review approval blockers before continuing.",
+      nextRecommendedAction: approvalState.nextRequiredAction,
       explanation:
         "All required pre-approval checks are in place. Review the approval report before taking a human decision.",
       primaryAction: {

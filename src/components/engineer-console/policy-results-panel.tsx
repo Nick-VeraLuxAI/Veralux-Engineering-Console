@@ -94,7 +94,11 @@ export function PolicyResultsPanel({ runId }: { runId: string }) {
           <p className="mb-3 text-sm">{latest.recommendedNextAction}</p>
           {latest.status === "requires_review" && (
             <p className="mb-3 text-sm text-amber-200">
-              Senior review is required before approval.
+              Senior review is required before approval. Complete the required review stages in{" "}
+              <a href="#review-stages" className="underline underline-offset-2">
+                Review stages
+              </a>
+              .
             </p>
           )}
 
