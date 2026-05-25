@@ -179,7 +179,6 @@ describe("worker-plan run lifecycle changed files", () => {
     const { run, task } = await seedRunWithReadmePlan();
     const reportJson = getApprovalReportJson(run.id)!;
     const report = JSON.parse(reportJson) as ReturnType<typeof buildApprovalReport>;
-    const gates = [];
     saveApprovalReport(
       run.id,
       JSON.stringify({

@@ -1,3 +1,4 @@
+import { getEngineerConsoleDb } from "../../db/client";
 import { getApprovalReportJson, getQualityGateResultsForRun, getRunById } from "../../run-manager/run-manager";
 import { getRegisteredRepoById } from "../../repo-intelligence/registered-repos/get-repo";
 import { resolveTaskTargetRepoPath } from "../../repo-intelligence/task-repo-path";
@@ -16,6 +17,23 @@ import {
 } from "../../governance/review-stages/review-stage-manager";
 import { getCurrentBranch } from "./controlled-git-executor";
 import type { PrReadinessResult, PrReadinessSignals } from "./pr-creation-types";
+
+function getLatestRecordedCommit(runId: string): { commitSha: string | null; prUrl: string | null } {
+  const row = getEngineerConsoleDb()
+    .prepare(
+      `SELECT commit_sha, pr_url
+       FROM engineer_pr_requests
+       WHERE run_id = ? AND (commit_sha IS NOT NULL OR pr_url IS NOT NULL)
+       ORDER BY created_at DESC
+       LIMIT 1`,
+    )
+    .get(runId) as { commit_sha: string | null; pr_url: string | null } | undefined;
+
+  return {
+    commitSha: row?.commit_sha ?? null,
+    prUrl: row?.pr_url ?? null,
+  };
+}
 
 function buildSignals(
   runId: string,
@@ -77,6 +95,7 @@ export async function evaluatePrReadiness(runId: string): Promise<PrReadinessRes
 
   const gates = getQualityGateResultsForRun(runId);
   const gatesFailed = gates.filter((g) => g.status === "failed").length;
+  const existingPrState = getLatestRecordedCommit(runId);
 
   let changedFiles: string[] = [];
   let currentBranch: string | null = null;
@@ -158,10 +177,16 @@ export async function evaluatePrReadiness(runId: string): Promise<PrReadinessRes
     blockers.push("Run branch name is missing.");
   }
 
-  if (gitReadOk && changedFiles.length === 0) {
-    blockers.push("No changed files detected for commit.");
-  } else if (!gitReadOk && (approvalReport?.changedFiles.length ?? 0) === 0) {
-    blockers.push("No changed files detected for commit.");
+  const hasRecordedCommit = existingPrState.commitSha !== null;
+  const hasRecordedPr = existingPrState.prUrl !== null;
+  if (gitReadOk && changedFiles.length === 0 && !hasRecordedCommit) {
+    blockers.push(
+      "No changed files detected for commit and no reusable run commit is recorded. Recovery required before retrying PR creation.",
+    );
+  } else if (!gitReadOk && (approvalReport?.changedFiles.length ?? 0) === 0 && !hasRecordedCommit) {
+    blockers.push(
+      "No changed files detected for commit and no reusable run commit is recorded. Recovery required before retrying PR creation.",
+    );
   }
 
   if (governance.riskLevel === "blocked" || governance.blockedFiles.length > 0) {
@@ -195,6 +220,10 @@ export async function evaluatePrReadiness(runId: string): Promise<PrReadinessRes
   const recommendedAction =
     status === "blocked"
       ? "Resolve blockers before creating a PR."
+      : hasRecordedPr
+        ? "Ready to resume PR creation by reusing the existing PR record."
+        : hasRecordedCommit
+          ? "Ready to resume PR creation using the existing run commit."
       : status === "requires_review"
         ? "Review warnings and provide rationale before creating a PR."
         : "Ready to create commit and draft PR.";

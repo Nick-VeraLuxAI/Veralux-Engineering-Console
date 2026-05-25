@@ -44,6 +44,12 @@ import {
 
 let tmpDb: string;
 const gitCalls: Array<{ bin: "git" | "gh"; args: string[] }> = [];
+let headCommitSha = "abc123def456789";
+let remoteBranchSha: string | null = null;
+let listedPrs: Array<{ number: number; url: string }> = [];
+let failPush = false;
+let failPrCreate = false;
+let commitCounter = 0;
 
 const mockExecutor: ControlledGitExecutor = {
   git: vi.fn(async (args: string[]) => {
@@ -55,12 +61,42 @@ const mockExecutor: ControlledGitExecutor = {
       return { stdout: "engineer/test-branch", stderr: "" };
     }
     if (args[0] === "rev-parse" && args[1] === "HEAD") {
-      return { stdout: "abc123def456789", stderr: "" };
+      return { stdout: headCommitSha, stderr: "" };
+    }
+    if (args[0] === "rev-parse" && args[1] === "--verify") {
+      if (remoteBranchSha) {
+        return { stdout: remoteBranchSha, stderr: "" };
+      }
+      throw new Error("missing ref");
+    }
+    if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
+      if (args[2] === headCommitSha) {
+        return { stdout: "", stderr: "" };
+      }
+      throw new Error("not ancestor");
+    }
+    if (args[0] === "commit") {
+      commitCounter += 1;
+      headCommitSha = `abc123def45678${commitCounter}`;
+      return { stdout: "", stderr: "" };
+    }
+    if (args[0] === "push") {
+      if (failPush) {
+        throw new Error("push failed");
+      }
+      remoteBranchSha = headCommitSha;
+      return { stdout: "", stderr: "" };
     }
     return { stdout: "", stderr: "" };
   }),
   gh: vi.fn(async (args: string[]) => {
     gitCalls.push({ bin: "gh", args });
+    if (args[0] === "pr" && args[1] === "list") {
+      return { stdout: JSON.stringify(listedPrs), stderr: "" };
+    }
+    if (failPrCreate) {
+      throw new Error("gh pr create failed");
+    }
     return { stdout: "https://github.com/org/repo/pull/42", stderr: "" };
   }),
 };
@@ -82,6 +118,12 @@ beforeEach(() => {
   resetEngineerConsoleDbForTests();
   initializeEngineerConsoleDatabase();
   gitCalls.length = 0;
+  headCommitSha = "abc123def456789";
+  remoteBranchSha = null;
+  listedPrs = [];
+  failPush = false;
+  failPrCreate = false;
+  commitCounter = 0;
   setControlledGitExecutorForTests(mockExecutor);
   vi.mocked(mockExecutor.git).mockClear();
   vi.mocked(mockExecutor.gh).mockClear();
@@ -268,6 +310,118 @@ describe("PR creation", () => {
     expect(history[0]!.commitSha).toBeTruthy();
   });
 
+  it("reuses the existing commit after a push failure and does not create a duplicate commit", async () => {
+    const { getChangedFiles } = await import("../../workspace/git-workspace");
+    const { run } = await seedApprovedRun(["README.md"]);
+    failPush = true;
+
+    await expect(
+      createPrRequest({
+        runId: run.id,
+        actorType: AUDIT_ACTOR_TYPES.HUMAN,
+        actorLabel: "operator",
+        draft: true,
+        rationale: "open draft PR",
+      }),
+    ).rejects.toThrow(/push failed/i);
+
+    const failedAttempt = listPrRequestsForRun(run.id)[0]!;
+    expect(failedAttempt.status).toBe("failed");
+    expect(failedAttempt.commitSha).toBeTruthy();
+
+    failPush = false;
+    vi.mocked(getChangedFiles).mockResolvedValue([]);
+    const retried = await createPrRequest({
+      runId: run.id,
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "operator",
+      draft: true,
+      rationale: "retry PR creation",
+    });
+
+    const commitCalls = gitCalls.filter((c) => c.bin === "git" && c.args[0] === "commit");
+    expect(commitCalls).toHaveLength(1);
+    expect(retried.status).toBe("pr_created");
+    expect(retried.commitSha).toBe(failedAttempt.commitSha);
+    expect(listPrRequestsForRun(run.id)).toHaveLength(1);
+    vi.mocked(getChangedFiles).mockResolvedValue(["src/a.ts"]);
+  });
+
+  it("skips redundant push when the run branch is already on origin", async () => {
+    const { run } = await seedApprovedRun(["src/a.ts"]);
+    failPrCreate = true;
+
+    await expect(
+      createPrRequest({
+        runId: run.id,
+        actorType: AUDIT_ACTOR_TYPES.HUMAN,
+        actorLabel: "operator",
+        rationale: "seed pushed branch",
+      }),
+    ).rejects.toThrow(/gh pr create failed/i);
+
+    failPrCreate = false;
+    gitCalls.length = 0;
+
+    const record = await createPrRequest({
+      runId: run.id,
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "operator",
+      rationale: "branch already pushed",
+    });
+
+    expect(record.status).toBe("pr_created");
+    expect(gitCalls.some((c) => c.bin === "git" && c.args[0] === "push")).toBe(false);
+  });
+
+  it("records an existing PR instead of creating a duplicate", async () => {
+    const { run } = await seedApprovedRun(["src/a.ts"]);
+    failPrCreate = true;
+
+    await expect(
+      createPrRequest({
+        runId: run.id,
+        actorType: AUDIT_ACTOR_TYPES.HUMAN,
+        actorLabel: "operator",
+        rationale: "seed pushed branch",
+      }),
+    ).rejects.toThrow(/gh pr create failed/i);
+
+    failPrCreate = false;
+    listedPrs = [{ number: 77, url: "https://github.com/org/repo/pull/77" }];
+    gitCalls.length = 0;
+
+    const record = await createPrRequest({
+      runId: run.id,
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "operator",
+      rationale: "reuse existing PR",
+    });
+
+    expect(record.status).toBe("pr_created");
+    expect(record.prUrl).toBe("https://github.com/org/repo/pull/77");
+    expect(gitCalls.some((c) => c.bin === "gh" && c.args[0] === "pr" && c.args[1] === "create")).toBe(false);
+  });
+
+  it("fails clean-tree retries clearly when no prior commit is recorded", async () => {
+    const { getChangedFiles } = await import("../../workspace/git-workspace");
+    const { run } = await seedApprovedRun(["src/a.ts"]);
+    vi.mocked(getChangedFiles).mockResolvedValue([]);
+
+    const readiness = await evaluatePrReadiness(run.id);
+    expect(readiness.blockers.some((b) => b.includes("no reusable run commit"))).toBe(true);
+
+    await expect(
+      createPrRequest({
+        runId: run.id,
+        actorType: AUDIT_ACTOR_TYPES.HUMAN,
+        actorLabel: "operator",
+      }),
+    ).rejects.toThrow(/no reusable run commit/i);
+
+    vi.mocked(getChangedFiles).mockResolvedValue(["src/a.ts"]);
+  });
+
   it("emits audit events for readiness, commit, and PR", async () => {
     const { run } = await seedApprovedRun(["src/a.ts"]);
     await evaluatePrReadiness(run.id);
@@ -281,6 +435,37 @@ describe("PR creation", () => {
     expect(types).toContain(AUDIT_EVENT_TYPES.PR_READINESS_EVALUATED);
     expect(types).toContain(AUDIT_EVENT_TYPES.COMMIT_CREATED);
     expect(types).toContain(AUDIT_EVENT_TYPES.PR_CREATED);
+  });
+
+  it("emits audit events when retry reuses commit, remote branch, and existing PR state", async () => {
+    const { run } = await seedApprovedRun(["README.md"]);
+    failPush = true;
+
+    await expect(
+      createPrRequest({
+        runId: run.id,
+        actorType: AUDIT_ACTOR_TYPES.HUMAN,
+        actorLabel: "operator",
+        rationale: "first attempt",
+      }),
+    ).rejects.toThrow(/push failed/i);
+
+    failPush = false;
+    remoteBranchSha = headCommitSha;
+    listedPrs = [{ number: 88, url: "https://github.com/org/repo/pull/88" }];
+
+    await createPrRequest({
+      runId: run.id,
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "operator",
+      rationale: "retry",
+    });
+
+    const types = listAuditEventsForRun(run.id).map((e) => e.eventType);
+    expect(types).toContain(AUDIT_EVENT_TYPES.PR_CREATION_RESUMED);
+    expect(types).toContain(AUDIT_EVENT_TYPES.PR_EXISTING_COMMIT_REUSED);
+    expect(types).toContain(AUDIT_EVENT_TYPES.PR_EXISTING_REMOTE_BRANCH_REUSED);
+    expect(types).toContain(AUDIT_EVENT_TYPES.PR_EXISTING_PR_DETECTED);
   });
 
   it("create PR route logic blocks when readiness blocked", async () => {

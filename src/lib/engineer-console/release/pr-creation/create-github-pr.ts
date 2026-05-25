@@ -1,5 +1,11 @@
 import { buildPrBody } from "./build-pr-body";
-import { getCurrentBranch, runGh, runGit } from "./controlled-git-executor";
+import {
+  getCurrentBranch,
+  getHeadCommitSha,
+  getRefCommitSha,
+  runGh,
+  runGit,
+} from "./controlled-git-executor";
 import { PrCreationError } from "./pr-creation-types";
 
 export interface CreateGithubPrInput {
@@ -15,11 +21,62 @@ export interface CreateGithubPrInput {
 export interface CreateGithubPrResult {
   prUrl: string;
   prNumber: string | null;
+  pushStatus: "pushed" | "skipped_existing_remote";
+  createdNewPr: boolean;
 }
 
 function parsePrNumber(url: string): string | null {
   const match = url.match(/\/pull\/(\d+)/);
   return match?.[1] ?? null;
+}
+
+function getRemoteBranchRef(branchName: string): string {
+  return `refs/remotes/origin/${branchName}`;
+}
+
+async function findExistingPr(
+  repoPath: string,
+  branchName: string,
+  baseBranch: string,
+): Promise<CreateGithubPrResult | null> {
+  const { stdout } = await runGh(
+    [
+      "pr",
+      "list",
+      "--head",
+      branchName,
+      "--base",
+      baseBranch,
+      "--state",
+      "all",
+      "--json",
+      "number,url",
+    ],
+    repoPath,
+  );
+
+  if (!stdout) {
+    return null;
+  }
+
+  let parsed: Array<{ number?: number; url?: string }> = [];
+  try {
+    parsed = JSON.parse(stdout) as Array<{ number?: number; url?: string }>;
+  } catch {
+    throw new PrCreationError(`Unexpected gh pr list output: ${stdout.slice(0, 200)}`);
+  }
+
+  const existing = parsed.find((entry) => typeof entry.url === "string" && entry.url.startsWith("http"));
+  if (!existing?.url) {
+    return null;
+  }
+
+  return {
+    prUrl: existing.url,
+    prNumber: existing.number ? String(existing.number) : parsePrNumber(existing.url),
+    pushStatus: "skipped_existing_remote",
+    createdNewPr: false,
+  };
 }
 
 export async function createControlledGithubPr(
@@ -30,7 +87,19 @@ export async function createControlledGithubPr(
     await runGit(["checkout", input.branchName], input.repoPath);
   }
 
-  await runGit(["push", "-u", "origin", input.branchName], input.repoPath);
+  const localSha = await getHeadCommitSha(input.repoPath);
+  const remoteSha = await getRefCommitSha(input.repoPath, getRemoteBranchRef(input.branchName));
+  const pushStatus =
+    remoteSha && remoteSha === localSha ? "skipped_existing_remote" : "pushed";
+
+  if (pushStatus === "pushed") {
+    await runGit(["push", "-u", "origin", input.branchName], input.repoPath);
+  }
+
+  const existingPr = await findExistingPr(input.repoPath, input.branchName, input.baseBranch);
+  if (existingPr) {
+    return { ...existingPr, pushStatus };
+  }
 
   const body = buildPrBody({ runId: input.runId, rationale: input.rationale });
   const ghArgs = [
@@ -55,5 +124,10 @@ export async function createControlledGithubPr(
     throw new PrCreationError(`Unexpected gh pr create output: ${stdout.slice(0, 200)}`);
   }
 
-  return { prUrl, prNumber: parsePrNumber(prUrl) };
+  return {
+    prUrl,
+    prNumber: parsePrNumber(prUrl),
+    pushStatus,
+    createdNewPr: true,
+  };
 }

@@ -6,7 +6,11 @@ import {
   auditCommitCreationFailed,
   auditPrCreated,
   auditPrCreationFailed,
+  auditPrCreationResumed,
   auditPrCreationStarted,
+  auditPrExistingCommitReused,
+  auditPrExistingDetected,
+  auditPrExistingRemoteBranchReused,
   auditPrReadinessEvaluated,
 } from "../../governance/audit-ledger/pr-audit-lifecycle";
 import { getEvidenceBundleForRun } from "../../governance/evidence-bundles/evidence-bundle-manager";
@@ -16,8 +20,10 @@ import { resolveTaskTargetRepoPath } from "../../repo-intelligence/task-repo-pat
 import { getRunById } from "../../run-manager/run-manager";
 import { getTaskById } from "../../task-manager/task-manager";
 import { checkoutBranch, verifyGitRepo } from "../../workspace/git-workspace";
+import { buildCommitMessage } from "./build-commit-message";
 import { createControlledGitCommit } from "./create-git-commit";
 import { createControlledGithubPr } from "./create-github-pr";
+import { isCommitReachableFromHead } from "./controlled-git-executor";
 import { evaluatePrReadiness } from "./evaluate-pr-readiness";
 import type {
   CreatePrRequestInput,
@@ -85,6 +91,15 @@ function mapRow(row: PrRequestRow): PrRequestRecord {
   };
 }
 
+const RESUMABLE_REQUEST_STATUSES = new Set<PrRequestStatus>([
+  "draft",
+  "ready",
+  "committing",
+  "committed",
+  "pushing",
+  "failed",
+]);
+
 function updatePrRequest(id: string, fields: Partial<PrRequestRow>): void {
   const current = getEngineerConsoleDb()
     .prepare(`SELECT * FROM engineer_pr_requests WHERE id = ?`)
@@ -95,7 +110,14 @@ function updatePrRequest(id: string, fields: Partial<PrRequestRow>): void {
   getEngineerConsoleDb()
     .prepare(
       `UPDATE engineer_pr_requests SET
+        base_branch = @base_branch,
         status = @status,
+        readiness_status = @readiness_status,
+        readiness_json = @readiness_json,
+        evidence_bundle_id = @evidence_bundle_id,
+        evidence_bundle_hash = @evidence_bundle_hash,
+        policy_result_id = @policy_result_id,
+        replay_verification_id = @replay_verification_id,
         commit_sha = @commit_sha,
         commit_message = @commit_message,
         pr_url = @pr_url,
@@ -107,7 +129,14 @@ function updatePrRequest(id: string, fields: Partial<PrRequestRow>): void {
     )
     .run({
       id,
+      base_branch: merged.base_branch,
       status: merged.status,
+      readiness_status: merged.readiness_status,
+      readiness_json: merged.readiness_json,
+      evidence_bundle_id: merged.evidence_bundle_id,
+      evidence_bundle_hash: merged.evidence_bundle_hash,
+      policy_result_id: merged.policy_result_id,
+      replay_verification_id: merged.replay_verification_id,
       commit_sha: merged.commit_sha,
       commit_message: merged.commit_message,
       pr_url: merged.pr_url,
@@ -116,6 +145,71 @@ function updatePrRequest(id: string, fields: Partial<PrRequestRow>): void {
       completed_at: merged.completed_at,
       updated_at: merged.updated_at,
     });
+}
+
+function insertPrRequest(row: PrRequestRow): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `INSERT INTO engineer_pr_requests
+        (id, run_id, task_id, registered_repo_id, branch_name, base_branch,
+         status, readiness_status, readiness_json,
+         evidence_bundle_id, evidence_bundle_hash, policy_result_id, replay_verification_id,
+         actor_type, actor_label, created_at, updated_at)
+       VALUES
+        (@id, @run_id, @task_id, @registered_repo_id, @branch_name, @base_branch,
+         @status, @readiness_status, @readiness_json,
+         @evidence_bundle_id, @evidence_bundle_hash, @policy_result_id, @replay_verification_id,
+         @actor_type, @actor_label, @created_at, @updated_at)`,
+    )
+    .run({
+      id: row.id,
+      run_id: row.run_id,
+      task_id: row.task_id,
+      registered_repo_id: row.registered_repo_id,
+      branch_name: row.branch_name,
+      base_branch: row.base_branch,
+      status: row.status,
+      readiness_status: row.readiness_status,
+      readiness_json: row.readiness_json,
+      evidence_bundle_id: row.evidence_bundle_id,
+      evidence_bundle_hash: row.evidence_bundle_hash,
+      policy_result_id: row.policy_result_id,
+      replay_verification_id: row.replay_verification_id,
+      actor_type: row.actor_type,
+      actor_label: row.actor_label,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    });
+}
+
+function isSamePrScope(record: PrRequestRecord, branchName: string, baseBranch: string): boolean {
+  return record.branchName === branchName && record.baseBranch === baseBranch;
+}
+
+function findResumablePrRequest(
+  runId: string,
+  branchName: string,
+  baseBranch: string,
+): PrRequestRecord | null {
+  return (
+    listPrRequestsForRun(runId).find(
+      (record) => isSamePrScope(record, branchName, baseBranch) && RESUMABLE_REQUEST_STATUSES.has(record.status),
+    ) ?? null
+  );
+}
+
+function findHistoricalCommitRequest(runId: string, branchName: string): PrRequestRecord | null {
+  return (
+    listPrRequestsForRun(runId).find((record) => record.branchName === branchName && !!record.commitSha) ?? null
+  );
+}
+
+function findExistingPrRequest(runId: string, branchName: string): PrRequestRecord | null {
+  return (
+    listPrRequestsForRun(runId).find(
+      (record) => record.branchName === branchName && record.status === "pr_created" && !!record.prUrl,
+    ) ?? null
+  );
 }
 
 export function listPrRequestsForRun(runId: string): PrRequestRecord[] {
@@ -173,6 +267,65 @@ export function toPublicPrRequest(record: PrRequestRecord) {
   };
 }
 
+const CLEAN_TREE_RECOVERY_MESSAGE =
+  "No changed files are available to commit and no reusable run commit is recorded. Recovery required: restore the approved changes or resume from the existing run branch/commit before retrying PR creation.";
+
+interface ResolvedPrCommit {
+  commitSha: string;
+  commitMessage: string;
+  filesCommitted: string[];
+  reused: boolean;
+  reason: string;
+}
+
+async function resolveCommitForPrRequest(
+  repoPath: string,
+  runId: string,
+  branchName: string,
+  request: PrRequestRecord,
+): Promise<ResolvedPrCommit> {
+  const knownCommitRequest = request.commitSha
+    ? request
+    : (findHistoricalCommitRequest(runId, branchName) ?? null);
+
+  if (knownCommitRequest?.commitSha) {
+    const presentOnBranch = await isCommitReachableFromHead(repoPath, knownCommitRequest.commitSha);
+    if (!presentOnBranch) {
+      throw new PrCreationError(
+        "A prior run commit is recorded, but it is not present on the run branch. Recovery required: restore the run branch or reapply the approved changes before retrying PR creation.",
+      );
+    }
+
+    return {
+      commitSha: knownCommitRequest.commitSha,
+      commitMessage: knownCommitRequest.commitMessage ?? buildCommitMessage(runId),
+      filesCommitted: [],
+      reused: true,
+      reason:
+        knownCommitRequest.id === request.id
+          ? "request already has recorded commit"
+          : `reused commit from prior request ${knownCommitRequest.id}`,
+    };
+  }
+
+  try {
+    const created = await createControlledGitCommit(repoPath, runId);
+    return {
+      commitSha: created.commitSha,
+      commitMessage: created.commitMessage,
+      filesCommitted: created.filesCommitted,
+      reused: false,
+      reason: "created new controlled commit",
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("No changes to commit")) {
+      throw new PrCreationError(CLEAN_TREE_RECOVERY_MESSAGE);
+    }
+    throw error;
+  }
+}
+
 export async function createPrRequest(input: CreatePrRequestInput): Promise<PrRequestRecord> {
   if (input.actorType === AUDIT_ACTOR_TYPES.MODEL) {
     throw new PrCreationError("Models cannot create commits or pull requests.");
@@ -213,28 +366,33 @@ export async function createPrRequest(input: CreatePrRequestInput): Promise<PrRe
   const baseBranch = input.baseBranch?.trim() || "main";
   const draft = input.draft !== false;
   const now = nowIso();
-  const id = uuidv4();
+  const existingCreatedRequest = findExistingPrRequest(input.runId, run.branchName);
+  if (existingCreatedRequest) {
+    auditPrExistingDetected(input.runId, task.id, {
+      prRequestId: existingCreatedRequest.id,
+      branchName: existingCreatedRequest.branchName,
+      commitShaPrefix: existingCreatedRequest.commitSha?.slice(0, 12) ?? null,
+      prUrl: existingCreatedRequest.prUrl!,
+      reason: "PR already recorded for run branch",
+    });
+    return existingCreatedRequest;
+  }
 
-  getEngineerConsoleDb()
-    .prepare(
-      `INSERT INTO engineer_pr_requests
-        (id, run_id, task_id, registered_repo_id, branch_name, base_branch,
-         status, readiness_status, readiness_json,
-         evidence_bundle_id, evidence_bundle_hash, policy_result_id, replay_verification_id,
-         actor_type, actor_label, created_at, updated_at)
-       VALUES
-        (@id, @run_id, @task_id, @registered_repo_id, @branch_name, @base_branch,
-         @status, @readiness_status, @readiness_json,
-         @evidence_bundle_id, @evidence_bundle_hash, @policy_result_id, @replay_verification_id,
-         @actor_type, @actor_label, @created_at, @updated_at)`,
-    )
-    .run({
-      id,
+  const existingRequest = findResumablePrRequest(input.runId, run.branchName, baseBranch);
+  const requestId = existingRequest?.id ?? uuidv4();
+
+  if (!existingRequest) {
+    insertPrRequest({
+      id: requestId,
       run_id: input.runId,
       task_id: task.id,
       registered_repo_id: task.registeredRepoId,
       branch_name: run.branchName,
       base_branch: baseBranch,
+      commit_sha: null,
+      commit_message: null,
+      pr_url: null,
+      pr_number: null,
       status: "ready",
       readiness_status: readiness.status,
       readiness_json: JSON.stringify(readiness),
@@ -246,37 +404,79 @@ export async function createPrRequest(input: CreatePrRequestInput): Promise<PrRe
       actor_label: input.actorLabel,
       created_at: now,
       updated_at: now,
+      completed_at: null,
+      error_message: null,
     });
+  } else {
+    updatePrRequest(existingRequest.id, {
+      base_branch: baseBranch,
+      status: existingRequest.commitSha ? "committed" : "ready",
+      readiness_status: readiness.status,
+      readiness_json: JSON.stringify(readiness),
+      evidence_bundle_id: evidence?.id ?? null,
+      evidence_bundle_hash: evidence?.bundleHash ?? null,
+      policy_result_id: policy?.id ?? null,
+      replay_verification_id: replayRecord?.id ?? null,
+      error_message: null,
+      completed_at: null,
+    });
+  }
 
   const repoPath = resolveTaskTargetRepoPath(task);
+  const request = getPrRequestById(requestId)!;
 
   try {
     await verifyGitRepo(repoPath);
     await checkoutBranch(repoPath, run.branchName);
 
-    updatePrRequest(id, { status: "committing" });
-    const commit = await createControlledGitCommit(repoPath, input.runId);
-    auditCommitCreated(input.runId, task.id, {
-      prRequestId: id,
-      commitShaPrefix: commit.commitSha.slice(0, 12),
-      actorType: input.actorType,
-      actorLabel: input.actorLabel,
-    });
+    const resuming = existingRequest !== null;
+    if (resuming) {
+      auditPrCreationResumed(input.runId, task.id, {
+        prRequestId: request.id,
+        branchName: run.branchName,
+        baseBranch,
+        reason: request.commitSha
+          ? "continuing from existing commit"
+          : "retrying failed or partial PR request",
+      });
+    }
 
-    updatePrRequest(id, {
+    updatePrRequest(request.id, { status: "committing" });
+    const commit = await resolveCommitForPrRequest(repoPath, input.runId, run.branchName, request);
+    if (commit.reused) {
+      auditPrExistingCommitReused(input.runId, task.id, {
+        prRequestId: request.id,
+        branchName: run.branchName,
+        commitShaPrefix: commit.commitSha.slice(0, 12),
+        reason: commit.reason,
+      });
+    } else {
+      auditCommitCreated(input.runId, task.id, {
+        prRequestId: request.id,
+        commitShaPrefix: commit.commitSha.slice(0, 12),
+        actorType: input.actorType,
+        actorLabel: input.actorLabel,
+      });
+    }
+
+    updatePrRequest(request.id, {
       status: "committed",
       commit_sha: commit.commitSha,
       commit_message: commit.commitMessage,
+      error_message: null,
+      completed_at: null,
     });
 
-    auditPrCreationStarted(input.runId, task.id, {
-      prRequestId: id,
-      branchName: run.branchName,
-      baseBranch,
-      draft,
-    });
+    if (!resuming) {
+      auditPrCreationStarted(input.runId, task.id, {
+        prRequestId: request.id,
+        branchName: run.branchName,
+        baseBranch,
+        draft,
+      });
+    }
 
-    updatePrRequest(id, { status: "pushing" });
+    updatePrRequest(request.id, { status: "pushing" });
     const title = `${task.title} [Engineering Console]`;
     const pr = await createControlledGithubPr({
       repoPath,
@@ -288,36 +488,56 @@ export async function createPrRequest(input: CreatePrRequestInput): Promise<PrRe
       rationale: input.rationale,
     });
 
+    if (pr.pushStatus === "skipped_existing_remote") {
+      auditPrExistingRemoteBranchReused(input.runId, task.id, {
+        prRequestId: request.id,
+        branchName: run.branchName,
+        commitShaPrefix: commit.commitSha.slice(0, 12),
+        reason: "branch already pushed with matching remote commit",
+      });
+    }
+
     const completedAt = nowIso();
-    updatePrRequest(id, {
+    updatePrRequest(request.id, {
       status: "pr_created",
       pr_url: pr.prUrl,
       pr_number: pr.prNumber,
       completed_at: completedAt,
+      error_message: null,
     });
 
-    auditPrCreated(input.runId, task.id, {
-      prRequestId: id,
-      prUrl: pr.prUrl,
-      commitShaPrefix: commit.commitSha.slice(0, 12),
-      readinessStatus: readiness.status,
-    });
+    if (pr.createdNewPr) {
+      auditPrCreated(input.runId, task.id, {
+        prRequestId: request.id,
+        prUrl: pr.prUrl,
+        commitShaPrefix: commit.commitSha.slice(0, 12),
+        readinessStatus: readiness.status,
+      });
+    } else {
+      auditPrExistingDetected(input.runId, task.id, {
+        prRequestId: request.id,
+        branchName: run.branchName,
+        commitShaPrefix: commit.commitSha.slice(0, 12),
+        prUrl: pr.prUrl,
+        reason: "existing PR detected for run branch",
+      });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    updatePrRequest(id, {
+    updatePrRequest(request.id, {
       status: "failed",
       error_message: message.slice(0, 500),
       completed_at: nowIso(),
     });
-    if (message.toLowerCase().includes("commit")) {
-      auditCommitCreationFailed(input.runId, task.id, { prRequestId: id, message });
+    if (message.toLowerCase().includes("commit") || message.includes("No changed files")) {
+      auditCommitCreationFailed(input.runId, task.id, { prRequestId: request.id, message });
     } else {
-      auditPrCreationFailed(input.runId, task.id, { prRequestId: id, message });
+      auditPrCreationFailed(input.runId, task.id, { prRequestId: request.id, message });
     }
     throw new PrCreationError(message);
   }
 
-  return getPrRequestById(id)!;
+  return getPrRequestById(request.id)!;
 }
 
 export function summarizePrRequestsForRun(runId: string): {
