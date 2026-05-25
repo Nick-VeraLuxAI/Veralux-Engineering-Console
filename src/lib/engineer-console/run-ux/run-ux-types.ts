@@ -118,6 +118,11 @@ export interface RunWorkflowSummary {
     attemptCount: number;
     latestStatus: string | null;
     latestPrUrl: string | null;
+    latestPrNumber: string | null;
+    latestCommitShaPrefix: string | null;
+    latestReadinessStatus: string | null;
+    latestReadinessBlockers: string[];
+    latestReadinessWarnings: string[];
     latestErrorMessage: string | null;
   };
   merge: {

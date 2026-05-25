@@ -3,14 +3,15 @@
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  derivePrStateCardState,
+  type PrStateReadiness,
+} from "@/lib/engineer-console/release/pr-creation/pr-state-ux";
+import { PrStateCard } from "./pr-state-card";
 import { StatusBadge } from "./status-badge";
 
-interface PrReadiness {
-  status: string;
-  blockers: string[];
-  warnings: string[];
-  recommendedAction: string;
-  signals: {
+interface PrReadiness extends PrStateReadiness {
+  signals: PrStateReadiness["signals"] & {
     hasApprovedDecision: boolean;
     hasEvidenceBundle: boolean;
     policyStatus: string | null;
@@ -19,7 +20,6 @@ interface PrReadiness {
     reviewStagesPending: number;
     reviewStagesRejected: number;
     changedFileCount: number;
-    branchName: string | null;
   };
 }
 
@@ -36,6 +36,7 @@ interface PrRequest {
   createdAt: string;
   completedAt: string | null;
   errorMessage: string | null;
+  readiness?: PrReadiness | null;
 }
 
 export function PrCreationPanel({ runId }: { runId: string }) {
@@ -49,6 +50,16 @@ export function PrCreationPanel({ runId }: { runId: string }) {
   const [actorLabel, setActorLabel] = useState("operator");
   const [rationale, setRationale] = useState("");
 
+  const loadReadiness = useCallback(async () => {
+    const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/pr-readiness`);
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string };
+      throw new Error(body.error ?? `HTTP ${res.status}`);
+    }
+    const data = (await res.json()) as { readiness: PrReadiness };
+    setReadiness(data.readiness);
+  }, [runId]);
+
   const loadHistory = useCallback(async () => {
     const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/pr-requests`);
     if (!res.ok) {
@@ -60,9 +71,9 @@ export function PrCreationPanel({ runId }: { runId: string }) {
   }, [runId]);
 
   const load = useCallback(async () => {
-    await loadHistory();
+    await Promise.all([loadHistory(), loadReadiness()]);
     setError(null);
-  }, [loadHistory]);
+  }, [loadHistory, loadReadiness]);
 
   useEffect(() => {
     setLoading(true);
@@ -75,10 +86,7 @@ export function PrCreationPanel({ runId }: { runId: string }) {
     setBusy("evaluate");
     setError(null);
     try {
-      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/pr-readiness`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Readiness evaluation failed");
-      setReadiness(data.readiness as PrReadiness);
+      await loadReadiness();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -100,8 +108,7 @@ export function PrCreationPanel({ runId }: { runId: string }) {
         if (data.readiness) setReadiness(data.readiness as PrReadiness);
         throw new Error(data.error ?? "PR creation failed");
       }
-      await loadHistory();
-      await evaluateReadiness();
+      await Promise.all([loadHistory(), loadReadiness()]);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -111,6 +118,11 @@ export function PrCreationPanel({ runId }: { runId: string }) {
 
   const blocked = readiness?.status === "blocked";
   const needsRationale = readiness?.status === "requires_review";
+  const latestRequest = requests[0] ?? null;
+  const prState = derivePrStateCardState({
+    readiness,
+    latestRequest,
+  });
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
@@ -127,17 +139,23 @@ export function PrCreationPanel({ runId }: { runId: string }) {
           </button>
           <button
             type="button"
-            disabled={busy !== null || blocked || !readiness}
+            disabled={busy !== null || blocked || !readiness || prState.createButtonDisabled}
             onClick={() => void createPr()}
             className="rounded border border-green-500/50 px-3 py-1 text-xs text-green-300 disabled:opacity-50"
           >
-            {busy === "create" ? "Creating…" : "Create draft PR"}
+            {busy === "create"
+              ? prState.createButtonLabel.includes("Retry")
+                ? "Retrying..."
+                : "Creating..."
+              : prState.createButtonLabel}
           </button>
         </div>
       </div>
 
       {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
       {loading && <p className="text-sm text-[var(--muted)]">Loading PR history…</p>}
+
+      <PrStateCard state={prState} />
 
       {readiness && (
         <>
@@ -194,6 +212,13 @@ export function PrCreationPanel({ runId }: { runId: string }) {
               </dd>
             </div>
           </dl>
+          <details className="mb-3 text-xs text-[var(--muted)]">
+            <summary className="cursor-pointer">Technical readiness details</summary>
+            <p className="mt-2">
+              Raw readiness status: <strong>{readiness.status}</strong>
+            </p>
+            <p className="mt-1">Branch: {readiness.signals.branchName ?? "—"}</p>
+          </details>
         </>
       )}
 
@@ -237,11 +262,14 @@ export function PrCreationPanel({ runId }: { runId: string }) {
               <li key={req.id} className="rounded border border-[var(--border)] p-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge status={req.status} />
+                  <span className="text-xs text-[var(--muted)]">readiness {req.readinessStatus}</span>
                   <span className="font-mono text-xs">{req.commitShaPrefix ?? "—"}</span>
+                  <span className="text-xs text-[var(--muted)]">{req.branchName}</span>
                   <span className="text-xs text-[var(--muted)]">
                     {new Date(req.createdAt).toLocaleString()}
                   </span>
                 </div>
+                <p className="mt-1 text-xs text-[var(--muted)]">base {req.baseBranch}</p>
                 {req.prUrl && (
                   <a
                     href={req.prUrl}
