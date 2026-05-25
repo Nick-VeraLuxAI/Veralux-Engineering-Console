@@ -1,28 +1,105 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { type OperatorQueueItem } from "@/lib/engineer-console/run-ux/operator-queue";
 import {
-  type OperatorQueueItem,
-} from "@/lib/engineer-console/run-ux/operator-queue";
-import {
+  DEFAULT_OPERATOR_QUEUE_PRESET,
+  type OperatorQueueDensityMode,
+  type OperatorQueuePresetId,
+  OPERATOR_QUEUE_PRESETS,
   buildOperatorQueueSections,
+  getOperatorQueuePreset,
   hasOperatorQueueActionableItems,
+  queuePresetToQueryValue,
+  resolveOperatorQueuePresetId,
 } from "@/lib/engineer-console/run-ux/operator-queue-view";
-import type { OperatorQueueFilterId } from "@/lib/engineer-console/run-ux/operator-queue";
 import { StatusBadge } from "./status-badge";
 
-const FILTERS: Array<{ id: OperatorQueueFilterId; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "needs_action", label: "Needs action" },
-  { id: "blocked", label: "Blocked" },
-  { id: "approval", label: "Approval" },
-  { id: "pr_release", label: "PR / Release" },
-  { id: "completed", label: "Completed" },
-];
+const QUEUE_PRESET_STORAGE_KEY = "engineer-console.queue-preset.v1";
 
-function filterCount(items: OperatorQueueItem[], filter: OperatorQueueFilterId): number {
-  return buildOperatorQueueSections(items, filter).reduce((count, section) => count + section.items.length, 0);
+function presetCount(items: OperatorQueueItem[], preset: OperatorQueuePresetId): number {
+  return buildOperatorQueueSections(items, preset).reduce(
+    (count, section) => count + section.items.length,
+    0,
+  );
+}
+
+function setQueueQueryParam(preset: OperatorQueuePresetId) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (preset === DEFAULT_OPERATOR_QUEUE_PRESET) {
+    url.searchParams.delete("queue");
+  } else {
+    url.searchParams.set("queue", queuePresetToQueryValue(preset));
+  }
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function emptyStateCopy(preset: OperatorQueuePresetId): {
+  title: string;
+  detail: string;
+} {
+  switch (preset) {
+    case "blocked_failed":
+      return {
+        title: "No blocked runs right now.",
+        detail: "Blocked and failed work is clear. Review other presets for routine operator follow-up.",
+      };
+    case "approval_queue":
+      return {
+        title: "No runs waiting for approval.",
+        detail: "The approval queue is clear right now.",
+      };
+    case "stale_runs":
+      return {
+        title: "No stale runs detected.",
+        detail: "No queued run currently meets the advisory stale thresholds.",
+      };
+    case "pr_release_queue":
+      return {
+        title: "No PR or release follow-up right now.",
+        detail: "No runs are currently queued for PR, merge, deployment, checklist, or sign-off review.",
+      };
+    case "recently_completed":
+      return {
+        title: "No recently completed runs yet.",
+        detail: "Completed work will appear here after runs finish.",
+      };
+    case "staging_setup":
+      return {
+        title: "No staging setup attention items right now.",
+        detail: "Setup and staging guidance items are currently clear.",
+      };
+    case "my_next_actions":
+      return {
+        title: "No immediate next actions right now.",
+        detail: "Your actionable run and task queue is clear at the moment.",
+      };
+    default:
+      return {
+        title: "No operator action required right now.",
+        detail:
+          "The queue is clear right now, but that does not imply staging, launch, or release readiness is complete.",
+      };
+  }
+}
+
+function staleLabel(item: Pick<OperatorQueueItem, "staleKind">): string {
+  switch (item.staleKind) {
+    case "stale_approval":
+      return "Stale approval";
+    case "stale_release_followup":
+      return "Stale release";
+    case "stale_failed_run":
+      return "Stale failed run";
+    case "stale_planning":
+      return "Stale planning";
+    case "inactive_run":
+      return "Inactive run";
+    default:
+      return "Stale";
+  }
 }
 
 function EmptyState({
@@ -54,15 +131,40 @@ export function OperatorQueuePanel({
   registeredRepoCount,
   taskCount,
   taskCountWithoutRuns,
+  initialPreset = DEFAULT_OPERATOR_QUEUE_PRESET,
+  hasQueueQueryParam = false,
+  initialDensity = "detailed",
 }: {
   items: OperatorQueueItem[];
   registeredRepoCount: number;
   taskCount: number;
   taskCountWithoutRuns: number;
+  initialPreset?: OperatorQueuePresetId;
+  hasQueueQueryParam?: boolean;
+  initialDensity?: OperatorQueueDensityMode;
 }) {
-  const [filter, setFilter] = useState<OperatorQueueFilterId>("all");
-  const sections = useMemo(() => buildOperatorQueueSections(items, filter), [filter, items]);
+  const [preset, setPreset] = useState<OperatorQueuePresetId>(initialPreset);
+  const [density, setDensity] = useState<OperatorQueueDensityMode>(initialDensity);
+  const sections = useMemo(() => buildOperatorQueueSections(items, preset), [items, preset]);
   const hasActionable = hasOperatorQueueActionableItems(items);
+
+  useEffect(() => {
+    setPreset(initialPreset);
+  }, [initialPreset]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || hasQueueQueryParam) return;
+    const stored = window.localStorage.getItem(QUEUE_PRESET_STORAGE_KEY);
+    const resolved = resolveOperatorQueuePresetId(stored);
+    if (resolved !== DEFAULT_OPERATOR_QUEUE_PRESET) {
+      setPreset(resolved);
+    }
+  }, [hasQueueQueryParam]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(QUEUE_PRESET_STORAGE_KEY, queuePresetToQueryValue(preset));
+  }, [preset]);
 
   let emptyState: React.ReactNode = null;
   if (taskCount === 0 && registeredRepoCount === 0) {
@@ -81,7 +183,7 @@ export function OperatorQueuePanel({
         detail="Repositories are ready, but there are no tasks to queue yet. Create a task to establish the next operator workflow."
       />
     );
-  } else if (taskCountWithoutRuns === taskCount && filter === "all") {
+  } else if (taskCountWithoutRuns === taskCount && preset === DEFAULT_OPERATOR_QUEUE_PRESET) {
     emptyState = (
       <EmptyState
         title="Tasks exist, but no runs have started"
@@ -89,15 +191,9 @@ export function OperatorQueuePanel({
       />
     );
   } else if (sections.length === 0) {
+    const copy = emptyStateCopy(preset);
     emptyState = (
-      <EmptyState
-        title={filter === "completed" ? "No completed runs yet" : "No queue items in this filter"}
-        detail={
-          filter === "all"
-            ? "No operator action required right now."
-            : "Try another filter to review work in a different state."
-        }
-      />
+      <EmptyState title={copy.title} detail={copy.detail} />
     );
   }
 
@@ -107,38 +203,76 @@ export function OperatorQueuePanel({
         <div>
           <h2 className="text-lg font-semibold text-white">Operator Queue</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Review the latest run or task per workflow to see what needs attention next. Filters
-            are read-only and never trigger run, approval, PR, merge, deploy, or sign-off actions.
+            Review the latest run or task per workflow to see what needs attention next. Queue
+            presets and density modes are read-only and never trigger run, approval, PR, merge,
+            deploy, or sign-off actions.
           </p>
         </div>
-        {filter === "all" && taskCount > 0 && !hasActionable ? (
+        {preset === DEFAULT_OPERATOR_QUEUE_PRESET && taskCount > 0 && !hasActionable ? (
           <div className="rounded-lg border border-emerald-700/60 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-200">
             No operator action required right now.
           </div>
         ) : null}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Operator queue filters">
-        {FILTERS.map((tab) => {
-          const selected = filter === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              onClick={() => setFilter(tab.id)}
-              className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                selected
-                  ? "border-[var(--accent)] bg-[var(--accent)]/15 text-white"
-                  : "border-[var(--border)] text-[var(--muted)] hover:text-white"
-              }`}
-            >
-              {tab.label} <span className="text-xs opacity-80">({filterCount(items, tab.id)})</span>
-            </button>
-          );
-        })}
+      <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Operator queue presets">
+          {OPERATOR_QUEUE_PRESETS.map((tab) => {
+            const selected = preset === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => {
+                  setPreset(tab.id);
+                  setQueueQueryParam(tab.id);
+                }}
+                className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                  selected
+                    ? "border-[var(--accent)] bg-[var(--accent)]/15 text-white"
+                    : "border-[var(--border)] text-[var(--muted)] hover:text-white"
+                }`}
+              >
+                {tab.label}{" "}
+                <span className="text-xs opacity-80">({presetCount(items, tab.id)})</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2 self-start">
+          <span className="text-xs uppercase tracking-wide text-[var(--muted)]">View</span>
+          <button
+            type="button"
+            aria-pressed={density === "detailed"}
+            onClick={() => setDensity("detailed")}
+            className={`rounded-full border px-3 py-1.5 text-sm transition ${
+              density === "detailed"
+                ? "border-[var(--accent)] bg-[var(--accent)]/15 text-white"
+                : "border-[var(--border)] text-[var(--muted)] hover:text-white"
+            }`}
+          >
+            Detailed
+          </button>
+          <button
+            type="button"
+            aria-pressed={density === "compact"}
+            onClick={() => setDensity("compact")}
+            className={`rounded-full border px-3 py-1.5 text-sm transition ${
+              density === "compact"
+                ? "border-[var(--accent)] bg-[var(--accent)]/15 text-white"
+                : "border-[var(--border)] text-[var(--muted)] hover:text-white"
+            }`}
+          >
+            Compact
+          </button>
+        </div>
       </div>
+
+      <p className="mt-3 text-xs text-[var(--muted)]">
+        Preset: {getOperatorQueuePreset(preset).description}
+      </p>
 
       {emptyState ? (
         <div className="mt-4">{emptyState}</div>
@@ -160,6 +294,11 @@ export function OperatorQueuePanel({
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium text-white">{item.title}</p>
                           <StatusBadge status={item.status} />
+                          {item.isStale ? (
+                            <span className="rounded border border-amber-700/70 bg-amber-950/40 px-2 py-0.5 text-[11px] font-medium text-amber-200">
+                              {staleLabel(item)}
+                            </span>
+                          ) : null}
                           {item.runIdShort ? (
                             <span className="rounded border border-[var(--border)] px-2 py-0.5 font-mono text-[11px] text-[var(--muted)]">
                               run {item.runIdShort}
@@ -172,6 +311,7 @@ export function OperatorQueuePanel({
                           <span>
                             {item.blockerCount} blocker(s), {item.warningCount} warning(s)
                           </span>
+                          {item.ageLabel ? <span>Age: {item.ageLabel}</span> : null}
                           <span>
                             {item.lastUpdatedLabel}:{" "}
                             {item.lastUpdatedAt === new Date(0).toISOString()
@@ -179,13 +319,36 @@ export function OperatorQueuePanel({
                               : new Date(item.lastUpdatedAt).toLocaleString()}
                           </span>
                         </div>
-                        <p className="mt-3 text-sm text-white">Next action: {item.nextAction}</p>
-                        <p className="mt-1 text-sm text-[var(--muted)]">{item.reason}</p>
-                        {item.pathHint ? (
-                          <p className="mt-2 text-xs text-[var(--muted)]">
-                            Record path: <code>{item.pathHint}</code>
-                          </p>
-                        ) : null}
+                        {density === "compact" ? (
+                          <p className="mt-3 text-sm text-white">Next action: {item.nextAction}</p>
+                        ) : (
+                          <>
+                            <p className="mt-3 text-sm text-[var(--muted)]">
+                              What happened: <span className="text-white">{item.reason}</span>
+                            </p>
+                            <p className="mt-1 text-sm text-[var(--muted)]">
+                              Why it matters: <span className="text-white">{item.whyItMatters}</span>
+                            </p>
+                            <p className="mt-1 text-sm text-[var(--muted)]">
+                              Next action: <span className="text-white">{item.nextAction}</span>
+                            </p>
+                            {item.staleReason ? (
+                              <p className="mt-1 text-sm text-amber-200">
+                                {staleLabel(item)}: {item.staleReason}
+                              </p>
+                            ) : null}
+                            {item.handoffNote ? (
+                              <p className="mt-1 text-sm text-[var(--muted)]">
+                                Takeover guidance: <span className="text-white">{item.handoffNote}</span>
+                              </p>
+                            ) : null}
+                            {item.pathHint ? (
+                              <p className="mt-2 text-xs text-[var(--muted)]">
+                                Record path: <code>{item.pathHint}</code>
+                              </p>
+                            ) : null}
+                          </>
+                        )}
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-2">
                         <Link

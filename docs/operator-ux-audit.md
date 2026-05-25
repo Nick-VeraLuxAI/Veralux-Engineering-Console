@@ -138,6 +138,21 @@ UX-9 improves cross-run triage speed, but it intentionally does **not** auto-sta
 
 ---
 
+## UX-10 implementation note
+
+UX-10 is now implemented on the dashboard and list pages:
+
+- the queue now exposes named read-only presets for next actions, blockers, approvals, PR/release follow-up, stale runs, completed work, and staging/setup attention
+- queue selection now supports safe `?queue=` URL params with unknown values falling back to **All**
+- the browser can remember the last selected preset locally when no URL override is present
+- stale-run detection now uses existing timestamps only and stays advisory rather than blocking
+- queue items, task cards, and task-detail run rows now include clearer handoff guidance without introducing an ownership workflow
+- compact and detailed queue density modes now help repeat operators trade off scan speed and explanation depth
+
+UX-10 improves repeat triage and handoff clarity, but it intentionally does **not** add shared assignment state, database-backed saved views, auto-escalation, auto-run mutations, or any governance bypass.
+
+---
+
 ## Current operator journey
 
 | Step | What the operator sees | What the operator does | Next action obvious? | Button easy to find? | Language understandable? | State clear? | Could do wrong thing? | Recovery guidance |
@@ -527,6 +542,6 @@ This preserves every panel while removing the burden of reading them in raw top-
 
 ## Recommended immediate next phase
 
-**Next phase:** **UX-10 — saved queue views and operator handoff cues**
+**Next phase:** **Team-aware queue coordination**
 
-UX-1 through UX-9 now cover orientation, worker-plan authoring, approval/review discoverability, PR/release retry clarity, run-page density, setup readiness, staging onboarding, plain-English terminology help, repeat-operator navigation speed, and multi-run dashboard triage. The highest remaining operator-value-to-risk item is reducing cross-operator handoff friction with saved queue presets, stale-run escalation, and clearer shared ownership cues.
+UX-1 through UX-10 now cover orientation, worker-plan authoring, approval/review discoverability, PR/release retry clarity, run-page density, setup readiness, staging onboarding, plain-English terminology help, repeat-operator navigation speed, multi-run dashboard triage, saved queue presets, stale-run visibility, and handoff guidance. The highest remaining operator-value-to-risk item is durable team coordination: shared saved views, explicit ownership, and escalation policies that still preserve current governance boundaries.

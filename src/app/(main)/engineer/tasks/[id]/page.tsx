@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import { listRunsForTask } from "@/lib/engineer-console/run-manager/run-manager";
 import {
-  assessOperatorQueueSnapshot,
+  buildOperatorQueueItemFromSnapshot,
   buildOperatorQueueSnapshot,
 } from "@/lib/engineer-console/run-ux/operator-queue";
 import { getTaskById } from "@/lib/engineer-console/task-manager/task-manager";
@@ -28,8 +28,8 @@ export default async function TaskDetailPage({
   const runSnapshots = await Promise.all(
     runs.map(async (run) => {
       const snapshot = await buildOperatorQueueSnapshot(task, run);
-      const assessment = assessOperatorQueueSnapshot(snapshot);
-      return { run, snapshot, assessment };
+      const queueItem = buildOperatorQueueItemFromSnapshot(snapshot);
+      return { run, snapshot, queueItem };
     }),
   );
 
@@ -69,7 +69,7 @@ export default async function TaskDetailPage({
         </div>
       ) : (
         <ul className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--card)]">
-          {runSnapshots.map(({ run, snapshot, assessment }) => (
+          {runSnapshots.map(({ run, snapshot, queueItem }) => (
             <li key={run.id} className="p-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
@@ -85,17 +85,26 @@ export default async function TaskDetailPage({
                   </p>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
                     <span>
-                      {snapshot.blockerCount} blocker(s), {snapshot.warningCount} warning(s)
+                      {queueItem.blockerCount} blocker(s), {queueItem.warningCount} warning(s)
                     </span>
+                    {queueItem.ageLabel ? <span>Age: {queueItem.ageLabel}</span> : null}
                     <span>
-                      {snapshot.lastUpdatedLabel}:{" "}
-                      {new Date(snapshot.lastUpdatedAt).toLocaleString()}
+                      {queueItem.lastUpdatedLabel}:{" "}
+                      {new Date(queueItem.lastUpdatedAt).toLocaleString()}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-white">
-                    Next action: {assessment.nextAction}
+                    Next action: {queueItem.nextAction}
                   </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">{assessment.reason}</p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">{queueItem.reason}</p>
+                  {queueItem.staleReason ? (
+                    <p className="mt-1 text-sm text-amber-200">{queueItem.staleReason}</p>
+                  ) : null}
+                  {queueItem.handoffNote ? (
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      Takeover guidance: {queueItem.handoffNote}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <Link

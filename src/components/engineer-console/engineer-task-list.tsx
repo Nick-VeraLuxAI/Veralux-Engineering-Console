@@ -95,6 +95,7 @@ export function EngineerTaskList({
                           <span>
                             {latest.blockerCount} blocker(s), {latest.warningCount} warning(s)
                           </span>
+                          {latest.ageLabel ? <span>Age: {latest.ageLabel}</span> : null}
                           <span>
                             {latest.lastUpdatedLabel}:{" "}
                             {new Date(latest.lastUpdatedAt).toLocaleString()}
@@ -103,6 +104,14 @@ export function EngineerTaskList({
                         <p className="mt-2 text-sm text-white">
                           Next action: {latest.nextAction}
                         </p>
+                        {latest.isStale && latest.staleReason ? (
+                          <p className="mt-1 text-sm text-amber-200">{latest.staleReason}</p>
+                        ) : null}
+                        {latest.handoffNote ? (
+                          <p className="mt-1 text-xs text-[var(--muted)]">
+                            Takeover guidance: {latest.handoffNote}
+                          </p>
+                        ) : null}
                       </>
                     ) : null}
                   </div>

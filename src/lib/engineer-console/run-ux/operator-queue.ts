@@ -12,6 +12,7 @@ import { buildRunWorkflowSummary } from "./build-run-workflow-summary";
 import { deriveRunCommandCenterState } from "./derive-run-ux";
 import type { RunCommandCenterState, RunWorkflowSummary } from "./run-ux-types";
 import type { DashboardSetupSummary } from "../setup/build-setup-readiness-summary";
+import { evaluateStaleRun, type StaleRunKind } from "./stale-run";
 
 export type OperatorQueueBucketId =
   | "needs_action"
@@ -20,14 +21,6 @@ export type OperatorQueueBucketId =
   | "ready_for_release"
   | "recently_completed"
   | "setup_attention";
-
-export type OperatorQueueFilterId =
-  | "all"
-  | "needs_action"
-  | "blocked"
-  | "approval"
-  | "pr_release"
-  | "completed";
 
 export interface OperatorQueueItem {
   id: string;
@@ -52,6 +45,13 @@ export interface OperatorQueueItem {
   sortKey: string;
   lastUpdatedAt: string;
   lastUpdatedLabel: string;
+  ageLabel: string | null;
+  isStale: boolean;
+  staleKind: StaleRunKind | null;
+  staleReason: string | null;
+  staleSuggestedAction: string | null;
+  whyItMatters: string;
+  handoffNote: string | null;
   canStartRun: boolean;
   pathHint?: string;
 }
@@ -141,6 +141,13 @@ function buildTaskOnlyQueueItem(task: EngineeringTask, repoLabel: string): Opera
     sortKey: `${String(999_999_999_999 - isoTime(timestamp.at)).padStart(12, "0")}:${task.id}`,
     lastUpdatedAt: timestamp.at,
     lastUpdatedLabel: timestamp.label,
+    ageLabel: null,
+    isStale: false,
+    staleKind: null,
+    staleReason: null,
+    staleSuggestedAction: null,
+    whyItMatters: "A task without a run cannot enter the governed worker-plan, approval, and release flow.",
+    handoffNote: "Open the task and review its scope before starting the first run.",
     canStartRun: true,
   };
 }
@@ -153,6 +160,66 @@ function hasHardGateBlockers(summary: RunWorkflowSummary): boolean {
     summary.hardGates.signoffCompletedBlockers.length > 0 ||
     summary.hardGates.signoffExceptionsBlockers.length > 0
   );
+}
+
+function buildWhyItMatters(input: {
+  item: Pick<OperatorQueueItem, "bucket" | "status" | "currentStageLabel">;
+  staleReason: string | null;
+}): string {
+  if (input.staleReason) {
+    return "The queue is flagging this item because recent operator follow-up may have stalled.";
+  }
+
+  switch (input.item.bucket) {
+    case "blocked_failed":
+      return "Blocked or failed runs need review before more governed work can continue safely.";
+    case "ready_for_approval":
+      return "Approval and review states require a human decision before PR work can proceed.";
+    case "ready_for_release":
+      return "PR and release follow-up affect downstream merge, deployment, checklist, and sign-off work.";
+    case "recently_completed":
+      return "Completed work stays visible for audit continuity and quick follow-up review.";
+    case "setup_attention":
+      return "Setup and staging attention items affect whether operators can safely exercise the full workflow.";
+    default:
+      return input.item.currentStageLabel === "Task"
+        ? "Tasks without a run are not yet part of the governed execution and review flow."
+        : "This run still has an operator-visible next step before the lifecycle can move forward.";
+  }
+}
+
+function buildHandoffNote(input: {
+  bucket: OperatorQueueBucketId;
+  isStale: boolean;
+  currentStageLabel: string;
+}): string | null {
+  if (input.bucket === "setup_attention") {
+    return "Use the setup panel, staging helper, and runbook before taking over this checklist item.";
+  }
+
+  if (input.bucket === "recently_completed") {
+    return "Review the run history and technical audit before resuming any follow-up from completed work.";
+  }
+
+  if (input.isStale) {
+    return "Use the run page audit/history, Current Action, and Technical Audit before taking over.";
+  }
+
+  if (input.bucket === "ready_for_approval") {
+    return "Use the run page audit/history before taking over. Review Current Action and Technical Audit before approving.";
+  }
+
+  if (input.bucket === "ready_for_release") {
+    return "Review Current Action, PR state, and Technical Audit before taking over downstream release work.";
+  }
+
+  if (input.bucket === "blocked_failed") {
+    return "Open the run and review the command center plus Technical Audit before retrying or escalating.";
+  }
+
+  return input.currentStageLabel === "Task"
+    ? "Open the task detail page and confirm scope before starting or handing off the next run."
+    : "Review Current Action before taking over this run.";
 }
 
 export function assessOperatorQueueSnapshot(input: OperatorQueueSnapshot): Pick<
@@ -409,43 +476,73 @@ export async function buildDashboardOperatorQueueData(
     }),
   );
 
-  const items = snapshots.map((snapshot) => {
-    if (!snapshot.latestRun || !snapshot.summary || !snapshot.guidance) {
-      return buildTaskOnlyQueueItem(snapshot.task, snapshot.repoLabel);
-    }
-
-    const assessment = assessOperatorQueueSnapshot(snapshot);
-    return {
-      id: `run:${snapshot.latestRun.id}`,
-      kind: "run" as const,
-      title: snapshot.task.title,
-      taskId: snapshot.task.id,
-      taskTitle: snapshot.task.title,
-      runId: snapshot.latestRun.id,
-      runIdShort: shortId(snapshot.latestRun.id),
-      repoLabel: snapshot.repoLabel,
-      currentStageLabel: snapshot.guidance.currentStageLabel,
-      nextAction: assessment.nextAction,
-      status: snapshot.latestRun.status,
-      blockerCount: snapshot.blockerCount,
-      warningCount: snapshot.warningCount,
-      href: assessment.href,
-      secondaryHref: snapshot.secondaryHref,
-      secondaryLabel: snapshot.secondaryLabel,
-      priority: assessment.priority,
-      bucket: assessment.bucket,
-      reason: assessment.reason,
-      sortKey: assessment.sortKey,
-      lastUpdatedAt: snapshot.lastUpdatedAt,
-      lastUpdatedLabel: snapshot.lastUpdatedLabel,
-      canStartRun: assessment.canStartRun,
-    };
-  });
+  const items = snapshots.map(buildOperatorQueueItemFromSnapshot);
 
   return {
     items,
     taskCount: tasks.length,
     taskCountWithoutRuns: items.filter((item) => item.kind === "task").length,
+  };
+}
+
+export function buildOperatorQueueItemFromSnapshot(
+  snapshot: OperatorQueueSnapshot,
+): OperatorQueueItem {
+  if (!snapshot.latestRun || !snapshot.summary || !snapshot.guidance) {
+    return buildTaskOnlyQueueItem(snapshot.task, snapshot.repoLabel);
+  }
+
+  const assessment = assessOperatorQueueSnapshot(snapshot);
+  const stale = evaluateStaleRun({
+    kind: "run",
+    status: snapshot.latestRun.status,
+    bucket: assessment.bucket,
+    currentStageLabel: snapshot.guidance.currentStageLabel,
+    lastUpdatedAt: snapshot.lastUpdatedAt,
+  });
+
+  return {
+    id: `run:${snapshot.latestRun.id}`,
+    kind: "run",
+    title: snapshot.task.title,
+    taskId: snapshot.task.id,
+    taskTitle: snapshot.task.title,
+    runId: snapshot.latestRun.id,
+    runIdShort: shortId(snapshot.latestRun.id),
+    repoLabel: snapshot.repoLabel,
+    currentStageLabel: snapshot.guidance.currentStageLabel,
+    nextAction: assessment.nextAction,
+    status: snapshot.latestRun.status,
+    blockerCount: snapshot.blockerCount,
+    warningCount: snapshot.warningCount,
+    href: assessment.href,
+    secondaryHref: snapshot.secondaryHref,
+    secondaryLabel: snapshot.secondaryLabel,
+    priority: assessment.priority,
+    bucket: assessment.bucket,
+    reason: assessment.reason,
+    sortKey: assessment.sortKey,
+    lastUpdatedAt: snapshot.lastUpdatedAt,
+    lastUpdatedLabel: snapshot.lastUpdatedLabel,
+    ageLabel: stale.ageLabel,
+    isStale: stale.isStale,
+    staleKind: stale.staleKind,
+    staleReason: stale.reason,
+    staleSuggestedAction: stale.suggestedAction,
+    whyItMatters: buildWhyItMatters({
+      item: {
+        bucket: assessment.bucket,
+        status: snapshot.latestRun.status,
+        currentStageLabel: snapshot.guidance.currentStageLabel,
+      },
+      staleReason: stale.reason,
+    }),
+    handoffNote: buildHandoffNote({
+      bucket: assessment.bucket,
+      isStale: stale.isStale,
+      currentStageLabel: snapshot.guidance.currentStageLabel,
+    }),
+    canStartRun: assessment.canStartRun,
   };
 }
 
@@ -487,6 +584,13 @@ export function buildSetupAttentionQueueItems(
         sortKey: `${String(999_999_999_999 - priority).padStart(12, "0")}:${item.id}`,
         lastUpdatedAt: new Date(0).toISOString(),
         lastUpdatedLabel: "Manual",
+        ageLabel: null,
+        isStale: false,
+        staleKind: null,
+        staleReason: null,
+        staleSuggestedAction: null,
+        whyItMatters: "This setup or staging item affects whether operators can safely exercise the full workflow.",
+        handoffNote: "Use the setup panel, staging helper, and runbook before taking over this checklist item.",
         canStartRun: false,
       };
     });
@@ -513,6 +617,13 @@ export function buildSetupAttentionQueueItems(
       sortKey: `${String(999_999_999_999 - 44_000).padStart(12, "0")}:staging-report`,
       lastUpdatedAt: new Date(0).toISOString(),
       lastUpdatedLabel: "Manual",
+      ageLabel: null,
+      isStale: false,
+      staleKind: null,
+      staleReason: null,
+      staleSuggestedAction: null,
+      whyItMatters: "The staging report is still the operator-facing record for manual dry-run outcomes and unresolved gaps.",
+      handoffNote: "Review the setup panel, staging helper, and run history before updating the staging report.",
       canStartRun: false,
       pathHint: "docs/staging-dry-run-report.md",
     });

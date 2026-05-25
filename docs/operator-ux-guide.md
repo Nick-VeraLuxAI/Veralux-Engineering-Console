@@ -1,6 +1,6 @@
 # Engineering Console operator UX guide
 
-Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, and UX-9 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
+Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, UX-9, and UX-10 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
 
 ---
 
@@ -199,6 +199,27 @@ UX-9 improves multi-run triage on the dashboard without adding any automatic exe
 
 ---
 
+## What changed in UX-10
+
+UX-10 improves repeat triage and operator handoff without adding any workflow automation:
+
+1. **Saved queue presets**  
+   The dashboard queue now supports named read-only presets for **My next actions**, **Blocked / failed**, **Approval queue**, **PR / release queue**, **Stale runs**, **Recently completed**, and **Staging setup**, plus **All** as the safe fallback view.
+
+2. **URL-backed queue views**  
+   Queue selection now syncs to `?queue=` query params such as `?queue=blocked`, `?queue=approval`, `?queue=release`, or `?queue=stale`. Unknown values fall back safely to **All**. When no query param is present, the browser may remember the last selected preset locally.
+
+3. **Advisory stale-run detection**  
+   The queue now flags stale approval, release follow-up, failed-run, planning, and inactive-run states using existing timestamps only. These badges are advisory and do not block execution, approval, PR, merge, deployment, or sign-off actions.
+
+4. **Handoff-friendly copy**  
+   Queue items now spell out what happened, why it matters, the next action, and takeover guidance such as reviewing **Current Action** and **Technical Audit** before continuing someone else’s run.
+
+5. **Compact / detailed queue modes**  
+   Operators can switch between the existing detailed queue view and a lighter compact summary mode. This is local UI state only and does not change server data or queue priority.
+
+---
+
 ## What the command center does
 
 The command center is a **read-only orientation layer**. It helps operators answer:
@@ -229,7 +250,7 @@ Clicking a step jumps to the relevant panel or, for `Task`, back to the task det
 
 ## Where technical details live
 
-UX-1 through UX-9 did **not** remove technical detail from the run page.
+UX-1 through UX-10 did **not** remove technical detail from the run page.
 
 The detailed panels still live below the command center, lifecycle stepper, and current-action zone:
 
@@ -307,9 +328,9 @@ Decision guidance:
 
 ## Current UX limits
 
-UX-1 through UX-9 now cover orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, setup onboarding, terminology clarity, repeat-operator navigation speed, and dashboard-level queue triage, but they do **not** yet solve:
+UX-1 through UX-10 now cover orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, setup onboarding, terminology clarity, repeat-operator navigation speed, dashboard-level queue triage, saved queue presets, stale-run visibility, and handoff guidance, but they do **not** yet solve:
 
-- saved queue presets or team-specific queue views
-- explicit stale-run escalation and team handoff workflows across operators
+- durable team-shared saved views beyond URL and local browser memory
+- explicit assignment, SLA, or escalation workflow across operators
 
-Those remain in the next phases documented in [operator-ux-audit.md](./operator-ux-audit.md).
+Those remain later phases documented in [operator-ux-audit.md](./operator-ux-audit.md).

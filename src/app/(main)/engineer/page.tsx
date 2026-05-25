@@ -6,6 +6,7 @@ import {
   buildDashboardOperatorQueueData,
   buildSetupAttentionQueueItems,
 } from "@/lib/engineer-console/run-ux/operator-queue";
+import { resolveOperatorQueuePresetId } from "@/lib/engineer-console/run-ux/operator-queue-view";
 import { EngineerTaskList } from "@/components/engineer-console/engineer-task-list";
 import { OperatorQueuePanel } from "@/components/engineer-console/operator-queue-panel";
 import { SetupReadinessPanel } from "@/components/engineer-console/setup-readiness-panel";
@@ -13,13 +14,20 @@ import { StagingSmokeWorkflowHelper } from "@/components/engineer-console/stagin
 
 export const dynamic = "force-dynamic";
 
-export default async function EngineerPage() {
+export default async function EngineerPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ queue?: string | string[] }>;
+}) {
   ensureEngineerConsoleReady();
   const tasks = listTasks();
   const repos = listRegisteredRepos();
   const setup = buildDashboardSetupSummary();
   const queueData = await buildDashboardOperatorQueueData(tasks);
   const queueItems = [...queueData.items, ...buildSetupAttentionQueueItems(setup)];
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const initialPreset = resolveOperatorQueuePresetId(resolvedSearchParams.queue);
+  const hasQueueQueryParam = resolvedSearchParams.queue !== undefined;
 
   return (
     <div>
@@ -46,6 +54,8 @@ export default async function EngineerPage() {
           registeredRepoCount={repos.length}
           taskCount={queueData.taskCount}
           taskCountWithoutRuns={queueData.taskCountWithoutRuns}
+          initialPreset={initialPreset}
+          hasQueueQueryParam={hasQueueQueryParam}
         />
       </div>
       <EngineerTaskList

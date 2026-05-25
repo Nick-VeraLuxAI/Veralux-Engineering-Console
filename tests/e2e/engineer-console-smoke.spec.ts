@@ -26,7 +26,7 @@ test.describe("Engineering Console trusted local smoke", () => {
     await expect(page).not.toHaveURL(/\/engineer\/login/);
   });
 
-  test("dashboard operator queue filters and open run link work", async ({
+  test("dashboard operator queue presets and open run link work", async ({
     page,
     request,
     baseURL,
@@ -48,10 +48,25 @@ test.describe("Engineering Console trusted local smoke", () => {
     });
     await expect(queue).toBeVisible();
 
-    const needsActionTab = queue.getByRole("tab", { name: /Needs action/i });
-    await needsActionTab.click();
+    await expect(queue.getByRole("tab", { name: /My next actions/i })).toBeVisible();
+    await expect(queue.getByRole("tab", { name: /Blocked \/ failed/i })).toBeVisible();
+    await expect(queue.getByRole("tab", { name: /Approval queue/i })).toBeVisible();
+    await expect(queue.getByRole("tab", { name: /Stale runs/i })).toBeVisible();
+
+    const nextActionsTab = queue.getByRole("tab", { name: /My next actions/i });
+    await nextActionsTab.click();
     const queueItem = queue.locator("li").filter({ hasText: taskOnlyTitle }).first();
     await expect(queueItem).toBeVisible();
+
+    const blockedTab = queue.getByRole("tab", { name: /Blocked \/ failed/i });
+    await blockedTab.click();
+    await expect(blockedTab).toHaveAttribute("aria-selected", "true");
+    await expect(queue.locator("li").filter({ hasText: taskOnlyTitle }).first()).toHaveCount(0);
+
+    const staleTab = queue.getByRole("tab", { name: /Stale runs/i });
+    await staleTab.click();
+    await expect(staleTab).toHaveAttribute("aria-selected", "true");
+    await expect(queue.locator("li").filter({ hasText: taskOnlyTitle }).first()).toHaveCount(0);
 
     await queue.getByRole("tab", { name: /All/i }).click();
     await queue.getByRole("link", { name: "Open run", exact: true }).first().click();

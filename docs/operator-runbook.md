@@ -1,6 +1,6 @@
 # Engineering Console — Operator runbook
 
-Operational guide for VeraLux Engineering Console through Phase UX-9. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
+Operational guide for VeraLux Engineering Console through Phase UX-10. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
 
 ## Prerequisites
 
@@ -31,9 +31,9 @@ These surfaces are guidance only. They do not register repos, create tasks, star
 
 ---
 
-## Operator queue and dashboard filters
+## Operator queue, presets, and stale cues
 
-UX-9 adds a read-only **Operator Queue** to the dashboard so repeat operators can triage work before opening a run:
+UX-9 and UX-10 add a read-only **Operator Queue** to the dashboard so repeat operators can triage work before opening a run:
 
 1. **Needs operator action** highlights runs still in worker-plan, quality-gate, evidence, replay, policy, or task-start phases.
 2. **Blocked / failed** pulls failed runs, audit-chain failures, hard release-gate blockers, and approval blockers to the top.
@@ -42,16 +42,55 @@ UX-9 adds a read-only **Operator Queue** to the dashboard so repeat operators ca
 5. **Recently completed** keeps finished work visible but lower priority.
 6. **Staging checklist / setup attention** surfaces setup gaps, manual `verify:ci` / backup verification tracking, and the `docs/staging-dry-run-report.md` record path.
 
-Dashboard filters are read-only:
+Named queue presets now exist for:
 
 - **All**
-- **Needs action**
-- **Blocked**
-- **Approval**
-- **PR / Release**
-- **Completed**
+- **My next actions**
+- **Blocked / failed**
+- **Approval queue**
+- **PR / release queue**
+- **Stale runs**
+- **Recently completed**
+- **Staging setup**
 
-The queue, filters, task cards, and run rows do **not** trigger start-run, approval, PR, merge, deploy, or sign-off mutations by themselves.
+Queue selection is read-only and URL-backed:
+
+- `?queue=next`
+- `?queue=blocked`
+- `?queue=approval`
+- `?queue=release`
+- `?queue=stale`
+- `?queue=completed`
+- `?queue=staging`
+
+Unknown queue params fall back safely to **All**. When no query param is present, the browser may remember the last selected preset locally.
+
+Advisory stale-run cues:
+
+- waiting for approval for more than 24 hours
+- PR / release follow-up for more than 24 hours
+- failed run unresolved for more than 12 hours
+- worker-plan follow-up inactive for more than 24 hours
+- inactive non-completed run for more than 48 hours
+
+These stale cues do **not** block workflow actions. They are visibility and handoff aids only.
+
+The queue, presets, task cards, and run rows do **not** trigger start-run, approval, PR, merge, deploy, or sign-off mutations by themselves.
+
+---
+
+## Operator handoff guidance
+
+UX-10 intentionally keeps handoff as UI guidance only. There is no assignment or ownership workflow yet.
+
+When taking over another operator's queue item:
+
+1. Open the run or task from the queue.
+2. Read **Current Action** first.
+3. Review the latest blocking or warning state.
+4. Review **Technical Audit** and recent history before approving, retrying PR work, or escalating a failed run.
+
+Queue handoff copy is guidance only. It does not change role checks, approval policy, release gates, or audit behavior.
 
 ---
 

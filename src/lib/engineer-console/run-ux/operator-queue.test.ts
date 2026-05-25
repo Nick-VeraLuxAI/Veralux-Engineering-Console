@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { EngineeringRun, EngineeringTask } from "@/lib/engineer-console/types";
 import type { RunCommandCenterState, RunWorkflowSummary } from "./run-ux-types";
 import {
+  DEFAULT_OPERATOR_QUEUE_PRESET,
   buildOperatorQueueSections,
+  queuePresetToQueryValue,
+  resolveOperatorQueuePresetId,
   hasOperatorQueueActionableItems,
 } from "./operator-queue-view";
 import {
@@ -336,6 +339,13 @@ describe("operator queue sections", () => {
       sortKey: "0001",
       lastUpdatedAt: "2026-05-01T11:00:00.000Z",
       lastUpdatedLabel: "Started",
+      ageLabel: "1h old",
+      isStale: false,
+      staleKind: null,
+      staleReason: null,
+      staleSuggestedAction: null,
+      whyItMatters: "Blocked work needs review.",
+      handoffNote: "Review Current Action before taking over.",
       canStartRun: false,
     },
     {
@@ -359,6 +369,13 @@ describe("operator queue sections", () => {
       sortKey: "0002",
       lastUpdatedAt: "2026-05-01T11:05:00.000Z",
       lastUpdatedLabel: "Started",
+      ageLabel: "55m old",
+      isStale: false,
+      staleKind: null,
+      staleReason: null,
+      staleSuggestedAction: null,
+      whyItMatters: "Approval work needs a human decision.",
+      handoffNote: "Review the approval report before taking over.",
       canStartRun: false,
     },
     {
@@ -382,20 +399,53 @@ describe("operator queue sections", () => {
       sortKey: "0003",
       lastUpdatedAt: "2026-05-01T12:00:00.000Z",
       lastUpdatedLabel: "Completed",
+      ageLabel: null,
+      isStale: false,
+      staleKind: null,
+      staleReason: null,
+      staleSuggestedAction: null,
+      whyItMatters: "Completed work stays visible for audit continuity.",
+      handoffNote: "Review the run history before resuming follow-up.",
       canStartRun: true,
     },
   ];
 
-  it("filters approval work into the approval section", () => {
-    const sections = buildOperatorQueueSections(items, "approval");
+  it("filters approval work into the approval preset", () => {
+    const sections = buildOperatorQueueSections(items, "approval_queue");
     expect(sections).toHaveLength(1);
     expect(sections[0]?.id).toBe("ready_for_approval");
     expect(sections[0]?.items[0]?.href).toBe("/engineer/runs/run-approval");
   });
 
   it("keeps completed work lower priority and non-actionable", () => {
-    const sections = buildOperatorQueueSections(items, "completed");
+    const sections = buildOperatorQueueSections(items, "recently_completed");
     expect(sections[0]?.id).toBe("recently_completed");
     expect(hasOperatorQueueActionableItems([items[2]!])).toBe(false);
+  });
+
+  it("maps stale preset to stale queue items only", () => {
+    const staleSections = buildOperatorQueueSections(
+      [
+        {
+          ...items[0]!,
+          id: "run:stale-blocked",
+          isStale: true,
+          staleKind: "stale_failed_run",
+          staleReason: "The failed run has been unresolved for over 12 hours.",
+          staleSuggestedAction: "Review the run before retrying.",
+        },
+      ],
+      "stale_runs",
+    );
+
+    expect(staleSections).toHaveLength(1);
+    expect(staleSections[0]?.items[0]?.id).toBe("run:stale-blocked");
+  });
+
+  it("resolves queue query params safely", () => {
+    expect(resolveOperatorQueuePresetId("blocked")).toBe("blocked_failed");
+    expect(resolveOperatorQueuePresetId("approval")).toBe("approval_queue");
+    expect(resolveOperatorQueuePresetId("unknown")).toBe(DEFAULT_OPERATOR_QUEUE_PRESET);
+    expect(queuePresetToQueryValue("pr_release_queue")).toBe("release");
   });
 });
