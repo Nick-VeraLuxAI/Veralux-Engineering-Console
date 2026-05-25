@@ -40,7 +40,14 @@ export default async function TaskDetailPage({
 
       <h2 className="mb-3 text-lg font-semibold">Runs</h2>
       {runs.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">No runs yet. Start a run to orchestrate the workflow.</p>
+        <div className="rounded-xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">
+          <p className="font-medium text-white">Start run</p>
+          <p className="mt-2">
+            What is missing: this task has no runs yet. Why it matters: runs create the branch and
+            open the guided workflow for worker plans, approval, PR creation, and release controls.
+            What to click next: use <strong>Start run</strong> above.
+          </p>
+        </div>
       ) : (
         <ul className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--card)]">
           {runs.map((run) => (

@@ -1,12 +1,25 @@
 "use client";
 
+import React from "react";
+import Link from "next/link";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { StagingTaskPreset } from "@/lib/engineer-console/setup/setup-ux";
 import type { PublicRegisteredRepo } from "./registered-repos-panel";
 
-export function CreateTaskForm({ onClose }: { onClose: () => void }) {
+export function CreateTaskForm({
+  onClose,
+  showStagingPreset,
+  stagingTaskPreset,
+  registeredRepoCount,
+}: {
+  onClose: () => void;
+  showStagingPreset: boolean;
+  stagingTaskPreset: StagingTaskPreset;
+  registeredRepoCount: number;
+}) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -24,6 +37,12 @@ export function CreateTaskForm({ onClose }: { onClose: () => void }) {
         if (data?.repos) setRepos(data.repos as PublicRegisteredRepo[]);
       });
   }, []);
+
+  function applyStagingPreset() {
+    setTitle(stagingTaskPreset.title);
+    setDescription(stagingTaskPreset.description);
+    setPriority(stagingTaskPreset.priority);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,6 +82,41 @@ export function CreateTaskForm({ onClose }: { onClose: () => void }) {
       >
         <h2 className="mb-4 text-lg font-semibold">Create engineering task</h2>
         {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
+        <div className="mb-4 rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm text-[var(--muted)]">
+          <p className="font-medium text-white">Safest default</p>
+          <p className="mt-1">
+            Prefer a verified registered repository. Manual path fallback remains available, but it
+            should still point to an approved repo root.
+          </p>
+        </div>
+        {registeredRepoCount === 0 ? (
+          <div className="mb-4 rounded border border-amber-900/50 bg-amber-950/20 p-3 text-sm text-amber-200">
+            <p className="font-medium">Register and verify a repo first.</p>
+            <p className="mt-1">
+              What is missing: there are no registered repos yet. Why it matters: verified repos are
+              the safest way to create tasks. What to click next: open{" "}
+              <Link href="/engineer/repos" className="underline underline-offset-2">
+                Registered repositories
+              </Link>
+              .
+            </p>
+          </div>
+        ) : null}
+        {showStagingPreset ? (
+          <div className="mb-4 rounded border border-blue-900/50 bg-blue-950/20 p-3 text-sm">
+            <p className="font-medium text-white">Staging helper preset</p>
+            <p className="mt-1 text-[var(--muted)]">
+              Use a small and safe README smoke task for staging verification.
+            </p>
+            <button
+              type="button"
+              onClick={applyStagingPreset}
+              className="mt-3 rounded border border-[var(--border)] px-3 py-2 text-sm font-medium"
+            >
+              Use staging README preset
+            </button>
+          </div>
+        ) : null}
         <label className="mb-3 block text-sm">
           Title
           <input
@@ -110,6 +164,10 @@ export function CreateTaskForm({ onClose }: { onClose: () => void }) {
             className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 font-mono text-xs disabled:opacity-50"
           />
         </label>
+        <p className="mb-3 text-xs text-[var(--muted)]">
+          Manual fallback is still supported, but the path must be inside approved repo roots when
+          they are configured.
+        </p>
         <label className="mb-4 block text-sm">
           Priority
           <select

@@ -1,6 +1,6 @@
 # Engineering Console operator UX guide
 
-Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, and UX-5 run page updates. Pair with [operator-runbook.md](./operator-runbook.md) for the full workflow and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
+Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, UX-5, and UX-6 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md) for the full workflow and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
 
 ---
 
@@ -106,6 +106,27 @@ The run page now uses progressive disclosure so operators can focus on the curre
 
 4. **Technical detail remains available**  
    UX-5 does not remove panels or hide technical detail permanently. It only changes the presentation order and default expansion behavior.
+
+---
+
+## What changed in UX-6
+
+UX-6 improves setup guidance, staging onboarding, and first-run empty states without changing execution authority:
+
+1. **Setup readiness panel**  
+   The dashboard now shows a read-only **Setup readiness** panel for auth mode, trusted-local state, release gates, audit scope, approved repo roots, backup alert mode, registered repos, repo verification, indexing, and compatibility analysis. It uses safe config and DB state only and never shows secrets.
+
+2. **Staging smoke workflow helper**  
+   In staging-like, development, or trusted-local contexts, the dashboard now shows a **Run staging smoke workflow** helper that explains the safe order for registering a smoke repo, indexing, compatibility analysis, creating a README smoke task, starting a run, using the README worker-plan helper, and recording the staging result.
+
+3. **Repo registration guidance**  
+   The **Registered repositories** page now explains approved repo roots, shows example staging paths, tells the operator whether the typed path is inside an allowed root, and makes the verify → file index → code index → compatibility order explicit.
+
+4. **First-task preset**  
+   The task form now exposes a staging-only **README smoke** preset in non-production-like contexts. It fills a small, safe task title and description without auto-creating a task or auto-starting a run.
+
+5. **Clearer empty states**  
+   Dashboard, repo, compatibility, and task-run empty states now answer what is missing, why it matters, and what to click next.
 
 ---
 
@@ -217,8 +238,9 @@ Decision guidance:
 
 ## Current UX limits
 
-UX-1 through UX-5 improve orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, and run-page density, but they do **not** yet solve:
+UX-1 through UX-6 improve orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, and setup onboarding, but they do **not** yet solve:
 
-- staging-helper links and onboarding shortcuts across setup flows
+- terminology simplification and glossary help for less technical operators
+- expert-mode shortcuts for repeat operators who already know the workflow
 
 Those remain in the next phases documented in [operator-ux-audit.md](./operator-ux-audit.md).

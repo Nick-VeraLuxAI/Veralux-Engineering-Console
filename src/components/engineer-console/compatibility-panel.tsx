@@ -115,6 +115,19 @@ export function CompatibilityPanel() {
         {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
         {loading && <p className="text-sm text-[var(--muted)]">Loading…</p>}
 
+        {!loading && !latest && surfaces.length === 0 && links.length === 0 && (
+          <div className="rounded border border-dashed border-[var(--border)] p-3 text-sm text-[var(--muted)]">
+            <p className="font-medium text-white">Run code index, then compatibility analysis.</p>
+            <p className="mt-2">
+              What is missing: no compatibility analysis results are recorded yet. Why it matters:
+              compatibility findings help governance review understand cross-repo impact. What to
+              click next: open <a href="/engineer/repos" className="underline underline-offset-2">Registered repositories</a>,
+              verify a repo, run file index, run code index, then return here and click{" "}
+              <strong>Run compatibility analysis</strong>.
+            </p>
+          </div>
+        )}
+
         {latest && (
           <dl className="grid gap-2 text-sm sm:grid-cols-3">
             <div>
@@ -156,7 +169,9 @@ export function CompatibilityPanel() {
           </select>
         </div>
         {links.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">No cross-repo links yet.</p>
+          <p className="text-sm text-[var(--muted)]">
+            No cross-repo links yet. Run code index, then compatibility analysis.
+          </p>
         ) : (
           <ul className="max-h-64 space-y-2 overflow-auto text-xs">
             {links.map((link) => (
@@ -176,7 +191,10 @@ export function CompatibilityPanel() {
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
         <h2 className="mb-3 font-semibold">API surfaces</h2>
         {surfaces.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">No API surfaces detected yet.</p>
+          <p className="text-sm text-[var(--muted)]">
+            No API surfaces detected yet. Run file index, then code index, then compatibility
+            analysis.
+          </p>
         ) : (
           <div className="max-h-64 overflow-auto">
             <table className="w-full text-left text-xs">

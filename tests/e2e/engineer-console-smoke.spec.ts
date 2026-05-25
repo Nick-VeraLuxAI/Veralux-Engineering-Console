@@ -17,7 +17,10 @@ test.describe("Engineering Console trusted local smoke", () => {
     await page.goto("/engineer");
     await expect(page).toHaveURL(/\/engineer\/?$/);
     await expect(page.getByRole("heading", { name: "Engineering tasks" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Setup readiness" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Run staging smoke workflow" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Create task" })).toBeVisible();
+    await expect(page.getByText("Register a repo first")).toBeVisible();
     await expect(page).not.toHaveURL(/\/engineer\/login/);
   });
 
@@ -25,12 +28,17 @@ test.describe("Engineering Console trusted local smoke", () => {
     await page.goto("/engineer/repos");
     await expect(page.getByRole("heading", { name: "Registered repositories" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Register repository" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Approved repo roots" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Repo setup order" })).toBeVisible();
   });
 
   test("compatibility page loads", async ({ page }) => {
     await page.goto("/engineer/compatibility");
     await expect(page.getByRole("heading", { name: "Compatibility analysis" }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Run compatibility analysis" })).toBeVisible();
+    await expect(
+      page.getByText("What is missing: no compatibility analysis results are recorded yet."),
+    ).toBeVisible();
   });
 
   test("task creation form renders from dashboard", async ({ page }) => {

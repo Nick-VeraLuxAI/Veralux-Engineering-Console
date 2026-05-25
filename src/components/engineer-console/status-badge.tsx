@@ -1,3 +1,5 @@
+import React from "react";
+
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-zinc-600",
   queued: "bg-blue-600",

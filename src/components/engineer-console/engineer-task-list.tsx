@@ -1,12 +1,24 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { useState } from "react";
+import type { StagingTaskPreset } from "@/lib/engineer-console/setup/setup-ux";
 import type { EngineeringTask } from "@/lib/engineer-console/types";
 import { StatusBadge } from "./status-badge";
 import { CreateTaskForm } from "./create-task-form";
 
-export function EngineerTaskList({ initialTasks }: { initialTasks: EngineeringTask[] }) {
+export function EngineerTaskList({
+  initialTasks,
+  registeredRepoCount,
+  showStagingPreset,
+  stagingTaskPreset,
+}: {
+  initialTasks: EngineeringTask[];
+  registeredRepoCount: number;
+  showStagingPreset: boolean;
+  stagingTaskPreset: StagingTaskPreset;
+}) {
   const [showCreate, setShowCreate] = useState(false);
 
   return (
@@ -21,9 +33,32 @@ export function EngineerTaskList({ initialTasks }: { initialTasks: EngineeringTa
         </button>
       </div>
       {initialTasks.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center text-[var(--muted)]">
-          No tasks yet. Create one to get started.
-        </p>
+        <div className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center text-[var(--muted)]">
+          <p className="font-medium text-white">
+            {registeredRepoCount === 0 ? "Register a repo first" : "Create your first engineering task"}
+          </p>
+          <p className="mt-2">
+            What is missing: there are no tasks yet. Why it matters: tasks are the safe entry point
+            for runs and release workflows. What to click next:{" "}
+            {registeredRepoCount === 0 ? (
+              <>
+                open{" "}
+                <Link href="/engineer/repos" className="underline underline-offset-2">
+                  Registered repositories
+                </Link>
+                , verify and index a repo, then create a task.
+              </>
+            ) : (
+              <>click <strong>Create task</strong> to define the first run.</>
+            )}
+          </p>
+          {showStagingPreset ? (
+            <p className="mt-3 text-xs">
+              The staging README smoke task preset is available in the task form for safe smoke
+              verification.
+            </p>
+          ) : null}
+        </div>
       ) : (
         <ul className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--card)]">
           {initialTasks.map((task) => (
@@ -45,7 +80,14 @@ export function EngineerTaskList({ initialTasks }: { initialTasks: EngineeringTa
           ))}
         </ul>
       )}
-      {showCreate && <CreateTaskForm onClose={() => setShowCreate(false)} />}
+      {showCreate && (
+        <CreateTaskForm
+          onClose={() => setShowCreate(false)}
+          showStagingPreset={showStagingPreset}
+          stagingTaskPreset={stagingTaskPreset}
+          registeredRepoCount={registeredRepoCount}
+        />
+      )}
     </>
   );
 }

@@ -20,6 +20,17 @@ Open `http://localhost:3000/engineer`.
 
 ---
 
+## Setup readiness and staging helper
+
+The dashboard now starts with two UX-6 onboarding surfaces:
+
+1. **Setup readiness** shows safe, read-only checks for auth mode, trusted-local state, release gates, audit scope, approved repo roots, backup alert mode, registered repos, repo verification, indexing, and compatibility analysis.
+2. **Run staging smoke workflow** appears in staging-like, development, or trusted-local contexts and gives a safe order for smoke verification without executing anything automatically.
+
+These surfaces are guidance only. They do not register repos, create tasks, start runs, execute worker plans, create PRs, merge, deploy, or sign off automatically.
+
+---
+
 ## Environment setup
 
 1. Copy settings into `.env.local` (not committed).
@@ -59,6 +70,13 @@ Details: [security-auth.md](./security-auth.md).
 
 **Policy:** Paths must fall under `ENGINEER_CONSOLE_REPO_ROOTS` when set.
 
+UX-6 guidance now shown on the page:
+
+1. Approved repo roots are listed when configured.
+2. The typed path shows whether it is inside an allowed root.
+3. The page explains the safe order: verify → file index → code index → compatibility → create task.
+4. Example staging repo paths and doc references are shown near the form.
+
 Details: [registered-repos.md](./registered-repos.md).
 
 ---
@@ -96,6 +114,16 @@ Details: [compatibility-analysis.md](./compatibility-analysis.md).
 **API:** `POST /api/engineer-console/tasks`.
 
 Link `registered_repo_id` when using a registered repo for PR/verify gates.
+
+UX-6 task guidance:
+
+- The form now recommends a verified registered repository as the safest default.
+- In staging-like, development, or trusted-local contexts, the form exposes a **Use staging README preset** helper.
+- The preset fills:
+  - title: `Create README staging verification note`
+  - description: `Add a README.md file that says this repository was used to verify the VeraLux Engineering Console staging workflow. Keep the change small and safe.`
+  - priority: `normal`
+- The preset is not shown in production-like non-staging contexts.
 
 ---
 
@@ -411,6 +439,16 @@ See [offhost-encrypted-backups.md](./offhost-encrypted-backups.md) and [examples
 ## Staging dry run
 
 Before production launch, complete [staging-dry-run-checklist.md](./staging-dry-run-checklist.md) on a staging host (auth on, gates on, full release path with safe profiles).
+
+Recommended UX-6 staging path:
+
+1. Review **Setup readiness** on the dashboard.
+2. Use **Run staging smoke workflow** for the safe order.
+3. Register and verify the smoke repo from approved roots.
+4. Index files, then code, then run compatibility analysis.
+5. Create the README smoke task with the staging preset.
+6. Start the run and use the README smoke worker-plan helper.
+7. Record the result in [staging-dry-run-report.md](./staging-dry-run-report.md).
 
 After staging passes, use [production-launch-checklist.md](./production-launch-checklist.md) for go/no-go.
 

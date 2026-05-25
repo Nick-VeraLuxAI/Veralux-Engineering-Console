@@ -16,6 +16,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 | Worker-plan authoring required manual `runId` lookup, raw JSON editing, and weak intent comparison | Fixed in UX-2: guided worker-plan builder, plan intent preview, model-draft comparison warnings, staging README smoke helper, and advanced JSON parse/wrapper warnings. Backend validation and execution authority remain unchanged. |
 | Approval, Request Fix, and Stop controls were hard to discover and rationale/review requirements were unclear | Fixed in UX-3: top-of-page approval action card, visible rationale guidance before submit, stronger review-stage summaries, clearer Request Fix / Stop labels, and command-center guidance that points to review before final approval. Backend approval policy, rationale enforcement, and decision-record creation remain unchanged. |
 | PR retry state and later release blockers were technically accurate but hard to interpret under staging pressure | Fixed in UX-4: the PR creation panel now starts with a plain-English PR state card, retry guidance explains what succeeded and what retry will do next, existing PR records are surfaced near the top, and hard release gates now render an action checklist with panel links. PR readiness, hard gates, merge, deploy, and sign-off behavior remain unchanged. |
+| First-run setup, staging onboarding, and empty states still required too much operator inference | Fixed in UX-6: the dashboard now shows a read-only setup readiness panel and staging smoke workflow helper, repo registration explains approved roots and step ordering, the task form exposes a staging-only README smoke preset in safe contexts, and empty states now point to the next action. Security, repo-root policy, and all manual action boundaries remain unchanged. |
 
 ---
 
@@ -59,7 +60,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 ## Recommended technical debt (priority order)
 
 1. **Staging dry run** — complete [staging-dry-run-checklist.md](./staging-dry-run-checklist.md) before production.
-2. **UX-5 progressive disclosure follow-through** — refine grouped run-page sections, current-action summaries, and first-run operator guidance without changing execution authority.
+2. **UX-7 terminology and glossary polish** — reduce jargon and add lightweight help for less technical operators without changing execution authority.
 3. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
 4. **Operator admin UI** — create/disable operators without SQL.
 5. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.
@@ -136,7 +137,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 **Production launch:** Complete [production-launch-checklist.md](./production-launch-checklist.md) after staging dry run.
 
-UX-1 through UX-5 are now in place with a top-of-page command center, lifecycle stepper, current-action summary, grouped progressive-disclosure sections, guided worker-plan builder, advanced JSON guardrails, visible approval/review actions, plain-English PR retry state, and actionable hard release-gate checklists. For the remaining staging usability work, see [operator-ux-audit.md](./operator-ux-audit.md) and [operator-ux-guide.md](./operator-ux-guide.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
+UX-1 through UX-6 are now in place with a top-of-page command center, lifecycle stepper, current-action summary, grouped progressive-disclosure sections, guided worker-plan builder, advanced JSON guardrails, visible approval/review actions, plain-English PR retry state, actionable hard release-gate checklists, setup readiness, and staging smoke onboarding guidance. For the remaining staging usability work, see [operator-ux-audit.md](./operator-ux-audit.md) and [operator-ux-guide.md](./operator-ux-guide.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
 
 **Phase 9B — External CI correlation:** Attach workflow run ids to deployment/sign-off rows and evidence summaries without triggering GitHub Actions from the console.
 
