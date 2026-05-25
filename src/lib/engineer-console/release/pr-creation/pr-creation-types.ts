@@ -14,6 +14,11 @@ export type PrRequestStatus = (typeof PR_REQUEST_STATUSES)[number];
 export const PR_READINESS_STATUSES = ["passed", "blocked", "requires_review"] as const;
 
 export type PrReadinessStatus = (typeof PR_READINESS_STATUSES)[number];
+export type PrReusableCommitSource =
+  | "request_history"
+  | "run_branch_history"
+  | "current_head"
+  | "none";
 
 export interface PrReadinessResult {
   status: PrReadinessStatus;
@@ -36,6 +41,25 @@ export interface PrReadinessSignals {
   reviewStagesRejected: number;
   changedFileCount: number;
   branchName: string | null;
+  runBranchName: string | null;
+  currentBranchName: string | null;
+  currentBranchMatchesRunBranch: boolean;
+  localRunBranchExists: boolean;
+  localRunBranchSha: string | null;
+  remoteBranchExists: boolean;
+  remoteBranchSha: string | null;
+  remoteBranchMatchesReusableCommit: boolean;
+  cleanTree: boolean;
+  reusableCommitSha: string | null;
+  reusableCommitShaPrefix: string | null;
+  reusableCommitMessage: string | null;
+  reusableCommitSource: PrReusableCommitSource;
+  canResume: boolean;
+  resumeReason: string | null;
+  manualRecoveryRequired: boolean;
+  manualRecoveryReason: string | null;
+  existingPrUrl: string | null;
+  existingPrNumber: string | null;
   governanceRiskLevel: string | null;
   qualityGatesFailed: number;
 }

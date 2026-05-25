@@ -40,9 +40,9 @@ export function PrStateCard({ state }: { state: PrStateCardState }) {
 
       {state.retryGuidance && (
         <div className="mt-4 rounded border border-amber-500/40 bg-amber-500/10 p-4">
-          <h4 className="text-sm font-medium text-amber-100">Retry guidance</h4>
+          <h4 className="text-sm font-medium text-amber-100">Previous failure</h4>
           <p className="mt-2 text-sm text-amber-50">
-            Last failed step: <strong>{state.retryGuidance.lastFailedStep}</strong>
+            Previous failed step: <strong>{state.retryGuidance.lastFailedStep}</strong>
           </p>
           <p className="mt-1 text-sm text-amber-50">{state.retryGuidance.failureReason}</p>
           {state.retryGuidance.succeeded.length > 0 && (

@@ -36,6 +36,7 @@ test.describe("Release lifecycle panels (fixture-driven)", () => {
       .filter({ has: page.getByRole("heading", { name: "PR creation", exact: true }) });
     await expect(prSection.getByRole("heading", { name: "PR state", exact: true })).toBeVisible();
     await expect(prSection.getByRole("link", { name: /example.com\/pr\/e2e/i }).first()).toBeVisible();
+    await expect(prSection.getByText("base main")).toBeVisible();
 
     const mergeSection = page
       .locator("section")

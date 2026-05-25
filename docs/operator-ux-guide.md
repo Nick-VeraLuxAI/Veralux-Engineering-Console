@@ -70,6 +70,8 @@ The release flow now explains PR retry and later-stage blockers in plain English
 2. **Retry guidance**  
    When a PR attempt fails partway through, the panel now explains the last failed step, what already succeeded, what retry will do next, and whether duplicate commit creation is prevented.
 
+   Follow-up reconciliation note: when the console can detect a reusable run commit from current readiness, that resumable state now wins over stale failed-request history. Previous failures still appear as context, but the card now treats them as history only and shows the current canonical retry state instead.
+
 3. **Existing PR visibility**  
    When a PR is already recorded for the run branch, the panel now shows the PR URL and number near the top of the panel instead of leaving that information buried in history.
 

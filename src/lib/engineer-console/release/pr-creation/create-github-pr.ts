@@ -3,6 +3,7 @@ import {
   getCurrentBranch,
   getHeadCommitSha,
   getRefCommitSha,
+  getRemoteBranchRef,
   runGh,
   runGit,
 } from "./controlled-git-executor";
@@ -25,13 +26,33 @@ export interface CreateGithubPrResult {
   createdNewPr: boolean;
 }
 
+function assertValidGithubPrUrl(value: string): string {
+  if (value.length === 0 || value.trim().length === 0) {
+    throw new PrCreationError("Invalid GitHub PR URL: value is required.");
+  }
+  if (value.includes("\0")) {
+    throw new PrCreationError("Invalid GitHub PR URL: contains NUL bytes.");
+  }
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+    if (code < 32 || code === 127) {
+      throw new PrCreationError("Invalid GitHub PR URL: contains control characters.");
+    }
+  }
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error("unsupported protocol");
+    }
+    return value;
+  } catch {
+    throw new PrCreationError("Invalid GitHub PR URL: not a valid HTTP(S) URL.");
+  }
+}
+
 function parsePrNumber(url: string): string | null {
   const match = url.match(/\/pull\/(\d+)/);
   return match?.[1] ?? null;
-}
-
-function getRemoteBranchRef(branchName: string): string {
-  return `refs/remotes/origin/${branchName}`;
 }
 
 async function findExistingPr(
@@ -72,7 +93,7 @@ async function findExistingPr(
   }
 
   return {
-    prUrl: existing.url,
+    prUrl: assertValidGithubPrUrl(existing.url),
     prNumber: existing.number ? String(existing.number) : parsePrNumber(existing.url),
     pushStatus: "skipped_existing_remote",
     createdNewPr: false,
@@ -119,10 +140,11 @@ export async function createControlledGithubPr(
   }
 
   const { stdout } = await runGh(ghArgs, input.repoPath);
-  const prUrl = stdout.split("\n").find((line) => line.startsWith("http")) ?? stdout;
-  if (!prUrl.startsWith("http")) {
+  const prUrlLine = stdout.split("\n").find((line) => line.startsWith("http")) ?? stdout;
+  if (!prUrlLine.startsWith("http")) {
     throw new PrCreationError(`Unexpected gh pr create output: ${stdout.slice(0, 200)}`);
   }
+  const prUrl = assertValidGithubPrUrl(prUrlLine);
 
   return {
     prUrl,

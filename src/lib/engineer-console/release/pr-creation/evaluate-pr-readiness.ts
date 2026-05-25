@@ -15,23 +15,185 @@ import {
   listReviewStagesForRun,
   summarizeReviewStages,
 } from "../../governance/review-stages/review-stage-manager";
-import { getCurrentBranch } from "./controlled-git-executor";
-import type { PrReadinessResult, PrReadinessSignals } from "./pr-creation-types";
+import {
+  getCommitChangedFiles,
+  getCurrentBranch,
+  getLocalBranchRef,
+  getRefCommitSha,
+  getRemoteBranchRef,
+  isCommitReachableFromRef,
+  listCommitsOnRef,
+} from "./controlled-git-executor";
+import type {
+  PrReadinessResult,
+  PrReadinessSignals,
+  PrReusableCommitSource,
+} from "./pr-creation-types";
 
-function getLatestRecordedCommit(runId: string): { commitSha: string | null; prUrl: string | null } {
+interface RecordedCommitState {
+  commitSha: string | null;
+  commitMessage: string | null;
+}
+
+interface RecordedPrState {
+  prUrl: string | null;
+  prNumber: string | null;
+}
+
+interface ReusableCommitDetection {
+  commitSha: string | null;
+  commitMessage: string | null;
+  source: PrReusableCommitSource;
+  reason: string | null;
+  staleRecordedCommitReason: string | null;
+}
+
+function getLatestRecordedCommit(runId: string, branchName: string | null): RecordedCommitState {
   const row = getEngineerConsoleDb()
     .prepare(
-      `SELECT commit_sha, pr_url
+      `SELECT commit_sha, commit_message
        FROM engineer_pr_requests
-       WHERE run_id = ? AND (commit_sha IS NOT NULL OR pr_url IS NOT NULL)
+       WHERE run_id = ?
+         AND commit_sha IS NOT NULL
+         AND (? IS NULL OR branch_name = ?)
        ORDER BY created_at DESC
        LIMIT 1`,
     )
-    .get(runId) as { commit_sha: string | null; pr_url: string | null } | undefined;
+    .get(runId, branchName, branchName) as
+    | { commit_sha: string | null; commit_message: string | null }
+    | undefined;
 
   return {
     commitSha: row?.commit_sha ?? null,
+    commitMessage: row?.commit_message ?? null,
+  };
+}
+
+function getLatestRecordedPr(runId: string, branchName: string | null): RecordedPrState {
+  const row = getEngineerConsoleDb()
+    .prepare(
+      `SELECT pr_url, pr_number
+       FROM engineer_pr_requests
+       WHERE run_id = ?
+         AND pr_url IS NOT NULL
+         AND (? IS NULL OR branch_name = ?)
+       ORDER BY created_at DESC
+       LIMIT 1`,
+    )
+    .get(runId, branchName, branchName) as
+    | { pr_url: string | null; pr_number: string | null }
+    | undefined;
+
+  return {
     prUrl: row?.pr_url ?? null,
+    prNumber: row?.pr_number ?? null,
+  };
+}
+
+function normalizePathForComparison(value: string): string {
+  return value.replace(/\\/g, "/").replace(/^\.\//, "").trim();
+}
+
+function buildExpectedCommitFiles(
+  workerPlanPaths: string[] | undefined,
+  approvalReport: ApprovalReport | null,
+): Set<string> {
+  return new Set(
+    [...(workerPlanPaths ?? []), ...(approvalReport?.changedFiles ?? [])]
+      .map((value) => normalizePathForComparison(value))
+      .filter((value) => value.length > 0),
+  );
+}
+
+function commitMatchesApprovedScope(commitFiles: string[], expectedFiles: Set<string>): boolean {
+  if (commitFiles.length === 0) {
+    return false;
+  }
+  if (expectedFiles.size === 0) {
+    return true;
+  }
+  return commitFiles.every((file) => expectedFiles.has(normalizePathForComparison(file)));
+}
+
+async function detectReusableCommit(input: {
+  repoPath: string;
+  runId: string;
+  runBranchName: string | null;
+  currentBranchName: string | null;
+  recordedCommit: RecordedCommitState;
+  expectedCommitFiles: Set<string>;
+}): Promise<ReusableCommitDetection> {
+  const { repoPath, runId, runBranchName, currentBranchName, recordedCommit, expectedCommitFiles } = input;
+  if (!runBranchName) {
+    return {
+      commitSha: null,
+      commitMessage: null,
+      source: "none",
+      reason: null,
+      staleRecordedCommitReason: null,
+    };
+  }
+
+  const runBranchRef = getLocalBranchRef(runBranchName);
+  const localRunBranchSha = await getRefCommitSha(repoPath, runBranchRef);
+  if (!localRunBranchSha) {
+    return {
+      commitSha: null,
+      commitMessage: null,
+      source: "none",
+      reason: null,
+      staleRecordedCommitReason: null,
+    };
+  }
+
+  let staleRecordedCommitReason: string | null = null;
+  if (recordedCommit.commitSha) {
+    const recordedCommitReachable = await isCommitReachableFromRef(repoPath, recordedCommit.commitSha, runBranchRef);
+    if (recordedCommitReachable) {
+      return {
+        commitSha: recordedCommit.commitSha,
+        commitMessage: recordedCommit.commitMessage,
+        source: "request_history",
+        reason: "Ready to resume PR creation using the existing run commit recorded in PR history.",
+        staleRecordedCommitReason: null,
+      };
+    }
+    staleRecordedCommitReason =
+      "A previously recorded run commit is no longer reachable from the run branch. Manual recovery is required before retrying PR creation.";
+  }
+
+  const shortRunId = runId.slice(0, 8);
+  const commits = await listCommitsOnRef(repoPath, runBranchRef, 50);
+  for (const candidate of commits) {
+    if (!candidate.subject.includes(`[run:${shortRunId}]`) && !candidate.subject.includes(runId)) {
+      continue;
+    }
+    const commitFiles = await getCommitChangedFiles(repoPath, candidate.sha);
+    if (!commitMatchesApprovedScope(commitFiles, expectedCommitFiles)) {
+      continue;
+    }
+    const source: PrReusableCommitSource =
+      currentBranchName === runBranchName && candidate.sha === localRunBranchSha
+        ? "current_head"
+        : "run_branch_history";
+    return {
+      commitSha: candidate.sha,
+      commitMessage: candidate.subject,
+      source,
+      reason:
+        source === "current_head"
+          ? "Ready to resume PR creation using the current run-branch HEAD commit."
+          : "Ready to resume PR creation using the existing run commit detected on the run branch.",
+      staleRecordedCommitReason,
+    };
+  }
+
+  return {
+    commitSha: null,
+    commitMessage: null,
+    source: "none",
+    reason: null,
+    staleRecordedCommitReason,
   };
 }
 
@@ -49,6 +211,25 @@ function buildSignals(
     reviewStagesRejected: 0,
     changedFileCount: 0,
     branchName: null,
+    runBranchName: null,
+    currentBranchName: null,
+    currentBranchMatchesRunBranch: false,
+    localRunBranchExists: false,
+    localRunBranchSha: null,
+    remoteBranchExists: false,
+    remoteBranchSha: null,
+    remoteBranchMatchesReusableCommit: false,
+    cleanTree: false,
+    reusableCommitSha: null,
+    reusableCommitShaPrefix: null,
+    reusableCommitMessage: null,
+    reusableCommitSource: "none",
+    canResume: false,
+    resumeReason: null,
+    manualRecoveryRequired: false,
+    manualRecoveryReason: null,
+    existingPrUrl: null,
+    existingPrNumber: null,
     governanceRiskLevel: null,
     qualityGatesFailed: 0,
     ...partial,
@@ -95,28 +276,69 @@ export async function evaluatePrReadiness(runId: string): Promise<PrReadinessRes
 
   const gates = getQualityGateResultsForRun(runId);
   const gatesFailed = gates.filter((g) => g.status === "failed").length;
-  const existingPrState = getLatestRecordedCommit(runId);
+  const recordedCommit = getLatestRecordedCommit(runId, run.branchName ?? null);
+  const existingPrState = getLatestRecordedPr(runId, run.branchName ?? null);
 
   let changedFiles: string[] = [];
   let currentBranch: string | null = null;
+  let localRunBranchSha: string | null = null;
+  let remoteRunBranchSha: string | null = null;
   let gitReadOk = false;
   const repoPath = resolveTaskTargetRepoPath(task);
-
-  try {
-    const scope = getWorkerPlanChangedFilesScope(runId);
-    changedFiles = await getChangedFiles(repoPath, scope ?? {});
-    currentBranch = await getCurrentBranch(repoPath);
-    gitReadOk = true;
-  } catch {
-    blockers.push("Unable to read git workspace state.");
-  }
+  const workerPlanScope = getWorkerPlanChangedFilesScope(runId);
 
   const reportJson = getApprovalReportJson(runId);
   const approvalReport: ApprovalReport | null = reportJson
     ? (JSON.parse(reportJson) as ApprovalReport)
     : null;
+  const expectedCommitFiles = buildExpectedCommitFiles(workerPlanScope?.workerPlanPaths, approvalReport);
+
+  let reusableCommit: ReusableCommitDetection = {
+    commitSha: null,
+    commitMessage: null,
+    source: "none" as PrReusableCommitSource,
+    reason: null,
+    staleRecordedCommitReason: null,
+  };
+
+  try {
+    changedFiles = await getChangedFiles(repoPath, workerPlanScope ?? {});
+    currentBranch = await getCurrentBranch(repoPath);
+    if (run.branchName) {
+      localRunBranchSha = await getRefCommitSha(repoPath, getLocalBranchRef(run.branchName));
+      remoteRunBranchSha = await getRefCommitSha(repoPath, getRemoteBranchRef(run.branchName));
+    }
+    reusableCommit = await detectReusableCommit({
+      repoPath,
+      runId,
+      runBranchName: run.branchName ?? null,
+      currentBranchName: currentBranch,
+      recordedCommit,
+      expectedCommitFiles,
+    });
+    gitReadOk = true;
+  } catch {
+    blockers.push("Unable to read git workspace state.");
+  }
 
   const governance = assessChangedFiles(changedFiles.length > 0 ? changedFiles : (approvalReport?.changedFiles ?? []));
+  const currentBranchMatchesRunBranch =
+    run.branchName !== null && currentBranch !== null ? currentBranch === run.branchName : false;
+  const cleanTree = gitReadOk
+    ? changedFiles.length === 0
+    : (approvalReport?.changedFiles.length ?? 0) === 0;
+  const canAssessManualRecoveryFromCurrentTree =
+    run.branchName === null || currentBranch === null || currentBranchMatchesRunBranch;
+  const manualRecoveryReason =
+    reusableCommit.staleRecordedCommitReason ??
+    (canAssessManualRecoveryFromCurrentTree && cleanTree && reusableCommit.commitSha === null
+      ? "No changed files are available to commit and no reusable run commit could be found. Restore the approved changes or resume from the existing run branch/commit before retrying PR creation."
+      : null);
+  const manualRecoveryRequired = manualRecoveryReason !== null;
+  const remoteBranchExists = remoteRunBranchSha !== null;
+  const remoteBranchMatchesReusableCommit =
+    remoteRunBranchSha !== null && reusableCommit.commitSha !== null && remoteRunBranchSha === reusableCommit.commitSha;
+  const canResume = reusableCommit.commitSha !== null && !manualRecoveryRequired && existingPrState.prUrl === null;
 
   const signals = buildSignals(runId, {
     runId,
@@ -132,6 +354,25 @@ export async function evaluatePrReadiness(runId: string): Promise<PrReadinessRes
       ? changedFiles.length
       : changedFiles.length || (approvalReport?.changedFiles.length ?? 0),
     branchName: run.branchName ?? currentBranch,
+    runBranchName: run.branchName ?? null,
+    currentBranchName: currentBranch,
+    currentBranchMatchesRunBranch,
+    localRunBranchExists: localRunBranchSha !== null,
+    localRunBranchSha,
+    remoteBranchExists,
+    remoteBranchSha: remoteRunBranchSha,
+    remoteBranchMatchesReusableCommit,
+    cleanTree,
+    reusableCommitSha: reusableCommit.commitSha,
+    reusableCommitShaPrefix: reusableCommit.commitSha?.slice(0, 12) ?? null,
+    reusableCommitMessage: reusableCommit.commitMessage,
+    reusableCommitSource: reusableCommit.source,
+    canResume,
+    resumeReason: reusableCommit.reason,
+    manualRecoveryRequired,
+    manualRecoveryReason,
+    existingPrUrl: existingPrState.prUrl,
+    existingPrNumber: existingPrState.prNumber,
     governanceRiskLevel: governance.riskLevel,
     qualityGatesFailed: gatesFailed,
   });
@@ -177,15 +418,12 @@ export async function evaluatePrReadiness(runId: string): Promise<PrReadinessRes
     blockers.push("Run branch name is missing.");
   }
 
-  const hasRecordedCommit = existingPrState.commitSha !== null;
+  const hasRecordedCommit = reusableCommit.commitSha !== null;
   const hasRecordedPr = existingPrState.prUrl !== null;
-  if (gitReadOk && changedFiles.length === 0 && !hasRecordedCommit) {
+  if (manualRecoveryRequired) {
     blockers.push(
-      "No changed files detected for commit and no reusable run commit is recorded. Recovery required before retrying PR creation.",
-    );
-  } else if (!gitReadOk && (approvalReport?.changedFiles.length ?? 0) === 0 && !hasRecordedCommit) {
-    blockers.push(
-      "No changed files detected for commit and no reusable run commit is recorded. Recovery required before retrying PR creation.",
+      manualRecoveryReason ??
+        "No changed files detected for commit and no reusable run commit is recorded. Recovery required before retrying PR creation.",
     );
   }
 
@@ -203,7 +441,9 @@ export async function evaluatePrReadiness(runId: string): Promise<PrReadinessRes
   }
 
   if (run.branchName && currentBranch && run.branchName !== currentBranch) {
-    warnings.push(`Current branch (${currentBranch}) differs from run branch (${run.branchName}); checkout will be attempted.`);
+    warnings.push(
+      `Current checkout differs from the run branch. Retry will first checkout ${run.branchName} before continuing.`,
+    );
   }
 
   if (run.status !== "completed") {
@@ -223,10 +463,12 @@ export async function evaluatePrReadiness(runId: string): Promise<PrReadinessRes
       : hasRecordedPr
         ? "Ready to resume PR creation by reusing the existing PR record."
         : hasRecordedCommit
-          ? "Ready to resume PR creation using the existing run commit."
-      : status === "requires_review"
-        ? "Review warnings and provide rationale before creating a PR."
-        : "Ready to create commit and draft PR.";
+          ? remoteBranchMatchesReusableCommit
+            ? "Ready to resume PR creation using the existing run commit. The remote branch already matches it, so push can be skipped."
+            : "Ready to resume PR creation using the existing run commit."
+          : status === "requires_review"
+            ? "Review warnings and provide rationale before creating a PR."
+            : "Ready to create commit and draft PR.";
 
   return {
     status,

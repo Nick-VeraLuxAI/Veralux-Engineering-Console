@@ -91,6 +91,8 @@
 
 **Update:** SDR-8 is fixed on the current branch with idempotent retry/resume handling and local verification, but the staging UI flow still needs one operator retest before this report can mark PR creation fully passed on staging.
 
+**PR state card reconciliation follow-up:** The PR state card previously favored stale failed request history over current resumable readiness. The fix makes current resumable readiness the canonical state while preserving failed request history as context.
+
 ---
 
 ## 4A. Operator UX note
@@ -146,6 +148,7 @@ See [operator-ux-audit.md](./operator-ux-audit.md) for the full UX journey map, 
 - **Automated:** Hard gates API blocked without merge; release panels render fixture PR/merge; deployment modules have extensive Vitest coverage.
 - **Staging finding (fixed locally):** PR creation initially had a partial-failure retry bug. After a commit and branch push succeeded, retrying **Create draft PR** attempted a second `git commit` instead of resuming from the recorded commit/branch state.
 - **Fix applied:** PR creation now resumes the latest PR request, reuses an existing run commit, skips redundant push when the remote branch already matches, and records an existing PR instead of creating a duplicate.
+- **Follow-up fix applied:** The PR state card now treats current resumable readiness, run-branch reconciliation, and remote-branch state as the canonical source of truth, while showing the previous failed step only as historical context.
 - **Retest result:** Local unit coverage and clean `verify:ci` pass with the retry path covered; app-driven staging retest is still required to close item 23 fully.
 - **Staging gap:** Items **23–28** need a staging host with `gh`, deployment profiles JSON, and health profiles JSON as documented in [end-to-end-demo-script.md](./end-to-end-demo-script.md).
 

@@ -4,6 +4,7 @@ import path from "path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   closeEngineerConsoleDb,
+  getEngineerConsoleDb,
   resetEngineerConsoleDbForTests,
 } from "../../db/client";
 import { initializeEngineerConsoleDatabase } from "../../db/init";
@@ -39,17 +40,23 @@ import { evaluatePrReadiness } from "./evaluate-pr-readiness";
 import { PrCreationError } from "./pr-creation-types";
 import {
   createPrRequest,
+  evaluateAndAuditPrReadiness,
   listPrRequestsForRun,
 } from "./pr-request-manager";
 
 let tmpDb: string;
 const gitCalls: Array<{ bin: "git" | "gh"; args: string[] }> = [];
 let headCommitSha = "abc123def456789";
+let runBranchName = "engineer/test-branch";
+let currentBranchName = "engineer/test-branch";
+let localRunBranchSha = "abc123def456789";
+let localRunBranchExists = true;
 let remoteBranchSha: string | null = null;
 let listedPrs: Array<{ number: number; url: string }> = [];
 let failPush = false;
 let failPrCreate = false;
 let commitCounter = 0;
+let branchHistory: Array<{ sha: string; subject: string; files: string[] }> = [];
 
 const mockExecutor: ControlledGitExecutor = {
   git: vi.fn(async (args: string[]) => {
@@ -58,33 +65,66 @@ const mockExecutor: ControlledGitExecutor = {
       return { stdout: " M src/a.ts", stderr: "" };
     }
     if (args[0] === "branch" && args[1] === "--show-current") {
-      return { stdout: "engineer/test-branch", stderr: "" };
+      return { stdout: currentBranchName, stderr: "" };
     }
     if (args[0] === "rev-parse" && args[1] === "HEAD") {
       return { stdout: headCommitSha, stderr: "" };
     }
     if (args[0] === "rev-parse" && args[1] === "--verify") {
-      if (remoteBranchSha) {
+      if (args[2] === `refs/heads/${runBranchName}` && localRunBranchExists) {
+        return { stdout: localRunBranchSha, stderr: "" };
+      }
+      if (args[2] === `refs/heads/${currentBranchName}`) {
+        return { stdout: headCommitSha, stderr: "" };
+      }
+      if (args[2] === `refs/remotes/origin/${runBranchName}` && remoteBranchSha) {
         return { stdout: remoteBranchSha, stderr: "" };
       }
       throw new Error("missing ref");
     }
     if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
-      if (args[2] === headCommitSha) {
+      const knownCommits = new Set([
+        headCommitSha,
+        localRunBranchSha,
+        remoteBranchSha ?? "",
+        ...branchHistory.map((entry) => entry.sha),
+      ]);
+      if (knownCommits.has(args[2] ?? "")) {
         return { stdout: "", stderr: "" };
       }
       throw new Error("not ancestor");
     }
+    if (args[0] === "log") {
+      return {
+        stdout: branchHistory.map((entry) => `${entry.sha}\x1f${entry.subject}`).join("\n"),
+        stderr: "",
+      };
+    }
+    if (args[0] === "diff-tree") {
+      const entry = branchHistory.find((item) => item.sha === args[4]);
+      return { stdout: entry?.files.join("\n") ?? "", stderr: "" };
+    }
+    if (args[0] === "checkout") {
+      currentBranchName = args[1] ?? currentBranchName;
+      if (currentBranchName === runBranchName && localRunBranchExists) {
+        headCommitSha = localRunBranchSha;
+      }
+      return { stdout: "", stderr: "" };
+    }
     if (args[0] === "commit") {
       commitCounter += 1;
       headCommitSha = `abc123def45678${commitCounter}`;
+      if (currentBranchName === runBranchName) {
+        localRunBranchExists = true;
+        localRunBranchSha = headCommitSha;
+      }
       return { stdout: "", stderr: "" };
     }
     if (args[0] === "push") {
       if (failPush) {
         throw new Error("push failed");
       }
-      remoteBranchSha = headCommitSha;
+      remoteBranchSha = currentBranchName === runBranchName ? localRunBranchSha : headCommitSha;
       return { stdout: "", stderr: "" };
     }
     return { stdout: "", stderr: "" };
@@ -119,11 +159,16 @@ beforeEach(() => {
   initializeEngineerConsoleDatabase();
   gitCalls.length = 0;
   headCommitSha = "abc123def456789";
+  runBranchName = "engineer/test-branch";
+  currentBranchName = "engineer/test-branch";
+  localRunBranchSha = "abc123def456789";
+  localRunBranchExists = true;
   remoteBranchSha = null;
   listedPrs = [];
   failPush = false;
   failPrCreate = false;
   commitCounter = 0;
+  branchHistory = [];
   setControlledGitExecutorForTests(mockExecutor);
   vi.mocked(mockExecutor.git).mockClear();
   vi.mocked(mockExecutor.gh).mockClear();
@@ -140,15 +185,18 @@ afterEach(() => {
 
 async function seedApprovedRun(
   changedFiles = ["src/a.ts"],
-  options: { approveReviewStages?: boolean } = {},
+  options: { approveReviewStages?: boolean; taskTitle?: string; branchName?: string } = {},
 ) {
   const approveReviewStages = options.approveReviewStages !== false;
   const governance = assessChangedFiles(changedFiles);
-  const task = createTask({ title: "PR task", targetRepoPath: "/tmp/repo" });
+  const task = createTask({ title: options.taskTitle ?? "PR task", targetRepoPath: "/tmp/repo" });
   const run = createRun(task.id);
+  const branchName = options.branchName ?? "engineer/test-branch";
+  runBranchName = branchName;
+  currentBranchName = branchName;
   updateRun(run.id, {
     status: "completed",
-    branchName: "engineer/test-branch",
+    branchName,
     riskLevel: governance.riskLevel,
     governanceNotes: JSON.stringify(governance),
     completedAt: new Date().toISOString(),
@@ -168,7 +216,7 @@ async function seedApprovedRun(
   ]);
   const report = buildApprovalReport({
     task,
-    run: { ...run, status: "completed", branchName: "engineer/test-branch" },
+    run: { ...run, status: "completed", branchName },
     changedFiles,
     diffSummary: "1 file",
     governance,
@@ -308,6 +356,39 @@ describe("PR creation", () => {
     const history = listPrRequestsForRun(run.id);
     expect(history.length).toBe(1);
     expect(history[0]!.commitSha).toBeTruthy();
+  });
+
+  it("passes staging-safe metadata to gh pr create as argv values", async () => {
+    const rationale =
+      "Retrying after PR idempotency and UX fixes. Existing run commit and branch were previously created during staging. Warnings reviewed; no duplicate commit should be created.";
+    const { run } = await seedApprovedRun(["README.md"], {
+      taskTitle: "Create a README.md file in the smoke repo with a short staging verification note",
+      branchName: "engineer/fdfccfc5/6c08f660-20260525042006",
+    });
+
+    await createPrRequest({
+      runId: run.id,
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "operator",
+      draft: true,
+      rationale,
+    });
+
+    const ghCreateCall = gitCalls.find((call) => call.bin === "gh" && call.args[0] === "pr" && call.args[1] === "create");
+    expect(ghCreateCall).toBeTruthy();
+    expect(ghCreateCall?.args).toEqual([
+      "pr",
+      "create",
+      "--title",
+      "Create a README.md file in the smoke repo with a short staging verification note [Engineering Console]",
+      "--body",
+      expect.stringContaining("Warnings reviewed; no duplicate commit should be created."),
+      "--base",
+      "main",
+      "--head",
+      "engineer/fdfccfc5/6c08f660-20260525042006",
+      "--draft",
+    ]);
   });
 
   it("reuses the existing commit after a push failure and does not create a duplicate commit", async () => {
@@ -466,6 +547,96 @@ describe("PR creation", () => {
     expect(types).toContain(AUDIT_EVENT_TYPES.PR_EXISTING_COMMIT_REUSED);
     expect(types).toContain(AUDIT_EVENT_TYPES.PR_EXISTING_REMOTE_BRANCH_REUSED);
     expect(types).toContain(AUDIT_EVENT_TYPES.PR_EXISTING_PR_DETECTED);
+  });
+
+  it("detects an existing run commit from run branch history when request history lacks commit sha", async () => {
+    const { getChangedFiles } = await import("../../workspace/git-workspace");
+    const { run } = await seedApprovedRun(["README.md"]);
+
+    failPrCreate = true;
+    await expect(
+      createPrRequest({
+        runId: run.id,
+        actorType: AUDIT_ACTOR_TYPES.HUMAN,
+        actorLabel: "operator",
+        rationale: "seed failed PR request",
+      }),
+    ).rejects.toThrow(/gh pr create failed/i);
+
+    const failedAttempt = listPrRequestsForRun(run.id)[0]!;
+    expect(failedAttempt.commitSha).toBeTruthy();
+
+    getEngineerConsoleDb()
+      .prepare(`UPDATE engineer_pr_requests SET commit_sha = NULL, commit_message = NULL WHERE id = ?`)
+      .run(failedAttempt.id);
+
+    const reusableCommitSha = "eac138f123456789";
+    currentBranchName = "feature/local-work";
+    headCommitSha = "111111111111111";
+    localRunBranchSha = reusableCommitSha;
+    remoteBranchSha = reusableCommitSha;
+    branchHistory = [
+      {
+        sha: reusableCommitSha,
+        subject: `Create a README.md file [run:${run.id.slice(0, 8)}]`,
+        files: ["README.md"],
+      },
+    ];
+
+    const readiness = await evaluatePrReadiness(run.id);
+    expect(readiness.signals.reusableCommitShaPrefix).toBe(reusableCommitSha.slice(0, 12));
+    expect(readiness.signals.reusableCommitSource).toBe("run_branch_history");
+    expect(readiness.signals.remoteBranchMatchesReusableCommit).toBe(true);
+    expect(readiness.recommendedAction).toMatch(/existing run commit/i);
+
+    failPrCreate = false;
+    vi.mocked(getChangedFiles).mockResolvedValue([]);
+    gitCalls.length = 0;
+
+    const retried = await createPrRequest({
+      runId: run.id,
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "operator",
+      rationale: "retry using detected branch-history commit",
+    });
+
+    const commitCalls = gitCalls.filter((c) => c.bin === "git" && c.args[0] === "commit");
+    expect(commitCalls).toHaveLength(0);
+    expect(retried.commitSha).toBe(reusableCommitSha);
+    expect(gitCalls.some((c) => c.bin === "git" && c.args[0] === "push")).toBe(false);
+    vi.mocked(getChangedFiles).mockResolvedValue(["src/a.ts"]);
+  });
+
+  it("emits a reconciliation audit event with resumable PR state details", async () => {
+    const { run } = await seedApprovedRun(["README.md"]);
+    const reusableCommitSha = "eac138f123456789";
+    currentBranchName = "feature/local-work";
+    headCommitSha = "111111111111111";
+    localRunBranchSha = reusableCommitSha;
+    remoteBranchSha = reusableCommitSha;
+    branchHistory = [
+      {
+        sha: reusableCommitSha,
+        subject: `Create a README.md file [run:${run.id.slice(0, 8)}]`,
+        files: ["README.md"],
+      },
+    ];
+
+    const readiness = await evaluateAndAuditPrReadiness(run.id);
+
+    expect(readiness.signals.canResume).toBe(true);
+    const reconcileEvent = listAuditEventsForRun(run.id).find(
+      (event) => event.eventType === AUDIT_EVENT_TYPES.PR_STATE_RECONCILED,
+    );
+    expect(reconcileEvent).toBeTruthy();
+    expect(JSON.parse(reconcileEvent?.payloadJson ?? "{}")).toMatchObject({
+      runBranchName: "engineer/test-branch",
+      currentBranchName: "feature/local-work",
+      reusableCommitShaPrefix: reusableCommitSha.slice(0, 12),
+      remoteBranchExists: true,
+      canResume: true,
+      reusableCommitSource: "run_branch_history",
+    });
   });
 
   it("create PR route logic blocks when readiness blocked", async () => {

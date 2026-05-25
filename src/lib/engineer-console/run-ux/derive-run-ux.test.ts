@@ -310,9 +310,14 @@ describe("UX-1 run guidance", () => {
         blockers: [],
         warnings: [],
         recommendedAction: "Ready to create commit and draft PR.",
-        signals: { branchName: "engineer/test-run" },
+        signals: {
+          branchName: "engineer/test-run",
+          runBranchName: "engineer/test-run",
+          currentBranchName: "engineer/test-run",
+          currentBranchMatchesRunBranch: true,
+        },
       },
-      latestRequest: null,
+      requests: [],
     });
     const html = renderToStaticMarkup(React.createElement(PrStateCard, { state }));
 
@@ -328,19 +333,31 @@ describe("UX-1 run guidance", () => {
         blockers: [],
         warnings: [],
         recommendedAction: "Ready to resume PR creation using the existing run commit.",
-        signals: { branchName: "engineer/test-run" },
+        signals: {
+          branchName: "engineer/test-run",
+          runBranchName: "engineer/test-run",
+          currentBranchName: "feature/local-work",
+          currentBranchMatchesRunBranch: false,
+          localRunBranchExists: true,
+          remoteBranchExists: true,
+          remoteBranchMatchesReusableCommit: true,
+          reusableCommitShaPrefix: "eac138f12345",
+          canResume: true,
+        },
       },
-      latestRequest: {
-        id: "pr-1",
-        status: "failed",
-        readinessStatus: "passed",
-        branchName: "engineer/test-run",
-        baseBranch: "main",
-        commitShaPrefix: "eac138f12345",
-        prUrl: null,
-        prNumber: null,
-        errorMessage: "gh pr create failed",
-      },
+      requests: [
+        {
+          id: "pr-1",
+          status: "failed",
+          readinessStatus: "passed",
+          branchName: "engineer/test-run",
+          baseBranch: "main",
+          commitShaPrefix: null,
+          prUrl: null,
+          prNumber: null,
+          errorMessage: "gh pr create failed",
+        },
+      ],
     });
 
     expect(state.commit.label).toBe("Existing commit will be reused");
@@ -356,19 +373,25 @@ describe("UX-1 run guidance", () => {
         blockers: [],
         warnings: [],
         recommendedAction: "Ready to resume PR creation by reusing the existing PR record.",
-        signals: { branchName: "engineer/test-run" },
+        signals: {
+          branchName: "engineer/test-run",
+          existingPrUrl: "https://github.com/org/repo/pull/77",
+          existingPrNumber: "77",
+        },
       },
-      latestRequest: {
-        id: "pr-1",
-        status: "pr_created",
-        readinessStatus: "passed",
-        branchName: "engineer/test-run",
-        baseBranch: "main",
-        commitShaPrefix: "eac138f12345",
-        prUrl: "https://github.com/org/repo/pull/77",
-        prNumber: "77",
-        errorMessage: null,
-      },
+      requests: [
+        {
+          id: "pr-1",
+          status: "pr_created",
+          readinessStatus: "passed",
+          branchName: "engineer/test-run",
+          baseBranch: "main",
+          commitShaPrefix: "eac138f12345",
+          prUrl: "https://github.com/org/repo/pull/77",
+          prNumber: "77",
+          errorMessage: null,
+        },
+      ],
     });
     const html = renderToStaticMarkup(React.createElement(PrStateCard, { state }));
 
@@ -385,20 +408,27 @@ describe("UX-1 run guidance", () => {
         ],
         warnings: [],
         recommendedAction: "Resolve blockers before creating a PR.",
-        signals: { branchName: "engineer/test-run" },
+        signals: {
+          branchName: "engineer/test-run",
+          manualRecoveryRequired: true,
+          manualRecoveryReason:
+            "No changed files are available to commit and no reusable run commit could be found. Restore the approved changes or resume from the existing run branch/commit before retrying PR creation.",
+        },
       },
-      latestRequest: {
-        id: "pr-1",
-        status: "failed",
-        readinessStatus: "blocked",
-        branchName: "engineer/test-run",
-        baseBranch: "main",
-        commitShaPrefix: null,
-        prUrl: null,
-        prNumber: null,
-        errorMessage:
-          "No changed files are available to commit and no reusable run commit is recorded. Recovery required: restore the approved changes or resume from the existing run branch/commit before retrying PR creation.",
-      },
+      requests: [
+        {
+          id: "pr-1",
+          status: "failed",
+          readinessStatus: "blocked",
+          branchName: "engineer/test-run",
+          baseBranch: "main",
+          commitShaPrefix: null,
+          prUrl: null,
+          prNumber: null,
+          errorMessage:
+            "No changed files are available to commit and no reusable run commit is recorded. Recovery required: restore the approved changes or resume from the existing run branch/commit before retrying PR creation.",
+        },
+      ],
     });
 
     expect(state.commit.label).toBe("Clean tree with no reusable commit");

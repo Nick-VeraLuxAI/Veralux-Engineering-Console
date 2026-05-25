@@ -12,6 +12,7 @@ import {
   auditPrExistingDetected,
   auditPrExistingRemoteBranchReused,
   auditPrReadinessEvaluated,
+  auditPrStateReconciled,
 } from "../../governance/audit-ledger/pr-audit-lifecycle";
 import { getEvidenceBundleForRun } from "../../governance/evidence-bundles/evidence-bundle-manager";
 import { getLatestPolicyResult } from "../../governance/policy-results/policy-result-manager";
@@ -23,7 +24,7 @@ import { checkoutBranch, verifyGitRepo } from "../../workspace/git-workspace";
 import { buildCommitMessage } from "./build-commit-message";
 import { createControlledGitCommit } from "./create-git-commit";
 import { createControlledGithubPr } from "./create-github-pr";
-import { isCommitReachableFromHead } from "./controlled-git-executor";
+import { getLocalBranchRef, isCommitReachableFromRef } from "./controlled-git-executor";
 import { evaluatePrReadiness } from "./evaluate-pr-readiness";
 import type {
   CreatePrRequestInput,
@@ -235,6 +236,15 @@ export async function evaluateAndAuditPrReadiness(runId: string): Promise<PrRead
       blockerCount: readiness.blockers.length,
       warningCount: readiness.warnings.length,
     });
+    auditPrStateReconciled(runId, run.taskId, {
+      runBranchName: readiness.signals.runBranchName,
+      currentBranchName: readiness.signals.currentBranchName,
+      reusableCommitShaPrefix: readiness.signals.reusableCommitShaPrefix,
+      reusableCommitSource: readiness.signals.reusableCommitSource,
+      remoteBranchExists: readiness.signals.remoteBranchExists,
+      canResume: readiness.signals.canResume,
+      manualRecoveryRequired: readiness.signals.manualRecoveryRequired,
+    });
   }
   return readiness;
 }
@@ -283,13 +293,38 @@ async function resolveCommitForPrRequest(
   runId: string,
   branchName: string,
   request: PrRequestRecord,
+  readiness: PrReadinessResult,
 ): Promise<ResolvedPrCommit> {
+  const reusableCommitSha = readiness.signals.reusableCommitSha;
+  if (reusableCommitSha) {
+    const presentOnBranch = await isCommitReachableFromRef(repoPath, reusableCommitSha, getLocalBranchRef(branchName));
+    if (!presentOnBranch) {
+      throw new PrCreationError(
+        "A reusable run commit was detected, but it is not present on the run branch. Recovery required: restore the run branch or reapply the approved changes before retrying PR creation.",
+      );
+    }
+
+    return {
+      commitSha: reusableCommitSha,
+      commitMessage: readiness.signals.reusableCommitMessage ?? request.commitMessage ?? buildCommitMessage(runId),
+      filesCommitted: [],
+      reused: true,
+      reason:
+        readiness.signals.resumeReason ??
+        `reused commit from ${readiness.signals.reusableCommitSource.replaceAll("_", " ")}`,
+    };
+  }
+
   const knownCommitRequest = request.commitSha
     ? request
     : (findHistoricalCommitRequest(runId, branchName) ?? null);
 
   if (knownCommitRequest?.commitSha) {
-    const presentOnBranch = await isCommitReachableFromHead(repoPath, knownCommitRequest.commitSha);
+    const presentOnBranch = await isCommitReachableFromRef(
+      repoPath,
+      knownCommitRequest.commitSha,
+      getLocalBranchRef(branchName),
+    );
     if (!presentOnBranch) {
       throw new PrCreationError(
         "A prior run commit is recorded, but it is not present on the run branch. Recovery required: restore the run branch or reapply the approved changes before retrying PR creation.",
@@ -435,14 +470,16 @@ export async function createPrRequest(input: CreatePrRequestInput): Promise<PrRe
         prRequestId: request.id,
         branchName: run.branchName,
         baseBranch,
-        reason: request.commitSha
-          ? "continuing from existing commit"
-          : "retrying failed or partial PR request",
+        reason: readiness.signals.reusableCommitSha
+          ? `continuing from existing run commit (${readiness.signals.reusableCommitSource.replaceAll("_", " ")})`
+          : request.commitSha
+            ? "continuing from existing commit"
+            : "retrying failed or partial PR request",
       });
     }
 
     updatePrRequest(request.id, { status: "committing" });
-    const commit = await resolveCommitForPrRequest(repoPath, input.runId, run.branchName, request);
+    const commit = await resolveCommitForPrRequest(repoPath, input.runId, run.branchName, request, readiness);
     if (commit.reused) {
       auditPrExistingCommitReused(input.runId, task.id, {
         prRequestId: request.id,

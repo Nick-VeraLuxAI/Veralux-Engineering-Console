@@ -2,7 +2,7 @@
 
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   derivePrStateCardState,
   type PrStateReadiness,
@@ -37,6 +37,26 @@ interface PrRequest {
   completedAt: string | null;
   errorMessage: string | null;
   readiness?: PrReadiness | null;
+}
+
+export function formatPrCreationErrorMessage(error: string | null): string | null {
+  if (!error) return null;
+
+  const categoryMatch = error.match(/^Invalid GitHub PR (branch|base branch|title|body|URL):/i);
+  if (categoryMatch) {
+    const category = categoryMatch[1].toLowerCase();
+    return `${error} Next action: update the ${category} and retry draft PR creation.`;
+  }
+
+  if (error.startsWith("GitHub CLI PR create command shape not allowed.")) {
+    return `${error} Next action: review the PR metadata and retry draft PR creation.`;
+  }
+
+  if (error.startsWith("GitHub CLI PR list command shape not allowed.")) {
+    return `${error} Next action: re-evaluate readiness and retry PR creation.`;
+  }
+
+  return error;
 }
 
 export function PrCreationPanel({ runId }: { runId: string }) {
@@ -118,11 +138,11 @@ export function PrCreationPanel({ runId }: { runId: string }) {
 
   const blocked = readiness?.status === "blocked";
   const needsRationale = readiness?.status === "requires_review";
-  const latestRequest = requests[0] ?? null;
   const prState = derivePrStateCardState({
     readiness,
-    latestRequest,
+    requests,
   });
+  const displayError = formatPrCreationErrorMessage(error);
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
@@ -152,7 +172,7 @@ export function PrCreationPanel({ runId }: { runId: string }) {
         </div>
       </div>
 
-      {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
+      {displayError && <p className="mb-2 text-sm text-red-400">{displayError}</p>}
       {loading && <p className="text-sm text-[var(--muted)]">Loading PR history…</p>}
 
       <PrStateCard state={prState} />

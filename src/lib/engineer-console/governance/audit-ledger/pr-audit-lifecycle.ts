@@ -125,6 +125,39 @@ export function auditPrCreationResumed(
   });
 }
 
+export function auditPrStateReconciled(
+  runId: string,
+  taskId: string | null,
+  payload: {
+    runBranchName: string | null;
+    currentBranchName: string | null;
+    reusableCommitShaPrefix: string | null;
+    reusableCommitSource: string;
+    remoteBranchExists: boolean;
+    canResume: boolean;
+    manualRecoveryRequired: boolean;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.PR_STATE_RECONCILED,
+    entityType: AUDIT_ENTITY_TYPES.RELEASE,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.SYSTEM,
+    taskId: taskId ?? undefined,
+    runId,
+    payload: {
+      runId,
+      runBranchName: payload.runBranchName,
+      currentBranchName: payload.currentBranchName,
+      reusableCommitShaPrefix: payload.reusableCommitShaPrefix,
+      reusableCommitSource: payload.reusableCommitSource,
+      remoteBranchExists: payload.remoteBranchExists,
+      canResume: payload.canResume,
+      manualRecoveryRequired: payload.manualRecoveryRequired,
+    },
+  });
+}
+
 export function auditPrExistingCommitReused(
   runId: string,
   taskId: string | null,

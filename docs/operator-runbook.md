@@ -272,6 +272,8 @@ Retry behavior after partial failure:
 
 - If a prior attempt already created the run commit, retry reuses that commit instead of creating a duplicate.
 - If the run branch is already pushed to `origin`, retry skips the redundant push when the remote already matches.
+- If the latest failed PR request is stale, the state card now prefers the current readiness reconciliation result and treats the failed step as historical context only.
+- If the current checkout differs from the run branch, the state card explains that retry will first checkout the run branch instead of misreporting the branch as local-only.
 - If a PR already exists for the run branch, retry records and returns that PR instead of opening another one.
 - If the tree is clean and no reusable run commit is recorded, stop and recover the branch/commit before retrying.
 - Full raw request history still remains below the state card for technical review.
