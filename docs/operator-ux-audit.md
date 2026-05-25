@@ -98,6 +98,18 @@ UX-6 is now implemented across dashboard, repository setup, task creation, and e
 
 UX-6 improves onboarding and staging clarity, but it intentionally does **not** expose secrets, bypass repo-root policy, auto-register repos, auto-start runs, auto-approve, auto-create PRs, auto-merge, or auto-deploy. The next backlog item is **UX-7 — terminology and operator glossary polish**.
 
+## UX-7 implementation note
+
+UX-7 is now implemented across setup, indexing, governance, PR, release, and audit surfaces:
+
+- a central operator glossary now defines the key terms operators kept having to infer
+- lightweight inline help disclosures now appear in the highest-friction panels
+- missing-state and action copy now explains what a section means, why it matters, and what to do next in plainer language
+- raw technical statuses still remain available in technical details and advanced sections
+- a docs glossary now exists in [operator-glossary.md](./operator-glossary.md)
+
+UX-7 improves terminology clarity, but it intentionally does **not** rename backend enums, hide technical detail, auto-run mutations, or change approval, review, PR, merge, deployment, or sign-off behavior. The next backlog item is **UX-8 — expert shortcuts and faster cross-panel navigation**.
+
 ---
 
 ## Current operator journey
@@ -406,7 +418,8 @@ This preserves every panel while removing the burden of reading them in raw top-
 | UX-4 | Clarify PR retry, hard gates, and release blockers | `pr-creation-panel.tsx`, `merge-controls-panel.tsx`, `hard-release-gate-banner.tsx`, `release-checklist-panel.tsx`, `release-signoff-panel.tsx`, docs | Medium | Unit tests for retry-state copy, blocker mapping, hard-gate checklist rendering; Playwright smoke for retry and blocked-release states | Retry state is understandable, blockers point to fixes, no change to release-gate enforcement |
 | UX-5 | Add advanced panel organization and progressive disclosure on the run page | `run-live-panel.tsx`, new run-section helpers/components, run-page tests, docs | Medium | Unit tests for default expansion rules and grouped rendering; Playwright smoke for grouped panels and expandable technical sections | Run page feels less overwhelming, current action stays clear, and all technical panels remain accessible |
 | UX-6 | Add setup readiness, staging helper, and first-run onboarding guidance | dashboard, `registered-repos-panel.tsx`, `create-task-form.tsx`, `compatibility-panel.tsx`, task detail empty states, docs/runbook links | Medium | Unit tests for readiness/task preset/path guidance, Playwright smoke for dashboard/repos/compatibility empty states, regression checks on existing run navigation | First-time operators can complete staging with materially less external guidance |
-| UX-7 | Simplify terminology and add operator glossary / expert shortcuts | panel subtitles, glossary/help surfaces, repeat-operator affordances | Low-medium | Copy review, accessibility review, targeted component tests | Less technical operators need less tribal knowledge while expert operators retain speed |
+| UX-7 | Simplify terminology and add operator glossary help | glossary/help surfaces, panel subtitles, docs glossary | Low-medium | Copy review, accessibility review, targeted component tests, Playwright smoke for help hints | Less technical operators need less tribal knowledge without removing raw statuses |
+| UX-8 | Add expert shortcuts and faster cross-panel navigation | repeat-operator affordances, quick links, denser expert flow options | Low-medium | Interaction review, accessibility review, regression checks on run navigation | Repeat operators move faster without weakening governance |
 
 ---
 
@@ -487,6 +500,6 @@ This preserves every panel while removing the burden of reading them in raw top-
 
 ## Recommended immediate next phase
 
-**Next phase:** **UX-7 — terminology and operator glossary polish**
+**Next phase:** **UX-8 — expert shortcuts and faster cross-panel navigation**
 
-UX-1 through UX-6 now cover orientation, worker-plan authoring, approval/review discoverability, PR/release retry clarity, run-page density, setup readiness, and staging onboarding. The highest remaining operator-value-to-risk item is reducing terminology burden for less technical operators while preserving the same audited workflow.
+UX-1 through UX-7 now cover orientation, worker-plan authoring, approval/review discoverability, PR/release retry clarity, run-page density, setup readiness, staging onboarding, and plain-English terminology help. The highest remaining operator-value-to-risk item is helping repeat operators move faster across the same audited workflow without reintroducing hidden state or automation.

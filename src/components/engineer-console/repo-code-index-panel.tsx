@@ -4,6 +4,7 @@ import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { OperatorHelp } from "./operator-help";
 
 interface PublicSymbol {
   relativePath: string;
@@ -100,7 +101,10 @@ export function RepoCodeIndexPanel({
   return (
     <div className="mt-3 rounded border border-[var(--border)] p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-medium">Code index (symbols + chunks)</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs font-medium">Code index (symbols + chunks)</p>
+          <OperatorHelp term="code_index" label="What is code index?" />
+        </div>
         <button
           type="button"
           disabled={!canIndex || busy}
@@ -113,6 +117,9 @@ export function RepoCodeIndexPanel({
       <p className="text-xs text-[var(--muted)]">
         Symbols: {symbolCount} · Chunks: {chunkCount}
         {lastRun?.completedAt ? ` · ${new Date(lastRun.completedAt).toLocaleString()}` : ""}
+      </p>
+      <p className="mt-1 text-xs text-[var(--muted)]">
+        Code index makes symbols and code chunks searchable after the file index is complete.
       </p>
       {fileCount === 0 && (
         <p className="mt-1 text-xs text-amber-300">Run file index before code index.</p>

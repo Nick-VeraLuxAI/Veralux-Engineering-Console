@@ -16,6 +16,7 @@ import {
   type WorkerPlanPreviewItem,
 } from "@/lib/engineer-console/worker-plan/worker-plan-ux";
 import type { WorkerPlanReportSummary } from "@/lib/engineer-console/types";
+import { OperatorHelp } from "./operator-help";
 
 type PlanSource = "guided" | "advanced";
 
@@ -338,7 +339,10 @@ export function WorkerPlanPanel({
     <section className="rounded-xl border border-amber-600/40 bg-[var(--card)] p-4">
       <div className="mb-3 flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-semibold">Worker plan</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold">Worker plan</h2>
+            <OperatorHelp term="worker_plan" label="What is a worker plan?" />
+          </div>
           <p className="mt-1 text-xs text-[var(--muted)]">
             Use the guided builder for common plans. Advanced JSON stays available below for
             manual editing. Validation, execution, and governance behavior are unchanged.

@@ -10,6 +10,7 @@ import {
   deriveRepoStatusSummary,
   formatRepoRegistrationErrorMessage,
 } from "@/lib/engineer-console/setup/setup-ux";
+import { OperatorHelp } from "./operator-help";
 import { StatusBadge } from "./status-badge";
 import { RepoFileIndexPanel } from "./repo-file-index-panel";
 import { RepoCodeIndexPanel } from "./repo-code-index-panel";
@@ -114,7 +115,10 @@ export function RegisteredReposPanel({
       </section>
 
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-        <h2 className="mb-3 font-semibold">Approved repo roots</h2>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 className="font-semibold">Approved repo roots</h2>
+          <OperatorHelp term="approved_repo_roots" label="What are approved repo roots?" />
+        </div>
         {allowedRoots.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">
             Approved repo roots are not configured here. Any local path may be registered in this

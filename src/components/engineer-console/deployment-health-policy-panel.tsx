@@ -1,8 +1,10 @@
 "use client";
 
+import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { OperatorHelp } from "./operator-help";
 import { StatusBadge } from "./status-badge";
 
 interface HealthPolicyResult {
@@ -81,10 +83,16 @@ export function DeploymentHealthPolicyPanel({ runId }: { runId: string }) {
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-      <h2 className="mb-1 font-semibold">Deployment health policy</h2>
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <h2 className="font-semibold">Deployment health policy</h2>
+        <OperatorHelp
+          term="deployment_health_policy"
+          label="What is deployment health policy?"
+        />
+      </div>
       <p className="mb-4 text-sm text-[var(--muted)]">
-        Governance interpretation of post-deploy health checks. Metadata only — does not deploy,
-        rollback, or trigger CI/CD.
+        A governance read of post-deploy health checks. Metadata only. It does not deploy, rollback,
+        or trigger CI/CD.
       </p>
 
       {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}

@@ -1,8 +1,10 @@
 "use client";
 
+import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { OperatorHelp } from "./operator-help";
 import { StatusBadge } from "./status-badge";
 
 interface ReplayCheck {
@@ -87,7 +89,10 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Replay verification</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-semibold">Replay verification</h2>
+          <OperatorHelp term="replay_verification" label="What is replay verification?" />
+        </div>
         <div className="flex gap-2">
           <button
             type="button"
@@ -95,7 +100,7 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
             onClick={() => void verify()}
             className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
           >
-            {busy ? "Verifying…" : "Verify replay"}
+            {busy ? "Verifying…" : "Check replay"}
           </button>
           <button
             type="button"
@@ -110,6 +115,12 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
 
       {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
       {loading && <p className="text-sm text-[var(--muted)]">Loading verification…</p>}
+
+      {!loading && !verification && !error && (
+        <p className="mb-3 text-sm text-[var(--muted)]">
+          No replay check yet. Run replay verification before approval or release work continues.
+        </p>
+      )}
 
       {verification && (
         <>

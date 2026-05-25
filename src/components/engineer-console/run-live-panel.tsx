@@ -44,6 +44,7 @@ import { RunLifecycleStepper } from "./run-lifecycle-stepper";
 import { RunApprovalActionCard } from "./run-approval-action-card";
 import { RunSectionGroup } from "./run-section-group";
 import { RunCurrentActionZone } from "./run-current-action-zone";
+import { OperatorHelp } from "./operator-help";
 
 interface RunDetailPayload {
   run: EngineeringRun;
@@ -180,7 +181,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
           id={RUN_PANEL_IDS.qualityGates}
           className="scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
         >
-          <h2 className="mb-3 font-semibold">Quality gates</h2>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold">Quality gates</h2>
+            <OperatorHelp term="quality_gates" label="What are quality gates?" />
+          </div>
           <p className="mb-3 text-sm text-[var(--muted)]">
             What this is: recorded gate results for build, test, lint, and related checks. Why it
             matters: failed gates block later release work. What to do next: review failures or
@@ -235,7 +239,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
             id={RUN_PANEL_IDS.approval}
             className="scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
           >
-            <h2 className="mb-3 font-semibold">Approval report</h2>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <h2 className="font-semibold">Approval report</h2>
+              <OperatorHelp term="approval_report" label="What is the approval report?" />
+            </div>
             <p className="mb-2 text-sm text-[var(--muted)]">
               What this is: the detailed approval report for the run. Why it matters: it preserves
               the same auditable approval data and controls used by the approval action card. What

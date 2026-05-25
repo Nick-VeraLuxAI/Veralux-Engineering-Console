@@ -8,6 +8,7 @@ import {
   buildReleaseGateChecklistItems,
   describeReleaseGateStatus,
 } from "@/lib/engineer-console/run-ux/release-gate-ux";
+import { OperatorHelp } from "./operator-help";
 
 type HardReleaseGateAction =
   | "merge"
@@ -65,6 +66,7 @@ export function HardReleaseGateBannerContent({
       <div className={`mb-3 rounded border p-3 text-sm ${toneClasses(status.tone)}`}>
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="font-medium">Hard release gates</span>
+          <OperatorHelp term="release_gates" label="What are release gates?" />
           <span className="rounded border border-current px-2 py-0.5 text-[11px] font-medium">
             {status.label}
           </span>
@@ -78,6 +80,7 @@ export function HardReleaseGateBannerContent({
     <div className={`mb-3 rounded border p-3 text-sm ${toneClasses(status.tone)}`}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="font-medium">Hard release gates</span>
+        <OperatorHelp term="release_gates" label="What are release gates?" />
         <span className="rounded border border-current px-2 py-0.5 text-[11px] font-medium">
           {status.label}
         </span>
@@ -166,6 +169,7 @@ export function HardReleaseGateBanner({
       <div className="mb-3 rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="font-medium">Hard release gates</span>
+          <OperatorHelp term="release_gates" label="What are release gates?" />
           <span className="rounded border border-current px-2 py-0.5 text-[11px] font-medium">
             Release gates disabled
           </span>

@@ -7,6 +7,7 @@ import {
   derivePrStateCardState,
   type PrStateReadiness,
 } from "@/lib/engineer-console/release/pr-creation/pr-state-ux";
+import { OperatorHelp } from "./operator-help";
 import { PrStateCard } from "./pr-state-card";
 import { StatusBadge } from "./status-badge";
 
@@ -147,7 +148,16 @@ export function PrCreationPanel({ runId }: { runId: string }) {
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">PR creation</h2>
+        <div className="max-w-3xl">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold">PR creation</h2>
+            <OperatorHelp term="pr_readiness" label="What is PR readiness?" />
+          </div>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Draft PR creation stays manual. This panel checks whether the run has the records needed
+            for a safe draft PR and explains what to fix before retrying.
+          </p>
+        </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -155,7 +165,7 @@ export function PrCreationPanel({ runId }: { runId: string }) {
             onClick={() => void evaluateReadiness()}
             className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
           >
-            {busy === "evaluate" ? "Evaluating…" : "Evaluate readiness"}
+            {busy === "evaluate" ? "Checking…" : "Check PR readiness"}
           </button>
           <button
             type="button"
@@ -242,6 +252,15 @@ export function PrCreationPanel({ runId }: { runId: string }) {
         </>
       )}
 
+      {!readiness && (
+        <details className="mb-3 text-xs text-[var(--muted)]">
+          <summary className="cursor-pointer">Technical readiness details</summary>
+          <p className="mt-2">
+            Raw technical readiness signals will appear here after the first PR readiness check.
+          </p>
+        </details>
+      )}
+
       <div className="mb-3 grid gap-2 sm:grid-cols-2">
         <label className="text-xs text-[var(--muted)]">
           Base branch
@@ -276,7 +295,7 @@ export function PrCreationPanel({ runId }: { runId: string }) {
 
       {requests.length > 0 && (
         <div>
-          <h3 className="mb-2 text-sm font-medium">PR history</h3>
+          <h3 className="mb-2 text-sm font-medium">PR request history</h3>
           <ul className="space-y-2 text-sm">
             {requests.map((req) => (
               <li key={req.id} className="rounded border border-[var(--border)] p-2">

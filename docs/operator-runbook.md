@@ -1,6 +1,6 @@
 # Engineering Console — Operator runbook
 
-Operational guide for VeraLux Engineering Console through Phase UX-5. Pair with [env-reference.md](./env-reference.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
+Operational guide for VeraLux Engineering Console through Phase UX-7. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
 
 ## Prerequisites
 
@@ -28,6 +28,17 @@ The dashboard now starts with two UX-6 onboarding surfaces:
 2. **Run staging smoke workflow** appears in staging-like, development, or trusted-local contexts and gives a safe order for smoke verification without executing anything automatically.
 
 These surfaces are guidance only. They do not register repos, create tasks, start runs, execute worker plans, create PRs, merge, deploy, or sign off automatically.
+
+---
+
+## Terminology help and glossary
+
+UX-7 adds two terminology aids:
+
+1. **Inline help disclosures** appear beside the highest-friction panel headings and explain the term in plain English, why it matters, and what to do next.
+2. **Operator glossary** lives in [operator-glossary.md](./operator-glossary.md) and defines shared terms such as worker plan, evidence bundle, replay verification, PR readiness, release checklist, release sign-off, and audit chain.
+
+The inline help does not replace technical statuses. Advanced and raw status detail still remains visible in the run page.
 
 ---
 
@@ -93,6 +104,8 @@ Details: [registered-repos.md](./registered-repos.md).
 
 Details: [file-index.md](./file-index.md), [code-index.md](./code-index.md).
 
+UX-7 note: the **File index** and **Code index** panels now include inline plain-English help explaining what each index stores and why the order matters.
+
 ---
 
 ## Compatibility analysis
@@ -104,6 +117,8 @@ Details: [file-index.md](./file-index.md), [code-index.md](./code-index.md).
 Use before large cross-service changes; summaries feed policy and evidence.
 
 Details: [compatibility-analysis.md](./compatibility-analysis.md).
+
+UX-7 note: the compatibility page now includes inline help explaining what compatibility analysis means and why operators should review cross-repo impact before approval or release work.
 
 ---
 
@@ -141,6 +156,8 @@ When you open `/engineer/runs/[id]`, the page now starts with:
 The command center, current-action zone, grouped sections, and approval action card are **guidance-first** surfaces. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
 
 Details: [operator-ux-guide.md](./operator-ux-guide.md), [operator-ux-audit.md](./operator-ux-audit.md).
+
+UX-7 note: glossary help now appears directly on the run page for evidence bundle, replay verification, policy results, review stages, PR readiness, release checklist, release sign-off, release gates, deployment health policy, and audit chain.
 
 ---
 
@@ -243,7 +260,7 @@ Required stages must be approved before final run approval.
 Operator flow:
 
 1. If policy says senior review is required, open **Review stages** from the command center or approval card.
-2. Use **Generate / reconcile** if required stages have not been created yet.
+2. Use **Generate or refresh stages** if required stages have not been created yet.
 3. Review the summary counts for required, pending, approved, rejected, and skipped stages.
 4. Read the stage reason to understand why review is required.
 5. Complete required stages before returning to the **Approval actions** card.
@@ -273,6 +290,7 @@ Run these after material state changes (approval, PR, merge, deploy).
 - **Evidence:** redacted snapshot hash — [evidence-bundles.md](./evidence-bundles.md)
 - **Policy:** `passed` | `blocked` | `requires_review` — [policy-results.md](./policy-results.md)
 - **Replay:** verifies bundle consistency — [replay-verification.md](./replay-verification.md)
+- **Glossary:** shared plain-English term definitions — [operator-glossary.md](./operator-glossary.md)
 
 **Audit timeline:** append-only events on run page; verify chain via `GET /audit/verify`.
 

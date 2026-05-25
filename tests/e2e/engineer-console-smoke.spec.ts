@@ -18,6 +18,7 @@ test.describe("Engineering Console trusted local smoke", () => {
     await expect(page).toHaveURL(/\/engineer\/?$/);
     await expect(page.getByRole("heading", { name: "Engineering tasks" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Setup readiness" })).toBeVisible();
+    await expect(page.getByText("What is setup readiness?")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Run staging smoke workflow" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Create task" })).toBeVisible();
     await expect(page.getByText("Register a repo first")).toBeVisible();
@@ -76,6 +77,7 @@ test.describe("Engineering Console trusted local smoke", () => {
         await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       }
       await expectRunDetailPanelsVisible(page);
+      await expect(page.getByText("What is an evidence bundle?")).toBeVisible();
     });
 
     test("guided worker-plan builder supports README smoke helper", async ({

@@ -5,6 +5,7 @@ import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
 import type { RunWorkflowSummary } from "@/lib/engineer-console/run-ux/run-ux-types";
+import { OperatorHelp } from "./operator-help";
 import { StatusBadge } from "./status-badge";
 
 interface ReviewStage {
@@ -137,14 +138,17 @@ export function ReviewStagesPanel({
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Review stages</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-semibold">Review stages</h2>
+          <OperatorHelp term="review_stages" label="What are review stages?" />
+        </div>
         <button
           type="button"
           disabled={busy !== null}
           onClick={() => void generateStages()}
           className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
         >
-          {busy === "generate" ? "Generating…" : "Generate / reconcile"}
+          {busy === "generate" ? "Generating…" : "Generate or refresh stages"}
         </button>
       </div>
 
@@ -167,7 +171,8 @@ export function ReviewStagesPanel({
 
       {!loading && stages.length === 0 && (
         <p className="text-sm text-[var(--muted)]">
-          No review stages yet. Generate stages after policy evaluation.
+          No review stages yet. Evaluate policy first, then generate stages when senior review is
+          required.
         </p>
       )}
 

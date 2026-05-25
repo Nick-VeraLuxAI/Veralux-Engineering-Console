@@ -1,8 +1,10 @@
 "use client";
 
+import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useEffect, useState } from "react";
+import { OperatorHelp } from "./operator-help";
 
 interface AuditEventView {
   id: string;
@@ -49,7 +51,10 @@ export function AuditTimelinePanel({ runId }: { runId: string }) {
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Audit timeline</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-semibold">Audit timeline</h2>
+          <OperatorHelp term="audit_chain" label="What is the audit chain?" />
+        </div>
         {data?.verification && (
           <span
             className={`rounded px-2 py-0.5 text-xs font-medium ${
@@ -66,10 +71,10 @@ export function AuditTimelinePanel({ runId }: { runId: string }) {
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      {!data && !error && <p className="text-sm text-[var(--muted)]">Loading audit events…</p>}
+      {!data && !error && <p className="text-sm text-[var(--muted)]">Loading audit history…</p>}
 
       {data && data.events.length === 0 && (
-        <p className="text-sm text-[var(--muted)]">No audit events recorded for this run yet.</p>
+        <p className="text-sm text-[var(--muted)]">No audit history recorded for this run yet.</p>
       )}
 
       {data && data.events.length > 0 && (
@@ -96,11 +101,16 @@ export function AuditTimelinePanel({ runId }: { runId: string }) {
       )}
 
       {data?.verification && !data.verification.ok && data.verification.failures.length > 0 && (
-        <ul className="mt-3 list-inside list-disc text-xs text-red-400">
-          {data.verification.failures.map((f) => (
-            <li key={f}>{f}</li>
-          ))}
-        </ul>
+        <>
+          <p className="mt-3 text-sm text-red-300">
+            The audit history did not verify cleanly. Review the technical audit before continuing.
+          </p>
+          <ul className="mt-2 list-inside list-disc text-xs text-red-400">
+            {data.verification.failures.map((f) => (
+              <li key={f}>{f}</li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );

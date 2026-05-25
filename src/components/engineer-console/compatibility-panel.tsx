@@ -1,8 +1,10 @@
 "use client";
 
+import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { OperatorHelp } from "./operator-help";
 import { StatusBadge } from "./status-badge";
 
 interface AnalysisRun {
@@ -101,7 +103,13 @@ export function CompatibilityPanel() {
     <div className="space-y-6">
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold">Compatibility analysis</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold">Compatibility analysis</h2>
+            <OperatorHelp
+              term="compatibility_analysis"
+              label="What is compatibility analysis?"
+            />
+          </div>
           <button
             type="button"
             disabled={busy}
@@ -114,6 +122,12 @@ export function CompatibilityPanel() {
 
         {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
         {loading && <p className="text-sm text-[var(--muted)]">Loading…</p>}
+        {!loading && (
+          <p className="mb-3 text-sm text-[var(--muted)]">
+            This compares registered repos for shared interfaces and possible cross-repo impact. It
+            records findings only and does not change code.
+          </p>
+        )}
 
         {!loading && !latest && surfaces.length === 0 && links.length === 0 && (
           <div className="rounded border border-dashed border-[var(--border)] p-3 text-sm text-[var(--muted)]">

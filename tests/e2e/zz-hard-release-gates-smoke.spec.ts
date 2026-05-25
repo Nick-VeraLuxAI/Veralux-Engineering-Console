@@ -71,7 +71,9 @@ test.describe("Hard release gates (enabled)", () => {
     }
 
     const mergeSection = page.locator(`#merge-controls`);
-    await expect(mergeSection.getByText("Action checklist")).toBeVisible();
+    await expect(
+      mergeSection.getByRole("heading", { name: "Action checklist", exact: true }),
+    ).toBeVisible();
     await expect(
       mergeSection
         .getByRole("link", { name: /Go to Policy results|Go to Replay verification|Go to Review stages/i })

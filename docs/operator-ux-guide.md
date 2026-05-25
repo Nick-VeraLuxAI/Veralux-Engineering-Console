@@ -1,6 +1,6 @@
 # Engineering Console operator UX guide
 
-Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, UX-5, and UX-6 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md) for the full workflow and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
+Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, UX-5, UX-6, and UX-7 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
 
 ---
 
@@ -130,6 +130,27 @@ UX-6 improves setup guidance, staging onboarding, and first-run empty states wit
 
 ---
 
+## What changed in UX-7
+
+UX-7 improves terminology clarity without removing technical detail or changing any governance behavior:
+
+1. **Central operator glossary**  
+   Key terms like **evidence bundle**, **replay verification**, **PR readiness**, **release gates**, **audit chain**, **file index**, and **code index** now have one shared glossary source.
+
+2. **Inline help disclosures**  
+   The UI now adds lightweight “What is this?” disclosures to the highest-friction panels, including setup readiness, file index, code index, compatibility analysis, evidence bundle, replay verification, policy results, review stages, PR creation, release checklist, release sign-off, hard release gates, deployment health policy, and audit timeline.
+
+3. **Plain-English panel copy**  
+   Missing-state and action copy now tells operators what the section means, why it matters, and what to do next without hiding the raw technical statuses.
+
+4. **Technical detail still remains available**  
+   UX-7 does not replace or rename backend statuses. Raw readiness, gate, policy, and audit details still appear in advanced or technical sections.
+
+5. **Docs glossary added**  
+   [operator-glossary.md](./operator-glossary.md) now gives operators a single reference for common run, governance, PR, and release terms.
+
+---
+
 ## What the command center does
 
 The command center is a **read-only orientation layer**. It helps operators answer:
@@ -160,7 +181,7 @@ Clicking a step jumps to the relevant panel or, for `Task`, back to the task det
 
 ## Where technical details live
 
-UX-1 through UX-5 did **not** remove technical detail from the run page.
+UX-1 through UX-7 did **not** remove technical detail from the run page.
 
 The detailed panels still live below the command center, lifecycle stepper, and current-action zone:
 
@@ -238,9 +259,9 @@ Decision guidance:
 
 ## Current UX limits
 
-UX-1 through UX-6 improve orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, and setup onboarding, but they do **not** yet solve:
+UX-1 through UX-7 improve orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, setup onboarding, and terminology clarity, but they do **not** yet solve:
 
-- terminology simplification and glossary help for less technical operators
 - expert-mode shortcuts for repeat operators who already know the workflow
+- faster cross-panel navigation for repeat release operators
 
 Those remain in the next phases documented in [operator-ux-audit.md](./operator-ux-audit.md).

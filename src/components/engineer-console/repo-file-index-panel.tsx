@@ -4,6 +4,7 @@ import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { OperatorHelp } from "./operator-help";
 
 interface PublicIndexedFile {
   relativePath: string;
@@ -92,7 +93,10 @@ export function RepoFileIndexPanel({
   return (
     <div className="mt-3 rounded border border-[var(--border)] p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-medium">File index</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs font-medium">File index</p>
+          <OperatorHelp term="file_index" label="What is file index?" />
+        </div>
         <button
           type="button"
           disabled={!canIndex || busy}
@@ -105,6 +109,10 @@ export function RepoFileIndexPanel({
       <p className="text-xs text-[var(--muted)]">
         Indexed: {fileCount} file(s)
         {indexedAt ? ` · ${new Date(indexedAt).toLocaleString()}` : ""}
+      </p>
+      <p className="mt-1 text-xs text-[var(--muted)]">
+        File index records which files exist and basic metadata for later code search and
+        compatibility work.
       </p>
       {!canIndex && (
         <p className="mt-1 text-xs text-amber-300">Verify repository before indexing.</p>

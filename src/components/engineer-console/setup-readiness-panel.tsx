@@ -1,5 +1,6 @@
 import React from "react";
 import type { SetupReadinessSummary, SetupReadinessStatus } from "@/lib/engineer-console/setup/setup-ux";
+import { OperatorHelp } from "./operator-help";
 
 const STATUS_STYLES: Record<SetupReadinessStatus, string> = {
   ready: "border-emerald-500/40 bg-emerald-950/20 text-emerald-200",
@@ -16,10 +17,13 @@ export function SetupReadinessPanel({
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
       <div className="mb-4">
-        <h2 className="text-lg font-semibold">Setup readiness</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-semibold">Setup readiness</h2>
+          <OperatorHelp term="setup_readiness" label="What is setup readiness?" />
+        </div>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Read-only setup and staging signals pulled from safe config and database state. Secrets
-          are never shown here.
+          Read-only checks that show whether setup, onboarding, or staging work can start safely.
+          Secrets are never shown here.
         </p>
       </div>
 
@@ -50,7 +54,7 @@ export function SetupReadinessPanel({
         <p className="mt-2">
           Use <code>docs/operator-runbook.md</code>, <code>docs/env-reference.md</code>,{" "}
           <code>docs/staging-dry-run-checklist.md</code>, <code>docs/production-launch-checklist.md</code>,
-          and <code>docs/offhost-encrypted-backups.md</code>.
+          <code>docs/offhost-encrypted-backups.md</code>, and <code>docs/operator-glossary.md</code>.
         </p>
       </div>
     </section>
