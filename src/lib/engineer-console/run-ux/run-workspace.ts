@@ -19,32 +19,32 @@ export const RUN_WORKSPACE_VIEWS: RunWorkspaceViewDefinition[] = [
   {
     id: "overview",
     label: "Overview",
-    description: "Status, lifecycle, current action, and top navigation.",
+    description: "Landing workspace for status, workflow progress, and what needs attention now.",
   },
   {
     id: "work_plan",
     label: "Work Plan",
-    description: "Worker plan draft, execution, changed files, and quality gates.",
+    description: "Implementation workspace for worker plans, changed files, and quality checks.",
   },
   {
     id: "review",
     label: "Review",
-    description: "Approval, evidence, replay, policy, review stages, and decisions.",
+    description: "Governance workspace for approval, evidence, replay, policy, and decisions.",
   },
   {
     id: "pr",
     label: "PR",
-    description: "Draft PR readiness, retry, and PR request history.",
+    description: "Pull request workspace for readiness, draft PR creation, and retry state.",
   },
   {
     id: "release",
     label: "Release",
-    description: "Merge, deploy, health, checklist, and sign-off.",
+    description: "Readiness workspace for merge, deployment, health, checklist, and sign-off.",
   },
   {
     id: "audit",
     label: "Audit",
-    description: "Audit timeline, chain diagnostics, and technical verification details.",
+    description: "Technical record workspace for timeline, chain verification, and traceability.",
   },
 ];
 

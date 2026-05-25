@@ -62,7 +62,7 @@ export function RunCurrentActionZone({ state }: { state: RunCurrentActionZoneSta
         </div>
         <a
           href={state.primaryAction.href}
-          className="inline-flex rounded bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+          className="inline-flex rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white shadow-[0_10px_25px_rgba(59,130,246,0.2)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
         >
           {state.primaryAction.label}
         </a>

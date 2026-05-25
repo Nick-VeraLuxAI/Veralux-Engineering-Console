@@ -136,7 +136,7 @@ export function RunCommandCenter({
             <p className="text-sm text-[var(--muted)]">Primary next step</p>
             <a
               href={guidance.primaryAction.href}
-              className="mt-2 inline-flex rounded bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
+                className="mt-2 inline-flex rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white shadow-[0_10px_25px_rgba(59,130,246,0.2)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
             >
               {guidance.primaryAction.label}
             </a>

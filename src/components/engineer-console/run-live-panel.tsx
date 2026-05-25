@@ -3,7 +3,7 @@
 import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ApprovalReport, EngineeringRun, EngineeringTask, QualityGateResult } from "@/lib/engineer-console/types";
 import {
   deriveRunCommandCenterState,
@@ -24,6 +24,7 @@ import {
 import { deriveRunIssues, type RunIssue } from "@/lib/engineer-console/run-ux/run-issues";
 import {
   DEFAULT_RUN_WORKSPACE_VIEW,
+  getRunWorkspaceView,
   getRunWorkspaceViewForTarget,
   resolveRunWorkspaceViewForHash,
   type RunWorkspaceViewId,
@@ -117,6 +118,20 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
   const expertSummaryItems = buildRunExpertSummaryItems(data.uxSummary, guidance);
   const issues = deriveRunIssues(data.uxSummary, guidance);
   const currentIssue = issues[0] ?? null;
+  const viewIssueCounts = useMemo(() => {
+    return issues.reduce<Partial<Record<RunWorkspaceViewId, number>>>((counts, issue) => {
+      counts[issue.view] = (counts[issue.view] ?? 0) + 1;
+      return counts;
+    }, {});
+  }, [issues]);
+  const criticalIssueCount = useMemo(
+    () => issues.filter((issue) => issue.severity === "critical").length,
+    [issues],
+  );
+  const warningIssueCount = useMemo(
+    () => issues.filter((issue) => issue.severity === "warning").length,
+    [issues],
+  );
   const routedView = getRunWorkspaceViewForTarget(pendingTargetId);
   const visibleView = routedView ?? activeView;
 
@@ -265,6 +280,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         nextAction={guidance.nextRecommendedAction}
         activeView={visibleView}
         onSelectView={selectView}
+        viewIssueCounts={viewIssueCounts}
         currentIssue={currentIssue}
         onOpenCurrentIssue={() => {
           if (currentIssue) {
@@ -275,58 +291,90 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         }}
       >
         <RunWorkspaceViewPanel viewId="overview" activeView={visibleView}>
-          <div id="run-command-center" className="scroll-mt-28">
-            <RunCommandCenter summary={data.uxSummary} guidance={guidance} />
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(21rem,0.95fr)]">
+            <div className="space-y-5">
+              <div id={RUN_NAV_TARGET_IDS.currentAction} className="scroll-mt-28">
+                <RunCurrentActionZone state={currentAction} />
+              </div>
+
+              <div id="run-command-center" className="scroll-mt-28">
+                <RunCommandCenter summary={data.uxSummary} guidance={guidance} />
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="font-semibold">Needs attention</h2>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      Use this queue when you want the fastest route to the next operator problem.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-[11px]">
+                    <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[var(--muted)]">
+                      {issues.length} total
+                    </span>
+                    <span className="rounded-full border border-red-500/40 bg-red-950/20 px-2 py-0.5 text-red-200">
+                      {criticalIssueCount} critical
+                    </span>
+                    <span className="rounded-full border border-amber-500/40 bg-amber-950/20 px-2 py-0.5 text-amber-200">
+                      {warningIssueCount} warning
+                    </span>
+                  </div>
+                </div>
+                {issues.length === 0 ? (
+                  <p className="mt-4 text-sm text-[var(--muted)]">
+                    No active issues are derived right now. Use this workspace as the run landing
+                    screen and open Audit for technical traceability if you need deeper detail.
+                  </p>
+                ) : (
+                  <ul className="mt-4 space-y-3">
+                    {issues.slice(0, 3).map((issue) => (
+                      <li key={issue.id}>
+                        <button
+                          type="button"
+                          onClick={() => openIssue(issue)}
+                          className="block w-full rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-left transition hover:border-white/20 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${issueToneClasses(issue.severity)}`}
+                              >
+                                {issue.severity}
+                              </span>
+                              <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--muted)]">
+                                {getRunWorkspaceView(issue.view).label}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-[var(--muted)]">Open workspace</span>
+                          </div>
+                          <p className="mt-2 text-sm font-medium text-white">{issue.title}</p>
+                          <p className="mt-2 text-sm text-[var(--muted)]">{issue.message}</p>
+                          <p className="mt-2 text-xs text-white">Suggested action: {issue.suggestedAction}</p>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              <div id="run-lifecycle" className="scroll-mt-28">
+                <RunLifecycleStepper steps={lifecycleSteps} currentStageId={guidance.currentStageId} />
+              </div>
+            </div>
           </div>
 
-          <div id="run-lifecycle" className="scroll-mt-28">
-            <RunLifecycleStepper steps={lifecycleSteps} currentStageId={guidance.currentStageId} />
-          </div>
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+            <div id="run-quick-nav" className="scroll-mt-28">
+              <RunQuickNav items={quickNavItems} />
+            </div>
 
-          <div id="run-quick-nav" className="scroll-mt-28">
-            <RunQuickNav items={quickNavItems} />
+            <div id="run-expert-summary" className="scroll-mt-28">
+              <RunExpertSummary items={expertSummaryItems} />
+            </div>
           </div>
-
-          <div id="run-expert-summary" className="scroll-mt-28">
-            <RunExpertSummary items={expertSummaryItems} />
-          </div>
-
-          <div id={RUN_NAV_TARGET_IDS.currentAction} className="scroll-mt-28">
-            <RunCurrentActionZone state={currentAction} />
-          </div>
-
-          <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-            <h2 className="mb-3 font-semibold">Overview attention</h2>
-            <p className="mb-3 text-sm text-[var(--muted)]">
-              What this is: the top derived issues for the current run. Why it matters: it lets the
-              operator route directly to the most important open problem without scanning the full
-              workspace. What to do next: open the highest-priority issue below or use the Issue
-              Center overlay.
-            </p>
-            {issues.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">No active issues are derived right now.</p>
-            ) : (
-              <ul className="space-y-3">
-                {issues.slice(0, 4).map((issue) => (
-                  <li key={issue.id}>
-                    <button
-                      type="button"
-                      onClick={() => openIssue(issue)}
-                      className="block w-full rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-left hover:border-white/20"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${issueToneClasses(issue.severity)}`}>
-                          {issue.severity}
-                        </span>
-                        <span className="text-sm font-medium text-white">{issue.title}</span>
-                      </div>
-                      <p className="mt-2 text-sm text-[var(--muted)]">{issue.message}</p>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
 
           <section
             id={RUN_PANEL_IDS.runState}

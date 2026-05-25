@@ -23,6 +23,7 @@ describe("RunWorkspaceShell", () => {
           nextAction: "Review the approval report.",
           activeView: "overview",
           onSelectView: vi.fn(),
+          viewIssueCounts: { overview: 2, review: 1 },
           currentIssue: null,
           onOpenCurrentIssue: vi.fn(),
         },
@@ -48,6 +49,8 @@ describe("RunWorkspaceShell", () => {
     expect(html).toContain("Review");
     expect(html).toContain('aria-selected="true"');
     expect(html).toContain("Overview content");
+    expect(html).toContain("Current workspace:");
+    expect(html).toContain(">2<");
     expect(html).toContain('hidden=""');
   });
 });
@@ -74,7 +77,8 @@ describe("RunIssueCenter", () => {
     );
 
     expect(html).toContain("Issue Center");
-    expect(html).toContain("Policy requires review");
+    expect(html).toContain("Problems needing attention");
+    expect(html).toContain("Review");
     expect(html).toContain("Suggested action: Open review stages.");
   });
 
@@ -87,6 +91,6 @@ describe("RunIssueCenter", () => {
       }),
     );
 
-    expect(html).toContain("No active issues");
+    expect(html).toContain("All clear right now");
   });
 });

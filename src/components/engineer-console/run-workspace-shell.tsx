@@ -5,6 +5,7 @@ import { StatusBadge } from "./status-badge";
 import {
   DEFAULT_RUN_WORKSPACE_VIEW,
   RUN_WORKSPACE_VIEWS,
+  getRunWorkspaceView,
   type RunWorkspaceViewId,
 } from "@/lib/engineer-console/run-ux/run-workspace";
 import type { RunIssue } from "@/lib/engineer-console/run-ux/run-issues";
@@ -20,9 +21,21 @@ interface RunWorkspaceShellProps {
   nextAction: string;
   activeView: RunWorkspaceViewId;
   onSelectView: (viewId: RunWorkspaceViewId) => void;
+  viewIssueCounts: Partial<Record<RunWorkspaceViewId, number>>;
   currentIssue: RunIssue | null;
   onOpenCurrentIssue: () => void;
   children: React.ReactNode;
+}
+
+function issueSeverityTone(severity: RunIssue["severity"]): string {
+  switch (severity) {
+    case "critical":
+      return "border-red-500/40 bg-red-950/30 text-red-100";
+    case "warning":
+      return "border-amber-500/40 bg-amber-950/30 text-amber-100";
+    default:
+      return "border-blue-500/40 bg-blue-950/30 text-blue-100";
+  }
 }
 
 export function RunWorkspaceShell({
@@ -36,10 +49,14 @@ export function RunWorkspaceShell({
   nextAction,
   activeView,
   onSelectView,
+  viewIssueCounts,
   currentIssue,
   onOpenCurrentIssue,
   children,
 }: RunWorkspaceShellProps) {
+  const activeWorkspace = getRunWorkspaceView(activeView);
+  const activeWorkspaceIssueCount = viewIssueCounts[activeView] ?? 0;
+
   function handleTabKeyDown(
     event: React.KeyboardEvent<HTMLButtonElement>,
     viewId: RunWorkspaceViewId,
@@ -70,100 +87,143 @@ export function RunWorkspaceShell({
 
   return (
     <section
-      className="relative rounded-2xl border border-[var(--border)] bg-[var(--background)]"
+      className="relative mx-auto max-w-[112rem] overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--background)] shadow-[0_24px_80px_rgba(15,23,42,0.28)]"
       aria-labelledby="run-workspace-heading"
     >
-      <div className="sticky top-4 z-20 rounded-t-2xl border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur">
-        <div className="flex flex-col gap-4 p-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="sticky top-3 z-20 rounded-t-3xl border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur">
+        <div className="flex flex-col gap-5 p-4 sm:p-5">
+          <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
             <div className="min-w-0">
-              <h2
-                id="run-workspace-heading"
-                className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
-              >
-                Run workspace
-              </h2>
-              <p className="mt-1 text-xl font-semibold text-white">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2
+                  id="run-workspace-heading"
+                  className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]"
+                >
+                  Run workspace
+                </h2>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-2.5 py-1 text-[11px] font-medium text-white">
+                  {activeWorkspace.label} workspace
+                </span>
+                {currentIssue ? (
+                  <span
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${issueSeverityTone(currentIssue.severity)}`}
+                  >
+                    Highest priority: {currentIssue.severity}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
                 {taskTitle}
               </p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Run {runIdShort} • focused operator workspace
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Run {runIdShort} • {activeWorkspace.description}
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={runStatus} />
-              <span className="rounded border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--muted)]">
+              <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-2.5 py-1 text-xs text-[var(--muted)]">
                 Stage: {currentStageLabel}
               </span>
               {riskLevel ? <StatusBadge status={riskLevel} /> : null}
             </div>
           </div>
 
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
-                <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Run health</p>
-                <p className="mt-2 text-sm text-white">
-                  {blockerCount} blocker(s), {warningCount} warning(s)
-                </p>
-              </div>
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 sm:col-span-2">
-                <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
-                  Primary next action
-                </p>
-                <p className="mt-2 text-sm text-white">{nextAction}</p>
+          <div className="grid gap-3 xl:grid-cols-[12rem_minmax(0,1fr)_minmax(18rem,0.95fr)]">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+              <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Attention</p>
+              <div className="mt-3 space-y-2 text-sm">
+                <p className="font-medium text-white">{blockerCount} blocker(s)</p>
+                <p className="text-[var(--muted)]">{warningCount} warning(s)</p>
               </div>
             </div>
 
-            <div className="flex items-start justify-end">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+              <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Primary next action</p>
+              <p className="mt-3 text-sm font-medium text-white">{nextAction}</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">
+                Navigation stays separate from approvals, PR, merge, and release actions. Those
+                controls remain inside the selected workspace.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+              <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Current workspace</p>
+              <p className="mt-3 text-sm font-semibold text-white">{activeWorkspace.label}</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                {activeWorkspaceIssueCount > 0
+                  ? `${activeWorkspaceIssueCount} issue${activeWorkspaceIssueCount === 1 ? "" : "s"} linked here right now.`
+                  : "No derived issues are currently linked to this workspace."}
+              </p>
               <button
                 type="button"
                 onClick={onOpenCurrentIssue}
-                className="inline-flex rounded-lg border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--card)]/80"
+                className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-sm font-medium text-white transition hover:border-white/20 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
               >
                 {currentIssue
                   ? `Open issue: ${currentIssue.title}`
-                  : `Open ${RUN_WORKSPACE_VIEWS.find((view) => view.id === activeView)?.label ?? "Overview"}`}
+                  : `Open ${activeWorkspace.label}`}
               </button>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-[var(--border)] px-4 py-3">
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Run workspace views">
+        <div className="border-t border-[var(--border)] px-4 py-3 sm:px-5">
+          <div
+            className="flex gap-2 overflow-x-auto pb-1"
+            role="tablist"
+            aria-label="Run workspace views"
+          >
             {RUN_WORKSPACE_VIEWS.map((view) => {
               const selected = activeView === view.id;
+              const issueCount = viewIssueCounts[view.id] ?? 0;
               return (
                 <button
                   key={view.id}
                   id={`run-workspace-tab-${view.id}`}
                   type="button"
                   role="tab"
+                  aria-label={view.label}
                   aria-selected={selected}
                   aria-controls={`run-workspace-panel-${view.id}`}
                   tabIndex={selected ? 0 : -1}
                   onClick={() => onSelectView(view.id)}
                   onKeyDown={(event) => handleTabKeyDown(event, view.id)}
-                  className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                  className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] ${
                     selected
-                      ? "border-[var(--accent)] bg-[var(--accent)]/15 text-white"
-                      : "border-[var(--border)] text-[var(--muted)] hover:text-white"
+                      ? "border-[var(--accent)] bg-[var(--accent)]/15 text-white shadow-[0_0_0_1px_var(--accent),0_14px_30px_rgba(59,130,246,0.18)]"
+                      : "border-[var(--border)] bg-[var(--card)]/70 text-[var(--muted)] hover:border-white/15 hover:text-white"
                   }`}
                 >
-                  {view.label}
+                  <span className="inline-flex items-center gap-2">
+                    <span>{view.label}</span>
+                    {issueCount > 0 ? (
+                      <span
+                        aria-hidden="true"
+                        className={`rounded-full border px-1.5 py-0.5 text-[11px] font-medium ${
+                          selected
+                            ? "border-white/20 bg-white/10 text-white"
+                            : "border-[var(--border)] bg-[var(--background)] text-[var(--muted)]"
+                        }`}
+                      >
+                        {issueCount}
+                      </span>
+                    ) : null}
+                  </span>
                 </button>
               );
             })}
           </div>
           <p className="mt-2 text-xs text-[var(--muted)]">
-            {RUN_WORKSPACE_VIEWS.find((view) => view.id === activeView)?.description ??
+            Current workspace:{" "}
+            <span className="font-medium text-white">{activeWorkspace.label}</span>.{" "}
+            {activeWorkspace.description ??
               RUN_WORKSPACE_VIEWS.find((view) => view.id === DEFAULT_RUN_WORKSPACE_VIEW)?.description}
           </p>
         </div>
       </div>
 
-      <div className="p-4">{children}</div>
+      <div className="p-4 sm:p-5">{children}</div>
     </section>
   );
 }
@@ -183,8 +243,9 @@ export function RunWorkspaceViewPanel({
       id={`run-workspace-panel-${viewId}`}
       role="tabpanel"
       aria-labelledby={`run-workspace-tab-${viewId}`}
+      tabIndex={-1}
       hidden={!active}
-      className={active ? "space-y-4" : undefined}
+      className={active ? "mx-auto max-w-[104rem] space-y-5" : undefined}
     >
       {children}
     </section>
