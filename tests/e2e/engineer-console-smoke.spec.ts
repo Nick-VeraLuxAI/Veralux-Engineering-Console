@@ -60,6 +60,31 @@ test.describe("Engineering Console trusted local smoke", () => {
       await expect(page.getByText("Next recommended action")).toBeVisible();
       await expectRunDetailPanelsVisible(page);
     });
+
+    test("guided worker-plan builder supports README smoke helper", async ({
+      page,
+      request,
+      baseURL,
+    }) => {
+      const { runId } = await createTaskAndRun(request, baseURL!, {
+        title: "Create README smoke verification",
+        description: "Create README.md for staging smoke verification.",
+      });
+
+      await gotoRunDetailResilient(page, runId, request, baseURL!);
+      await expect(page.getByRole("heading", { name: "Guided worker-plan builder" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Create README smoke plan" })).toBeVisible();
+
+      await page.getByRole("button", { name: "Create README smoke plan" }).click();
+
+      await expect(
+        page.locator("pre").filter({ hasText: `"runId": "${runId}"` }).first(),
+      ).toBeVisible();
+      await expect(
+        page.locator("pre").filter({ hasText: '"path": "README.md"' }).first(),
+      ).toBeVisible();
+      await expect(page.getByText("This plan will create file: README.md.")).toBeVisible();
+    });
   });
 
 });

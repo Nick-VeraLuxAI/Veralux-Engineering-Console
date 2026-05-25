@@ -105,7 +105,8 @@ When you open `/engineer/runs/[id]`, the page now starts with:
 
 1. **Run Command Center** — current lifecycle stage, next recommended action, blockers, warnings, and safe follow-up actions.
 2. **Lifecycle** stepper — workflow order from task through sign-off with links to the relevant panel.
-3. **Technical panels** below — all existing panels remain available for detailed review and actions.
+3. **Guided worker-plan flow** — model draft review, guided builder, intent preview, and advanced JSON mode.
+4. **Technical panels** below — all existing panels remain available for detailed review and actions.
 
 The command center and lifecycle stepper are **guidance only**. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
 
@@ -121,7 +122,8 @@ Details: [operator-ux-guide.md](./operator-ux-guide.md), [operator-ux-audit.md](
 
 - Provider: `GET /model-provider` (`mock` or `kimi`).
 - Output is validated JSON only — **not executed**.
-- Use **Copy to worker plan editor**, then review and submit manually.
+- Use **Use draft in worker plan builder**, then review the intent comparison and submit manually.
+- Draft comparison now highlights task-vs-draft mismatches before execution.
 
 Models never write files or run commands.
 
@@ -129,11 +131,27 @@ Models never write files or run commands.
 
 ## Worker plan execution
 
-**UI:** Run page → **Worker plan** panel → paste/edit JSON → **Validate and execute worker plan**.
+**UI:** Run page → **Worker plan** panel.
 
 **API:** `POST /runs/[id]/worker-plan` with plan body; optional `allowPackageLock`, `allowMigrations`.
 
 **Rules:** Paths in `allowedFiles`; ops `create_file` | `update_file` | `append_file` only; no shell.
+
+Recommended operator flow:
+
+1. Use the **Guided worker-plan builder** for common plans.
+2. Review the auto-generated **allowed files** list and **Preview JSON**.
+3. Read the **Plan intent preview** for task-vs-plan warnings.
+4. Use **Advanced JSON editor** only when manual JSON edits are required.
+5. Click **Validate and execute** manually.
+
+Raw JSON remains available, but the operator no longer needs to manually find or type `runId`.
+
+README smoke helper behavior:
+
+- The **Create README smoke plan** shortcut appears only in staging/test/dev-like contexts or when the task clearly looks like a staging README smoke task.
+- It only fills the builder/template. It does **not** execute automatically.
+- The resulting plan still goes through the same backend validation and execution path as any other worker plan.
 
 After execution: run status advances, changed files collected, quality gates run.
 
@@ -358,7 +376,9 @@ After staging passes, use [production-launch-checklist.md](./production-launch-c
 | Symptom | Check |
 |---------|--------|
 | Cannot register repo | `ENGINEER_CONSOLE_REPO_ROOTS` includes parent path |
-| Plan validation fails | `runId` matches; paths in `allowedFiles`; no `../` |
+| Plan validation fails | Check guided preview or advanced JSON parse status; confirm `runId` matches; paths are in `allowedFiles`; no `../` |
+| Advanced JSON says invalid | Remove shell wrapper text like `cat <<'JSON'` / `pbcopy`; fix malformed JSON before submit |
+| Draft looks wrong | Compare the task text to the draft summary and file paths; correct it in the guided builder or advanced JSON before execution |
 | Protected path blocked | `.env`, `.git`, `node_modules`, lockfile without flag |
 
 ### Release gates

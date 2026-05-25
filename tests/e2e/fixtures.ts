@@ -113,6 +113,10 @@ export async function createBasicTaskAndRun(
 export async function createTaskAndRun(
   request: APIRequestContext,
   baseURL: string,
+  options?: {
+    title?: string;
+    description?: string;
+  },
 ): Promise<{ taskId: string; runId: string }> {
   const repoPath = path.resolve(process.cwd());
   const headers = await mutationHeaders(request, baseURL);
@@ -122,8 +126,8 @@ export async function createTaskAndRun(
     const taskResponse = await request.post(`${baseURL}/api/engineer-console/tasks`, {
       headers,
       data: {
-        title: `E2E task ${Date.now()}`,
-        description: "E2E fixture",
+        title: options?.title ?? `E2E task ${Date.now()}`,
+        description: options?.description ?? "E2E fixture",
         targetRepoPath: repoPath,
         priority: "normal",
       },

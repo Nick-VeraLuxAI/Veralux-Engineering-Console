@@ -54,6 +54,7 @@ import {
   listWorkerOperations,
   parseValidationErrors,
 } from "@/lib/engineer-console/worker-plan/worker-plan-manager";
+import { shouldShowReadmeSmokeHelper } from "@/lib/engineer-console/worker-plan/worker-plan-ux";
 import type { RunWorkflowSummary } from "./run-ux-types";
 
 export function buildRunWorkflowSummary(input: {
@@ -137,6 +138,7 @@ export function buildRunWorkflowSummary(input: {
     task: {
       id: task.id,
       title: task.title,
+      description: task.description,
     },
     workerPlan: {
       hasDraft: Boolean(latestWorkerPlanDraft),
@@ -148,6 +150,12 @@ export function buildRunWorkflowSummary(input: {
       executionErrorCount: workerPlanExecutionErrors.length,
       executedOperationCount: latestWorkerPlanOperations.length,
       changedFileCount: changedFiles.length,
+      showReadmeSmokeHelper: shouldShowReadmeSmokeHelper({
+        auditChainScope: process.env.ENGINEER_CONSOLE_AUDIT_CHAIN_SCOPE,
+        nodeEnv: process.env.NODE_ENV,
+        taskTitle: task.title,
+        taskDescription: task.description,
+      }),
     },
     qualityGates: {
       count: qualityGates.length,

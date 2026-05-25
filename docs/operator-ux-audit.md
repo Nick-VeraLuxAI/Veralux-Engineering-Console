@@ -37,6 +37,19 @@ UX-1 is now implemented on the run detail page:
 
 UX-1 improves orientation and next-action clarity, but it intentionally does **not** change worker-plan ergonomics, approval behavior, PR logic, release gates, or deployment rules. The remaining UX backlog still starts with **UX-2 — Worker-plan UX improvements**.
 
+## UX-2 implementation note
+
+UX-2 is now implemented in the worker-plan flow:
+
+- a **Guided worker-plan builder** now sits above the raw JSON editor
+- current `runId` is shown as read-only context instead of a manual lookup step
+- a **Plan intent preview** now compares task text to worker-plan summary, paths, and operation types
+- the **Advanced JSON** editor now shows parse state, shell-wrapper warnings, and placeholder runId warnings
+- model-generated drafts now show a side-by-side task/draft comparison and clear mismatch warnings
+- a **Create README smoke plan** helper now appears only in staging/test/dev-like contexts or matching README smoke tasks
+
+UX-2 improves safety-preserving usability, but it intentionally does **not** auto-execute worker plans, weaken validation, bypass path allowlists, or change governance authority. The next backlog item is **UX-3 — approval and review visibility**.
+
 ---
 
 ## Current operator journey

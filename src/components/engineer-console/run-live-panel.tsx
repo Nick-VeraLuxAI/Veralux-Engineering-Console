@@ -16,7 +16,10 @@ import {
 import { StatusBadge } from "./status-badge";
 import { ApprovalActions } from "./approval-actions";
 import { WorkerPlanPanel } from "./worker-plan-panel";
-import { WorkerPlanDraftPanel } from "./worker-plan-draft-panel";
+import {
+  WorkerPlanDraftPanel,
+  type WorkerPlanDraftPayload,
+} from "./worker-plan-draft-panel";
 import { AuditTimelinePanel } from "./audit-timeline-panel";
 import { EvidenceBundlePanel } from "./evidence-bundle-panel";
 import { DecisionHistoryPanel } from "./decision-history-panel";
@@ -41,12 +44,13 @@ interface RunDetailPayload {
   diffSummary: string;
   qualityGates: QualityGateResult[];
   approvalReport: ApprovalReport | null;
+  workerPlanDraft?: WorkerPlanDraftPayload | null;
   uxSummary: RunWorkflowSummary;
 }
 
 export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDetailPayload }) {
   const [data, setData] = useState(initial);
-  const [manualPlanJson, setManualPlanJson] = useState<string | undefined>(undefined);
+  const [incomingPlanJson, setIncomingPlanJson] = useState<string | undefined>(undefined);
   const terminal = ["completed", "failed"].includes(data.run.status);
 
   useEffect(() => {
@@ -156,13 +160,18 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
 
       <WorkerPlanDraftPanel
         runId={runId}
-        onCopyToWorkerPlan={(json) => setManualPlanJson(json)}
+        taskTitle={data.task.title}
+        taskDescription={data.task.description}
+        initialDraft={data.workerPlanDraft ?? null}
+        onUseDraftPlan={(json) => setIncomingPlanJson(json)}
       />
       <div id={RUN_PANEL_IDS.workerPlan} className="scroll-mt-24">
         <WorkerPlanPanel
           runId={runId}
-          planJson={manualPlanJson}
-          onPlanJsonChange={setManualPlanJson}
+          taskTitle={data.task.title}
+          taskDescription={data.task.description}
+          showReadmeSmokeHelper={data.uxSummary.workerPlan.showReadmeSmokeHelper}
+          incomingPlanJson={incomingPlanJson}
         />
       </div>
 

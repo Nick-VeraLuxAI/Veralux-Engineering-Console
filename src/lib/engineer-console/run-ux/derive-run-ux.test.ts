@@ -32,6 +32,7 @@ function buildSummary(
     task: {
       id: "task-1",
       title: "Add operator UX guidance",
+      description: "Improve operator clarity on the run page.",
       ...(overrides.task ?? {}),
     },
     workerPlan: {
@@ -44,6 +45,7 @@ function buildSummary(
       executionErrorCount: 0,
       executedOperationCount: 2,
       changedFileCount: 2,
+      showReadmeSmokeHelper: false,
       ...(overrides.workerPlan ?? {}),
     },
     qualityGates: {

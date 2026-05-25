@@ -8,6 +8,10 @@ import {
 } from "@/lib/engineer-console/run-manager/run-manager";
 import { getTaskById } from "@/lib/engineer-console/task-manager/task-manager";
 import { resolveTaskTargetRepoPath } from "@/lib/engineer-console/repo-intelligence/task-repo-path";
+import {
+  getDraftValidationErrors,
+  getLatestWorkerPlanDraftForRun,
+} from "@/lib/engineer-console/worker-plan/worker-plan-draft-manager";
 import { getWorkerPlanChangedFilesScope } from "@/lib/engineer-console/worker-plan/worker-plan-manager";
 import { getChangedFiles, getDiffSummary } from "@/lib/engineer-console/workspace/git-workspace";
 import type { ApprovalReport } from "@/lib/engineer-console/types";
@@ -46,6 +50,7 @@ export default async function RunDetailPage({
   const approvalReport: ApprovalReport | null = reportJson
     ? (JSON.parse(reportJson) as ApprovalReport)
     : null;
+  const latestDraft = getLatestWorkerPlanDraftForRun(id);
   const uxSummary = buildRunWorkflowSummary({
     run,
     task,
@@ -72,6 +77,21 @@ export default async function RunDetailPage({
           diffSummary,
           qualityGates,
           approvalReport,
+          workerPlanDraft: latestDraft
+            ? {
+                id: latestDraft.id,
+                runId: latestDraft.runId,
+                provider: latestDraft.provider,
+                model: latestDraft.model,
+                validationStatus: latestDraft.validationStatus,
+                parsedPlan: latestDraft.parsedPlanJson
+                  ? JSON.parse(latestDraft.parsedPlanJson)
+                  : null,
+                rawResponse: latestDraft.rawResponse,
+                validationErrors: getDraftValidationErrors(latestDraft),
+                createdAt: latestDraft.createdAt,
+              }
+            : null,
           uxSummary,
         }}
       />

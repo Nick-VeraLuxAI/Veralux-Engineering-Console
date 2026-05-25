@@ -58,6 +58,7 @@ export interface RunWorkflowSummary {
   task: {
     id: string;
     title: string;
+    description: string;
   };
   workerPlan: {
     hasDraft: boolean;
@@ -69,6 +70,7 @@ export interface RunWorkflowSummary {
     executionErrorCount: number;
     executedOperationCount: number;
     changedFileCount: number;
+    showReadmeSmokeHelper: boolean;
   };
   qualityGates: {
     count: number;
