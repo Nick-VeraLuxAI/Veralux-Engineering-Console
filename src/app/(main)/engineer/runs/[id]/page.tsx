@@ -7,6 +7,8 @@ import {
   getRunById,
 } from "@/lib/engineer-console/run-manager/run-manager";
 import { getTaskById } from "@/lib/engineer-console/task-manager/task-manager";
+import { resolveTaskTargetRepoPath } from "@/lib/engineer-console/repo-intelligence/task-repo-path";
+import { getWorkerPlanChangedFilesScope } from "@/lib/engineer-console/worker-plan/worker-plan-manager";
 import { getChangedFiles, getDiffSummary } from "@/lib/engineer-console/workspace/git-workspace";
 import type { ApprovalReport } from "@/lib/engineer-console/types";
 import { RunLivePanel } from "@/components/engineer-console/run-live-panel";
@@ -29,8 +31,10 @@ export default async function RunDetailPage({
   let changedFiles: string[] = [];
   let diffSummary = "";
   try {
-    changedFiles = await getChangedFiles(task.targetRepoPath);
-    diffSummary = await getDiffSummary(task.targetRepoPath);
+    const repoPath = resolveTaskTargetRepoPath(task);
+    const scope = getWorkerPlanChangedFilesScope(id);
+    changedFiles = await getChangedFiles(repoPath, scope ?? {});
+    diffSummary = await getDiffSummary(repoPath, { changedFiles });
   } catch {
     changedFiles = [];
     diffSummary = "";

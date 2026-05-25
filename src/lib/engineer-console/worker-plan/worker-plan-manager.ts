@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { getEngineerConsoleDb } from "../db/client";
+import type { GetChangedFilesOptions } from "../workspace/git-workspace";
 import { normalizeRelativePath } from "./path-safety";
 import type { WorkerPlan } from "./worker-plan-types";
 import type {
@@ -308,5 +309,29 @@ export function parseValidationErrors(json: string): WorkerPlanValidationError[]
     return JSON.parse(json) as WorkerPlanValidationError[];
   } catch {
     return [];
+  }
+}
+
+/** Scope untracked-file detection to worker-plan outputs for executed plans. */
+export function getWorkerPlanChangedFilesScope(
+  runId: string,
+): GetChangedFilesOptions | undefined {
+  const plan = getLatestWorkerPlanForRun(runId);
+  if (!plan || plan.executionStatus !== "executed") {
+    return undefined;
+  }
+
+  try {
+    const ops = JSON.parse(plan.executedOperationsJson) as Array<{ path?: string }>;
+    const workerPlanPaths = [
+      ...new Set(
+        ops
+          .map((op) => (op.path ? normalizeRelativePath(op.path) : ""))
+          .filter((p) => p.length > 0),
+      ),
+    ];
+    return { workerPlanPaths };
+  } catch {
+    return { workerPlanPaths: [] };
   }
 }

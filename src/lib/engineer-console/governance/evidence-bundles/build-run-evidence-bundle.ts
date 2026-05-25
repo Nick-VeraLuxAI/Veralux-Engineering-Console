@@ -15,6 +15,7 @@ import {
   getLatestWorkerPlanForRun,
   listWorkerOperations,
 } from "../../worker-plan/worker-plan-manager";
+import { getWorkerPlanChangedFilesScope } from "../../worker-plan/worker-plan-manager";
 import { getChangedFiles, getDiffSummary } from "../../workspace/git-workspace";
 import {
   EVIDENCE_BUNDLE_VERSION,
@@ -290,8 +291,12 @@ export async function buildRunEvidenceBundle(
   let diffSummary = input.diffSummary;
   if (changedFiles === undefined || diffSummary === undefined) {
     try {
-      changedFiles = changedFiles ?? (await getChangedFiles(repoPath));
-      diffSummary = diffSummary ?? (await getDiffSummary(repoPath));
+      const scope = getWorkerPlanChangedFilesScope(run.id);
+      changedFiles =
+        changedFiles ?? (await getChangedFiles(repoPath, scope ?? {}));
+      diffSummary =
+        diffSummary ??
+        (await getDiffSummary(repoPath, { changedFiles }));
     } catch {
       changedFiles = changedFiles ?? [];
       diffSummary = diffSummary ?? "";

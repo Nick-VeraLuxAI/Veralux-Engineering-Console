@@ -121,10 +121,11 @@ describe("submitAndExecuteWorkerPlan integration", () => {
       changedFiles: string[];
     };
     expect(report.workerPlan?.summary).toBe("Add module file");
-    const hasModuleInReport =
-      report.changedFiles.some((f) => f.includes("module.ts")) ||
-      (result.execution?.changedFiles ?? []).some((f) => f.includes("module.ts"));
-    expect(hasModuleInReport).toBe(true);
+    expect(report.changedFiles.some((f) => f.includes("module.ts"))).toBe(true);
+    expect(result.execution?.changedFiles.some((f) => f.includes("module.ts"))).toBe(true);
+    expect(report.diffSummary).not.toContain(
+      "working tree may be clean or only untracked",
+    );
 
     const log = execSync("git log --oneline", { cwd: repoRoot, encoding: "utf8" }).trim();
     expect(log.split("\n").length).toBe(1);

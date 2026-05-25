@@ -1,4 +1,5 @@
 import { assessChangedFiles } from "../../governance/governance-engine";
+import { getWorkerPlanChangedFilesScope } from "../../worker-plan/worker-plan-manager";
 import { getChangedFiles } from "../../workspace/git-workspace";
 import { buildCommitMessage } from "./build-commit-message";
 import { getHeadCommitSha, runGit } from "./controlled-git-executor";
@@ -43,7 +44,8 @@ export async function createControlledGitCommit(
   repoPath: string,
   runId: string,
 ): Promise<CreateGitCommitResult> {
-  const changedFiles = await getChangedFiles(repoPath);
+  const scope = getWorkerPlanChangedFilesScope(runId);
+  const changedFiles = await getChangedFiles(repoPath, scope ?? {});
   if (changedFiles.length === 0) {
     throw new PrCreationError("No changes to commit.");
   }

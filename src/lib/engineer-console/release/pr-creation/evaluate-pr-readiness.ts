@@ -3,6 +3,7 @@ import { getRegisteredRepoById } from "../../repo-intelligence/registered-repos/
 import { resolveTaskTargetRepoPath } from "../../repo-intelligence/task-repo-path";
 import { getTaskById } from "../../task-manager/task-manager";
 import type { ApprovalReport } from "../../types";
+import { getWorkerPlanChangedFilesScope } from "../../worker-plan/worker-plan-manager";
 import { getChangedFiles } from "../../workspace/git-workspace";
 import { assessChangedFiles } from "../../governance/governance-engine";
 import { getEvidenceBundleForRun } from "../../governance/evidence-bundles/evidence-bundle-manager";
@@ -83,7 +84,8 @@ export async function evaluatePrReadiness(runId: string): Promise<PrReadinessRes
   const repoPath = resolveTaskTargetRepoPath(task);
 
   try {
-    changedFiles = await getChangedFiles(repoPath);
+    const scope = getWorkerPlanChangedFilesScope(runId);
+    changedFiles = await getChangedFiles(repoPath, scope ?? {});
     currentBranch = await getCurrentBranch(repoPath);
     gitReadOk = true;
   } catch {

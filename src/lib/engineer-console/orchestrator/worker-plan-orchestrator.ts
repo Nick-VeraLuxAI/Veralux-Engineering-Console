@@ -138,8 +138,10 @@ async function finalizeRunAfterChanges(
   });
 
   const repoPath = resolveTaskTargetRepoPath(task);
-  const changedFiles = await getChangedFiles(repoPath);
-  const diffSummary = await getDiffSummary(repoPath);
+  const workerPlanPaths =
+    workerPlanSummary?.executedOperations.map((op) => op.path) ?? [];
+  const changedFiles = await getChangedFiles(repoPath, { workerPlanPaths });
+  const diffSummary = await getDiffSummary(repoPath, { changedFiles });
   const governance = assessChangedFiles(changedFiles);
 
   auditQualityGatesStarted(runId, task.id);
