@@ -124,6 +124,20 @@ UX-8 improves speed for repeat operators, but it intentionally does **not** add 
 
 ---
 
+## UX-9 implementation note
+
+UX-9 is now implemented on the dashboard and list pages:
+
+- the dashboard now includes a read-only **Operator Queue** with deterministic buckets for action, blockers, approval, PR/release, completion, and setup/staging attention
+- queue priority now pulls failed runs, audit-chain issues, hard-gate blockers, and approval blockers above lower-priority work
+- read-only dashboard filters now let operators focus on **Needs action**, **Blocked**, **Approval**, **PR / Release**, or **Completed** work without triggering mutations
+- dashboard task cards and task-detail run rows now show the latest lifecycle stage, next action, blocker/warning counts, timestamps, and direct **Open run** links
+- staging cues now surface setup gaps plus manual `verify:ci`, backup verification, and `docs/staging-dry-run-report.md` follow-up paths where no persisted DB state exists
+
+UX-9 improves cross-run triage speed, but it intentionally does **not** auto-start runs, auto-approve, auto-create PRs, auto-merge, auto-deploy, auto-sign off, hide audit detail, or change backend workflow authority. The next backlog items are **saved queue views, stale-run escalation, and operator handoff cues**.
+
+---
+
 ## Current operator journey
 
 | Step | What the operator sees | What the operator does | Next action obvious? | Button easy to find? | Language understandable? | State clear? | Could do wrong thing? | Recovery guidance |
@@ -513,6 +527,6 @@ This preserves every panel while removing the burden of reading them in raw top-
 
 ## Recommended immediate next phase
 
-**Next phase:** **UX-9 — multi-run operator queue and dashboard acceleration**
+**Next phase:** **UX-10 — saved queue views and operator handoff cues**
 
-UX-1 through UX-8 now cover orientation, worker-plan authoring, approval/review discoverability, PR/release retry clarity, run-page density, setup readiness, staging onboarding, plain-English terminology help, and repeat-operator navigation speed. The highest remaining operator-value-to-risk item is reducing the number of runs an expert has to open before they can identify where attention is needed.
+UX-1 through UX-9 now cover orientation, worker-plan authoring, approval/review discoverability, PR/release retry clarity, run-page density, setup readiness, staging onboarding, plain-English terminology help, repeat-operator navigation speed, and multi-run dashboard triage. The highest remaining operator-value-to-risk item is reducing cross-operator handoff friction with saved queue presets, stale-run escalation, and clearer shared ownership cues.

@@ -111,6 +111,8 @@ UX-5 now reduces run-page density with a **Current Action** zone and grouped pro
 
 UX-6 now improves setup and staging onboarding with a dashboard **Setup readiness** panel, a **Run staging smoke workflow** helper, clearer approved-repo-root guidance on the repos page, a staging-only README smoke task preset, and empty states that explain what is missing and what to click next. These changes preserve the same repo-root validation, auth rules, release controls, and manual action boundaries.
 
+UX-9 now improves staging triage above the run page with a read-only dashboard **Operator Queue**, deterministic priority buckets, read-only queue filters, richer task/run summaries, and setup/staging attention items for manual `verify:ci`, backup verification, and `docs/staging-dry-run-report.md` follow-up. These changes preserve the same manual run, approval, PR, merge, deploy, and sign-off boundaries.
+
 See [operator-ux-audit.md](./operator-ux-audit.md) for the full UX journey map, severity-ranked issue inventory, information-architecture recommendation, and phased redesign backlog, and [operator-ux-guide.md](./operator-ux-guide.md) for the new operator-facing usage notes. The remaining UX items still do **not** require weakening governance behavior, but several are strong candidates to fix before production operator use and before external demos.
 
 ---

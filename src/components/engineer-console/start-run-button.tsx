@@ -5,7 +5,13 @@ import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function StartRunButton({ taskId }: { taskId: string }) {
+export function StartRunButton({
+  taskId,
+  compact = false,
+}: {
+  taskId: string;
+  compact?: boolean;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +42,9 @@ export function StartRunButton({ taskId }: { taskId: string }) {
         type="button"
         onClick={startRun}
         disabled={loading}
-        className="rounded bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+        className={`rounded bg-[var(--accent)] text-sm font-medium text-white disabled:opacity-50 ${
+          compact ? "px-3 py-1.5" : "px-4 py-2"
+        }`}
       >
         {loading ? "Starting…" : "Start run"}
       </button>

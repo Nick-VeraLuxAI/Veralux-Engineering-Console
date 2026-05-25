@@ -1,6 +1,6 @@
 # Engineering Console operator UX guide
 
-Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, and UX-8 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
+Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, and UX-9 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
 
 ---
 
@@ -178,6 +178,27 @@ UX-8 improves repeat-operator speed without adding any automatic execution:
 
 ---
 
+## What changed in UX-9
+
+UX-9 improves multi-run triage on the dashboard without adding any automatic execution:
+
+1. **Operator Queue**  
+   The dashboard now includes a read-only **Operator Queue** that groups the latest task or run into **Needs operator action**, **Blocked / failed**, **Ready for approval**, **Ready for PR / release**, **Recently completed**, and **Staging checklist / setup attention** buckets.
+
+2. **Deterministic queue priority**  
+   Failed runs, audit-chain failures, hard-gate blockers, and approval blockers now sort above lower-risk work. Completed runs stay lower priority.
+
+3. **Read-only dashboard filters**  
+   Operators can filter the queue to **All**, **Needs action**, **Blocked**, **Approval**, **PR / Release**, or **Completed** without triggering any mutations.
+
+4. **Latest run state on task and run lists**  
+   Dashboard task cards and task-detail run rows now show the latest lifecycle stage, next action, blocker/warning counts, last updated time, and direct **Open run** links.
+
+5. **Staging checklist attention cues**  
+   Setup and staging items such as compatibility gaps, manual `verify:ci` tracking, backup verification tracking, and the `docs/staging-dry-run-report.md` record path now appear in the queue when relevant.
+
+---
+
 ## What the command center does
 
 The command center is a **read-only orientation layer**. It helps operators answer:
@@ -208,7 +229,7 @@ Clicking a step jumps to the relevant panel or, for `Task`, back to the task det
 
 ## Where technical details live
 
-UX-1 through UX-8 did **not** remove technical detail from the run page.
+UX-1 through UX-9 did **not** remove technical detail from the run page.
 
 The detailed panels still live below the command center, lifecycle stepper, and current-action zone:
 
@@ -286,9 +307,9 @@ Decision guidance:
 
 ## Current UX limits
 
-UX-1 through UX-8 improve orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, setup onboarding, terminology clarity, and repeat-operator navigation speed, but they do **not** yet solve:
+UX-1 through UX-9 now cover orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, setup onboarding, terminology clarity, repeat-operator navigation speed, and dashboard-level queue triage, but they do **not** yet solve:
 
-- higher-level queue and dashboard views for operators managing many runs at once
-- better cross-run prioritization and handoff cues for teams sharing the same console
+- saved queue presets or team-specific queue views
+- explicit stale-run escalation and team handoff workflows across operators
 
 Those remain in the next phases documented in [operator-ux-audit.md](./operator-ux-audit.md).

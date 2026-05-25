@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  createTaskOnly,
   createRunWithGovernanceFixture,
   createTaskAndRun,
   waitForRunDetailApiReady,
@@ -18,11 +19,43 @@ test.describe("Engineering Console trusted local smoke", () => {
     await expect(page).toHaveURL(/\/engineer\/?$/);
     await expect(page.getByRole("heading", { name: "Engineering tasks" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Setup readiness" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Operator Queue" })).toBeVisible();
     await expect(page.getByText("What is setup readiness?")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Run staging smoke workflow" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Create task" })).toBeVisible();
-    await expect(page.getByText("Register a repo first")).toBeVisible();
     await expect(page).not.toHaveURL(/\/engineer\/login/);
+  });
+
+  test("dashboard operator queue filters and open run link work", async ({
+    page,
+    request,
+    baseURL,
+  }) => {
+    const taskOnlyTitle = `E2E queue task ${Date.now()}`;
+    await createTaskOnly(request, baseURL!, {
+      title: taskOnlyTitle,
+      description: "Operator queue task-only fixture",
+    });
+    const { runId } = await createTaskAndRun(request, baseURL!, {
+      title: `E2E queue run ${Date.now()}`,
+      description: "Operator queue run fixture",
+    });
+    await waitForRunDetailApiReady(request, baseURL!, runId);
+
+    await page.goto("/engineer");
+    const queue = page.locator("section").filter({
+      has: page.getByRole("heading", { name: "Operator Queue", exact: true }),
+    });
+    await expect(queue).toBeVisible();
+
+    const needsActionTab = queue.getByRole("tab", { name: /Needs action/i });
+    await needsActionTab.click();
+    const queueItem = queue.locator("li").filter({ hasText: taskOnlyTitle }).first();
+    await expect(queueItem).toBeVisible();
+
+    await queue.getByRole("tab", { name: /All/i }).click();
+    await queue.getByRole("link", { name: "Open run", exact: true }).first().click();
+    await expect(page).toHaveURL(/\/engineer\/runs\/[^/]+$/);
   });
 
   test("registered repos page loads", async ({ page }) => {

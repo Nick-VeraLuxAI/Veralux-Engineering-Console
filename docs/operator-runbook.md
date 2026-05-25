@@ -1,6 +1,6 @@
 # Engineering Console — Operator runbook
 
-Operational guide for VeraLux Engineering Console through Phase UX-8. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
+Operational guide for VeraLux Engineering Console through Phase UX-9. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
 
 ## Prerequisites
 
@@ -28,6 +28,30 @@ The dashboard now starts with two UX-6 onboarding surfaces:
 2. **Run staging smoke workflow** appears in staging-like, development, or trusted-local contexts and gives a safe order for smoke verification without executing anything automatically.
 
 These surfaces are guidance only. They do not register repos, create tasks, start runs, execute worker plans, create PRs, merge, deploy, or sign off automatically.
+
+---
+
+## Operator queue and dashboard filters
+
+UX-9 adds a read-only **Operator Queue** to the dashboard so repeat operators can triage work before opening a run:
+
+1. **Needs operator action** highlights runs still in worker-plan, quality-gate, evidence, replay, policy, or task-start phases.
+2. **Blocked / failed** pulls failed runs, audit-chain failures, hard release-gate blockers, and approval blockers to the top.
+3. **Ready for approval** highlights review and approval work that now needs a human decision.
+4. **Ready for PR / release** highlights PR retry, PR creation, merge, deployment, checklist, and sign-off follow-up.
+5. **Recently completed** keeps finished work visible but lower priority.
+6. **Staging checklist / setup attention** surfaces setup gaps, manual `verify:ci` / backup verification tracking, and the `docs/staging-dry-run-report.md` record path.
+
+Dashboard filters are read-only:
+
+- **All**
+- **Needs action**
+- **Blocked**
+- **Approval**
+- **PR / Release**
+- **Completed**
+
+The queue, filters, task cards, and run rows do **not** trigger start-run, approval, PR, merge, deploy, or sign-off mutations by themselves.
 
 ---
 

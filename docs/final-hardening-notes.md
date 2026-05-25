@@ -1,6 +1,6 @@
 # Final hardening notes — Engineering Console
 
-Post Phase 8F audit for production readiness and client use. Phase Q5 production readiness audit: [production-readiness-audit.md](./production-readiness-audit.md).
+Post Phase 9 audit for production readiness and client use. Phase Q5 production readiness audit: [production-readiness-audit.md](./production-readiness-audit.md).
 
 **Verification at time of writing:** `npm run verify:ci` (unit, build, E2E, `backup:db:verify`) — see [ci-validation.md](./ci-validation.md) and [e2e-smoke-tests.md](./e2e-smoke-tests.md) (Q3.5 / Q4).
 
@@ -19,6 +19,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 | First-run setup, staging onboarding, and empty states still required too much operator inference | Fixed in UX-6: the dashboard now shows a read-only setup readiness panel and staging smoke workflow helper, repo registration explains approved roots and step ordering, the task form exposes a staging-only README smoke preset in safe contexts, and empty states now point to the next action. Security, repo-root policy, and all manual action boundaries remain unchanged. |
 | Operators still had to decode internal terms like evidence bundle, replay verification, PR readiness, audit chain, and release sign-off | Fixed in UX-7: the console now ships a central operator glossary, inline plain-English help disclosures on the highest-friction panels, and clearer action copy while preserving raw technical statuses and the same governance rules. |
 | Repeat operators still had to scroll and reopen section groups to reach the same panels over and over | Fixed in UX-8: the run page now includes sticky quick navigation, a read-only expert summary, expand-on-anchor behavior, navigation-only keyboard shortcuts, and direct technical-detail jump links. No mutation shortcuts were added. |
+| Operators still had to open too many task and run pages to figure out which run needed attention next | Fixed in UX-9: the dashboard now includes a read-only Operator Queue with deterministic priority rules, client-side filters, richer task cards, richer task-detail run rows, and staging/setup attention cues. Queue navigation remains read-only and does not auto-run or auto-approve anything. |
 
 ---
 
@@ -62,7 +63,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 ## Recommended technical debt (priority order)
 
 1. **Staging dry run** — complete [staging-dry-run-checklist.md](./staging-dry-run-checklist.md) before production.
-2. **UX-9 multi-run queue and dashboard acceleration** — reduce how often experts need to open a run just to identify the next required action.
+2. **Saved queue presets and handoff cues** — let teams save common queue views and make stale/shared ownership clearer across operators.
 3. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
 4. **Operator admin UI** — create/disable operators without SQL.
 5. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.
@@ -140,7 +141,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 **Production launch:** Complete [production-launch-checklist.md](./production-launch-checklist.md) after staging dry run.
 
-UX-1 through UX-8 are now in place with a top-of-page command center, lifecycle stepper, current-action summary, grouped progressive-disclosure sections, guided worker-plan builder, advanced JSON guardrails, visible approval/review actions, plain-English PR retry state, actionable hard release-gate checklists, setup readiness, staging smoke onboarding guidance, shared glossary/help text, sticky quick navigation, expert-summary status strips, and navigation-only keyboard shortcuts. For the remaining staging usability work, see [operator-ux-audit.md](./operator-ux-audit.md), [operator-ux-guide.md](./operator-ux-guide.md), and [operator-glossary.md](./operator-glossary.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
+UX-1 through UX-9 are now in place with a top-of-page command center, lifecycle stepper, current-action summary, grouped progressive-disclosure sections, guided worker-plan builder, advanced JSON guardrails, visible approval/review actions, plain-English PR retry state, actionable hard release-gate checklists, setup readiness, staging smoke onboarding guidance, shared glossary/help text, sticky quick navigation, expert-summary status strips, navigation-only keyboard shortcuts, and a dashboard-level operator queue with read-only filters and latest-run summaries. For the remaining staging usability work, see [operator-ux-audit.md](./operator-ux-audit.md), [operator-ux-guide.md](./operator-ux-guide.md), and [operator-glossary.md](./operator-glossary.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
 
 **Phase 9B — External CI correlation:** Attach workflow run ids to deployment/sign-off rows and evidence summaries without triggering GitHub Actions from the console.
 

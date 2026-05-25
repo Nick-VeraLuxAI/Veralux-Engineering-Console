@@ -161,6 +161,34 @@ export async function createTaskAndRun(
   throw new Error(`Failed to create task/run after retries: ${lastError}`);
 }
 
+export async function createTaskOnly(
+  request: APIRequestContext,
+  baseURL: string,
+  options?: {
+    title?: string;
+    description?: string;
+  },
+): Promise<{ taskId: string }> {
+  const repoPath = path.resolve(process.cwd());
+  const headers = await mutationHeaders(request, baseURL);
+  const response = await request.post(`${baseURL}/api/engineer-console/tasks`, {
+    headers,
+    data: {
+      title: options?.title ?? `E2E task ${Date.now()}`,
+      description: options?.description ?? "E2E fixture",
+      targetRepoPath: repoPath,
+      priority: "normal",
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Failed to create task: ${response.status()} ${await response.text()}`);
+  }
+
+  const payload = (await response.json()) as { task: { id: string } };
+  return { taskId: payload.task.id };
+}
+
 export async function createRunWithWorkerPlanDraft(
   request: APIRequestContext,
   baseURL: string,
