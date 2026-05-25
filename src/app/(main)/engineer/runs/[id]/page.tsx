@@ -11,6 +11,7 @@ import { resolveTaskTargetRepoPath } from "@/lib/engineer-console/repo-intellige
 import { getWorkerPlanChangedFilesScope } from "@/lib/engineer-console/worker-plan/worker-plan-manager";
 import { getChangedFiles, getDiffSummary } from "@/lib/engineer-console/workspace/git-workspace";
 import type { ApprovalReport } from "@/lib/engineer-console/types";
+import { buildRunWorkflowSummary } from "@/lib/engineer-console/run-ux/build-run-workflow-summary";
 import { RunLivePanel } from "@/components/engineer-console/run-live-panel";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,13 @@ export default async function RunDetailPage({
   const approvalReport: ApprovalReport | null = reportJson
     ? (JSON.parse(reportJson) as ApprovalReport)
     : null;
+  const uxSummary = buildRunWorkflowSummary({
+    run,
+    task,
+    qualityGates,
+    approvalReport,
+    changedFiles,
+  });
 
   return (
     <div>
@@ -64,6 +72,7 @@ export default async function RunDetailPage({
           diffSummary,
           qualityGates,
           approvalReport,
+          uxSummary,
         }}
       />
     </div>

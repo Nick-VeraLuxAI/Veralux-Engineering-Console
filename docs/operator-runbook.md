@@ -49,9 +49,9 @@ Details: [security-auth.md](./security-auth.md).
 
 ## Repo registration
 
-**UI:** `/engineer/repos` → Register repository (name, absolute path, description).
+**UI:** `/engineer/repos` → Register repository (name, absolute path).
 
-**API:** `POST /api/engineer-console/repos` with `{ name, path, description }`.
+**API:** `POST /api/engineer-console/repos` with `{ name, path }`.
 
 **Verify:** Click **Verify** or `POST /repos/[id]/verify` — checks path, git, allowlist.
 
@@ -79,7 +79,7 @@ Details: [file-index.md](./file-index.md), [code-index.md](./code-index.md).
 
 ## Compatibility analysis
 
-**UI:** `/engineer/compatibility` — select repos, run analysis.
+**UI:** `/engineer/compatibility` — open the compatibility page and run analysis.
 
 **API:** `POST /compatibility/analyze` — records surfaces and cross-repo links.
 
@@ -91,11 +91,25 @@ Details: [compatibility-analysis.md](./compatibility-analysis.md).
 
 ## Task creation
 
-**UI:** `/engineer` → **New task** (title, description, target repo path or linked registered repo).
+**UI:** `/engineer` → **Create task** (title, description, target repo path or linked registered repo).
 
 **API:** `POST /api/engineer-console/tasks`.
 
 Link `registered_repo_id` when using a registered repo for PR/verify gates.
+
+---
+
+## Run page orientation
+
+When you open `/engineer/runs/[id]`, the page now starts with:
+
+1. **Run Command Center** — current lifecycle stage, next recommended action, blockers, warnings, and safe follow-up actions.
+2. **Lifecycle** stepper — workflow order from task through sign-off with links to the relevant panel.
+3. **Technical panels** below — all existing panels remain available for detailed review and actions.
+
+The command center and lifecycle stepper are **guidance only**. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
+
+Details: [operator-ux-guide.md](./operator-ux-guide.md), [operator-ux-audit.md](./operator-ux-audit.md).
 
 ---
 
@@ -194,6 +208,13 @@ Run these after material state changes (approval, PR, merge, deploy).
 Requires: approved decision, evidence, policy/replay/reviews, passing gates, changed files, verified repo (if registered).
 
 Uses controlled git + `gh pr create` on the host.
+
+Retry behavior after partial failure:
+
+- If a prior attempt already created the run commit, retry reuses that commit instead of creating a duplicate.
+- If the run branch is already pushed to `origin`, retry skips the redundant push when the remote already matches.
+- If a PR already exists for the run branch, retry records and returns that PR instead of opening another one.
+- If the tree is clean and no reusable run commit is recorded, stop and recover the branch/commit before retrying.
 
 Details: [pr-creation.md](./pr-creation.md).
 
@@ -368,26 +389,28 @@ After staging passes, use [production-launch-checklist.md](./production-launch-c
 
 ---
 
-## Quick reference — run page panels (top to bottom)
+## Quick reference — run page surfaces (top to bottom)
 
-1. Run state  
-2. Audit timeline  
-3. Evidence bundle  
-4. Decision history  
-5. Replay verification  
-6. Policy results  
-7. Review stages  
-8. PR creation  
-9. Merge controls  
-10. Deployment gates  
-11. Deployment execution  
-12. Deployment health checks  
-13. Deployment health policy  
-14. Release checklist  
-15. Release sign-off  
-16. Worker plan draft  
-17. Worker plan  
-18. Quality gates / approval / changed files  
+1. Run Command Center  
+2. Lifecycle  
+3. Run state  
+4. Audit timeline  
+5. Evidence bundle  
+6. Decision history  
+7. Replay verification  
+8. Policy results  
+9. Review stages  
+10. PR creation  
+11. Merge controls  
+12. Deployment gates  
+13. Deployment execution  
+14. Deployment health checks  
+15. Deployment health policy  
+16. Release checklist  
+17. Release sign-off  
+18. Worker plan draft  
+19. Worker plan  
+20. Quality gates / approval / changed files  
 
 ---
 
@@ -404,3 +427,4 @@ After staging passes, use [production-launch-checklist.md](./production-launch-c
 | Production launch | [production-launch-checklist.md](./production-launch-checklist.md) |
 | Production readiness | [production-readiness-audit.md](./production-readiness-audit.md) |
 | Hardening gaps | [final-hardening-notes.md](./final-hardening-notes.md) |
+| Operator UX guide | [operator-ux-guide.md](./operator-ux-guide.md) |

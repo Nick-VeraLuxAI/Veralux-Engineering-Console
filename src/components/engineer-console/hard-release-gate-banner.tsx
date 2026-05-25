@@ -56,7 +56,7 @@ export function HardReleaseGateBanner({
   if (!config?.hardGatesEnabled || !evaluation) {
     return (
       <p className="mb-3 text-xs text-[var(--muted)]">
-        Hard release gates: disabled (advisory checklist/sign-off only).
+        Hard release gates are disabled. Checklist and sign-off remain advisory in this mode.
       </p>
     );
   }
@@ -68,6 +68,15 @@ export function HardReleaseGateBanner({
         <StatusBadge status="enabled" />
         <StatusBadge status={evaluation.status} />
       </div>
+      {evaluation.status === "blocked" ? (
+        <p className="mb-2 text-[var(--danger)]">
+          Release cannot continue yet. Complete the blockers below.
+        </p>
+      ) : (
+        <p className="mb-2 text-[var(--muted)]">
+          Release gates are satisfied for this action.
+        </p>
+      )}
       {evaluation.blockers.length > 0 && (
         <ul className="mb-2 list-inside list-disc text-[var(--danger)]">
           {evaluation.blockers.map((b) => (

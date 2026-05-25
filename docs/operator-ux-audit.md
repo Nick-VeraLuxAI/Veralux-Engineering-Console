@@ -27,6 +27,18 @@ This audit recommends a **safety-preserving operator workflow redesign** that im
 
 ---
 
+## UX-1 implementation note
+
+UX-1 is now implemented on the run detail page:
+
+- **Run Command Center** now appears near the top of the run page
+- **Lifecycle** stepper now shows workflow hierarchy and links to major panels
+- stable panel anchors now support guided navigation without changing backend behavior
+
+UX-1 improves orientation and next-action clarity, but it intentionally does **not** change worker-plan ergonomics, approval behavior, PR logic, release gates, or deployment rules. The remaining UX backlog still starts with **UX-2 — Worker-plan UX improvements**.
+
+---
+
 ## Current operator journey
 
 | Step | What the operator sees | What the operator does | Next action obvious? | Button easy to find? | Language understandable? | State clear? | Could do wrong thing? | Recovery guidance |

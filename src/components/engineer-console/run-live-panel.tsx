@@ -1,9 +1,18 @@
 "use client";
 
+import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useEffect, useState } from "react";
 import type { ApprovalReport, EngineeringRun, EngineeringTask, QualityGateResult } from "@/lib/engineer-console/types";
+import {
+  deriveRunCommandCenterState,
+  deriveRunLifecycleSteps,
+} from "@/lib/engineer-console/run-ux/derive-run-ux";
+import {
+  RUN_PANEL_IDS,
+  type RunWorkflowSummary,
+} from "@/lib/engineer-console/run-ux/run-ux-types";
 import { StatusBadge } from "./status-badge";
 import { ApprovalActions } from "./approval-actions";
 import { WorkerPlanPanel } from "./worker-plan-panel";
@@ -22,6 +31,8 @@ import { DeploymentHealthChecksPanel } from "./deployment-health-checks-panel";
 import { DeploymentHealthPolicyPanel } from "./deployment-health-policy-panel";
 import { ReleaseChecklistPanel } from "./release-checklist-panel";
 import { ReleaseSignoffPanel } from "./release-signoff-panel";
+import { RunCommandCenter } from "./run-command-center";
+import { RunLifecycleStepper } from "./run-lifecycle-stepper";
 
 interface RunDetailPayload {
   run: EngineeringRun;
@@ -30,6 +41,7 @@ interface RunDetailPayload {
   diffSummary: string;
   qualityGates: QualityGateResult[];
   approvalReport: ApprovalReport | null;
+  uxSummary: RunWorkflowSummary;
 }
 
 export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDetailPayload }) {
@@ -49,10 +61,22 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
   }, [runId, terminal]);
 
   const report = data.approvalReport;
+  const guidance = deriveRunCommandCenterState(data.uxSummary);
+  const lifecycleSteps = deriveRunLifecycleSteps(data.uxSummary);
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+      <RunCommandCenter summary={data.uxSummary} guidance={guidance} />
+
+      <RunLifecycleStepper
+        steps={lifecycleSteps}
+        currentStageId={guidance.currentStageId}
+      />
+
+      <section
+        id={RUN_PANEL_IDS.runState}
+        className="scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+      >
         <h2 className="mb-3 font-semibold">Run state</h2>
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
           <div>
@@ -83,32 +107,69 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         )}
       </section>
 
-      <AuditTimelinePanel runId={runId} />
-      <EvidenceBundlePanel runId={runId} />
+      <div
+        id={RUN_PANEL_IDS.auditTimeline}
+        className="scroll-mt-24"
+      >
+        <AuditTimelinePanel runId={runId} />
+      </div>
+      <div id={RUN_PANEL_IDS.evidence} className="scroll-mt-24">
+        <EvidenceBundlePanel runId={runId} />
+      </div>
       <DecisionHistoryPanel runId={runId} />
-      <ReplayVerificationPanel runId={runId} />
-      <PolicyResultsPanel runId={runId} />
-      <ReviewStagesPanel runId={runId} />
-      <PrCreationPanel runId={runId} />
-      <MergeControlsPanel runId={runId} />
-      <DeploymentGatesPanel runId={runId} />
-      <DeploymentExecutionPanel runId={runId} />
-      <DeploymentHealthChecksPanel runId={runId} />
-      <DeploymentHealthPolicyPanel runId={runId} />
-      <ReleaseChecklistPanel runId={runId} />
-      <ReleaseSignoffPanel runId={runId} />
+      <div id={RUN_PANEL_IDS.replay} className="scroll-mt-24">
+        <ReplayVerificationPanel runId={runId} />
+      </div>
+      <div id={RUN_PANEL_IDS.policy} className="scroll-mt-24">
+        <PolicyResultsPanel runId={runId} />
+      </div>
+      <div id={RUN_PANEL_IDS.reviewStages} className="scroll-mt-24">
+        <ReviewStagesPanel runId={runId} />
+      </div>
+      <div id={RUN_PANEL_IDS.prCreation} className="scroll-mt-24">
+        <PrCreationPanel runId={runId} />
+      </div>
+      <div id={RUN_PANEL_IDS.mergeControls} className="scroll-mt-24">
+        <MergeControlsPanel runId={runId} />
+      </div>
+      <div id={RUN_PANEL_IDS.deploymentGates} className="scroll-mt-24">
+        <DeploymentGatesPanel runId={runId} />
+      </div>
+      <div id={RUN_PANEL_IDS.deploymentExecution} className="scroll-mt-24">
+        <DeploymentExecutionPanel runId={runId} />
+      </div>
+      <div id={RUN_PANEL_IDS.deploymentHealth} className="scroll-mt-24">
+        <DeploymentHealthChecksPanel runId={runId} />
+      </div>
+      <div
+        id={RUN_PANEL_IDS.deploymentHealthPolicy}
+        className="scroll-mt-24"
+      >
+        <DeploymentHealthPolicyPanel runId={runId} />
+      </div>
+      <div id={RUN_PANEL_IDS.releaseChecklist} className="scroll-mt-24">
+        <ReleaseChecklistPanel runId={runId} />
+      </div>
+      <div id={RUN_PANEL_IDS.releaseSignoff} className="scroll-mt-24">
+        <ReleaseSignoffPanel runId={runId} />
+      </div>
 
       <WorkerPlanDraftPanel
         runId={runId}
         onCopyToWorkerPlan={(json) => setManualPlanJson(json)}
       />
-      <WorkerPlanPanel
-        runId={runId}
-        planJson={manualPlanJson}
-        onPlanJsonChange={setManualPlanJson}
-      />
+      <div id={RUN_PANEL_IDS.workerPlan} className="scroll-mt-24">
+        <WorkerPlanPanel
+          runId={runId}
+          planJson={manualPlanJson}
+          onPlanJsonChange={setManualPlanJson}
+        />
+      </div>
 
-      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+      <section
+        id={RUN_PANEL_IDS.changedFiles}
+        className="scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+      >
         <h2 className="mb-3 font-semibold">Changed files</h2>
         {data.changedFiles.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">No changed files detected yet.</p>
@@ -123,7 +184,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         )}
       </section>
 
-      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+      <section
+        id={RUN_PANEL_IDS.qualityGates}
+        className="scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+      >
         <h2 className="mb-3 font-semibold">Quality gates</h2>
         {data.qualityGates.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">No quality gate results yet.</p>
@@ -155,7 +219,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
       </section>
 
       {report && (
-        <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <section
+          id={RUN_PANEL_IDS.approval}
+          className="scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+        >
           <h2 className="mb-3 font-semibold">Approval report</h2>
           <p className="mb-2 text-sm">{report.taskSummary}</p>
           <p className="mb-2 text-sm text-[var(--muted)]">{report.recommendedNextAction}</p>

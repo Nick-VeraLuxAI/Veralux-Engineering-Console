@@ -103,7 +103,7 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
             onClick={() => void loadPackage()}
             className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
           >
-            View package
+            View replay package
           </button>
         </div>
       </div>
@@ -124,6 +124,11 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
               {verification.summary.failed}
             </span>
           </div>
+          {verification.status === "warning" && (
+            <p className="mb-3 text-sm text-amber-200">
+              Replay passed, but warnings should be reviewed before continuing.
+            </p>
+          )}
           <ul className="max-h-48 space-y-2 overflow-auto text-xs">
             {verification.checks.map((check, index) => (
               <li

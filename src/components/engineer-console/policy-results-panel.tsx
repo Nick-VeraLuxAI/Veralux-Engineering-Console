@@ -92,6 +92,11 @@ export function PolicyResultsPanel({ runId }: { runId: string }) {
             </span>
           </div>
           <p className="mb-3 text-sm">{latest.recommendedNextAction}</p>
+          {latest.status === "requires_review" && (
+            <p className="mb-3 text-sm text-amber-200">
+              Senior review is required before approval.
+            </p>
+          )}
 
           {latest.blockers.length > 0 && (
             <div className="mb-3">

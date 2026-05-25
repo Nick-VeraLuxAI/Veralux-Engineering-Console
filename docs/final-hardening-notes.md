@@ -54,13 +54,14 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 ## Recommended technical debt (priority order)
 
 1. **Staging dry run** — complete [staging-dry-run-checklist.md](./staging-dry-run-checklist.md) before production.
-2. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
-3. **Operator admin UI** — create/disable operators without SQL.
-4. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.
-5. **Evidence bundle schema version** — explicit `bundleVersion` migration path.
-6. **Consolidate demo seed script** — optional SQL/TS seed for abbreviated demos.
-7. **Deployment execution audit** — periodic review of profile JSON in config management.
-8. **Remove or gate run polling** — configurable interval off for production viewers.
+2. **UX-2 worker-plan improvements** — reduce raw JSON editing burden after UX-1 command center/stepper rollout.
+3. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
+4. **Operator admin UI** — create/disable operators without SQL.
+5. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.
+6. **Evidence bundle schema version** — explicit `bundleVersion` migration path.
+7. **Consolidate demo seed script** — optional SQL/TS seed for abbreviated demos.
+8. **Deployment execution audit** — periodic review of profile JSON in config management.
+9. **Remove or gate run polling** — configurable interval off for production viewers.
 
 ---
 
@@ -120,6 +121,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 | [env-reference.md](./env-reference.md) | Configuration catalog |
 | [current-architecture.md](./current-architecture.md) | System map |
 | [operator-ux-audit.md](./operator-ux-audit.md) | Operator workflow UX audit, information architecture recommendation, and phased redesign backlog |
+| [operator-ux-guide.md](./operator-ux-guide.md) | Operator-facing guide to the Run Command Center and lifecycle stepper |
 | [final-hardening-notes.md](./final-hardening-notes.md) | This file |
 | [production-readiness-audit.md](./production-readiness-audit.md) | Q5 readiness score, risk register, prod checklist |
 
@@ -129,7 +131,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 **Production launch:** Complete [production-launch-checklist.md](./production-launch-checklist.md) after staging dry run.
 
-For operator-facing polish and staging usability hardening, see [operator-ux-audit.md](./operator-ux-audit.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
+UX-1 is now in place with a top-of-page command center and lifecycle stepper on the run page. For operator-facing polish and remaining staging usability work, see [operator-ux-audit.md](./operator-ux-audit.md) and [operator-ux-guide.md](./operator-ux-guide.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
 
 **Phase 9B — External CI correlation:** Attach workflow run ids to deployment/sign-off rows and evidence summaries without triggering GitHub Actions from the console.
 

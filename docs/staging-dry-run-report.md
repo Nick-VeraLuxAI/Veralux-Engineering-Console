@@ -97,7 +97,9 @@
 
 Separate from the technical readiness findings above, the staging dry run also exposed significant operator-workflow friction: manual `runId` handling, raw worker-plan JSON editing, unclear approval control placement, difficult PR retry interpretation, and weak next-action guidance across the run page.
 
-See [operator-ux-audit.md](./operator-ux-audit.md) for the full UX journey map, severity-ranked issue inventory, information-architecture recommendation, and phased redesign backlog. These items do **not** require weakening governance behavior, but several are strong candidates to fix before production operator use and before external demos.
+UX-1 now adds a **Run Command Center** and **Lifecycle** stepper at the top of the run page to improve orientation and next-action clarity without changing governance behavior.
+
+See [operator-ux-audit.md](./operator-ux-audit.md) for the full UX journey map, severity-ranked issue inventory, information-architecture recommendation, and phased redesign backlog, and [operator-ux-guide.md](./operator-ux-guide.md) for the new operator-facing usage notes. The remaining UX items still do **not** require weakening governance behavior, but several are strong candidates to fix before production operator use and before external demos.
 
 ---
 

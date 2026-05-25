@@ -53,6 +53,11 @@ test.describe("Engineering Console trusted local smoke", () => {
     test("panels render for API-created fixture", async ({ page, request, baseURL }) => {
       const { runId } = await createTaskAndRun(request, baseURL!);
       await gotoRunDetailResilient(page, runId, request, baseURL!);
+      await expect(
+        page.getByRole("heading", { name: "Run Command Center", exact: true }),
+      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Lifecycle", exact: true })).toBeVisible();
+      await expect(page.getByText("Next recommended action")).toBeVisible();
       await expectRunDetailPanelsVisible(page);
     });
   });
