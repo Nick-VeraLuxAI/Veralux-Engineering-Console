@@ -246,6 +246,18 @@ export const RELEASE_PANEL_HEADINGS = [
 ] as const;
 
 export async function expectReleasePanelsVisible(page: Page): Promise<void> {
+  const releaseGroup = page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "PR & Release", exact: true }) })
+    .first();
+  const toggle = releaseGroup.getByRole("button", { name: /Show details|Hide details/i });
+  if (await toggle.isVisible()) {
+    const label = await toggle.innerText();
+    if (/show details/i.test(label)) {
+      await toggle.click();
+    }
+  }
+
   for (const heading of RELEASE_PANEL_HEADINGS) {
     const locator = page.getByRole("heading", { name: heading, exact: true });
     await locator.scrollIntoViewIfNeeded();

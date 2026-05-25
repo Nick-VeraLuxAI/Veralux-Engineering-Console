@@ -7,6 +7,7 @@ import {
   derivePrStateCardState,
   type PrStateReadiness,
 } from "@/lib/engineer-console/release/pr-creation/pr-state-ux";
+import { RUN_NAV_TARGET_IDS } from "@/lib/engineer-console/run-ux/run-navigation";
 import { OperatorHelp } from "./operator-help";
 import { PrStateCard } from "./pr-state-card";
 import { StatusBadge } from "./status-badge";
@@ -152,6 +153,12 @@ export function PrCreationPanel({ runId }: { runId: string }) {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-semibold">PR creation</h2>
             <OperatorHelp term="pr_readiness" label="What is PR readiness?" />
+            <a
+              href={`#${RUN_NAV_TARGET_IDS.prTechnicalReadiness}`}
+              className="text-xs text-[var(--accent)] underline underline-offset-2"
+            >
+              View technical details
+            </a>
           </div>
           <p className="mt-1 text-sm text-[var(--muted)]">
             Draft PR creation stays manual. This panel checks whether the run has the records needed
@@ -242,7 +249,7 @@ export function PrCreationPanel({ runId }: { runId: string }) {
               </dd>
             </div>
           </dl>
-          <details className="mb-3 text-xs text-[var(--muted)]">
+          <details id={RUN_NAV_TARGET_IDS.prTechnicalReadiness} className="mb-3 text-xs text-[var(--muted)]">
             <summary className="cursor-pointer">Technical readiness details</summary>
             <p className="mt-2">
               Raw readiness status: <strong>{readiness.status}</strong>
@@ -253,7 +260,7 @@ export function PrCreationPanel({ runId }: { runId: string }) {
       )}
 
       {!readiness && (
-        <details className="mb-3 text-xs text-[var(--muted)]">
+        <details id={RUN_NAV_TARGET_IDS.prTechnicalReadiness} className="mb-3 text-xs text-[var(--muted)]">
           <summary className="cursor-pointer">Technical readiness details</summary>
           <p className="mt-2">
             Raw technical readiness signals will appear here after the first PR readiness check.

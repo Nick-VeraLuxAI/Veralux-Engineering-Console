@@ -1,6 +1,6 @@
 # Engineering Console — Operator runbook
 
-Operational guide for VeraLux Engineering Console through Phase UX-7. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
+Operational guide for VeraLux Engineering Console through Phase UX-8. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
 
 ## Prerequisites
 
@@ -150,10 +150,29 @@ When you open `/engineer/runs/[id]`, the page now starts with:
 2. **Lifecycle** stepper — workflow order from task through sign-off with links to the relevant panel.
 3. **Current Action** — a compact summary of the active step, why it matters, and the top blockers or warnings.
 4. **Run state** — branch, status, current step, and risk summary.
-5. **Section groups** — **Active Work**, **Governance & Review**, **PR & Release**, and **Technical Audit**.
-6. **Detailed panels inside the groups** — all existing panels remain available for detailed review and actions.
+5. **Quick navigation** — sticky jump links to Current action, Worker plan, Approval, Evidence, Replay, Policy, Reviews, PR, Merge, Deploy, Checklist, Sign-off, and Audit.
+6. **Expert summary** — a compact, read-only status strip for repeat operators.
+7. **Section groups** — **Active Work**, **Governance & Review**, **PR & Release**, and **Technical Audit**.
+8. **Detailed panels inside the groups** — all existing panels remain available for detailed review and actions.
 
 The command center, current-action zone, grouped sections, and approval action card are **guidance-first** surfaces. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
+
+UX-8 navigation behavior:
+
+- clicking a quick-nav or lifecycle anchor expands the relevant section group first
+- blocker links now point directly to the relevant panel instead of relying on “see below” copy
+- technical-detail jump links now open the right area for PR readiness, replay details, evidence details, release-gate raw details, and audit-chain diagnostics
+
+Safe keyboard shortcuts:
+
+- `g w` worker plan
+- `g a` approval
+- `g p` PR creation
+- `g r` review stages
+- `g e` evidence
+- `g t` technical audit
+
+These shortcuts are navigation-only. They do not approve, execute, create PRs, merge, deploy, or sign off. They are ignored while typing in form fields.
 
 Details: [operator-ux-guide.md](./operator-ux-guide.md), [operator-ux-audit.md](./operator-ux-audit.md).
 

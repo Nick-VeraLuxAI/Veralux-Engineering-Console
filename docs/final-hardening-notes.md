@@ -18,6 +18,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 | PR retry state and later release blockers were technically accurate but hard to interpret under staging pressure | Fixed in UX-4: the PR creation panel now starts with a plain-English PR state card, retry guidance explains what succeeded and what retry will do next, existing PR records are surfaced near the top, and hard release gates now render an action checklist with panel links. PR readiness, hard gates, merge, deploy, and sign-off behavior remain unchanged. |
 | First-run setup, staging onboarding, and empty states still required too much operator inference | Fixed in UX-6: the dashboard now shows a read-only setup readiness panel and staging smoke workflow helper, repo registration explains approved roots and step ordering, the task form exposes a staging-only README smoke preset in safe contexts, and empty states now point to the next action. Security, repo-root policy, and all manual action boundaries remain unchanged. |
 | Operators still had to decode internal terms like evidence bundle, replay verification, PR readiness, audit chain, and release sign-off | Fixed in UX-7: the console now ships a central operator glossary, inline plain-English help disclosures on the highest-friction panels, and clearer action copy while preserving raw technical statuses and the same governance rules. |
+| Repeat operators still had to scroll and reopen section groups to reach the same panels over and over | Fixed in UX-8: the run page now includes sticky quick navigation, a read-only expert summary, expand-on-anchor behavior, navigation-only keyboard shortcuts, and direct technical-detail jump links. No mutation shortcuts were added. |
 
 ---
 
@@ -61,7 +62,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 ## Recommended technical debt (priority order)
 
 1. **Staging dry run** — complete [staging-dry-run-checklist.md](./staging-dry-run-checklist.md) before production.
-2. **UX-8 expert shortcuts and faster navigation** — help repeat operators move faster across the same audited workflow without adding automation.
+2. **UX-9 multi-run queue and dashboard acceleration** — reduce how often experts need to open a run just to identify the next required action.
 3. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
 4. **Operator admin UI** — create/disable operators without SQL.
 5. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.
@@ -139,7 +140,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 **Production launch:** Complete [production-launch-checklist.md](./production-launch-checklist.md) after staging dry run.
 
-UX-1 through UX-7 are now in place with a top-of-page command center, lifecycle stepper, current-action summary, grouped progressive-disclosure sections, guided worker-plan builder, advanced JSON guardrails, visible approval/review actions, plain-English PR retry state, actionable hard release-gate checklists, setup readiness, staging smoke onboarding guidance, and shared glossary/help text. For the remaining staging usability work, see [operator-ux-audit.md](./operator-ux-audit.md), [operator-ux-guide.md](./operator-ux-guide.md), and [operator-glossary.md](./operator-glossary.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
+UX-1 through UX-8 are now in place with a top-of-page command center, lifecycle stepper, current-action summary, grouped progressive-disclosure sections, guided worker-plan builder, advanced JSON guardrails, visible approval/review actions, plain-English PR retry state, actionable hard release-gate checklists, setup readiness, staging smoke onboarding guidance, shared glossary/help text, sticky quick navigation, expert-summary status strips, and navigation-only keyboard shortcuts. For the remaining staging usability work, see [operator-ux-audit.md](./operator-ux-audit.md), [operator-ux-guide.md](./operator-ux-guide.md), and [operator-glossary.md](./operator-glossary.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
 
 **Phase 9B — External CI correlation:** Attach workflow run ids to deployment/sign-off rows and evidence summaries without triggering GitHub Actions from the console.
 

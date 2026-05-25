@@ -3,7 +3,7 @@
 import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ApprovalReport, EngineeringRun, EngineeringTask, QualityGateResult } from "@/lib/engineer-console/types";
 import {
   deriveRunCommandCenterState,
@@ -12,12 +12,21 @@ import {
 } from "@/lib/engineer-console/run-ux/derive-run-ux";
 import {
   RUN_PANEL_IDS,
+  type RunSectionGroupId,
   type RunWorkflowSummary,
 } from "@/lib/engineer-console/run-ux/run-ux-types";
 import {
   deriveRunCurrentActionZoneState,
   deriveRunSectionGroups,
 } from "@/lib/engineer-console/run-ux/run-page-sections";
+import {
+  RUN_GROUP_ANCHOR_IDS,
+  RUN_NAV_TARGET_IDS,
+  buildRunExpertSummaryItems,
+  buildRunQuickNavItems,
+  expandGroupForTarget,
+  resolveRunNavigationShortcut,
+} from "@/lib/engineer-console/run-ux/run-navigation";
 import { StatusBadge } from "./status-badge";
 import { ApprovalActions } from "./approval-actions";
 import { WorkerPlanPanel } from "./worker-plan-panel";
@@ -44,6 +53,8 @@ import { RunLifecycleStepper } from "./run-lifecycle-stepper";
 import { RunApprovalActionCard } from "./run-approval-action-card";
 import { RunSectionGroup } from "./run-section-group";
 import { RunCurrentActionZone } from "./run-current-action-zone";
+import { RunQuickNav } from "./run-quick-nav";
+import { RunExpertSummary } from "./run-expert-summary";
 import { OperatorHelp } from "./operator-help";
 
 interface RunDetailPayload {
@@ -57,9 +68,38 @@ interface RunDetailPayload {
   uxSummary: RunWorkflowSummary;
 }
 
+function buildExpandedGroupState(
+  groups: Array<{ id: RunSectionGroupId; defaultExpanded: boolean }>,
+): Record<RunSectionGroupId, boolean> {
+  return groups.reduce<Record<RunSectionGroupId, boolean>>(
+    (acc, group) => {
+      acc[group.id] = group.defaultExpanded;
+      return acc;
+    },
+    {
+      active_work: false,
+      governance_review: false,
+      pr_release: false,
+      technical_audit: false,
+    },
+  );
+}
+
+function mergeExpandedGroupState(
+  current: Record<RunSectionGroupId, boolean>,
+  groups: Array<{ id: RunSectionGroupId; defaultExpanded: boolean }>,
+): Record<RunSectionGroupId, boolean> {
+  const next = { ...current };
+  for (const group of groups) {
+    next[group.id] = current[group.id] || group.defaultExpanded;
+  }
+  return next;
+}
+
 export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDetailPayload }) {
   const [data, setData] = useState(initial);
   const [incomingPlanJson, setIncomingPlanJson] = useState<string | undefined>(undefined);
+  const [pendingShortcutPrefix, setPendingShortcutPrefix] = useState<string | null>(null);
   const terminal = ["completed", "failed"].includes(data.run.status);
 
   useEffect(() => {
@@ -79,13 +119,108 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
   const lifecycleSteps = deriveRunLifecycleSteps(data.uxSummary);
   const currentAction = deriveRunCurrentActionZoneState(data.uxSummary, guidance);
   const sectionGroups = deriveRunSectionGroups(data.uxSummary, guidance);
+  const [expandedGroups, setExpandedGroups] = useState<Record<RunSectionGroupId, boolean>>(() =>
+    buildExpandedGroupState(sectionGroups),
+  );
+  const quickNavItems = buildRunQuickNavItems(data.uxSummary, guidance);
+  const expertSummaryItems = buildRunExpertSummaryItems(data.uxSummary, guidance);
   const activeWorkGroup = sectionGroups.find((group) => group.id === "active_work")!;
   const governanceGroup = sectionGroups.find((group) => group.id === "governance_review")!;
   const releaseGroup = sectionGroups.find((group) => group.id === "pr_release")!;
   const technicalAuditGroup = sectionGroups.find((group) => group.id === "technical_audit")!;
 
+  useEffect(() => {
+    setExpandedGroups((current) => mergeExpandedGroupState(current, sectionGroups));
+  }, [sectionGroups]);
+
+  const navigateToTarget = useCallback((targetId: string) => {
+    setExpandedGroups((current) => expandGroupForTarget(current, targetId));
+
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(targetId);
+      if (!target) return;
+
+      const details = target instanceof HTMLDetailsElement ? target : target.closest("details");
+      if (details instanceof HTMLDetailsElement) {
+        details.open = true;
+      }
+
+      window.history.pushState(null, "", `#${targetId}`);
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
+
+  useEffect(() => {
+    function applyHashNavigation(targetId: string) {
+      if (!targetId) return;
+      setExpandedGroups((current) => expandGroupForTarget(current, targetId));
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        const details = target instanceof HTMLDetailsElement ? target : target.closest("details");
+        if (details instanceof HTMLDetailsElement) {
+          details.open = true;
+        }
+      });
+    }
+
+    function onHashChange() {
+      applyHashNavigation(window.location.hash.slice(1));
+    }
+
+    applyHashNavigation(window.location.hash.slice(1));
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingShortcutPrefix) return;
+    const timeout = window.setTimeout(() => setPendingShortcutPrefix(null), 1200);
+    return () => window.clearTimeout(timeout);
+  }, [pendingShortcutPrefix]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const result = resolveRunNavigationShortcut({
+        pendingPrefix: pendingShortcutPrefix,
+        key: event.key,
+        target: event.target,
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        altKey: event.altKey,
+      });
+
+      if (result.nextPendingPrefix !== pendingShortcutPrefix) {
+        setPendingShortcutPrefix(result.nextPendingPrefix);
+      }
+      if (!result.targetId) return;
+
+      event.preventDefault();
+      navigateToTarget(result.targetId);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [navigateToTarget, pendingShortcutPrefix]);
+
+  const handleAnchorNavigation = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>("a[href^='#']");
+      if (!anchor) return;
+
+      const href = anchor.getAttribute("href");
+      if (!href || href === "#") return;
+
+      event.preventDefault();
+      navigateToTarget(decodeURIComponent(href.slice(1)));
+    },
+    [navigateToTarget],
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" onClickCapture={handleAnchorNavigation}>
       <RunCommandCenter summary={data.uxSummary} guidance={guidance} />
 
       <RunLifecycleStepper
@@ -93,7 +228,13 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         currentStageId={guidance.currentStageId}
       />
 
-      <RunCurrentActionZone state={currentAction} />
+      <RunQuickNav items={quickNavItems} />
+
+      <RunExpertSummary items={expertSummaryItems} />
+
+      <div id={RUN_NAV_TARGET_IDS.currentAction} className="scroll-mt-24">
+        <RunCurrentActionZone state={currentAction} />
+      </div>
 
       <section
         id={RUN_PANEL_IDS.runState}
@@ -134,7 +275,14 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         )}
       </section>
 
-      <RunSectionGroup state={activeWorkGroup} anchorId="active-work">
+      <RunSectionGroup
+        state={activeWorkGroup}
+        anchorId={RUN_GROUP_ANCHOR_IDS.active_work}
+        expanded={expandedGroups.active_work}
+        onToggle={(nextExpanded) =>
+          setExpandedGroups((current) => ({ ...current, active_work: nextExpanded }))
+        }
+      >
         <RunApprovalActionCard runId={runId} state={approvalCardState} />
 
         <WorkerPlanDraftPanel
@@ -220,7 +368,14 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         </section>
       </RunSectionGroup>
 
-      <RunSectionGroup state={governanceGroup} anchorId="governance-review">
+      <RunSectionGroup
+        state={governanceGroup}
+        anchorId={RUN_GROUP_ANCHOR_IDS.governance_review}
+        expanded={expandedGroups.governance_review}
+        onToggle={(nextExpanded) =>
+          setExpandedGroups((current) => ({ ...current, governance_review: nextExpanded }))
+        }
+      >
         <div id={RUN_PANEL_IDS.evidence} className="scroll-mt-24">
           <EvidenceBundlePanel runId={runId} />
         </div>
@@ -288,7 +443,14 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         )}
       </RunSectionGroup>
 
-      <RunSectionGroup state={releaseGroup} anchorId="pr-release">
+      <RunSectionGroup
+        state={releaseGroup}
+        anchorId={RUN_GROUP_ANCHOR_IDS.pr_release}
+        expanded={expandedGroups.pr_release}
+        onToggle={(nextExpanded) =>
+          setExpandedGroups((current) => ({ ...current, pr_release: nextExpanded }))
+        }
+      >
         <div id={RUN_PANEL_IDS.prCreation} className="scroll-mt-24">
           <PrCreationPanel runId={runId} />
         </div>
@@ -318,7 +480,14 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         </div>
       </RunSectionGroup>
 
-      <RunSectionGroup state={technicalAuditGroup} anchorId="technical-audit">
+      <RunSectionGroup
+        state={technicalAuditGroup}
+        anchorId={RUN_GROUP_ANCHOR_IDS.technical_audit}
+        expanded={expandedGroups.technical_audit}
+        onToggle={(nextExpanded) =>
+          setExpandedGroups((current) => ({ ...current, technical_audit: nextExpanded }))
+        }
+      >
         <div
           id={RUN_PANEL_IDS.auditTimeline}
           className="scroll-mt-24"

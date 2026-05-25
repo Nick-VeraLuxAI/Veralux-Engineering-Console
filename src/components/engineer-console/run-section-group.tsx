@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useId, useState } from "react";
+import React, { useId } from "react";
 import type { RunSectionGroupState } from "@/lib/engineer-console/run-ux/run-ux-types";
 
 const TONE_STYLES: Record<RunSectionGroupState["tone"], string> = {
@@ -22,18 +22,18 @@ const BADGE_STYLES: Record<RunSectionGroupState["tone"], string> = {
 export function RunSectionGroup({
   state,
   anchorId,
+  expanded,
+  onToggle,
   children,
 }: {
   state: RunSectionGroupState;
   anchorId?: string;
+  expanded?: boolean;
+  onToggle?: (nextExpanded: boolean) => void;
   children: React.ReactNode;
 }) {
-  const [expanded, setExpanded] = useState(state.defaultExpanded);
   const contentId = useId();
-
-  useEffect(() => {
-    setExpanded(state.defaultExpanded);
-  }, [state.defaultExpanded]);
+  const resolvedExpanded = expanded ?? state.defaultExpanded;
 
   return (
     <section
@@ -60,16 +60,16 @@ export function RunSectionGroup({
 
         <button
           type="button"
-          aria-expanded={expanded}
+          aria-expanded={resolvedExpanded}
           aria-controls={contentId}
-          onClick={() => setExpanded((value) => !value)}
+          onClick={() => onToggle?.(!resolvedExpanded)}
           className="inline-flex items-center justify-center rounded border border-[var(--border)] px-3 py-2 text-sm font-medium"
         >
-          {expanded ? "Hide details" : "Show details"}
+          {resolvedExpanded ? "Hide details" : "Show details"}
         </button>
       </div>
 
-      <div id={contentId} hidden={!expanded} className="mt-4 space-y-4">
+      <div id={contentId} hidden={!resolvedExpanded} className="mt-4 space-y-4">
         {children}
       </div>
     </section>

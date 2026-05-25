@@ -4,6 +4,7 @@ import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { RUN_NAV_TARGET_IDS } from "@/lib/engineer-console/run-ux/run-navigation";
 import { OperatorHelp } from "./operator-help";
 
 interface EvidenceResponse {
@@ -86,6 +87,12 @@ export function EvidenceBundlePanel({ runId }: { runId: string }) {
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="font-semibold">Evidence bundle</h2>
           <OperatorHelp term="evidence_bundle" label="What is an evidence bundle?" />
+          <a
+            href={`#${RUN_NAV_TARGET_IDS.evidenceDetails}`}
+            className="text-xs text-[var(--accent)] underline underline-offset-2"
+          >
+            View hash and details
+          </a>
         </div>
         <button
           type="button"
@@ -108,7 +115,7 @@ export function EvidenceBundlePanel({ runId }: { runId: string }) {
       )}
 
       {data && bundle && (
-        <dl className="grid gap-2 text-sm">
+        <dl id={RUN_NAV_TARGET_IDS.evidenceDetails} className="grid gap-2 text-sm">
           <div>
             <dt className="text-[var(--muted)]">Bundle hash</dt>
             <dd className="font-mono text-xs break-all">{data.evidence.bundleHash}</dd>

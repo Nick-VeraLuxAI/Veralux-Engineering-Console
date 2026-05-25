@@ -1,6 +1,6 @@
 # Engineering Console operator UX guide
 
-Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, UX-5, UX-6, and UX-7 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
+Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, and UX-8 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
 
 ---
 
@@ -151,6 +151,33 @@ UX-7 improves terminology clarity without removing technical detail or changing 
 
 ---
 
+## What changed in UX-8
+
+UX-8 improves repeat-operator speed without adding any automatic execution:
+
+1. **Sticky quick navigation**  
+   The run page now includes a sticky **Quick navigation** bar with anchor links for Current action, Worker plan, Approval, Evidence, Replay, Policy, Reviews, PR, Merge, Deploy, Checklist, Sign-off, and Audit.
+
+2. **Expert summary strip**  
+   A compact read-only **Expert summary** strip now shows the current run, stage, risk, gate, governance, PR, release-gate, and sign-off statuses in one glance.
+
+3. **Safe keyboard shortcuts**  
+   Navigation-only shortcuts now exist for common expert jumps:
+   - `g w` worker plan
+   - `g a` approval
+   - `g p` PR creation
+   - `g r` review stages
+   - `g e` evidence
+   - `g t` technical audit
+
+4. **Expand-on-anchor behavior**  
+   Quick-nav links, lifecycle links, blocker links, and shortcut jumps now expand the relevant section group before scrolling so the target panel is actually visible.
+
+5. **Technical-detail jump links**  
+   Panels such as PR creation, replay verification, evidence bundle, hard release gates, and audit timeline now include compact links into the relevant technical-detail sections.
+
+---
+
 ## What the command center does
 
 The command center is a **read-only orientation layer**. It helps operators answer:
@@ -181,7 +208,7 @@ Clicking a step jumps to the relevant panel or, for `Task`, back to the task det
 
 ## Where technical details live
 
-UX-1 through UX-7 did **not** remove technical detail from the run page.
+UX-1 through UX-8 did **not** remove technical detail from the run page.
 
 The detailed panels still live below the command center, lifecycle stepper, and current-action zone:
 
@@ -259,9 +286,9 @@ Decision guidance:
 
 ## Current UX limits
 
-UX-1 through UX-7 improve orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, setup onboarding, and terminology clarity, but they do **not** yet solve:
+UX-1 through UX-8 improve orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, run-page density, setup onboarding, terminology clarity, and repeat-operator navigation speed, but they do **not** yet solve:
 
-- expert-mode shortcuts for repeat operators who already know the workflow
-- faster cross-panel navigation for repeat release operators
+- higher-level queue and dashboard views for operators managing many runs at once
+- better cross-run prioritization and handoff cues for teams sharing the same console
 
 Those remain in the next phases documented in [operator-ux-audit.md](./operator-ux-audit.md).

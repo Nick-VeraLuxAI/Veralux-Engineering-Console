@@ -72,10 +72,24 @@ test.describe("Engineering Console trusted local smoke", () => {
         page.getByRole("heading", { name: "Approval actions", exact: true }),
       ).toBeVisible();
       await expect(page.getByRole("heading", { name: "Lifecycle", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Quick navigation", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Expert summary", exact: true })).toBeVisible();
       await expect(page.getByText("Next recommended action")).toBeVisible();
       for (const heading of RUN_DETAIL_GROUP_HEADINGS) {
         await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       }
+
+      const quickNav = page.getByRole("navigation", { name: "Run quick navigation" });
+      await quickNav.getByRole("link", { name: "PR", exact: true }).click();
+      await expect(page.locator("#pr-release").getByRole("button", { name: /Hide details/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "PR creation", exact: true })).toBeVisible();
+
+      await quickNav.getByRole("link", { name: "Audit", exact: true }).click();
+      await expect(
+        page.locator("#technical-audit").getByRole("button", { name: /Hide details/i }),
+      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Audit timeline", exact: true })).toBeVisible();
+
       await expectRunDetailPanelsVisible(page);
       await expect(page.getByText("What is an evidence bundle?")).toBeVisible();
     });

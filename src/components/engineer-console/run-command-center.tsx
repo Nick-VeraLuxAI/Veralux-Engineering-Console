@@ -3,6 +3,7 @@ import type {
   RunCommandCenterState,
   RunWorkflowSummary,
 } from "@/lib/engineer-console/run-ux/run-ux-types";
+import { runNavigationLabelForHref } from "@/lib/engineer-console/run-ux/run-navigation";
 import { StatusBadge } from "./status-badge";
 
 function SecondaryActionList({
@@ -64,9 +65,18 @@ function GuidanceList({
             className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2"
           >
             {item.href ? (
-              <a href={item.href} className="underline underline-offset-2">
-                {item.text}
-              </a>
+              <>
+                <a href={item.href} className="underline underline-offset-2">
+                  {item.text}
+                </a>
+                {runNavigationLabelForHref(item.href) ? (
+                  <p className="mt-2 text-xs text-[var(--muted)]">
+                    <a href={item.href} className="underline underline-offset-2">
+                      {runNavigationLabelForHref(item.href)}
+                    </a>
+                  </p>
+                ) : null}
+              </>
             ) : (
               item.text
             )}

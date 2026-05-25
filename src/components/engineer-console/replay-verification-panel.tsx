@@ -4,6 +4,7 @@ import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { RUN_NAV_TARGET_IDS } from "@/lib/engineer-console/run-ux/run-navigation";
 import { OperatorHelp } from "./operator-help";
 import { StatusBadge } from "./status-badge";
 
@@ -92,6 +93,12 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="font-semibold">Replay verification</h2>
           <OperatorHelp term="replay_verification" label="What is replay verification?" />
+          <a
+            href={`#${RUN_NAV_TARGET_IDS.replayTechnicalDetails}`}
+            className="text-xs text-[var(--accent)] underline underline-offset-2"
+          >
+            View technical details
+          </a>
         </div>
         <div className="flex gap-2">
           <button
@@ -156,6 +163,21 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
           </ul>
         </>
       )}
+
+      <details id={RUN_NAV_TARGET_IDS.replayTechnicalDetails} className="mt-3 text-xs text-[var(--muted)]">
+        <summary className="cursor-pointer">Technical replay details</summary>
+        <div className="mt-2 space-y-2">
+          <p>
+            raw replay status: <strong>{verification?.status ?? "not recorded"}</strong>
+          </p>
+          <p>source: {source ?? "not recorded"}</p>
+          <p>
+            passed {verification?.summary.passed ?? 0} · warnings {verification?.summary.warnings ?? 0} · failed{" "}
+            {verification?.summary.failed ?? 0}
+          </p>
+          <p>Use the replay package button above to load the stored package JSON for deeper inspection.</p>
+        </div>
+      </details>
 
       {packageJson && (
         <pre className="mt-3 max-h-64 overflow-auto rounded bg-[var(--background)] p-3 text-xs">

@@ -49,9 +49,11 @@ function toneClasses(tone: "muted" | "ready" | "warning" | "blocked"): string {
 export function HardReleaseGateBannerContent({
   config,
   evaluation,
+  detailId,
 }: {
   config: { hardGatesEnabled: boolean };
   evaluation: GateEvaluation;
+  detailId: string;
 }) {
   const status = describeReleaseGateStatus({
     enabled: config.hardGatesEnabled,
@@ -67,6 +69,9 @@ export function HardReleaseGateBannerContent({
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="font-medium">Hard release gates</span>
           <OperatorHelp term="release_gates" label="What are release gates?" />
+          <a href={`#${detailId}`} className="text-xs underline underline-offset-2">
+            View technical details
+          </a>
           <span className="rounded border border-current px-2 py-0.5 text-[11px] font-medium">
             {status.label}
           </span>
@@ -81,6 +86,9 @@ export function HardReleaseGateBannerContent({
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="font-medium">Hard release gates</span>
         <OperatorHelp term="release_gates" label="What are release gates?" />
+        <a href={`#${detailId}`} className="text-xs underline underline-offset-2">
+          View technical details
+        </a>
         <span className="rounded border border-current px-2 py-0.5 text-[11px] font-medium">
           {status.label}
         </span>
@@ -115,7 +123,7 @@ export function HardReleaseGateBannerContent({
         <p className="text-[var(--muted)]">{evaluation.recommendedAction}</p>
       )}
 
-      <details className="mt-3 text-xs text-[var(--muted)]">
+      <details id={detailId} className="mt-3 text-xs text-[var(--muted)]">
         <summary className="cursor-pointer">Technical details</summary>
         <div className="mt-2 space-y-2">
           {evaluation.blockers.length > 0 && (
@@ -146,6 +154,7 @@ export function HardReleaseGateBanner({
 }) {
   const [config, setConfig] = useState<{ hardGatesEnabled: boolean } | null>(null);
   const [evaluation, setEvaluation] = useState<GateEvaluation | null>(null);
+  const detailId = `hard-release-gate-details-${action}`;
 
   const load = useCallback(async () => {
     const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/release-gates`);
@@ -164,12 +173,19 @@ export function HardReleaseGateBanner({
 
   if (!config?.hardGatesEnabled || !evaluation) {
     return evaluation ? (
-      <HardReleaseGateBannerContent config={config ?? { hardGatesEnabled: false }} evaluation={evaluation} />
+      <HardReleaseGateBannerContent
+        config={config ?? { hardGatesEnabled: false }}
+        evaluation={evaluation}
+        detailId={detailId}
+      />
     ) : (
       <div className="mb-3 rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="font-medium">Hard release gates</span>
           <OperatorHelp term="release_gates" label="What are release gates?" />
+          <a href={`#${detailId}`} className="text-xs underline underline-offset-2">
+            View technical details
+          </a>
           <span className="rounded border border-current px-2 py-0.5 text-[11px] font-medium">
             Release gates disabled
           </span>
@@ -177,9 +193,13 @@ export function HardReleaseGateBanner({
         <p className="mt-1 text-[var(--muted)]">
           Checklist and sign-off remain advisory in this mode.
         </p>
+        <details id={detailId} className="mt-3 text-xs text-[var(--muted)]">
+          <summary className="cursor-pointer">Technical details</summary>
+          <p className="mt-2">Hard release gates are disabled for this action in the current configuration.</p>
+        </details>
       </div>
     );
   }
 
-  return <HardReleaseGateBannerContent config={config} evaluation={evaluation} />;
+  return <HardReleaseGateBannerContent config={config} evaluation={evaluation} detailId={detailId} />;
 }
