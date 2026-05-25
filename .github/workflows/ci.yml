@@ -1,0 +1,59 @@
+name: Engineer Console CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      ENGINEER_CONSOLE_DB_PATH: data/e2e-local.db
+      ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV: "true"
+      ENGINEER_CONSOLE_AUTH_ENABLED: "false"
+      ENGINEER_CONSOLE_MODEL_PROVIDER: mock
+      ENGINEER_CONSOLE_AUDIT_CHAIN_SCOPE: e2e-ci
+      ENGINEER_CONSOLE_RELEASE_GATES_ENABLED: "false"
+      ENGINEER_CONSOLE_DEPLOYMENT_PROFILES_JSON: "[]"
+      ENGINEER_CONSOLE_BACKUP_ENCRYPTION_MODE: none
+      ENGINEER_CONSOLE_BACKUP_OFFHOST_MODE: none
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Run CI validation
+        run: npm run verify:ci
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+      - name: Upload backup metadata on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineer-console-backup-metadata
+          path: backups/*.metadata.json
+          if-no-files-found: ignore

@@ -1,0 +1,35 @@
+# Example: nightly Engineer Console backup with optional alerting
+#
+# Copy to /etc/cron.d/engineer-console-backup or a user crontab.
+# Run as a dedicated non-root service user with read access to ENGINEER_CONSOLE_DB_PATH
+# and write access to the backups directory.
+#
+# Do NOT commit real secrets. Load env from a root-owned file outside the repo:
+#   /etc/veralux/engineer-console-backup.env  (chmod 600)
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# Nightly at 02:30 UTC — backup, verify, optional encrypt/rsync, optional webhook alert
+30 2 * * * veralux cd /opt/veralux-engineering-console && \
+  set -a && source /etc/veralux/engineer-console-backup.env && set +a && \
+  /usr/bin/npm run backup:db:alert >>/var/log/veralux/engineer-console-backup.log 2>&1
+
+# --- Example /etc/veralux/engineer-console-backup.env (placeholders only) ---
+#
+# ENGINEER_CONSOLE_DB_PATH=/var/lib/veralux/engineer-console.db
+# ENGINEER_CONSOLE_BACKUP_RETENTION_DAYS=30
+# ENGINEER_CONSOLE_BACKUP_ENCRYPTION_MODE=age
+# ENGINEER_CONSOLE_BACKUP_AGE_RECIPIENT=age1xxxxxxxx
+# ENGINEER_CONSOLE_BACKUP_OFFHOST_MODE=rsync
+# ENGINEER_CONSOLE_BACKUP_RSYNC_TARGET=backup@backup.internal:/srv/engineer-console/
+# ENGINEER_CONSOLE_INSTANCE_LABEL=prod-console-01
+# ENGINEER_CONSOLE_BACKUP_ALERT_MODE=webhook
+# ENGINEER_CONSOLE_BACKUP_ALERT_WEBHOOK_URL=https://hooks.example.com/your-endpoint-id
+# ENGINEER_CONSOLE_BACKUP_ALERT_ON_SUCCESS=false
+#
+# Alert-only wrapper (runs backup:db:secure internally):
+#   npm run backup:db:alert
+#
+# Pipeline without alerting:
+#   npm run backup:db:secure
