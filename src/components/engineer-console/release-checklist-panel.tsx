@@ -94,7 +94,7 @@ export function ReleaseChecklistPanel({ runId }: { runId: string }) {
         trigger CI/CD.
       </p>
 
-      <HardReleaseGateBanner runId={runId} action="deployment_execution" />
+      <HardReleaseGateBanner runId={runId} action="release_signoff_completed" />
 
       {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
 
@@ -142,6 +142,7 @@ export function ReleaseChecklistPanel({ runId }: { runId: string }) {
                 <span className="text-xs text-[var(--muted)]">{item.severity}</span>
               </div>
               <p className="mt-1 text-[var(--muted)]">{item.summary}</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">{item.recommendedAction}</p>
               {item.referenceId && (
                 <p className="mt-1 font-mono text-xs text-[var(--muted)]">
                   ref {item.referenceId.slice(0, 8)}…

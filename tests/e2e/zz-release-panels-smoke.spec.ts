@@ -34,7 +34,8 @@ test.describe("Release lifecycle panels (fixture-driven)", () => {
     const prSection = page
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "PR creation", exact: true }) });
-    await expect(prSection.getByText(/example.com\/pr\/e2e/i)).toBeVisible();
+    await expect(prSection.getByRole("heading", { name: "PR state", exact: true })).toBeVisible();
+    await expect(prSection.getByRole("link", { name: /example.com\/pr\/e2e/i }).first()).toBeVisible();
 
     const mergeSection = page
       .locator("section")
@@ -47,6 +48,6 @@ test.describe("Release lifecycle panels (fixture-driven)", () => {
     await expect(
       deployExec.getByText(/No approved deployment|Complete deployment gates/i),
     ).toBeVisible();
-    await expect(prSection.getByRole("button", { name: "Create draft PR" })).toBeDisabled();
+    await expect(prSection.getByRole("button", { name: "Existing PR recorded" })).toBeDisabled();
   });
 });

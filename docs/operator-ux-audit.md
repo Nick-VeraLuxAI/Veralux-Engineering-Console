@@ -62,6 +62,18 @@ UX-3 is now implemented in the approval and review flow:
 
 UX-3 improves discoverability and sequencing, but it intentionally does **not** auto-approve, weaken rationale requirements, bypass review stages, allow models to approve, or change the backend authority model. The next backlog item is **UX-4 — PR retry and release blocker clarity**.
 
+## UX-4 implementation note
+
+UX-4 is now implemented in the release path:
+
+- the **PR creation** panel now starts with a plain-English **PR state** card that explains readiness, commit reuse, branch push state, existing PR state, and the next operator action
+- partial PR failures now show explicit retry guidance including the last failed step, what already succeeded, and whether duplicate commit creation is prevented
+- existing PR records are surfaced near the top of the panel instead of only in the history list
+- the **Hard release gates** banner now converts blocker text into an ordered checklist with panel links such as **Go to Replay verification**, **Go to Policy results**, and **Go to Release checklist**
+- the **Run Command Center** now points operators toward PR retry or the first actionable release blocker instead of leaving them to infer the next release panel manually
+
+UX-4 improves retry clarity and release recovery guidance, but it intentionally does **not** bypass PR readiness, auto-create PRs, auto-merge, auto-deploy, weaken hard release gates, or remove technical detail. The next backlog item is **UX-5 — setup and staging-helper polish**.
+
 ---
 
 ## Current operator journey
@@ -449,6 +461,6 @@ This preserves every panel while removing the burden of reading them in raw top-
 
 ## Recommended immediate next phase
 
-**Next phase:** **UX-4 — PR retry and release blocker clarity**
+**Next phase:** **UX-5 — setup and staging-helper polish**
 
-UX-1, UX-2, and UX-3 now cover orientation, worker-plan authoring, and approval/review discoverability. The highest remaining operator-value-to-risk item is making PR retry state and later release blockers as legible as the new approval flow without changing release-gate enforcement.
+UX-1 through UX-4 now cover orientation, worker-plan authoring, approval/review discoverability, and PR/release retry clarity. The highest remaining operator-value-to-risk item is reducing onboarding friction in setup flows and making staging helper links visible where operators already work.

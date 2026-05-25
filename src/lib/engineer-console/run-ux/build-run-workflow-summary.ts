@@ -36,6 +36,7 @@ import {
   listPrRequestsForRun,
   summarizePrRequestsForRun,
 } from "@/lib/engineer-console/release/pr-creation/pr-request-manager";
+import type { PrReadinessResult } from "@/lib/engineer-console/release/pr-creation/pr-creation-types";
 import {
   getHardReleaseGateStatusForRun,
 } from "@/lib/engineer-console/release/release-gates/release-gate-manager";
@@ -98,6 +99,14 @@ export function buildRunWorkflowSummary(input: {
 
   const prSummary = summarizePrRequestsForRun(runId);
   const latestPrRequest = listPrRequestsForRun(runId)[0] ?? null;
+  let latestPrReadiness: PrReadinessResult | null = null;
+  if (latestPrRequest?.readinessJson) {
+    try {
+      latestPrReadiness = JSON.parse(latestPrRequest.readinessJson) as PrReadinessResult;
+    } catch {
+      latestPrReadiness = null;
+    }
+  }
 
   const mergeSummary = summarizeMergeRequestsForRun(runId);
 
@@ -207,6 +216,11 @@ export function buildRunWorkflowSummary(input: {
       attemptCount: prSummary.attemptCount,
       latestStatus: prSummary.latestStatus,
       latestPrUrl: prSummary.latestPrUrl,
+      latestPrNumber: latestPrRequest?.prNumber ?? null,
+      latestCommitShaPrefix: latestPrRequest?.commitSha?.slice(0, 12) ?? null,
+      latestReadinessStatus: latestPrReadiness?.status ?? null,
+      latestReadinessBlockers: latestPrReadiness?.blockers ?? [],
+      latestReadinessWarnings: latestPrReadiness?.warnings ?? [],
       latestErrorMessage: latestPrRequest?.errorMessage ?? null,
     },
     merge: {

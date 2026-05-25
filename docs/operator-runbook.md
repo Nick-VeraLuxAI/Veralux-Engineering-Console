@@ -107,7 +107,8 @@ When you open `/engineer/runs/[id]`, the page now starts with:
 2. **Approval actions** — current approval state, whether approval is available, rationale guidance, and visible **Approve run** / **Request Fix** / **Stop Run** controls when relevant.
 3. **Lifecycle** stepper — workflow order from task through sign-off with links to the relevant panel.
 4. **Guided worker-plan flow** — model draft review, guided builder, intent preview, and advanced JSON mode.
-5. **Technical panels** below — all existing panels remain available for detailed review and actions.
+5. **PR state and hard-gate checklists** — the release panels now surface plain-English PR retry state and action-oriented hard-gate blocker links before the raw technical history.
+6. **Technical panels** below — all existing panels remain available for detailed review and actions.
 
 The command center, approval action card, and lifecycle stepper are **guidance-first** surfaces. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
 
@@ -251,7 +252,7 @@ Run these after material state changes (approval, PR, merge, deploy).
 
 ## PR creation
 
-**UI:** **PR creation** panel → evaluate readiness → **Create PR** (admin).
+**UI:** **PR creation** panel → read the **PR state** card → evaluate readiness → **Create draft PR** (admin).
 
 **API:** `GET/POST /runs/[id]/pr-requests`.
 
@@ -259,12 +260,21 @@ Requires: approved decision, evidence, policy/replay/reviews, passing gates, cha
 
 Uses controlled git + `gh pr create` on the host.
 
+The top card now explains:
+
+- whether readiness is **ready**, **requires review**, **blocked**, **created**, or **failed**
+- whether the next attempt will create a commit or reuse an existing one
+- whether the branch still needs push, is already on the remote, or needs manual recovery
+- whether an existing PR is already recorded for the run branch
+- the single recommended next action for the operator
+
 Retry behavior after partial failure:
 
 - If a prior attempt already created the run commit, retry reuses that commit instead of creating a duplicate.
 - If the run branch is already pushed to `origin`, retry skips the redundant push when the remote already matches.
 - If a PR already exists for the run branch, retry records and returns that PR instead of opening another one.
 - If the tree is clean and no reusable run commit is recorded, stop and recover the branch/commit before retrying.
+- Full raw request history still remains below the state card for technical review.
 
 Details: [pr-creation.md](./pr-creation.md).
 
@@ -277,6 +287,8 @@ Details: [pr-creation.md](./pr-creation.md).
 **API:** `GET/POST /runs/[id]/merge-requests`.
 
 Requires PR created and readiness passed; uses `gh pr merge`.
+
+When hard release gates block merge, the banner now shows an action checklist with links to the upstream blocking panel instead of only raw blocker text.
 
 Details: [merge-controls.md](./merge-controls.md).
 
@@ -341,6 +353,8 @@ Details: [deployment-health-policies.md](./deployment-health-policies.md).
 **API:** `GET/POST /runs/[id]/release-checklist`.
 
 Advisory status: `not_started` | `complete` | `needs_attention` | `blocked`. Persists evaluation rows; does not block deploy automatically.
+
+The checklist panel now also shows each item's recommended next action, and the hard-gate banner above it links to the panel that must be fixed first when sign-off is blocked later.
 
 Details: [release-checklist.md](./release-checklist.md).
 
@@ -417,11 +431,12 @@ After staging passes, use [production-launch-checklist.md](./production-launch-c
 
 | Symptom | Check |
 |---------|--------|
-| PR readiness blocked | Decision approved? Evidence? Policy/replay/reviews? |
+| PR readiness blocked | Read the PR state card first, then follow the first blocker link: approval, evidence, policy, replay, review stages, or quality gates |
+| PR retry unclear | Check the PR state card for commit reuse, branch push state, last failed step, and duplicate-prevention guidance |
 | Deploy readiness blocked | PR merged with merge SHA? |
 | No deployment profiles | Set `ENGINEER_CONSOLE_DEPLOYMENT_PROFILES_JSON` |
 | Health check fails | Profile URL reachable; `ENGINEER_CONSOLE_HEALTH_CHECK_PROFILES_JSON` |
-| Sign-off fails | Run checklist evaluate first; evidence bundle must exist |
+| Sign-off fails | Use the hard-gate action checklist to jump to release checklist, health policy, or sign-off blockers |
 | `gh` errors | `gh auth status` on server host |
 
 ### Database
@@ -444,25 +459,26 @@ After staging passes, use [production-launch-checklist.md](./production-launch-c
 ## Quick reference — run page surfaces (top to bottom)
 
 1. Run Command Center  
-2. Lifecycle  
-3. Run state  
-4. Audit timeline  
-5. Evidence bundle  
-6. Decision history  
-7. Replay verification  
-8. Policy results  
-9. Review stages  
-10. PR creation  
-11. Merge controls  
-12. Deployment gates  
-13. Deployment execution  
-14. Deployment health checks  
-15. Deployment health policy  
-16. Release checklist  
-17. Release sign-off  
-18. Worker plan draft  
-19. Worker plan  
-20. Quality gates / approval / changed files  
+2. Approval actions  
+3. Lifecycle  
+4. Run state  
+5. Audit timeline  
+6. Evidence bundle  
+7. Decision history  
+8. Replay verification  
+9. Policy results  
+10. Review stages  
+11. PR creation (with PR state card)  
+12. Merge controls  
+13. Deployment gates  
+14. Deployment execution  
+15. Deployment health checks  
+16. Deployment health policy  
+17. Release checklist  
+18. Release sign-off  
+19. Worker plan draft  
+20. Worker plan  
+21. Quality gates / changed files
 
 ---
 

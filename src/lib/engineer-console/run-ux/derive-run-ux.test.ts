@@ -1,10 +1,13 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { HardReleaseGateBannerContent } from "@/components/engineer-console/hard-release-gate-banner";
+import { PrStateCard } from "@/components/engineer-console/pr-state-card";
 import { RunApprovalActionCard } from "@/components/engineer-console/run-approval-action-card";
 import { ReviewStagesPanel } from "@/components/engineer-console/review-stages-panel";
 import { RunCommandCenter } from "@/components/engineer-console/run-command-center";
 import { RunLifecycleStepper } from "@/components/engineer-console/run-lifecycle-stepper";
+import { derivePrStateCardState } from "@/lib/engineer-console/release/pr-creation/pr-state-ux";
 import {
   deriveRunApprovalActionCardState,
   deriveRunCommandCenterState,
@@ -122,6 +125,11 @@ function buildSummary(
       attemptCount: 0,
       latestStatus: null,
       latestPrUrl: null,
+      latestPrNumber: null,
+      latestCommitShaPrefix: null,
+      latestReadinessStatus: null,
+      latestReadinessBlockers: [],
+      latestReadinessWarnings: [],
       latestErrorMessage: null,
       ...(overrides.pr ?? {}),
     },
@@ -295,6 +303,138 @@ describe("UX-1 run guidance", () => {
     expect(html).toContain("Current approval state");
   });
 
+  it("PR state card renders and shows commit will be created before first attempt", () => {
+    const state = derivePrStateCardState({
+      readiness: {
+        status: "passed",
+        blockers: [],
+        warnings: [],
+        recommendedAction: "Ready to create commit and draft PR.",
+        signals: { branchName: "engineer/test-run" },
+      },
+      latestRequest: null,
+    });
+    const html = renderToStaticMarkup(React.createElement(PrStateCard, { state }));
+
+    expect(html).toContain("PR state");
+    expect(html).toContain("Commit will be created");
+    expect(html).toContain("Create draft PR");
+  });
+
+  it("PR state card explains retry after partial failure with pushed branch", () => {
+    const state = derivePrStateCardState({
+      readiness: {
+        status: "passed",
+        blockers: [],
+        warnings: [],
+        recommendedAction: "Ready to resume PR creation using the existing run commit.",
+        signals: { branchName: "engineer/test-run" },
+      },
+      latestRequest: {
+        id: "pr-1",
+        status: "failed",
+        readinessStatus: "passed",
+        branchName: "engineer/test-run",
+        baseBranch: "main",
+        commitShaPrefix: "eac138f12345",
+        prUrl: null,
+        prNumber: null,
+        errorMessage: "gh pr create failed",
+      },
+    });
+
+    expect(state.commit.label).toBe("Existing commit will be reused");
+    expect(state.branch.label).toBe("Branch already pushed");
+    expect(state.nextAction.label).toBe("Retry draft PR creation");
+    expect(state.retryGuidance?.lastFailedStep).toBe("Create draft PR");
+  });
+
+  it("PR state card shows existing PR detection", () => {
+    const state = derivePrStateCardState({
+      readiness: {
+        status: "passed",
+        blockers: [],
+        warnings: [],
+        recommendedAction: "Ready to resume PR creation by reusing the existing PR record.",
+        signals: { branchName: "engineer/test-run" },
+      },
+      latestRequest: {
+        id: "pr-1",
+        status: "pr_created",
+        readinessStatus: "passed",
+        branchName: "engineer/test-run",
+        baseBranch: "main",
+        commitShaPrefix: "eac138f12345",
+        prUrl: "https://github.com/org/repo/pull/77",
+        prNumber: "77",
+        errorMessage: null,
+      },
+    });
+    const html = renderToStaticMarkup(React.createElement(PrStateCard, { state }));
+
+    expect(html).toContain("Existing PR detected");
+    expect(html).toContain("https://github.com/org/repo/pull/77");
+  });
+
+  it("PR state card shows manual recovery when clean tree has no reusable commit", () => {
+    const state = derivePrStateCardState({
+      readiness: {
+        status: "blocked",
+        blockers: [
+          "No changed files detected for commit and no reusable run commit is recorded. Recovery required before retrying PR creation.",
+        ],
+        warnings: [],
+        recommendedAction: "Resolve blockers before creating a PR.",
+        signals: { branchName: "engineer/test-run" },
+      },
+      latestRequest: {
+        id: "pr-1",
+        status: "failed",
+        readinessStatus: "blocked",
+        branchName: "engineer/test-run",
+        baseBranch: "main",
+        commitShaPrefix: null,
+        prUrl: null,
+        prNumber: null,
+        errorMessage:
+          "No changed files are available to commit and no reusable run commit is recorded. Recovery required: restore the approved changes or resume from the existing run branch/commit before retrying PR creation.",
+      },
+    });
+
+    expect(state.commit.label).toBe("Clean tree with no reusable commit");
+    expect(state.nextAction.label).toBe("Manual recovery required");
+  });
+
+  it("hard release gate checklist renders with anchor links", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(HardReleaseGateBannerContent, {
+        config: { hardGatesEnabled: true },
+        evaluation: {
+          enabled: true,
+          action: "merge",
+          status: "blocked",
+          blockers: [
+            "Replay verification has not been run (hard release gates).",
+            "Release checklist is blocked (hard release gates).",
+          ],
+          blockerCount: 2,
+          recommendedAction: "Resolve hard release gate blockers.",
+          signals: {
+            checklistStatus: "blocked",
+            signoffDecision: null,
+            healthPolicyStatus: null,
+            policyStatus: "passed",
+            replayStatus: null,
+          },
+        },
+      }),
+    );
+
+    expect(html).toContain("Action checklist");
+    expect(html).toContain("Go to Replay verification");
+    expect(html).toContain("#release-checklist");
+  });
+
   it("approve is visible when run is ready", () => {
     const summary = buildSummary();
     const state = deriveRunApprovalActionCardState(summary);
@@ -388,6 +528,98 @@ describe("UX-1 run guidance", () => {
     expect(state.primaryHref).toBe("#review-stages");
     expect(state.nextRequiredAction).toBe("Complete required review stages.");
     expect(state.blockers.some((item) => /pending/i.test(item.text))).toBe(true);
+  });
+
+  it("command center points to PR retry when retry is available", () => {
+    const summary = buildSummary({
+      run: {
+        id: "run-1",
+        status: "completed",
+        currentStep: "pr_creation_failed",
+        branchName: "engineer/test-run",
+        riskLevel: "low",
+        agentMessage: null,
+      },
+      approval: {
+        reportAvailable: true,
+        canApprove: false,
+        governanceIssues: [],
+        recommendedNextAction: null,
+        decisionCount: 1,
+        latestDecision: "approved",
+      },
+      pr: {
+        attemptCount: 1,
+        latestStatus: "failed",
+        latestPrUrl: null,
+        latestPrNumber: null,
+        latestCommitShaPrefix: "eac138f12345",
+        latestReadinessStatus: "passed",
+        latestReadinessBlockers: [],
+        latestReadinessWarnings: [],
+        latestErrorMessage: "gh pr create failed",
+      },
+    });
+    const guidance = deriveRunCommandCenterState(summary);
+
+    expect(guidance.currentStageId).toBe("pr");
+    expect(guidance.nextRecommendedAction).toBe("Retry draft PR creation.");
+    expect(guidance.warnings.some((item) => /No duplicate commit/i.test(item.text))).toBe(true);
+  });
+
+  it("command center points to release blocker when gates block", () => {
+    const summary = buildSummary({
+      run: {
+        id: "run-1",
+        status: "completed",
+        currentStep: "merge_ready",
+        branchName: "engineer/test-run",
+        riskLevel: "low",
+        agentMessage: null,
+      },
+      approval: {
+        reportAvailable: true,
+        canApprove: false,
+        governanceIssues: [],
+        recommendedNextAction: null,
+        decisionCount: 1,
+        latestDecision: "approved",
+      },
+      pr: {
+        attemptCount: 1,
+        latestStatus: "pr_created",
+        latestPrUrl: "https://github.com/org/repo/pull/77",
+        latestPrNumber: "77",
+        latestCommitShaPrefix: "eac138f12345",
+        latestReadinessStatus: "passed",
+        latestReadinessBlockers: [],
+        latestReadinessWarnings: [],
+        latestErrorMessage: null,
+      },
+      hardGates: {
+        enabled: true,
+        mergeStatus: "blocked",
+        mergeBlockers: [
+          "Required review stages are still pending (hard release gates).",
+          "Release checklist is blocked (hard release gates).",
+          "Replay verification has not been run (hard release gates).",
+        ],
+        deploymentApprovalStatus: "passed",
+        deploymentApprovalBlockers: [],
+        deploymentExecutionStatus: "passed",
+        deploymentExecutionBlockers: [],
+        signoffCompletedStatus: "passed",
+        signoffCompletedBlockers: [],
+        signoffExceptionsStatus: "passed",
+        signoffExceptionsBlockers: [],
+      },
+    });
+    const guidance = deriveRunCommandCenterState(summary);
+
+    expect(guidance.currentStageId).toBe("merge");
+    expect(guidance.nextRecommendedAction).toMatch(/Go to Review stages|Go to Release checklist|Go to Replay verification/);
+    expect(guidance.blockers.length).toBeLessThanOrEqual(3);
+    expect(guidance.blockers.some((item) => item.href === "#review-stages")).toBe(true);
   });
 
   it("review stages panel explains pending, approved, and rejected states", () => {

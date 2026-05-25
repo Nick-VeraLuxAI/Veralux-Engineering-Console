@@ -9,6 +9,7 @@ import {
   type RunSecondaryActionSummary,
   type RunWorkflowSummary,
 } from "./run-ux-types";
+import { buildReleaseGateChecklistItems } from "./release-gate-ux";
 
 const STEP_LABELS: Record<RunLifecycleStepId, string> = {
   task: "Task",
@@ -155,7 +156,70 @@ function buildSecondaryActions(summary: RunWorkflowSummary): RunSecondaryActionS
     });
   }
 
+  if (summary.pr.latestStatus === "failed" && summary.pr.latestCommitShaPrefix) {
+    actions.push({
+      label: "Retry PR creation",
+      description: `Retry will reuse commit ${summary.pr.latestCommitShaPrefix}.`,
+      href: panelHref(RUN_PANEL_IDS.prCreation),
+    });
+  }
+
   return actions;
+}
+
+function prRetryAvailable(summary: RunWorkflowSummary): boolean {
+  return summary.pr.latestStatus === "failed" && summary.pr.latestCommitShaPrefix !== null;
+}
+
+function prManualRecoveryRequired(summary: RunWorkflowSummary): boolean {
+  const blockerText = [
+    summary.pr.latestErrorMessage ?? "",
+    ...summary.pr.latestReadinessBlockers,
+  ].join(" ");
+  return /no reusable run commit|no changed files/i.test(blockerText);
+}
+
+function mapPrReadinessBlocker(blocker: string): RunGuidanceItem {
+  const normalized = blocker.toLowerCase();
+
+  if (normalized.includes("approved human decision")) {
+    return { text: blocker, href: panelHref(RUN_PANEL_IDS.approval) };
+  }
+  if (normalized.includes("evidence bundle")) {
+    return { text: blocker, href: panelHref(RUN_PANEL_IDS.evidence) };
+  }
+  if (normalized.includes("policy")) {
+    return { text: blocker, href: panelHref(RUN_PANEL_IDS.policy) };
+  }
+  if (normalized.includes("review stage")) {
+    return { text: blocker, href: panelHref(RUN_PANEL_IDS.reviewStages) };
+  }
+  if (normalized.includes("replay verification")) {
+    return { text: blocker, href: panelHref(RUN_PANEL_IDS.replay) };
+  }
+  if (normalized.includes("quality gate")) {
+    return { text: blocker, href: panelHref(RUN_PANEL_IDS.qualityGates) };
+  }
+  if (normalized.includes("protected path")) {
+    return { text: blocker, href: panelHref(RUN_PANEL_IDS.workerPlan) };
+  }
+  return { text: blocker, href: panelHref(RUN_PANEL_IDS.prCreation) };
+}
+
+function pushTopReleaseGateItems(target: RunGuidanceItem[], blockers: string[], limit = 3): void {
+  const items = buildReleaseGateChecklistItems(blockers).slice(0, limit);
+  for (const item of items) {
+    target.push({
+      text: `${item.label} -> ${item.ctaLabel}`,
+      href: item.href,
+    });
+  }
+}
+
+function firstReleaseGateAction(blockers: string[]): { label: string; href: string } | null {
+  const first = buildReleaseGateChecklistItems(blockers)[0];
+  if (!first) return null;
+  return { label: first.ctaLabel, href: first.href };
 }
 
 export function deriveRunApprovalActionCardState(
@@ -788,19 +852,61 @@ export function deriveRunCommandCenterState(
   }
 
   if (!prCreated(summary)) {
-    if (summary.pr.latestStatus === "failed" && summary.pr.latestErrorMessage) {
-      blockers.push({
-        text: summary.pr.latestErrorMessage,
-        href: panelHref(RUN_PANEL_IDS.prCreation),
-      });
+    if (summary.pr.latestReadinessStatus === "blocked" && summary.pr.latestReadinessBlockers.length > 0) {
+      const firstBlocker = mapPrReadinessBlocker(summary.pr.latestReadinessBlockers[0]!);
+      for (const blocker of summary.pr.latestReadinessBlockers.slice(0, 3)) {
+        blockers.push(mapPrReadinessBlocker(blocker));
+      }
       return {
         currentStageId: "pr",
         currentStageLabel: STEP_LABELS.pr,
-        nextRecommendedAction: "Review PR retry state before trying again.",
+        nextRecommendedAction: `Fix PR blocker: ${summary.pr.latestReadinessBlockers[0]!}`,
         explanation:
-          "A PR attempt failed. Use the PR creation panel to understand the retry state before creating another attempt.",
+          "PR readiness is currently blocked. Resolve the first blocker below before creating or retrying a draft PR.",
         primaryAction: {
-          label: "Open PR creation",
+          label: "Resolve first PR blocker",
+          href: firstBlocker.href ?? panelHref(RUN_PANEL_IDS.prCreation),
+        },
+        blockers,
+        warnings,
+        secondaryActions,
+      };
+    }
+
+    if (summary.pr.latestStatus === "failed" && summary.pr.latestErrorMessage) {
+      const retryAvailable = prRetryAvailable(summary);
+      const manualRecovery = prManualRecoveryRequired(summary);
+      blockers.push(
+        manualRecovery
+          ? {
+              text: "Manual recovery required before PR retry.",
+              href: panelHref(RUN_PANEL_IDS.prCreation),
+            }
+          : {
+              text: summary.pr.latestErrorMessage,
+              href: panelHref(RUN_PANEL_IDS.prCreation),
+            },
+      );
+      if (retryAvailable) {
+        warnings.push({
+          text: `Retry will reuse commit ${summary.pr.latestCommitShaPrefix}. No duplicate commit will be created.`,
+          href: panelHref(RUN_PANEL_IDS.prCreation),
+        });
+      }
+      return {
+        currentStageId: "pr",
+        currentStageLabel: STEP_LABELS.pr,
+        nextRecommendedAction: retryAvailable
+          ? "Retry draft PR creation."
+          : manualRecovery
+            ? "Manual recovery required before PR retry."
+            : "Fix PR creation blockers before trying again.",
+        explanation:
+          retryAvailable
+            ? "A partial PR attempt already recorded reusable state. Review the retry card, then continue without creating duplicate commits."
+            : "A PR attempt failed. Review the PR state card to understand what succeeded, what failed, and whether retry is safe.",
+        primaryAction: {
+          label: retryAvailable ? "Retry draft PR creation" : "Open PR creation",
           href: panelHref(RUN_PANEL_IDS.prCreation),
         },
         blockers,
@@ -826,16 +932,18 @@ export function deriveRunCommandCenterState(
 
   if (!mergeComplete(summary)) {
     if (summary.hardGates.mergeStatus === "blocked") {
-      pushAll(blockers, summary.hardGates.mergeBlockers, panelHref(RUN_PANEL_IDS.mergeControls));
+      pushTopReleaseGateItems(blockers, summary.hardGates.mergeBlockers);
+      const firstGateAction = firstReleaseGateAction(summary.hardGates.mergeBlockers);
       return {
         currentStageId: "merge",
         currentStageLabel: STEP_LABELS.merge,
-        nextRecommendedAction: "Release cannot continue yet. Complete the blockers below.",
+        nextRecommendedAction:
+          firstGateAction?.label ?? "Release cannot continue yet. Complete the blockers below.",
         explanation:
           "A PR exists for this run, but merge is still gated by release requirements.",
         primaryAction: {
-          label: "Review merge controls",
-          href: panelHref(RUN_PANEL_IDS.mergeControls),
+          label: firstGateAction?.label ?? "Review merge controls",
+          href: firstGateAction?.href ?? panelHref(RUN_PANEL_IDS.mergeControls),
         },
         blockers,
         warnings,
@@ -909,20 +1017,18 @@ export function deriveRunCommandCenterState(
 
     if (summary.deployment.latestApprovalDecision !== "approved") {
       if (summary.hardGates.deploymentApprovalStatus === "blocked") {
-        pushAll(
-          blockers,
-          summary.hardGates.deploymentApprovalBlockers,
-          panelHref(RUN_PANEL_IDS.deploymentGates),
-        );
+        pushTopReleaseGateItems(blockers, summary.hardGates.deploymentApprovalBlockers);
+        const firstGateAction = firstReleaseGateAction(summary.hardGates.deploymentApprovalBlockers);
         return {
           currentStageId: "deployment",
           currentStageLabel: STEP_LABELS.deployment,
-          nextRecommendedAction: "Release cannot continue yet. Complete the blockers below.",
+          nextRecommendedAction:
+            firstGateAction?.label ?? "Release cannot continue yet. Complete the blockers below.",
           explanation:
             "Merge is complete, but deployment approval is still blocked by release gates.",
           primaryAction: {
-            label: "Open deployment gates",
-            href: panelHref(RUN_PANEL_IDS.deploymentGates),
+            label: firstGateAction?.label ?? "Open deployment gates",
+            href: firstGateAction?.href ?? panelHref(RUN_PANEL_IDS.deploymentGates),
           },
           blockers,
           warnings,
@@ -947,20 +1053,18 @@ export function deriveRunCommandCenterState(
     }
 
     if (summary.hardGates.deploymentExecutionStatus === "blocked") {
-      pushAll(
-        blockers,
-        summary.hardGates.deploymentExecutionBlockers,
-        panelHref(RUN_PANEL_IDS.deploymentExecution),
-      );
+      pushTopReleaseGateItems(blockers, summary.hardGates.deploymentExecutionBlockers);
+      const firstGateAction = firstReleaseGateAction(summary.hardGates.deploymentExecutionBlockers);
       return {
         currentStageId: "deployment",
         currentStageLabel: STEP_LABELS.deployment,
-        nextRecommendedAction: "Release cannot continue yet. Complete the blockers below.",
+        nextRecommendedAction:
+          firstGateAction?.label ?? "Release cannot continue yet. Complete the blockers below.",
         explanation:
           "Deployment approval is recorded, but execution is still blocked by release gates.",
         primaryAction: {
-          label: "Open deployment execution",
-          href: panelHref(RUN_PANEL_IDS.deploymentExecution),
+          label: firstGateAction?.label ?? "Open deployment execution",
+          href: firstGateAction?.href ?? panelHref(RUN_PANEL_IDS.deploymentExecution),
         },
         blockers,
         warnings,
@@ -1078,16 +1182,18 @@ export function deriveRunCommandCenterState(
   }
 
   if (summary.release.checklistStatus === "blocked" && !summary.release.latestSignoffDecision) {
-    pushAll(blockers, summary.release.checklistBlockers, panelHref(RUN_PANEL_IDS.releaseChecklist));
+    pushTopReleaseGateItems(blockers, summary.release.checklistBlockers);
+    const firstGateAction = firstReleaseGateAction(summary.release.checklistBlockers);
     return {
       currentStageId: "checklist",
       currentStageLabel: STEP_LABELS.checklist,
-      nextRecommendedAction: "Release cannot continue yet. Complete the blockers below.",
+      nextRecommendedAction:
+        firstGateAction?.label ?? "Release cannot continue yet. Complete the blockers below.",
       explanation:
         "Checklist evaluation found release blockers that must be addressed before sign-off.",
       primaryAction: {
-        label: "Review release checklist",
-        href: panelHref(RUN_PANEL_IDS.releaseChecklist),
+        label: firstGateAction?.label ?? "Review release checklist",
+        href: firstGateAction?.href ?? panelHref(RUN_PANEL_IDS.releaseChecklist),
       },
       blockers,
       warnings,

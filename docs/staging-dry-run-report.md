@@ -103,6 +103,8 @@ UX-2 now improves the worker-plan flow with a **Guided worker-plan builder**, vi
 
 UX-3 now improves approval/review discoverability with a top-of-page **Approval actions** card, visible rationale requirements before submit, clearer **Request Fix** / **Stop Run** affordances, and stronger review-stage guidance when policy requires senior review. These changes preserve the same human approval, rationale, and decision-record rules.
 
+UX-4 now improves release-path clarity with a top-of-panel **PR state** card that explains commit reuse, branch push state, existing PR detection, and retry safety after partial failures, plus an action-oriented **Hard release gates** checklist that links directly to the blocking panel. These changes preserve the same PR readiness rules, hard release-gate enforcement, and manual merge/deploy/sign-off boundaries.
+
 See [operator-ux-audit.md](./operator-ux-audit.md) for the full UX journey map, severity-ranked issue inventory, information-architecture recommendation, and phased redesign backlog, and [operator-ux-guide.md](./operator-ux-guide.md) for the new operator-facing usage notes. The remaining UX items still do **not** require weakening governance behavior, but several are strong candidates to fix before production operator use and before external demos.
 
 ---

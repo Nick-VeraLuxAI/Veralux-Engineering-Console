@@ -1,6 +1,6 @@
 # Engineering Console operator UX guide
 
-Operator-facing guide for the UX-1, UX-2, and UX-3 run page updates. Pair with [operator-runbook.md](./operator-runbook.md) for the full workflow and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
+Operator-facing guide for the UX-1, UX-2, UX-3, and UX-4 run page updates. Pair with [operator-runbook.md](./operator-runbook.md) for the full workflow and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
 
 ---
 
@@ -60,6 +60,27 @@ The approval and review flow now starts with a clearer operator decision layer:
 
 ---
 
+## What changed in UX-4
+
+The release flow now explains PR retry and later-stage blockers in plain English:
+
+1. **PR state card**  
+   The **PR creation** panel now starts with a dedicated **PR state** card that shows readiness status, commit state, branch state, PR state, and one next action. This makes it clear whether the console will create a new commit, reuse an existing commit, skip a redundant push, or require manual recovery.
+
+2. **Retry guidance**  
+   When a PR attempt fails partway through, the panel now explains the last failed step, what already succeeded, what retry will do next, and whether duplicate commit creation is prevented.
+
+3. **Existing PR visibility**  
+   When a PR is already recorded for the run branch, the panel now shows the PR URL and number near the top of the panel instead of leaving that information buried in history.
+
+4. **Hard release gate checklist**  
+   The hard release gate banner now converts blocker text into an ordered checklist with plain-English reasons and links such as **Go to Replay verification**, **Go to Policy results**, and **Go to Release checklist**.
+
+5. **Command-center blocker routing**  
+   The **Run Command Center** now points to PR retry paths and the first actionable release blocker instead of leaving operators to infer which release panel to open next.
+
+---
+
 ## What the command center does
 
 The command center is a **read-only orientation layer**. It helps operators answer:
@@ -90,7 +111,7 @@ Clicking a step jumps to the relevant panel or, for `Task`, back to the task det
 
 ## Where technical details live
 
-UX-1, UX-2, and UX-3 did **not** remove technical detail from the run page.
+UX-1, UX-2, UX-3, and UX-4 did **not** remove technical detail from the run page.
 
 The detailed panels still live below the command center and lifecycle stepper:
 
@@ -161,16 +182,16 @@ Decision guidance:
 - Policy status `requires_review` still requires human rationale for final approval.
 - PR creation, merge, deployment, and sign-off are still manual and role-gated.
 - Hard release gates still enforce the same backend checks.
+- The new PR retry guidance does not bypass readiness checks, auto-create PRs, or merge/deploy automatically.
 - Technical detail remains available for audit and replay review.
 
 ---
 
 ## Current UX limits
 
-UX-1, UX-2, and UX-3 improve orientation, worker-plan authoring, mismatch visibility, and approval discoverability, but they do **not** yet solve:
+UX-1, UX-2, UX-3, and UX-4 improve orientation, worker-plan authoring, mismatch visibility, approval discoverability, and release retry clarity, but they do **not** yet solve:
 
-- PR retry state clarity
 - advanced panel collapsing and progressive disclosure
-- release-blocker checklist mapping across later panels
+- staging-helper links and onboarding shortcuts across setup flows
 
 Those remain in the next phases documented in [operator-ux-audit.md](./operator-ux-audit.md).
