@@ -1,6 +1,6 @@
 # Engineering Console — Operator runbook
 
-Operational guide for VeraLux Engineering Console through Phase 8F. Pair with [env-reference.md](./env-reference.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
+Operational guide for VeraLux Engineering Console through Phase UX-5. Pair with [env-reference.md](./env-reference.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
 
 ## Prerequisites
 
@@ -104,13 +104,13 @@ Link `registered_repo_id` when using a registered repo for PR/verify gates.
 When you open `/engineer/runs/[id]`, the page now starts with:
 
 1. **Run Command Center** — current lifecycle stage, next recommended action, blockers, warnings, and safe follow-up actions.
-2. **Approval actions** — current approval state, whether approval is available, rationale guidance, and visible **Approve run** / **Request Fix** / **Stop Run** controls when relevant.
-3. **Lifecycle** stepper — workflow order from task through sign-off with links to the relevant panel.
-4. **Guided worker-plan flow** — model draft review, guided builder, intent preview, and advanced JSON mode.
-5. **PR state and hard-gate checklists** — the release panels now surface plain-English PR retry state and action-oriented hard-gate blocker links before the raw technical history.
-6. **Technical panels** below — all existing panels remain available for detailed review and actions.
+2. **Lifecycle** stepper — workflow order from task through sign-off with links to the relevant panel.
+3. **Current Action** — a compact summary of the active step, why it matters, and the top blockers or warnings.
+4. **Run state** — branch, status, current step, and risk summary.
+5. **Section groups** — **Active Work**, **Governance & Review**, **PR & Release**, and **Technical Audit**.
+6. **Detailed panels inside the groups** — all existing panels remain available for detailed review and actions.
 
-The command center, approval action card, and lifecycle stepper are **guidance-first** surfaces. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
+The command center, current-action zone, grouped sections, and approval action card are **guidance-first** surfaces. They do not auto-run worker plans, auto-approve, auto-create PRs, auto-merge, auto-deploy, or auto-sign off.
 
 Details: [operator-ux-guide.md](./operator-ux-guide.md), [operator-ux-audit.md](./operator-ux-audit.md).
 
@@ -277,6 +277,13 @@ Retry behavior after partial failure:
 - If a PR already exists for the run branch, retry records and returns that PR instead of opening another one.
 - If the tree is clean and no reusable run commit is recorded, stop and recover the branch/commit before retrying.
 - Full raw request history still remains below the state card for technical review.
+
+Confirmed staging retest:
+
+- PR retry recovery now passes in staging.
+- The console reuses the existing run commit, recognizes when the remote branch is already pushed, skips duplicate commit/push work, and records the existing draft PR when found.
+- Previous failure history remains visible for audit context.
+- The earlier false-positive GitHub argument validation error is closed.
 
 Details: [pr-creation.md](./pr-creation.md).
 
@@ -461,26 +468,13 @@ After staging passes, use [production-launch-checklist.md](./production-launch-c
 ## Quick reference — run page surfaces (top to bottom)
 
 1. Run Command Center  
-2. Approval actions  
-3. Lifecycle  
+2. Lifecycle  
+3. Current Action  
 4. Run state  
-5. Audit timeline  
-6. Evidence bundle  
-7. Decision history  
-8. Replay verification  
-9. Policy results  
-10. Review stages  
-11. PR creation (with PR state card)  
-12. Merge controls  
-13. Deployment gates  
-14. Deployment execution  
-15. Deployment health checks  
-16. Deployment health policy  
-17. Release checklist  
-18. Release sign-off  
-19. Worker plan draft  
-20. Worker plan  
-21. Quality gates / changed files
+5. Active Work group  
+6. Governance & Review group  
+7. PR & Release group  
+8. Technical Audit group
 
 ---
 

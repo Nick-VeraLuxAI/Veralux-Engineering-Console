@@ -135,9 +135,16 @@ test.describe("Engineering Console auth roles", () => {
     }, taskId);
 
     await page.goto(`/engineer/runs/${runId}`);
-    const signOff = page
+    const releaseGroup = page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Release sign-off", exact: true }) });
+      .filter({ has: page.getByRole("heading", { name: "PR & Release", exact: true }) })
+      .first();
+    const toggle = releaseGroup.getByRole("button", { name: /Show details|Hide details/i });
+    if ((await toggle.innerText()).match(/show details/i)) {
+      await toggle.click();
+    }
+
+    const signOff = page.locator("#release-signoff");
     await signOff.scrollIntoViewIfNeeded();
     await expect(signOff.getByRole("button", { name: "Record sign-off" })).toBeVisible({
       timeout: 30_000,

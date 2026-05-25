@@ -12,6 +12,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 |---------|------------|
 | PR creation retry after partial failure attempted `git commit` again on a clean tree | Fixed: PR creation now resumes the latest request, reuses an existing run commit when present, skips redundant push when the branch is already on origin, and records an existing PR instead of creating duplicates. Covered by `pr-creation.test.ts` and clean `verify:ci`. |
 | PR state card favored stale failed request history over current resumable readiness after partial PR failure | Fixed: the PR state card now uses current resumable readiness, run-branch reconciliation, and remote-branch state as the canonical source of truth, while preserving the previous failed step as historical context only. Covered by `pr-state-ux.test.ts`, `pr-creation.test.ts`, and clean verification. |
+| Staging PR retry recovery still failed with a false-positive GitHub CLI argument validation error | Fixed: controlled `gh` execution still uses argv-only validation, but now allows legitimate PR title/body punctuation and markdown content while rejecting control characters, NUL bytes, invalid refs, and non-string args. The staging retest now passes: existing run commit reused, duplicate push skipped, existing draft PR detected/recorded, and historical failure context preserved for audit. |
 | Worker-plan authoring required manual `runId` lookup, raw JSON editing, and weak intent comparison | Fixed in UX-2: guided worker-plan builder, plan intent preview, model-draft comparison warnings, staging README smoke helper, and advanced JSON parse/wrapper warnings. Backend validation and execution authority remain unchanged. |
 | Approval, Request Fix, and Stop controls were hard to discover and rationale/review requirements were unclear | Fixed in UX-3: top-of-page approval action card, visible rationale guidance before submit, stronger review-stage summaries, clearer Request Fix / Stop labels, and command-center guidance that points to review before final approval. Backend approval policy, rationale enforcement, and decision-record creation remain unchanged. |
 | PR retry state and later release blockers were technically accurate but hard to interpret under staging pressure | Fixed in UX-4: the PR creation panel now starts with a plain-English PR state card, retry guidance explains what succeeded and what retry will do next, existing PR records are surfaced near the top, and hard release gates now render an action checklist with panel links. PR readiness, hard gates, merge, deploy, and sign-off behavior remain unchanged. |
@@ -58,7 +59,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 ## Recommended technical debt (priority order)
 
 1. **Staging dry run** — complete [staging-dry-run-checklist.md](./staging-dry-run-checklist.md) before production.
-2. **UX-5 setup and staging-helper polish** — add clearer setup guidance, staging-helper links, and first-run operator onboarding without changing execution authority.
+2. **UX-5 progressive disclosure follow-through** — refine grouped run-page sections, current-action summaries, and first-run operator guidance without changing execution authority.
 3. **`.env.example`** — mirror [env-reference.md](./env-reference.md) for onboarding.
 4. **Operator admin UI** — create/disable operators without SQL.
 5. **API route test harness** — shared helper for auth cookies + CSRF on golden paths.
@@ -135,7 +136,7 @@ Post Phase 8F audit for production readiness and client use. Phase Q5 production
 
 **Production launch:** Complete [production-launch-checklist.md](./production-launch-checklist.md) after staging dry run.
 
-UX-1 through UX-4 are now in place with a top-of-page command center, lifecycle stepper, guided worker-plan builder, advanced JSON guardrails, visible approval/review actions, plain-English PR retry state, and actionable hard release-gate checklists. For the remaining staging usability work, see [operator-ux-audit.md](./operator-ux-audit.md) and [operator-ux-guide.md](./operator-ux-guide.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
+UX-1 through UX-5 are now in place with a top-of-page command center, lifecycle stepper, current-action summary, grouped progressive-disclosure sections, guided worker-plan builder, advanced JSON guardrails, visible approval/review actions, plain-English PR retry state, and actionable hard release-gate checklists. For the remaining staging usability work, see [operator-ux-audit.md](./operator-ux-audit.md) and [operator-ux-guide.md](./operator-ux-guide.md). That backlog is intentionally UX-only and does not weaken governance or release controls.
 
 **Phase 9B — External CI correlation:** Attach workflow run ids to deployment/sign-off rows and evidence summaries without triggering GitHub Actions from the console.
 

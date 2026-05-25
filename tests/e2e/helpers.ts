@@ -35,6 +35,13 @@ export const CORE_RUN_DETAIL_PANEL_HEADINGS = [
   "Worker plan",
 ] as const;
 
+export const RUN_DETAIL_GROUP_HEADINGS = [
+  "Active Work",
+  "Governance & Review",
+  "PR & Release",
+  "Technical Audit",
+] as const;
+
 /** Full run detail page including release lifecycle panels (fixture-backed runs). */
 export const RUN_DETAIL_PANEL_HEADINGS = CORE_RUN_DETAIL_PANEL_HEADINGS;
 
@@ -93,6 +100,25 @@ export async function expectRunDetailPanelsVisible(page: Page): Promise<void> {
   await page
     .getByRole("heading", { name: "Run state", exact: true })
     .waitFor({ state: "visible", timeout: 30_000 });
+
+  await page
+    .getByRole("heading", { name: /Current action:/i })
+    .waitFor({ state: "visible", timeout: 30_000 });
+
+  for (const heading of RUN_DETAIL_GROUP_HEADINGS) {
+    const section = page.locator("section").filter({
+      has: page.getByRole("heading", { name: heading, exact: true }),
+    }).first();
+    await section.scrollIntoViewIfNeeded({ timeout: 30_000 });
+    await section.waitFor({ state: "visible", timeout: 30_000 });
+    const toggle = section.getByRole("button", { name: /Show details|Hide details/i });
+    if (await toggle.isVisible()) {
+      const label = await toggle.innerText();
+      if (/show details/i.test(label)) {
+        await toggle.click();
+      }
+    }
+  }
 
   for (const heading of RUN_DETAIL_PANEL_HEADINGS) {
     const locator = page.getByRole("heading", { name: heading, exact: true });

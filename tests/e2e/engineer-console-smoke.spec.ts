@@ -7,6 +7,7 @@ import {
 import {
   expectRunDetailPanelsVisible,
   gotoRunDetailResilient,
+  RUN_DETAIL_GROUP_HEADINGS,
 } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
@@ -57,11 +58,15 @@ test.describe("Engineering Console trusted local smoke", () => {
       await expect(
         page.getByRole("heading", { name: "Run Command Center", exact: true }),
       ).toBeVisible();
+      await expect(page.getByRole("heading", { name: /Current action:/i })).toBeVisible();
       await expect(
         page.getByRole("heading", { name: "Approval actions", exact: true }),
       ).toBeVisible();
       await expect(page.getByRole("heading", { name: "Lifecycle", exact: true })).toBeVisible();
       await expect(page.getByText("Next recommended action")).toBeVisible();
+      for (const heading of RUN_DETAIL_GROUP_HEADINGS) {
+        await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+      }
       await expectRunDetailPanelsVisible(page);
     });
 

@@ -72,7 +72,19 @@ UX-4 is now implemented in the release path:
 - the **Hard release gates** banner now converts blocker text into an ordered checklist with panel links such as **Go to Replay verification**, **Go to Policy results**, and **Go to Release checklist**
 - the **Run Command Center** now points operators toward PR retry or the first actionable release blocker instead of leaving them to infer the next release panel manually
 
-UX-4 improves retry clarity and release recovery guidance, but it intentionally does **not** bypass PR readiness, auto-create PRs, auto-merge, auto-deploy, weaken hard release gates, or remove technical detail. The next backlog item is **UX-5 — setup and staging-helper polish**.
+UX-4 improves retry clarity and release recovery guidance, but it intentionally does **not** bypass PR readiness, auto-create PRs, auto-merge, auto-deploy, weaken hard release gates, or remove technical detail. The next backlog item is **UX-5 — advanced panel organization and progressive disclosure**.
+
+## UX-5 implementation note
+
+UX-5 is now implemented on the run detail page:
+
+- a compact **Current Action** zone now appears near the top of the page and restates the active lifecycle step, why it matters, and the next operator move
+- the long run page is now grouped into **Active Work**, **Governance & Review**, **PR & Release**, and **Technical Audit**
+- each group now answers what it is, why it matters, the current state, and what the operator should do next
+- deterministic default expansion now keeps the currently relevant group open while collapsing advanced technical detail by default
+- the **Technical Audit** group now stays collapsed unless audit-chain verification needs attention
+
+UX-5 improves scannability and operator focus, but it intentionally does **not** remove panels, weaken governance, hide audit history permanently, auto-run any mutations, or change backend release behavior. The next backlog item returns to **setup and staging-helper polish**.
 
 ---
 
@@ -380,7 +392,8 @@ This preserves every panel while removing the burden of reading them in raw top-
 | UX-2 | Improve worker-plan authoring and review flow | `worker-plan-panel.tsx`, `worker-plan-draft-panel.tsx`, related API summary helpers, docs | Medium-high | Unit/component tests for template autofill, validation states, intent comparison, safe execute gating; Playwright smoke for draft-to-execute flow | Operator no longer needs manual `runId` copy/paste; plan summary and file impact are visible before execute |
 | UX-3 | Improve approval and review decision visibility | `approval-actions.tsx`, approval report area in `run-live-panel.tsx`, review stages panel, docs | Medium | Component tests for actionable-state visibility, rationale requirements, review-stage summaries; accessibility checks for focus order and buttons | Approve / Request Fix / Stop are visible when actionable and clearly secondary/primary |
 | UX-4 | Clarify PR retry, hard gates, and release blockers | `pr-creation-panel.tsx`, `merge-controls-panel.tsx`, `hard-release-gate-banner.tsx`, `release-checklist-panel.tsx`, `release-signoff-panel.tsx`, docs | Medium | Unit tests for retry-state copy, blocker mapping, hard-gate checklist rendering; Playwright smoke for retry and blocked-release states | Retry state is understandable, blockers point to fixes, no change to release-gate enforcement |
-| UX-5 | Add staging helper and operator polish across setup and run flows | `registered-repos-panel.tsx`, `create-task-form.tsx`, `compatibility-panel.tsx`, `engineer-session-bar.tsx`, docs/runbook links | Low-medium | Playwright smoke for setup flow, docs-link checks, accessibility review, regression checks on current navigation | First-time operators can complete staging with materially less external guidance |
+| UX-5 | Add advanced panel organization and progressive disclosure on the run page | `run-live-panel.tsx`, new run-section helpers/components, run-page tests, docs | Medium | Unit tests for default expansion rules and grouped rendering; Playwright smoke for grouped panels and expandable technical sections | Run page feels less overwhelming, current action stays clear, and all technical panels remain accessible |
+| UX-6 | Add staging helper and operator polish across setup and run flows | `registered-repos-panel.tsx`, `create-task-form.tsx`, `compatibility-panel.tsx`, `engineer-session-bar.tsx`, docs/runbook links | Low-medium | Playwright smoke for setup flow, docs-link checks, accessibility review, regression checks on current navigation | First-time operators can complete staging with materially less external guidance |
 
 ---
 
@@ -461,6 +474,6 @@ This preserves every panel while removing the burden of reading them in raw top-
 
 ## Recommended immediate next phase
 
-**Next phase:** **UX-5 — setup and staging-helper polish**
+**Next phase:** **UX-6 — setup and staging-helper polish**
 
-UX-1 through UX-4 now cover orientation, worker-plan authoring, approval/review discoverability, and PR/release retry clarity. The highest remaining operator-value-to-risk item is reducing onboarding friction in setup flows and making staging helper links visible where operators already work.
+UX-1 through UX-5 now cover orientation, worker-plan authoring, approval/review discoverability, PR/release retry clarity, and run-page density. The highest remaining operator-value-to-risk item is reducing onboarding friction in setup flows and making staging helper links visible where operators already work.

@@ -1,6 +1,6 @@
 # Engineering Console operator UX guide
 
-Operator-facing guide for the UX-1, UX-2, UX-3, and UX-4 run page updates. Pair with [operator-runbook.md](./operator-runbook.md) for the full workflow and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
+Operator-facing guide for the UX-1, UX-2, UX-3, UX-4, and UX-5 run page updates. Pair with [operator-runbook.md](./operator-runbook.md) for the full workflow and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
 
 ---
 
@@ -81,6 +81,32 @@ The release flow now explains PR retry and later-stage blockers in plain English
 5. **Command-center blocker routing**  
    The **Run Command Center** now points to PR retry paths and the first actionable release blocker instead of leaving operators to infer which release panel to open next.
 
+### PR retry recovery — PASS
+
+The Engineering Console successfully resumed PR creation after partial failure. It reused the existing run commit, recognized the remote branch was already pushed, skipped duplicate commit/push work, and detected/recorded the existing draft PR.
+
+Previous failure history remains visible for audit context, but the current PR state now correctly shows the recovered state.
+
+Status: PASS after PR retry recovery and GitHub argument validation fixes.
+
+---
+
+## What changed in UX-5
+
+The run page now uses progressive disclosure so operators can focus on the current step without losing access to the technical record:
+
+1. **Current Action zone**  
+   A compact card now sits near the top of the page and restates the most relevant active step, why it matters, the next action, and the top blockers or warnings.
+
+2. **Section groups**  
+   The long run page is now organized into **Active Work**, **Governance & Review**, **PR & Release**, and **Technical Audit** groups. Each group explains what it is, why it matters, the current state, and what the operator should do next.
+
+3. **Deterministic expansion rules**  
+   The group that matches the current lifecycle step opens by default. Release panels open when PR/release work is active. Technical audit stays collapsed by default unless audit-chain verification needs attention.
+
+4. **Technical detail remains available**  
+   UX-5 does not remove panels or hide technical detail permanently. It only changes the presentation order and default expansion behavior.
+
 ---
 
 ## What the command center does
@@ -113,9 +139,9 @@ Clicking a step jumps to the relevant panel or, for `Task`, back to the task det
 
 ## Where technical details live
 
-UX-1, UX-2, UX-3, and UX-4 did **not** remove technical detail from the run page.
+UX-1 through UX-5 did **not** remove technical detail from the run page.
 
-The detailed panels still live below the command center and lifecycle stepper:
+The detailed panels still live below the command center, lifecycle stepper, and current-action zone:
 
 - worker plan draft
 - worker plan
@@ -136,7 +162,7 @@ The detailed panels still live below the command center and lifecycle stepper:
 - release sign-off
 - audit timeline
 
-Use the top-of-page guidance to orient first, then open the specific panel you need.
+Use the top-of-page guidance to orient first, then open the section group and specific panel you need.
 
 ---
 
@@ -191,9 +217,8 @@ Decision guidance:
 
 ## Current UX limits
 
-UX-1, UX-2, UX-3, and UX-4 improve orientation, worker-plan authoring, mismatch visibility, approval discoverability, and release retry clarity, but they do **not** yet solve:
+UX-1 through UX-5 improve orientation, worker-plan authoring, mismatch visibility, approval discoverability, release retry clarity, and run-page density, but they do **not** yet solve:
 
-- advanced panel collapsing and progressive disclosure
 - staging-helper links and onboarding shortcuts across setup flows
 
 Those remain in the next phases documented in [operator-ux-audit.md](./operator-ux-audit.md).

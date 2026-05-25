@@ -163,6 +163,12 @@ export interface RunWorkflowSummary {
     signoffExceptionsStatus: string | null;
     signoffExceptionsBlockers: string[];
   };
+  audit: {
+    eventCount: number;
+    chainOk: boolean;
+    chainFailureCount: number;
+    chainFailures: string[];
+  };
 }
 
 export interface RunGuidanceItem {
@@ -223,4 +229,33 @@ export interface RunLifecycleStepState {
   label: string;
   status: RunLifecycleStepStatus;
   href: string;
+}
+
+export type RunSectionGroupTone = "neutral" | "ready" | "warning" | "blocked" | "complete";
+
+export type RunSectionGroupId =
+  | "active_work"
+  | "governance_review"
+  | "pr_release"
+  | "technical_audit";
+
+export interface RunSectionGroupState {
+  id: RunSectionGroupId;
+  title: string;
+  description: string;
+  currentStateLabel: string;
+  nextActionLabel: string;
+  defaultExpanded: boolean;
+  tone: RunSectionGroupTone;
+  panelIds: string[];
+}
+
+export interface RunCurrentActionZoneState {
+  title: string;
+  description: string;
+  currentStateLabel: string;
+  currentStateDetail: string;
+  primaryAction: RunCommandCenterAction;
+  blockers: RunGuidanceItem[];
+  warnings: RunGuidanceItem[];
 }

@@ -175,6 +175,13 @@ function buildSummary(
       signoffExceptionsBlockers: [],
       ...(overrides.hardGates ?? {}),
     },
+    audit: {
+      eventCount: 8,
+      chainOk: true,
+      chainFailureCount: 0,
+      chainFailures: [],
+      ...(overrides.audit ?? {}),
+    },
   };
 }
 

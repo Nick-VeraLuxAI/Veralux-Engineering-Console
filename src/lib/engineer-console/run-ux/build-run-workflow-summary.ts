@@ -19,6 +19,10 @@ import {
   summarizeReviewStages,
 } from "@/lib/engineer-console/governance/review-stages/review-stage-manager";
 import {
+  listAuditEventsForRun,
+  verifyAuditChainForRun,
+} from "@/lib/engineer-console/governance/audit-ledger/audit-ledger-manager";
+import {
   listDeploymentHealthChecksForRun,
 } from "@/lib/engineer-console/release/deployment-health-check/deployment-health-check-manager";
 import {
@@ -134,6 +138,8 @@ export function buildRunWorkflowSummary(input: {
   const latestReleaseSignoff = releaseSignoffs[0] ?? null;
 
   const hardGates = getHardReleaseGateStatusForRun(runId);
+  const auditEvents = listAuditEventsForRun(runId);
+  const auditVerification = verifyAuditChainForRun(runId);
 
   return {
     run: {
@@ -272,6 +278,12 @@ export function buildRunWorkflowSummary(input: {
         hardGates.evaluations.release_signoff_completed_with_exceptions.status,
       signoffExceptionsBlockers:
         hardGates.evaluations.release_signoff_completed_with_exceptions.blockers,
+    },
+    audit: {
+      eventCount: auditEvents.length,
+      chainOk: auditVerification.ok,
+      chainFailureCount: auditVerification.failures.length,
+      chainFailures: auditVerification.failures,
     },
   };
 }
