@@ -1,6 +1,11 @@
 "use client";
 
 import React from "react";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/components/ui/cn";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Surface } from "@/components/ui/surface";
 import { StatusBadge } from "./status-badge";
 import {
   DEFAULT_RUN_WORKSPACE_VIEW,
@@ -35,6 +40,17 @@ function issueSeverityTone(severity: RunIssue["severity"]): string {
       return "border-amber-500/40 bg-amber-950/30 text-amber-100";
     default:
       return "border-blue-500/40 bg-blue-950/30 text-blue-100";
+  }
+}
+
+function issueSeverityBadgeVariant(severity: RunIssue["severity"]): BadgeVariant {
+  switch (severity) {
+    case "critical":
+      return "blocked";
+    case "warning":
+      return "warning";
+    default:
+      return "info";
   }
 }
 
@@ -86,8 +102,11 @@ export function RunWorkspaceShell({
   }
 
   return (
-    <section
-      className="relative mx-auto max-w-[112rem] overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--background)] shadow-[0_24px_80px_rgba(15,23,42,0.28)]"
+    <Surface
+      as="section"
+      padding="none"
+      variant="elevated"
+      className="relative mx-auto max-w-[112rem] overflow-hidden rounded-3xl bg-[var(--background)] shadow-[0_24px_80px_rgba(15,23,42,0.28)]"
       aria-labelledby="run-workspace-heading"
     >
       <div className="sticky top-3 z-20 rounded-t-3xl border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur">
@@ -101,53 +120,56 @@ export function RunWorkspaceShell({
                 >
                   Run workspace
                 </h2>
-                <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-2.5 py-1 text-[11px] font-medium text-white">
+                <Badge size="sm" variant="muted">
                   {activeWorkspace.label} workspace
-                </span>
+                </Badge>
                 {currentIssue ? (
-                  <span
-                    className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${issueSeverityTone(currentIssue.severity)}`}
+                  <Badge
+                    size="sm"
+                    variant={issueSeverityBadgeVariant(currentIssue.severity)}
+                    className={issueSeverityTone(currentIssue.severity)}
                   >
                     Highest priority: {currentIssue.severity}
-                  </span>
+                  </Badge>
                 ) : null}
               </div>
-              <p className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
-                {taskTitle}
-              </p>
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                Run {runIdShort} • {activeWorkspace.description}
-              </p>
+              <SectionHeader
+                className="mt-2"
+                title={taskTitle}
+                titleAs="h3"
+                titleClassName="text-xl font-semibold tracking-tight text-white sm:text-[1.75rem]"
+                description={`Run ${runIdShort} • ${activeWorkspace.description}`}
+              />
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={runStatus} />
-              <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-2.5 py-1 text-xs text-[var(--muted)]">
+              <Badge variant="muted">
                 Stage: {currentStageLabel}
-              </span>
+              </Badge>
               {riskLevel ? <StatusBadge status={riskLevel} /> : null}
             </div>
           </div>
 
           <div className="grid gap-3 xl:grid-cols-[12rem_minmax(0,1fr)_minmax(18rem,0.95fr)]">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+            <Surface className="rounded-2xl" variant="glass">
               <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Attention</p>
               <div className="mt-3 space-y-2 text-sm">
                 <p className="font-medium text-white">{blockerCount} blocker(s)</p>
                 <p className="text-[var(--muted)]">{warningCount} warning(s)</p>
               </div>
-            </div>
+            </Surface>
 
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+            <Surface className="rounded-2xl" variant="glass">
               <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Primary next action</p>
               <p className="mt-3 text-sm font-medium text-white">{nextAction}</p>
               <p className="mt-2 text-xs text-[var(--muted)]">
                 Navigation stays separate from approvals, PR, merge, and release actions. Those
                 controls remain inside the selected workspace.
               </p>
-            </div>
+            </Surface>
 
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+            <Surface className="rounded-2xl" variant="glass">
               <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Current workspace</p>
               <p className="mt-3 text-sm font-semibold text-white">{activeWorkspace.label}</p>
               <p className="mt-1 text-xs text-[var(--muted)]">
@@ -155,16 +177,17 @@ export function RunWorkspaceShell({
                   ? `${activeWorkspaceIssueCount} issue${activeWorkspaceIssueCount === 1 ? "" : "s"} linked here right now.`
                   : "No derived issues are currently linked to this workspace."}
               </p>
-              <button
-                type="button"
+              <Button
                 onClick={onOpenCurrentIssue}
-                className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-sm font-medium text-white transition hover:border-white/20 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+                className="mt-4 rounded-xl bg-[var(--background)]"
+                fullWidth
+                variant="secondary"
               >
                 {currentIssue
                   ? `Open issue: ${currentIssue.title}`
                   : `Open ${activeWorkspace.label}`}
-              </button>
-            </div>
+              </Button>
+            </Surface>
           </div>
         </div>
 
@@ -189,22 +212,25 @@ export function RunWorkspaceShell({
                   tabIndex={selected ? 0 : -1}
                   onClick={() => onSelectView(view.id)}
                   onKeyDown={(event) => handleTabKeyDown(event, view.id)}
-                  className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] ${
-                    selected
-                      ? "border-[var(--accent)] bg-[var(--accent)]/15 text-white shadow-[0_0_0_1px_var(--accent),0_14px_30px_rgba(59,130,246,0.18)]"
-                      : "border-[var(--border)] bg-[var(--card)]/70 text-[var(--muted)] hover:border-white/15 hover:text-white"
-                  }`}
+                className={cn(
+                  "shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm transition",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+                  selected
+                    ? "border-[var(--accent)] bg-[var(--accent)]/15 text-white shadow-[0_0_0_1px_var(--accent),0_14px_30px_rgba(59,130,246,0.18)]"
+                    : "border-[var(--border)] bg-[var(--card)]/70 text-[var(--muted)] hover:border-white/15 hover:text-white",
+                )}
                 >
                   <span className="inline-flex items-center gap-2">
                     <span>{view.label}</span>
                     {issueCount > 0 ? (
                       <span
                         aria-hidden="true"
-                        className={`rounded-full border px-1.5 py-0.5 text-[11px] font-medium ${
+                        className={cn(
+                          "rounded-full border px-1.5 py-0.5 text-[11px] font-medium",
                           selected
                             ? "border-white/20 bg-white/10 text-white"
-                            : "border-[var(--border)] bg-[var(--background)] text-[var(--muted)]"
-                        }`}
+                            : "border-[var(--border)] bg-[var(--background)] text-[var(--muted)]",
+                        )}
                       >
                         {issueCount}
                       </span>
@@ -224,7 +250,7 @@ export function RunWorkspaceShell({
       </div>
 
       <div className="p-4 sm:p-5">{children}</div>
-    </section>
+    </Surface>
   );
 }
 

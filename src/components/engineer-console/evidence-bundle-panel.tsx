@@ -2,6 +2,10 @@
 
 import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Surface } from "@/components/ui/surface";
 
 import { useCallback, useEffect, useState } from "react";
 import { RUN_NAV_TARGET_IDS } from "@/lib/engineer-console/run-ux/run-navigation";
@@ -82,117 +86,124 @@ export function EvidenceBundlePanel({ runId }: { runId: string }) {
   const bundle = data?.evidence.bundle;
 
   return (
-    <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-semibold">Evidence bundle</h2>
-          <OperatorHelp term="evidence_bundle" label="What is an evidence bundle?" />
-          <a
-            href={`#${RUN_NAV_TARGET_IDS.evidenceDetails}`}
-            className="text-xs text-[var(--accent)] underline underline-offset-2"
-          >
-            View hash and details
-          </a>
-        </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void regenerate()}
-          className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
-        >
-          {busy ? "Refreshing…" : "Generate or refresh evidence"}
-        </button>
-      </div>
+    <Surface as="section">
+      <SectionHeader
+        title="Evidence bundle"
+        description="Keep the reviewable run record, governance context, and audit references visible without changing workflow authority."
+        meta={
+          <>
+            <OperatorHelp term="evidence_bundle" label="What is an evidence bundle?" />
+            <a
+              href={`#${RUN_NAV_TARGET_IDS.evidenceDetails}`}
+              className="text-xs text-[var(--accent)] underline underline-offset-2"
+            >
+              View hash and details
+            </a>
+          </>
+        }
+        actions={
+          <Button disabled={busy} onClick={() => void regenerate()} size="sm" variant="secondary">
+            {busy ? "Refreshing…" : "Generate or refresh evidence"}
+          </Button>
+        }
+      />
 
-      {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
 
-      {loading && <p className="text-sm text-[var(--muted)]">Loading evidence record…</p>}
+      {loading && <p className="mt-4 text-sm text-[var(--muted)]">Loading evidence record…</p>}
 
       {!loading && missing && !error && (
-        <p className="text-sm text-[var(--muted)]">
-          Generate evidence so the run has a reviewable record.
-        </p>
+        <div className="mt-4">
+          <EmptyState
+            compact
+            title="No evidence bundle yet"
+            description="Generate evidence so the run has a reviewable record."
+          />
+        </div>
       )}
 
       {data && bundle && (
-        <dl id={RUN_NAV_TARGET_IDS.evidenceDetails} className="grid gap-2 text-sm">
-          <div>
+        <dl
+          id={RUN_NAV_TARGET_IDS.evidenceDetails}
+          className="mt-4 grid gap-3 text-sm lg:grid-cols-2"
+        >
+          <Surface padding="sm" variant="inset">
             <dt className="text-[var(--muted)]">Bundle hash</dt>
-            <dd className="font-mono text-xs break-all">{data.evidence.bundleHash}</dd>
-          </div>
-          <div>
+            <dd className="mt-1 break-all font-mono text-xs">{data.evidence.bundleHash}</dd>
+          </Surface>
+          <Surface padding="sm" variant="inset">
             <dt className="text-[var(--muted)]">Updated</dt>
-            <dd>{new Date(data.evidence.updatedAt).toLocaleString()}</dd>
-          </div>
-          <div>
+            <dd className="mt-1">{new Date(data.evidence.updatedAt).toLocaleString()}</dd>
+          </Surface>
+          <Surface padding="sm" variant="inset">
             <dt className="text-[var(--muted)]">Task / repo</dt>
-            <dd>
+            <dd className="mt-1">
               {bundle.taskTitle}
               {bundle.repoName ? ` · ${bundle.repoName}` : ""} ({bundle.repoPathRef})
             </dd>
-          </div>
-          <div>
+          </Surface>
+          <Surface padding="sm" variant="inset">
             <dt className="text-[var(--muted)]">Branch / status</dt>
-            <dd>
+            <dd className="mt-1">
               {bundle.branchName ?? "—"} · {bundle.runStatus}
             </dd>
-          </div>
+          </Surface>
           {bundle.modelDraft && (
-            <div>
+            <Surface padding="sm" variant="inset">
               <dt className="text-[var(--muted)]">Model draft</dt>
-              <dd>
+              <dd className="mt-1">
                 {bundle.modelDraft.provider}/{bundle.modelDraft.model} —{" "}
                 {bundle.modelDraft.validationStatus}
               </dd>
-            </div>
+            </Surface>
           )}
           {bundle.workerPlan && (
-            <div>
+            <Surface padding="sm" variant="inset">
               <dt className="text-[var(--muted)]">Worker plan</dt>
-              <dd>
+              <dd className="mt-1">
                 {bundle.workerPlan.summary || "(no summary)"} — validation{" "}
                 {bundle.workerPlan.validationStatus}, execution {bundle.workerPlan.executionStatus}
               </dd>
-            </div>
+            </Surface>
           )}
-          <div>
+          <Surface padding="sm" variant="inset">
             <dt className="text-[var(--muted)]">Changed files</dt>
-            <dd>{bundle.changedFileCount}</dd>
-          </div>
-          <div>
+            <dd className="mt-1">{bundle.changedFileCount}</dd>
+          </Surface>
+          <Surface padding="sm" variant="inset">
             <dt className="text-[var(--muted)]">Quality gates</dt>
-            <dd>
+            <dd className="mt-1">
               {bundle.qualityGates.length === 0
                 ? "—"
                 : bundle.qualityGates.map((g) => `${g.command} (${g.status})`).join(", ")}
             </dd>
-          </div>
+          </Surface>
           {bundle.governance && (
-            <div>
+            <Surface padding="sm" variant="inset">
               <dt className="text-[var(--muted)]">Governance</dt>
-              <dd>
+              <dd className="mt-1">
                 {bundle.governance.riskLevel} · canApprove={String(bundle.governance.canApprove)} ·{" "}
                 {bundle.governance.issueCount} issue(s)
               </dd>
-            </div>
+            </Surface>
           )}
           {bundle.approval && (
-            <div>
+            <Surface padding="sm" variant="inset">
               <dt className="text-[var(--muted)]">Approval</dt>
-              <dd>{bundle.approval.recommendedNextAction}</dd>
-            </div>
+              <dd className="mt-1">{bundle.approval.recommendedNextAction}</dd>
+            </Surface>
           )}
-          <div>
+          <Surface padding="sm" variant="inset">
             <dt className="text-[var(--muted)]">Audit refs</dt>
-            <dd className="font-mono text-xs">
+            <dd className="mt-1 font-mono text-xs">
               {bundle.audit.eventCount} events
               {bundle.audit.chainHashPrefixes.length > 0
                 ? ` · latest prefixes: ${bundle.audit.chainHashPrefixes.slice(-3).join(", ")}`
                 : ""}
             </dd>
-          </div>
+          </Surface>
         </dl>
       )}
-    </section>
+    </Surface>
   );
 }

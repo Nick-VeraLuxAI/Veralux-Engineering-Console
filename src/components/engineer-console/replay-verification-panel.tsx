@@ -2,6 +2,10 @@
 
 import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Surface } from "@/components/ui/surface";
 
 import { useCallback, useEffect, useState } from "react";
 import { RUN_NAV_TARGET_IDS } from "@/lib/engineer-console/run-ux/run-navigation";
@@ -88,102 +92,107 @@ export function ReplayVerificationPanel({ runId }: { runId: string }) {
   }
 
   return (
-    <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-semibold">Replay verification</h2>
-          <OperatorHelp term="replay_verification" label="What is replay verification?" />
-          <a
-            href={`#${RUN_NAV_TARGET_IDS.replayTechnicalDetails}`}
-            className="text-xs text-[var(--accent)] underline underline-offset-2"
-          >
-            View technical details
-          </a>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void verify()}
-            className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
-          >
-            {busy ? "Verifying…" : "Check replay"}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void loadPackage()}
-            className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
-          >
-            View replay package
-          </button>
-        </div>
-      </div>
+    <Surface as="section">
+      <SectionHeader
+        title="Replay verification"
+        description="Keep replay status and stored package details visible before approval or release work continues."
+        meta={
+          <>
+            <OperatorHelp term="replay_verification" label="What is replay verification?" />
+            <a
+              href={`#${RUN_NAV_TARGET_IDS.replayTechnicalDetails}`}
+              className="text-xs text-[var(--accent)] underline underline-offset-2"
+            >
+              View technical details
+            </a>
+          </>
+        }
+        actions={
+          <>
+            <Button disabled={busy} onClick={() => void verify()} size="sm" variant="secondary">
+              {busy ? "Verifying…" : "Check replay"}
+            </Button>
+            <Button disabled={busy} onClick={() => void loadPackage()} size="sm" variant="secondary">
+              View replay package
+            </Button>
+          </>
+        }
+      />
 
-      {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
-      {loading && <p className="text-sm text-[var(--muted)]">Loading verification…</p>}
+      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {loading && <p className="mt-4 text-sm text-[var(--muted)]">Loading verification…</p>}
 
       {!loading && !verification && !error && (
-        <p className="mb-3 text-sm text-[var(--muted)]">
-          No replay check yet. Run replay verification before approval or release work continues.
-        </p>
+        <div className="mt-4">
+          <EmptyState
+            compact
+            title="No replay check yet"
+            description="Run replay verification before approval or release work continues."
+          />
+        </div>
       )}
 
       {verification && (
         <>
-          <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
-            <StatusBadge status={verification.status} />
-            <span className="text-[var(--muted)]">
-              {new Date(verification.checkedAt).toLocaleString()}
-              {source ? ` · ${source}` : ""}
-            </span>
-            <span>
-              passed {verification.summary.passed} · warnings {verification.summary.warnings} · failed{" "}
-              {verification.summary.failed}
-            </span>
-          </div>
+          <Surface className="mt-4 text-sm" padding="sm" variant="inset">
+            <div className="flex flex-wrap items-center gap-3">
+              <StatusBadge status={verification.status} />
+              <span className="text-[var(--muted)]">
+                {new Date(verification.checkedAt).toLocaleString()}
+                {source ? ` · ${source}` : ""}
+              </span>
+              <span>
+                passed {verification.summary.passed} · warnings {verification.summary.warnings} · failed{" "}
+                {verification.summary.failed}
+              </span>
+            </div>
+          </Surface>
           {verification.status === "warning" && (
-            <p className="mb-3 text-sm text-amber-200">
-              Replay passed, but warnings should be reviewed before continuing.
-            </p>
+            <Surface className="mt-4 text-sm text-amber-100" padding="sm" variant="warning">
+              <p>Replay passed, but warnings should be reviewed before continuing.</p>
+            </Surface>
           )}
-          <ul className="max-h-48 space-y-2 overflow-auto text-xs">
+          <ul className="mt-4 max-h-48 space-y-2 overflow-auto text-xs">
             {verification.checks.map((check, index) => (
-              <li
+              <Surface
                 key={`${check.code}-${index}`}
-                className="rounded border border-[var(--border)] p-2"
+                as="li"
+                padding="sm"
+                variant="inset"
               >
-                <div className="mb-1 flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-2">
                   <code>{check.code}</code>
                   <StatusBadge status={check.status} />
                 </div>
-                <p>{check.message}</p>
-              </li>
+                <p className="mt-2">{check.message}</p>
+              </Surface>
             ))}
           </ul>
         </>
       )}
 
-      <details id={RUN_NAV_TARGET_IDS.replayTechnicalDetails} className="mt-3 text-xs text-[var(--muted)]">
+      <details id={RUN_NAV_TARGET_IDS.replayTechnicalDetails} className="mt-4 text-xs text-[var(--muted)]">
         <summary className="cursor-pointer">Technical replay details</summary>
-        <div className="mt-2 space-y-2">
-          <p>
-            raw replay status: <strong>{verification?.status ?? "not recorded"}</strong>
-          </p>
-          <p>source: {source ?? "not recorded"}</p>
-          <p>
-            passed {verification?.summary.passed ?? 0} · warnings {verification?.summary.warnings ?? 0} · failed{" "}
-            {verification?.summary.failed ?? 0}
-          </p>
-          <p>Use the replay package button above to load the stored package JSON for deeper inspection.</p>
-        </div>
+        <Surface className="mt-3" padding="sm" variant="inset">
+          <div className="space-y-2">
+            <p>
+              raw replay status: <strong>{verification?.status ?? "not recorded"}</strong>
+            </p>
+            <p>source: {source ?? "not recorded"}</p>
+            <p>
+              passed {verification?.summary.passed ?? 0} · warnings {verification?.summary.warnings ?? 0} · failed{" "}
+              {verification?.summary.failed ?? 0}
+            </p>
+            <p>Use the replay package button above to load the stored package JSON for deeper inspection.</p>
+          </div>
+        </Surface>
       </details>
 
       {packageJson && (
-        <pre className="mt-3 max-h-64 overflow-auto rounded bg-[var(--background)] p-3 text-xs">
+        <pre className="mt-4 max-h-64 overflow-auto rounded bg-[var(--background)] p-3 text-xs">
           {packageJson}
         </pre>
       )}
-    </section>
+    </Surface>
   );
 }

@@ -30,6 +30,8 @@ import {
   type RunWorkspaceViewId,
 } from "@/lib/engineer-console/run-ux/run-workspace";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/section-header";
 import { Surface } from "@/components/ui/surface";
 import { StatusBadge } from "./status-badge";
 import { ApprovalActions } from "./approval-actions";
@@ -306,30 +308,31 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
 
             <div className="space-y-5">
               <Surface as="section">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-semibold">Needs attention</h2>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      Use this queue when you want the fastest route to the next operator problem.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-[11px]">
-                    <Badge size="sm" variant="muted">
-                      {issues.length} total
-                    </Badge>
-                    <Badge size="sm" variant="blocked">
-                      {criticalIssueCount} critical
-                    </Badge>
-                    <Badge size="sm" variant="warning">
-                      {warningIssueCount} warning
-                    </Badge>
-                  </div>
-                </div>
+                <SectionHeader
+                  title="Needs attention"
+                  description="Use this queue when you want the fastest route to the next operator problem."
+                  actions={
+                    <>
+                      <Badge size="sm" variant="muted">
+                        {issues.length} total
+                      </Badge>
+                      <Badge size="sm" variant="blocked">
+                        {criticalIssueCount} critical
+                      </Badge>
+                      <Badge size="sm" variant="warning">
+                        {warningIssueCount} warning
+                      </Badge>
+                    </>
+                  }
+                />
                 {issues.length === 0 ? (
-                  <p className="mt-4 text-sm text-[var(--muted)]">
-                    No active issues are derived right now. Use this workspace as the run landing
-                    screen and open Audit for technical traceability if you need deeper detail.
-                  </p>
+                  <div className="mt-4">
+                    <EmptyState
+                      compact
+                      title="No active issues right now"
+                      description="Use this workspace as the run landing screen and open Audit for technical traceability if you need deeper detail."
+                    />
+                  </div>
                 ) : (
                   <ul className="mt-4 space-y-3">
                     {issues.slice(0, 3).map((issue) => (
@@ -384,13 +387,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
             className="scroll-mt-28"
             tabIndex={-1}
           >
-            <h2 className="mb-3 font-semibold">Run state</h2>
-            <p className="mb-3 text-sm text-[var(--muted)]">
-              What this is: the recorded run status, branch, and risk summary. Why it matters: it
-              confirms the base context for every later workspace view. What to do next: use the
-              Current Action and Overview attention cards first, then return here if the run status
-              or branch looks unexpected.
-            </p>
+            <SectionHeader
+              title="Run state"
+              description="What this is: the recorded run status, branch, and risk summary. Why it matters: it confirms the base context for every later workspace view. What to do next: use the Current Action and Overview attention cards first, then return here if the run status or branch looks unexpected."
+            />
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-[var(--muted)]">Status</dt>
@@ -445,16 +445,20 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
               className="scroll-mt-28"
               tabIndex={-1}
             >
-              <h2 className="mb-3 font-semibold">Changed files</h2>
-              <p className="mb-3 text-sm text-[var(--muted)]">
-                What this is: the file-level change list for the current run. Why it matters: it
-                lets the operator confirm scope before review or PR work. What to do next: check
-                that only expected files are present.
-              </p>
+            <SectionHeader
+              title="Changed files"
+              description="What this is: the file-level change list for the current run. Why it matters: it lets the operator confirm scope before review or PR work. What to do next: check that only expected files are present."
+            />
               {data.changedFiles.length === 0 ? (
-                <p className="text-sm text-[var(--muted)]">No changed files detected yet.</p>
+              <div className="mt-4">
+                <EmptyState
+                  compact
+                  title="No changed files detected yet"
+                  description="Run output has not recorded any file-level scope yet."
+                />
+              </div>
               ) : (
-                <ul className="max-h-48 overflow-auto font-mono text-xs">
+              <ul className="mt-4 max-h-48 overflow-auto font-mono text-xs">
                   {data.changedFiles.map((file) => (
                     <li key={file} className="border-b border-[var(--border)] py-1">
                       {file}
@@ -470,19 +474,21 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
               className="scroll-mt-28"
               tabIndex={-1}
             >
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <h2 className="font-semibold">Quality gates</h2>
-                <OperatorHelp term="quality_gates" label="What are quality gates?" />
-              </div>
-              <p className="mb-3 text-sm text-[var(--muted)]">
-                What this is: recorded gate results for build, test, lint, and related checks. Why
-                it matters: failed gates block later review and release work. What to do next:
-                review failures or confirm the run is ready to move forward.
-              </p>
+            <SectionHeader
+              title="Quality gates"
+              description="What this is: recorded gate results for build, test, lint, and related checks. Why it matters: failed gates block later review and release work. What to do next: review failures or confirm the run is ready to move forward."
+              meta={<OperatorHelp term="quality_gates" label="What are quality gates?" />}
+            />
               {data.qualityGates.length === 0 ? (
-                <p className="text-sm text-[var(--muted)]">No quality gate results yet.</p>
+              <div className="mt-4">
+                <EmptyState
+                  compact
+                  title="No quality gate results yet"
+                  description="Gate execution has not produced build, test, lint, or related results yet."
+                />
+              </div>
               ) : (
-                <div className="space-y-3">
+              <div className="mt-4 space-y-3">
                   {data.qualityGates.map((gate) => (
                     <Surface key={gate.id} padding="sm" variant="inset">
                       <div className="mb-1 flex items-center justify-between gap-2">
@@ -630,13 +636,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         <RunWorkspaceViewPanel viewId="audit" activeView={visibleView}>
           <div id="technical-audit" className="scroll-mt-28 space-y-4" tabIndex={-1}>
             <Surface as="section">
-              <h2 className="mb-3 font-semibold">Audit overview</h2>
-              <p className="mb-3 text-sm text-[var(--muted)]">
-                What this is: the audit-focused workspace for timeline verification and technical
-                traceability. Why it matters: audit history and chain diagnostics remain accessible
-                even when the main operator flow is focused on another workspace view. What to do
-                next: inspect the timeline, then open chain diagnostics if verification failed.
-              </p>
+              <SectionHeader
+                title="Audit overview"
+                description="What this is: the audit-focused workspace for timeline verification and technical traceability. Why it matters: audit history and chain diagnostics remain accessible even when the main operator flow is focused on another workspace view. What to do next: inspect the timeline, then open chain diagnostics if verification failed."
+              />
               <dl className="grid gap-3 text-sm sm:grid-cols-3">
                 <Surface padding="sm" variant="inset">
                   <dt className="text-[var(--muted)]">Audit events</dt>

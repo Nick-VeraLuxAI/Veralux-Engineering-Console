@@ -6,6 +6,9 @@ import {
   engineerConsoleFetch,
   refreshEngineerConsoleCsrf,
 } from "@/lib/engineer-console-client/fetch";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Surface } from "@/components/ui/surface";
 
 interface MeResponse {
   authenticated: boolean;
@@ -62,17 +65,22 @@ export function EngineerSessionBar({
 
   if (variant === "menu") {
     return (
-      <div className="rounded-2xl border border-white/10 bg-black/20 p-3 text-sm">
+      <Surface className="text-sm" padding="sm" variant="glass">
         <p className="font-medium text-white">{me.operator.displayName || me.operator.email}</p>
-        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{me.operator.role}</p>
-        <button
-          type="button"
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Badge size="sm" variant="muted">
+            {me.operator.role}
+          </Badge>
+        </div>
+        <Button
+          size="sm"
+          variant="subtle"
           onClick={() => void logout()}
-          className="mt-3 rounded-full border border-white/10 px-3 py-1.5 text-xs text-[var(--muted)] transition hover:border-white/20 hover:text-white"
+          className="mt-3 rounded-full"
         >
           Logout
-        </button>
-      </div>
+        </Button>
+      </Surface>
     );
   }
 
@@ -81,13 +89,9 @@ export function EngineerSessionBar({
       <span className="text-[var(--muted)]">
         {me.operator.displayName || me.operator.email} · {me.operator.role}
       </span>
-      <button
-        type="button"
-        onClick={() => void logout()}
-        className="rounded border border-[var(--border)] px-2 py-1 text-xs"
-      >
+      <Button size="sm" variant="secondary" onClick={() => void logout()}>
         Logout
-      </button>
+      </Button>
     </div>
   );
 }

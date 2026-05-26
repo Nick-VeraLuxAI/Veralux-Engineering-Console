@@ -2,6 +2,11 @@
 
 import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Surface } from "@/components/ui/surface";
 
 import { useCallback, useEffect, useState } from "react";
 import type { RunWorkflowSummary } from "@/lib/engineer-console/run-ux/run-ux-types";
@@ -136,80 +141,80 @@ export function ReviewStagesPanel({
   const policyRequiresReview = workflowSummary?.policy.status === "requires_review";
 
   return (
-    <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-semibold">Review stages</h2>
-          <OperatorHelp term="review_stages" label="What are review stages?" />
-        </div>
-        <button
-          type="button"
-          disabled={busy !== null}
-          onClick={() => void generateStages()}
-          className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
-        >
-          {busy === "generate" ? "Generating…" : "Generate or refresh stages"}
-        </button>
-      </div>
+    <Surface as="section">
+      <SectionHeader
+        title="Review stages"
+        description="Generate and complete required review checkpoints without changing approval or release authority."
+        meta={<OperatorHelp term="review_stages" label="What are review stages?" />}
+        actions={
+          <Button
+            disabled={busy !== null}
+            onClick={() => void generateStages()}
+            size="sm"
+            variant="secondary"
+          >
+            {busy === "generate" ? "Generating…" : "Generate or refresh stages"}
+          </Button>
+        }
+      />
 
       {blocksApproval && (
-        <p className="mb-3 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-sm text-amber-200">
-          Complete required review stages before final run approval.
-          {summary!.rejectedCount > 0 && " One or more required stages were rejected."}
-        </p>
+        <Surface className="mt-4 text-sm text-amber-100" padding="sm" variant="warning">
+          <p>
+            Complete required review stages before final run approval.
+            {summary!.rejectedCount > 0 && " One or more required stages were rejected."}
+          </p>
+        </Surface>
       )}
 
       {policyRequiresReview && (
-        <p className="mb-3 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-sm text-amber-100">
-          Senior review is required before approval. Generate or complete the required review
-          stages here, then return to the approval section.
-        </p>
+        <Surface className="mt-4 text-sm text-amber-100" padding="sm" variant="warning">
+          <p>
+            Senior review is required before approval. Generate or complete the required review
+            stages here, then return to the approval section.
+          </p>
+        </Surface>
       )}
 
-      {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
-      {loading && <p className="text-sm text-[var(--muted)]">Loading review stages…</p>}
+      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {loading && <p className="mt-4 text-sm text-[var(--muted)]">Loading review stages…</p>}
 
       {!loading && stages.length === 0 && (
-        <p className="text-sm text-[var(--muted)]">
-          No review stages yet. Evaluate policy first, then generate stages when senior review is
-          required.
-        </p>
-      )}
-
-      {summary && (
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
-            <p className="text-[var(--muted)]">Required</p>
-            <p className="mt-1 font-medium">{summary.requiredCount}</p>
-          </div>
-          <div className="rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
-            <p className="text-[var(--muted)]">Pending</p>
-            <p className="mt-1 font-medium">{summary.pendingCount}</p>
-          </div>
-          <div className="rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
-            <p className="text-[var(--muted)]">Approved</p>
-            <p className="mt-1 font-medium">{summary.approvedCount}</p>
-          </div>
-          <div className="rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
-            <p className="text-[var(--muted)]">Rejected</p>
-            <p className="mt-1 font-medium">{summary.rejectedCount}</p>
-          </div>
-          <div className="rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
-            <p className="text-[var(--muted)]">Skipped</p>
-            <p className="mt-1 font-medium">{summary.skippedCount}</p>
-          </div>
+        <div className="mt-4">
+          <EmptyState
+            compact
+            title="No review stages yet"
+            description="Evaluate policy first, then generate stages when senior review is required."
+          />
         </div>
       )}
 
-      <div className="mb-3 rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm text-[var(--muted)]">
+      {summary && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {[
+            { label: "Required", value: summary.requiredCount },
+            { label: "Pending", value: summary.pendingCount },
+            { label: "Approved", value: summary.approvedCount },
+            { label: "Rejected", value: summary.rejectedCount },
+            { label: "Skipped", value: summary.skippedCount },
+          ].map((item) => (
+            <Surface key={item.label} padding="sm" variant="inset">
+              <p className="text-sm text-[var(--muted)]">{item.label}</p>
+              <p className="mt-1 font-medium text-white">{item.value}</p>
+            </Surface>
+          ))}
+        </div>
+      )}
+
+      <Surface className="mt-4 text-sm text-[var(--muted)]" padding="sm" variant="inset">
         <p className="font-medium text-white">How this affects approval</p>
         <p className="mt-1">
           Required review stages explain why senior review is needed. Once all required stages are
           approved, final run approval becomes available in the approval section.
         </p>
-      </div>
+      </Surface>
 
-      <div className="mb-3 grid gap-2 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <label className="text-xs text-[var(--muted)]">
           Actor label
           <input
@@ -229,23 +234,23 @@ export function ReviewStagesPanel({
         </label>
       </div>
 
-      <div className="space-y-3">
+      <div className="mt-4 space-y-3">
         {stages.map((stage) => (
-          <div key={stage.id} className="rounded border border-[var(--border)] p-3 text-sm">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
+          <Surface key={stage.id} padding="sm" variant="inset">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium capitalize">{formatStageLabel(stage.stage)}</span>
               <StatusBadge status={stage.status} />
-              <span className="text-xs text-[var(--muted)]">
+              <Badge size="sm" variant={stage.required ? "warning" : "muted"}>
                 {stage.required ? "required" : "optional"}
-              </span>
+              </Badge>
             </div>
             {stage.reason && (
-              <p className="mb-2 text-[var(--muted)]">
+              <p className="mt-3 text-[var(--muted)]">
                 <span className="font-medium text-white">Why review is required:</span> {stage.reason}
               </p>
             )}
-            <p className="mb-2 text-xs text-[var(--muted)]">{actorGuidance(stage)}</p>
-            <div className="mb-2 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
+            <p className="mt-2 text-xs text-[var(--muted)]">{actorGuidance(stage)}</p>
+            <div className="mt-2 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
               {stage.evidenceBundleHashPrefix && (
                 <span>evidence {stage.evidenceBundleHashPrefix}</span>
               )}
@@ -253,41 +258,42 @@ export function ReviewStagesPanel({
               {stage.reviewerActorLabel && <span>reviewer {stage.reviewerActorLabel}</span>}
             </div>
             {stage.reviewerNotes && (
-              <p className="mb-2 text-xs italic text-[var(--muted)]">{stage.reviewerNotes}</p>
+              <p className="mt-2 text-xs italic text-[var(--muted)]">{stage.reviewerNotes}</p>
             )}
             {stage.status === "pending" && (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
                   onClick={() => void handleAction(stage.id, "approve")}
                   disabled={busy !== null}
-                  className="rounded border border-green-500/50 px-2 py-1 text-green-300 disabled:opacity-50"
+                  size="sm"
+                  variant="primary"
+                  className="bg-[var(--success)] text-[var(--success-foreground)] shadow-[0_18px_40px_rgba(34,197,94,0.18)] hover:bg-[var(--success)]/90"
                 >
                   Approve stage
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
                   onClick={() => void handleAction(stage.id, "reject")}
                   disabled={busy !== null}
-                  className="rounded border border-red-500/50 px-2 py-1 text-red-300 disabled:opacity-50"
+                  size="sm"
+                  variant="danger"
                 >
                   Reject
-                </button>
+                </Button>
                 {!stage.required && (
-                  <button
-                    type="button"
+                  <Button
                     onClick={() => void handleAction(stage.id, "skip")}
                     disabled={busy !== null}
-                    className="rounded border border-[var(--border)] px-2 py-1 disabled:opacity-50"
+                    size="sm"
+                    variant="secondary"
                   >
                     Skip
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
-          </div>
+          </Surface>
         ))}
       </div>
-    </section>
+    </Surface>
   );
 }
