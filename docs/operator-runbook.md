@@ -1,6 +1,6 @@
 # Engineering Console — Operator runbook
 
-Operational guide for VeraLux Engineering Console through Phase UX-11. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
+Operational guide for VeraLux Engineering Console through Phase UX-15. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
 
 ## Prerequisites
 
@@ -20,14 +20,132 @@ Open `http://localhost:3000/engineer`.
 
 ---
 
-## Setup readiness and staging helper
+## Immersive canvas homepage
 
-The dashboard now starts with two UX-6 onboarding surfaces:
+The `/engineer` homepage now opens as an immersive, dark **Architecture Home**:
 
-1. **Setup readiness** shows safe, read-only checks for auth mode, trusted-local state, release gates, audit scope, approved repo roots, backup alert mode, registered repos, repo verification, indexing, and compatibility analysis.
-2. **Run staging smoke workflow** appears in staging-like, development, or trusted-local contexts and gives a safe order for smoke verification without executing anything automatically.
+1. **Top bar** keeps the VeraLux shell, environment/status chips, and major tabs for **Architecture**, **Activity**, **Repositories**, **Tasks**, **Runs**, **Settings**, and **Docs**.
+2. **Architecture canvas** fills the main application surface and shows the connected workflow nodes for **Setup**, **Repository**, **Task**, **Run**, **Review**, **PR**, **Release**, and **Audit**.
+3. **Node inspector** floats over the canvas and explains why the selected node matters, what needs attention, and what page to open next.
+4. **Floating issue card** shows the highest-priority current issue directly on the canvas.
+5. **Bottom dock** provides fast navigation for **Workflows**, **Repos**, **Tasks**, **Runs**, **Reviews**, **Release**, and **Activity**.
+6. **Issues pill** keeps the routed issue list available without dominating the canvas.
+7. **Menu pill** keeps the old global engineer navigation hidden until requested, then opens a floating overlay for **Home**, **Engineering Console**, **Repositories**, **Compatibility**, and supporting links.
+8. **Detail drawers** open over the canvas instead of pushing dense sections below the fold.
 
-These surfaces are guidance only. They do not register repos, create tasks, start runs, execute worker plans, create PRs, merge, deploy, or sign off automatically.
+No focus-mode click is required to reach this view, and the old full-width engineer nav is not shown by default on `/engineer`. The canvas is navigation-only. It does not register repos, create tasks, start runs, approve, create PRs, merge, deploy, or sign off automatically.
+
+---
+
+## Interactive canvas controls
+
+UX-13 adds local-only canvas interaction on top of the canvas-first homepage:
+
+1. **Zoom controls** now live on a left-side vertical toolbar: **Zoom in**, current zoom display, **Zoom out**, **Fit view**, **Reset view**, **Reset layout**, and layout lock.
+2. **Canvas pan** works by dragging empty space in the canvas.
+3. **Node drag** works by dragging a workflow node directly. Edges update immediately while the node moves.
+4. **Layout reset** restores the default workflow arrangement if local movement becomes messy.
+5. **Layout lock** can pause dragging if you want to inspect without accidentally moving nodes.
+
+These interactions are local UI only. They do **not** modify the database, task state, run state, queue state, PR state, release state, or audit records.
+
+Edge tone meanings:
+
+- **green**: ready or completed relationship
+- **blue**: active current-work relationship
+- **amber**: warning or approval-needed relationship
+- **red**: blocked relationship
+- **muted**: inactive or not-started relationship
+
+---
+
+## Immersive shell behavior
+
+UX-14 keeps the canvas as the default experience:
+
+1. **No focus toggle** is required. Operators land directly in the immersive shell at `/engineer`.
+2. **Floating menu** keeps Home / repo / compatibility navigation available without restoring the old top shell.
+3. **Detail drawers** slide over the canvas instead of pushing setup, queue, task, activity, staging, or docs content below the fold.
+4. **Escape** closes an open menu or drawer and returns to the default canvas state.
+5. **Canvas interactions** such as pan, zoom, drag, fit, reset, node selection, and issue routing still operate without mutating backend workflow state.
+
+---
+
+## Overlay window manager
+
+UX-15 adds desktop-style overlay controls on top of the immersive shell:
+
+1. **Issue Center**, **Node inspector**, and detail drawers now expose small close and minimize buttons instead of relying on implicit collapse only.
+2. **Priority issue** remains closeable and draggable so it never has to permanently cover important workflow nodes.
+3. **Minimized overlays** move into a bottom restore bar above the dock; each minimized item can be restored or closed directly.
+4. **Dragging** is local UI only and uses the overlay title bar as the handle. It does not pan the canvas, select nodes, open routes, or mutate workflow state.
+5. **Bring-to-front** is deterministic: the clicked, dragged, or restored overlay becomes the active topmost surface.
+6. **Escape** closes the floating menu first, then the topmost overlay window, then returns the operator to the normal canvas view.
+
+Preferred operator behavior:
+
+- Close a window when you are done with it.
+- Minimize a window when you want to keep it handy without blocking nodes.
+- Use the minimized bar to restore the last inspector or drawer context.
+- Drag overlays aside when you need to inspect the map behind them.
+
+These controls do **not** create tasks, start runs, approve runs, create PRs, merge, deploy, sign off, or mutate any governed backend record.
+
+---
+
+## Canvas chrome and camera polish
+
+UX-16 refines how the immersive canvas behaves without changing any governance or mutation rules:
+
+1. **Centered command bar** keeps the main tabs in one readable floating surface without desktop horizontal scrolling.
+2. **Collapsible tool rail** lets operators hide the left-side zoom/view controls behind a chevron tab when they want more map space.
+3. **Camera focus** now reacts to intent: Architecture refits the map, Activity shifts toward the live workflow region, and node/tab/dock selections center the relevant workflow node.
+4. **Depth cues** now make selected nodes and connected edges feel more forward while unrelated graph branches recede slightly.
+5. **Reduced-motion safety** keeps the same layout and controls available even when the browser prefers less motion.
+
+These changes are visual and navigational only. They do **not** register repos, create tasks, start runs, approve, create PRs, merge, deploy, sign off, or mutate any governed backend record.
+
+---
+
+## Minimal chrome final polish
+
+UX-17 finishes the chrome simplification:
+
+1. **VeraLux menu** is now the single branded top-left control. It opens the floating navigation/menu surface and closes on outside click or `Escape`.
+2. **Top bar** now shows only the current `Engineering Console / context` label plus environment, issue-count, and queue chips.
+3. **Bottom dock** is now the primary navigator for `Workflows`, `Repos`, `Tasks`, `Runs`, `Reviews`, `Release`, `Activity`, and `Docs`.
+4. **Docs** now opens from the bottom dock using the same existing docs drawer/detail route.
+5. **Canvas controls** now collapse into a slimmer edge-attached chevron tab instead of a plain text character button.
+
+These changes remain local UI/navigation only. They do **not** create tasks, start runs, approve, create PRs, merge, deploy, sign off, or mutate any governed backend record.
+
+---
+
+## Focal hierarchy and calm-surface polish
+
+UX-18 refines how attention moves across the immersive canvas:
+
+1. **Selected node first** means the selected workflow node is now the obvious visual focus. If no node is explicitly selected, the canvas falls back to the highest-priority routed issue node or the most relevant current workflow stage from existing derived state.
+2. **Focal glow follows the target** so the main lighting field now sits behind the selected/current node instead of in detached empty space.
+3. **Connected path emphasis** keeps related edges and adjacent nodes visually forward while unrelated branches recede further.
+4. **Quiet chrome** reduces the visual weight of the top bar, dock, toolbar, issue card, issues pill, and minimized bar so they support the map instead of competing with it.
+5. **Reduced-motion safety** still preserves the same layout and controls, but focal repositioning changes immediately instead of animating when the browser asks for less motion.
+
+These changes are visual and navigational only. They do **not** register repos, create tasks, start runs, approve, create PRs, merge, deploy, sign off, or mutate any governed backend record.
+
+---
+
+## Setup readiness, staging helper, and queue details
+
+The dense detail surfaces still exist, but they now open as overlay drawers so the default first viewport stays visual:
+
+1. **Setup details** lives behind `?details=setup` and contains the read-only **Setup readiness** checks plus the **Run staging smoke workflow** helper when staging-like guidance is relevant.
+2. **Staging checklist** can be opened directly through `?details=staging`.
+3. **Operator queue details** lives behind `?details=queue` and contains the full read-only **Operator Queue** with presets, stale cues, and handoff guidance.
+4. **Task details** lives behind `?details=tasks` and contains the full dashboard task list, create-task flow, and task-to-run follow-up.
+5. **Activity** opens through `?details=activity`, and **Docs** opens through `?details=docs`.
+
+These surfaces remain guidance and navigation only until the operator opens the relevant page or existing task/run control. Pressing `Escape` closes an open drawer without leaving the immersive canvas shell.
 
 ---
 

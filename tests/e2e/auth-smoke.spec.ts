@@ -28,6 +28,6 @@ test.describe("Engineering Console auth smoke", () => {
     await page.getByLabel("Password").fill(E2E_ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/engineer\/?$/, { timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: "Engineering tasks" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Engineering Console" })).toBeVisible();
   });
 });

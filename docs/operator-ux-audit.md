@@ -167,6 +167,110 @@ UX-11 improves run-page focus and problem routing, but it intentionally does **n
 
 ---
 
+## UX-12 implementation note
+
+UX-12 is now implemented on the dashboard:
+
+- the dashboard now opens as a dark **Architecture canvas** instead of a dense checklist-style page
+- the first screen now emphasizes top navigation tabs, a connected workflow canvas, a floating highest-priority issue card, a concise right-side node inspector, and a compact bottom dock
+- the workflow now shows compact nodes for **Setup**, **Repository**, **Task**, **Run**, **Review**, **PR**, **Release**, and **Audit**, with state-only copy and routed navigation
+- the full **Setup readiness**, **Run staging smoke workflow**, **Operator Queue**, and **Task details** surfaces still remain available, but now open only through explicit detail routes so they do not dominate the default screen
+- node clicks, issue-card clicks, and issue-center clicks are navigation/inspection only; they do not add any run, approval, PR, merge, deploy, or sign-off mutation authority
+
+UX-12 improves dashboard scan speed and operator orientation, but it intentionally does **not** add workflow automation, hide technical detail permanently, weaken governance, or change any backend release or approval rules.
+
+---
+
+## UX-13 implementation note
+
+UX-13 is now implemented on the dashboard canvas:
+
+- the architecture homepage now supports pan, zoom, fit view, reset view, and reset layout controls without zooming the full page
+- workflow nodes now use a real coordinate layout and can be repositioned locally by dragging
+- connection lines now use explicit workflow relationships, directional ports, and tone-aware status coloring
+- the canvas background now uses layered texture, dot-grid, glow, and vignette treatment so the workflow reads as a spatial surface rather than a stack of positioned cards
+- inspector, issue-card, and dock overlays now reserve more breathing room around the active graph, and selected nodes are kept in view more intentionally
+- node drag, pan, zoom, fit, and reset are all local UI state only and do not create or mutate any governed workflow record
+
+UX-13 improves the realism and usability of the workflow canvas, but it intentionally does **not** add automation, persisted layout state, hidden workflow state, governance bypasses, or backend mutations from canvas interaction.
+
+---
+
+## UX-14 implementation note
+
+UX-14 is now implemented on the default `/engineer` canvas shell:
+
+- the homepage now opens directly into an immersive full-screen canvas shell instead of a centered page with a framed canvas section
+- the homepage now bypasses the old engineer page header on `/engineer`, replacing it with a floating menu pill so the normal nav stays hidden until requested
+- the canvas now fills the application surface under the compact floating top bar while the inspector, issue card, issues surface, toolbar, and bottom dock float over it as app chrome
+- the full **Setup**, **Staging**, **Queue**, **Tasks**, **Activity**, and **Docs** surfaces now open as overlay drawers on top of the canvas instead of rendering as stacked sections below it
+- pressing `Escape` closes an open menu or detail drawer while keeping the operator inside the immersive canvas view
+- fit/reset spacing now reserves more room for the floating menu, top bar, inspector, dock, issue card, and issues surface so the graph remains readable in the immersive shell
+- canvas selection, routing, pan, zoom, drag, drawer open, and drawer close remain navigation-only and do not mutate any governed workflow record
+
+UX-14 improves the default landing experience and makes the canvas feel like the application itself, but it intentionally does **not** add automation, remove audit or release detail, weaken governance, or introduce backend mutations from the immersive chrome.
+
+---
+
+## UX-15 implementation note
+
+UX-15 is now implemented on the immersive `/engineer` canvas overlays:
+
+- the floating **Issue Center**, **Node inspector**, **Priority issue** card, and detail drawers now use explicit close/minimize window controls instead of relying on implicit overlap or collapse behavior
+- minimized overlays now move into a dedicated bottom restore bar so operators can recover hidden windows without reopening dense dashboard content
+- overlay z-order is now explicit and deterministic: clicked, dragged, or restored windows come to the front instead of hiding randomly behind another surface
+- the **Issue Center**, **Node inspector**, and **Priority issue** card can now be dragged locally by their title bars to uncover blocked workflow nodes
+- `Escape` now closes the floating menu first and then the topmost overlay window, preserving the immersive canvas instead of trapping the operator behind overlapping panels
+- overlay close, minimize, restore, drag, and focus behavior stays local UI state only and does **not** create backend mutations, approval shortcuts, PR automation, merge automation, deploy automation, or sign-off automation
+
+UX-15 improves overlay recoverability and map readability, but it intentionally does **not** weaken governance, remove audit/detail access, reintroduce dense dashboard panels, or persist any new operator authority in the backend.
+
+---
+
+## UX-16 implementation note
+
+UX-16 is now implemented on the immersive `/engineer` canvas chrome:
+
+- the top command bar is now centered and wide enough to avoid normal desktop horizontal scrolling while keeping the primary tabs visible
+- the old horizontal canvas controls have moved into a left-side vertical tool rail with collapse/expand chevron behavior
+- tab changes, dock picks, and explicit node selections now request deterministic local camera focus targets instead of relying only on passive keep-visible behavior
+- selected nodes now come forward with stronger glow/shadow treatment, connected edges highlight, and unrelated edges recede so the graph reads with more depth
+- fit/reset spacing now accounts for the centered command bar, the left tool rail in both states, the right inspector, and the bottom dock/minimized bar
+- motion remains subtle, respects reduced-motion preferences, and stays local UI only; no backend mutations, PR automation, merge automation, deploy automation, approval shortcuts, or sign-off shortcuts were added
+
+UX-16 improves the canvas feel and readability, but it intentionally does **not** weaken governance, add automation, invent hidden workflow state, or make canvas chrome responsible for backend side effects.
+
+---
+
+## UX-17 implementation note
+
+UX-17 is now implemented on the immersive `/engineer` chrome cleanup:
+
+- the top-left `VeraLux` pill is now the only branded control in that corner, eliminating the overlap between the floating menu and the separate top-bar brand card
+- the top bar no longer mirrors workflow navigation; it now acts as a compact context/status strip with the current console context plus environment, issue-count, and queue chips
+- the bottom dock is now the primary workflow navigator and now includes `Docs` alongside `Workflows`, `Repos`, `Tasks`, `Runs`, `Reviews`, `Release`, and `Activity`
+- dock clicks remain focus/navigation only: they center the relevant node or open the existing read-only detail drawers for `Activity` and `Docs`
+- the canvas-controls collapse affordance now renders as a slimmer edge-attached chevron tab with the same local-only behavior
+
+UX-17 improves polish and hierarchy, but it intentionally does **not** weaken governance, add automation, introduce backend side effects from chrome controls, or restore dense dashboard panels.
+
+---
+
+## UX-18 implementation note
+
+UX-18 is now implemented on the immersive `/engineer` focal hierarchy pass:
+
+- the canvas now derives a deterministic focal node from the selected node first, then the highest-priority routed issue node, then the current workflow stage from existing map state
+- the main radial focal field now follows that node through local CSS variables so the lighting sits behind the intended point of operator attention
+- initial framing and explicit node focus continue to respect the right-side inspector safe area, which keeps the selected node slightly left of center instead of under the overlay column
+- connected edges and related nodes now come forward while unrelated edges/nodes recede more aggressively, making the active path easier to read
+- the top bar, dock, toolbar, issue card, issues pill, overlay windows, and minimized bar now use quieter glass, subtler borders, calmer active states, and lighter shadows so they support rather than compete with the focal node
+- typography and motion are more restrained, and reduced-motion users keep the same layout with immediate focal changes instead of animated transitions
+
+UX-18 improves hierarchy and polish, but it intentionally does **not** weaken governance, add automation, invent hidden workflow state, or introduce backend mutations from focus, lighting, overlay, or canvas interactions.
+
+---
+
 ## Current operator journey
 
 | Step | What the operator sees | What the operator does | Next action obvious? | Button easy to find? | Language understandable? | State clear? | Could do wrong thing? | Recovery guidance |

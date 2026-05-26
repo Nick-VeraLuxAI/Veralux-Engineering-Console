@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { useState } from "react";
 import type { StagingTaskPreset } from "@/lib/engineer-console/setup/setup-ux";
@@ -24,14 +24,19 @@ export function EngineerTaskList({
   stagingTaskPreset: StagingTaskPreset;
 }) {
   const [showCreate, setShowCreate] = useState(false);
+  const [taskListReady, setTaskListReady] = useState(false);
   const latestItemByTaskId = new Map(
     taskQueueItems
       .filter((item) => item.taskId)
       .map((item) => [item.taskId as string, item]),
   );
 
+  useEffect(() => {
+    setTaskListReady(true);
+  }, []);
+
   return (
-    <>
+    <div data-engineer-task-list-ready={taskListReady ? "true" : "false"}>
       <div className="mb-4">
         <button
           type="button"
@@ -146,6 +151,6 @@ export function EngineerTaskList({
           registeredRepoCount={registeredRepoCount}
         />
       )}
-    </>
+    </div>
   );
 }

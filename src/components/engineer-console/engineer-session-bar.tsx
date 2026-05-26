@@ -18,7 +18,11 @@ interface MeResponse {
   };
 }
 
-export function EngineerSessionBar() {
+export function EngineerSessionBar({
+  variant = "inline",
+}: {
+  variant?: "inline" | "menu";
+}) {
   const router = useRouter();
   const [me, setMe] = useState<MeResponse | null>(null);
 
@@ -48,13 +52,29 @@ export function EngineerSessionBar() {
 
   if (!me.authEnabled && me.trustedLocalDev) {
     return (
-      <p className="text-xs text-amber-300">
+      <p className={variant === "menu" ? "text-xs text-amber-300" : "text-xs text-amber-300"}>
         Trusted local dev — authentication disabled
       </p>
     );
   }
 
   if (!me.operator) return null;
+
+  if (variant === "menu") {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-3 text-sm">
+        <p className="font-medium text-white">{me.operator.displayName || me.operator.email}</p>
+        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{me.operator.role}</p>
+        <button
+          type="button"
+          onClick={() => void logout()}
+          className="mt-3 rounded-full border border-white/10 px-3 py-1.5 text-xs text-[var(--muted)] transition hover:border-white/20 hover:text-white"
+        >
+          Logout
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-3 text-sm">
