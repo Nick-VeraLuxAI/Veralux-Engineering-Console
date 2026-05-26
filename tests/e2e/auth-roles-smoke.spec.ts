@@ -5,7 +5,7 @@ import {
   E2E_TEST_PASSWORD,
   E2E_VIEWER_EMAIL,
 } from "./fixtures";
-import { loginEngineerConsole } from "./helpers";
+import { gotoRunDetailResilient, loginEngineerConsole } from "./helpers";
 import { CSRF_HEADER_NAME } from "../../src/lib/engineer-console/security/csrf";
 
 async function expectRole(
@@ -134,10 +134,10 @@ test.describe("Engineering Console auth roles", () => {
       return data.runs[0]?.id;
     }, taskId);
 
-    await page.goto(`/engineer/runs/${runId}`);
-    const signOff = page
-      .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Release sign-off", exact: true }) });
+    await gotoRunDetailResilient(page, runId);
+    await page.getByRole("tab", { name: "Release", exact: true }).click();
+
+    const signOff = page.locator("#release-signoff");
     await signOff.scrollIntoViewIfNeeded();
     await expect(signOff.getByRole("button", { name: "Record sign-off" })).toBeVisible({
       timeout: 30_000,

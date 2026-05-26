@@ -1,8 +1,11 @@
 "use client";
 
+import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { RUN_NAV_TARGET_IDS } from "@/lib/engineer-console/run-ux/run-navigation";
+import { OperatorHelp } from "./operator-help";
 
 interface EvidenceResponse {
   evidence: {
@@ -81,27 +84,38 @@ export function EvidenceBundlePanel({ runId }: { runId: string }) {
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Evidence bundle</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-semibold">Evidence bundle</h2>
+          <OperatorHelp term="evidence_bundle" label="What is an evidence bundle?" />
+          <a
+            href={`#${RUN_NAV_TARGET_IDS.evidenceDetails}`}
+            className="text-xs text-[var(--accent)] underline underline-offset-2"
+          >
+            View hash and details
+          </a>
+        </div>
         <button
           type="button"
           disabled={busy}
           onClick={() => void regenerate()}
           className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
         >
-          {busy ? "Refreshing…" : "Regenerate"}
+          {busy ? "Refreshing…" : "Generate or refresh evidence"}
         </button>
       </div>
 
       {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
 
-      {loading && <p className="text-sm text-[var(--muted)]">Loading evidence…</p>}
+      {loading && <p className="text-sm text-[var(--muted)]">Loading evidence record…</p>}
 
       {!loading && missing && !error && (
-        <p className="text-sm text-[var(--muted)]">No evidence bundle yet for this run.</p>
+        <p className="text-sm text-[var(--muted)]">
+          Generate evidence so the run has a reviewable record.
+        </p>
       )}
 
       {data && bundle && (
-        <dl className="grid gap-2 text-sm">
+        <dl id={RUN_NAV_TARGET_IDS.evidenceDetails} className="grid gap-2 text-sm">
           <div>
             <dt className="text-[var(--muted)]">Bundle hash</dt>
             <dd className="font-mono text-xs break-all">{data.evidence.bundleHash}</dd>

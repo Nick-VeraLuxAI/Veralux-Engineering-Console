@@ -107,7 +107,7 @@ export function listDeploymentHealthPolicyResultsForRun(
   const rows = getEngineerConsoleDb()
     .prepare(
       `SELECT * FROM engineer_deployment_health_policy_results
-       WHERE run_id = ? ORDER BY created_at DESC`,
+       WHERE run_id = ? ORDER BY created_at DESC, rowid DESC`,
     )
     .all(runId) as PolicyResultRow[];
   return rows.map(mapRow);
@@ -119,7 +119,7 @@ export function getLatestDeploymentHealthPolicyResult(
   const row = getEngineerConsoleDb()
     .prepare(
       `SELECT * FROM engineer_deployment_health_policy_results
-       WHERE run_id = ? ORDER BY created_at DESC LIMIT 1`,
+       WHERE run_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1`,
     )
     .get(runId) as PolicyResultRow | undefined;
   return row ? mapRow(row) : null;

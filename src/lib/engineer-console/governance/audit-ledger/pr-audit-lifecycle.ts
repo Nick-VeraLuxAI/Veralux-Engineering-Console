@@ -98,6 +98,149 @@ export function auditPrCreationStarted(
   });
 }
 
+export function auditPrCreationResumed(
+  runId: string,
+  taskId: string | null,
+  payload: {
+    prRequestId: string;
+    branchName: string;
+    baseBranch: string;
+    reason: string;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.PR_CREATION_RESUMED,
+    entityType: AUDIT_ENTITY_TYPES.RELEASE,
+    entityId: payload.prRequestId,
+    actorType: AUDIT_ACTOR_TYPES.SYSTEM,
+    taskId: taskId ?? undefined,
+    runId,
+    payload: {
+      runId,
+      prRequestId: payload.prRequestId,
+      branchName: payload.branchName,
+      baseBranch: payload.baseBranch,
+      reason: payload.reason.slice(0, 200),
+    },
+  });
+}
+
+export function auditPrStateReconciled(
+  runId: string,
+  taskId: string | null,
+  payload: {
+    runBranchName: string | null;
+    currentBranchName: string | null;
+    reusableCommitShaPrefix: string | null;
+    reusableCommitSource: string;
+    remoteBranchExists: boolean;
+    canResume: boolean;
+    manualRecoveryRequired: boolean;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.PR_STATE_RECONCILED,
+    entityType: AUDIT_ENTITY_TYPES.RELEASE,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.SYSTEM,
+    taskId: taskId ?? undefined,
+    runId,
+    payload: {
+      runId,
+      runBranchName: payload.runBranchName,
+      currentBranchName: payload.currentBranchName,
+      reusableCommitShaPrefix: payload.reusableCommitShaPrefix,
+      reusableCommitSource: payload.reusableCommitSource,
+      remoteBranchExists: payload.remoteBranchExists,
+      canResume: payload.canResume,
+      manualRecoveryRequired: payload.manualRecoveryRequired,
+    },
+  });
+}
+
+export function auditPrExistingCommitReused(
+  runId: string,
+  taskId: string | null,
+  payload: {
+    prRequestId: string;
+    branchName: string;
+    commitShaPrefix: string;
+    reason: string;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.PR_EXISTING_COMMIT_REUSED,
+    entityType: AUDIT_ENTITY_TYPES.RELEASE,
+    entityId: payload.prRequestId,
+    actorType: AUDIT_ACTOR_TYPES.SYSTEM,
+    taskId: taskId ?? undefined,
+    runId,
+    payload: {
+      runId,
+      prRequestId: payload.prRequestId,
+      branchName: payload.branchName,
+      commitShaPrefix: payload.commitShaPrefix,
+      reason: payload.reason.slice(0, 200),
+    },
+  });
+}
+
+export function auditPrExistingRemoteBranchReused(
+  runId: string,
+  taskId: string | null,
+  payload: {
+    prRequestId: string;
+    branchName: string;
+    commitShaPrefix: string | null;
+    reason: string;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.PR_EXISTING_REMOTE_BRANCH_REUSED,
+    entityType: AUDIT_ENTITY_TYPES.RELEASE,
+    entityId: payload.prRequestId,
+    actorType: AUDIT_ACTOR_TYPES.SYSTEM,
+    taskId: taskId ?? undefined,
+    runId,
+    payload: {
+      runId,
+      prRequestId: payload.prRequestId,
+      branchName: payload.branchName,
+      commitShaPrefix: payload.commitShaPrefix,
+      reason: payload.reason.slice(0, 200),
+    },
+  });
+}
+
+export function auditPrExistingDetected(
+  runId: string,
+  taskId: string | null,
+  payload: {
+    prRequestId: string;
+    branchName: string;
+    commitShaPrefix: string | null;
+    prUrl: string;
+    reason: string;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.PR_EXISTING_PR_DETECTED,
+    entityType: AUDIT_ENTITY_TYPES.RELEASE,
+    entityId: payload.prRequestId,
+    actorType: AUDIT_ACTOR_TYPES.SYSTEM,
+    taskId: taskId ?? undefined,
+    runId,
+    payload: {
+      runId,
+      prRequestId: payload.prRequestId,
+      branchName: payload.branchName,
+      commitShaPrefix: payload.commitShaPrefix,
+      prUrl: payload.prUrl,
+      reason: payload.reason.slice(0, 200),
+    },
+  });
+}
+
 export function auditPrCreated(
   runId: string,
   taskId: string | null,

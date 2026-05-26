@@ -15,6 +15,7 @@ import { validateRegistrationPath } from "./repo-path-policy";
 import { getRegisteredRepoByPath, getRegisteredRepoSummary } from "./get-repo";
 import { inferRepoLanguage, inferRepoName } from "./infer-repo-metadata";
 import { verifyRegisteredRepoPath } from "./verify-repo";
+import { listCodeIndexRuns } from "../code-index/code-index-manager";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -124,6 +125,7 @@ export function assertRepoUsableForTask(repoId: string): RegisteredRepoSummary {
 }
 
 export function toPublicRegisteredRepo(summary: RegisteredRepoSummary) {
+  const latestCodeIndexRun = listCodeIndexRuns(summary.id, 1)[0] ?? null;
   return {
     id: summary.id,
     name: summary.name,
@@ -135,6 +137,15 @@ export function toPublicRegisteredRepo(summary: RegisteredRepoSummary) {
     verifiedAt: summary.verifiedAt,
     fileCount: summary.fileCount,
     indexedAt: summary.indexedAt,
+    codeIndex:
+      latestCodeIndexRun === null
+        ? null
+        : {
+            status: latestCodeIndexRun.status,
+            symbolCount: latestCodeIndexRun.symbolCount,
+            chunkCount: latestCodeIndexRun.chunkCount,
+            completedAt: latestCodeIndexRun.completedAt,
+          },
     packageScripts: summary.packageScripts.map((s) => ({
       scriptName: s.scriptName,
       sourceFile: s.sourceFile,

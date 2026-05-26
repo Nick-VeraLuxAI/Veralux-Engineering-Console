@@ -24,6 +24,7 @@
     "backup:db:offhost": "node scripts/engineer-console/copy-backup-offhost.mjs",
     "backup:db:secure": "node scripts/engineer-console/backup-secure-pipeline.mjs",
     "backup:db:alert": "node scripts/engineer-console/backup-alert-wrapper.mjs",
+    "audit:ui": "node scripts/audit-ui-consistency.mjs",
     "verify:db-backup": "node scripts/verify-engineer-console-db-backup.mjs",
     "verify:ci": "node scripts/verify-engineer-console-ci.mjs"
   },

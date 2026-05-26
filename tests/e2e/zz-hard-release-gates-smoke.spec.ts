@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { E2E_GATES_DB_PATH } from "./env";
 import { configureE2eDatabasePath, createHardGateBlockedRun } from "./fixtures";
+import { gotoRunDetailResilient } from "./helpers";
 
 test.beforeAll(async ({ request, baseURL }) => {
   configureE2eDatabasePath(E2E_GATES_DB_PATH);
@@ -14,6 +15,7 @@ test.beforeAll(async ({ request, baseURL }) => {
 
 test.describe("Hard release gates (enabled)", () => {
   test("release-gates and merge readiness stay blocked without executing merge", async ({
+    page,
     request,
     baseURL,
   }) => {
@@ -57,5 +59,18 @@ test.describe("Hard release gates (enabled)", () => {
     };
     const status = checklist.latest?.status ?? checklist.computed?.status;
     expect(["blocked", "needs_attention"]).toContain(status);
+
+    await gotoRunDetailResilient(page, runId, request, baseURL!);
+    await page.getByRole("tab", { name: "Release", exact: true }).click();
+
+    const mergeSection = page.locator(`#merge-controls`);
+    await expect(
+      mergeSection.getByRole("heading", { name: "Action checklist", exact: true }),
+    ).toBeVisible();
+    await expect(
+      mergeSection
+        .getByRole("link", { name: /Go to Policy results|Go to Replay verification|Go to Review stages/i })
+        .first(),
+    ).toBeVisible();
   });
 });

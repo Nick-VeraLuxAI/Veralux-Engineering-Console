@@ -20,6 +20,7 @@ import {
   getDraftValidationErrors,
   getLatestWorkerPlanDraftForRun,
 } from "@/lib/engineer-console/worker-plan/worker-plan-draft-manager";
+import { buildRunWorkflowSummary } from "@/lib/engineer-console/run-ux/build-run-workflow-summary";
 
 export const runtime = "nodejs";
 
@@ -65,6 +66,13 @@ export async function GET(
     : [];
 
   const latestDraft = getLatestWorkerPlanDraftForRun(id);
+  const uxSummary = buildRunWorkflowSummary({
+    run,
+    task,
+    qualityGates,
+    approvalReport,
+    changedFiles,
+  });
 
   return NextResponse.json({
     run,
@@ -85,15 +93,18 @@ export async function GET(
     workerPlanDraft: latestDraft
       ? {
           id: latestDraft.id,
+          runId: latestDraft.runId,
           provider: latestDraft.provider,
           model: latestDraft.model,
           validationStatus: latestDraft.validationStatus,
           parsedPlan: latestDraft.parsedPlanJson
             ? JSON.parse(latestDraft.parsedPlanJson)
             : null,
+          rawResponse: latestDraft.rawResponse,
           validationErrors: getDraftValidationErrors(latestDraft),
           createdAt: latestDraft.createdAt,
         }
       : null,
+    uxSummary,
   });
 }

@@ -26,15 +26,19 @@ test.describe("Release lifecycle panels (fixture-driven)", () => {
       .toBe(true);
 
     await gotoRunDetailResilient(page, runId, request, baseURL!);
-    await expect(page.getByRole("heading", { name: "PR creation" })).toBeVisible({
-      timeout: 30_000,
-    });
     await expectReleasePanelsVisible(page);
+
+    await page.getByRole("tab", { name: "PR", exact: true }).click();
 
     const prSection = page
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "PR creation", exact: true }) });
-    await expect(prSection.getByText(/example.com\/pr\/e2e/i)).toBeVisible();
+    await expect(prSection.getByRole("heading", { name: "PR state", exact: true })).toBeVisible();
+    await expect(prSection.getByRole("link", { name: /example.com\/pr\/e2e/i }).first()).toBeVisible();
+    await expect(prSection.getByText("base main")).toBeVisible();
+    await expect(prSection.getByRole("button", { name: "Existing PR recorded" })).toBeDisabled();
+
+    await page.getByRole("tab", { name: "Release", exact: true }).click();
 
     const mergeSection = page
       .locator("section")
@@ -47,6 +51,5 @@ test.describe("Release lifecycle panels (fixture-driven)", () => {
     await expect(
       deployExec.getByText(/No approved deployment|Complete deployment gates/i),
     ).toBeVisible();
-    await expect(prSection.getByRole("button", { name: "Create draft PR" })).toBeDisabled();
   });
 });

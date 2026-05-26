@@ -1,8 +1,11 @@
 "use client";
 
+import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import type { RunWorkflowSummary } from "@/lib/engineer-console/run-ux/run-ux-types";
+import { OperatorHelp } from "./operator-help";
 import { StatusBadge } from "./status-badge";
 
 interface ReviewStage {
@@ -31,11 +34,35 @@ function formatStageLabel(stage: string): string {
   return stage.replace(/_/g, " ");
 }
 
-export function ReviewStagesPanel({ runId }: { runId: string }) {
-  const [stages, setStages] = useState<ReviewStage[]>([]);
-  const [summary, setSummary] = useState<ReviewStageSummary | null>(null);
+function actorGuidance(stage: ReviewStage): string {
+  if (stage.status !== "pending") {
+    return stage.reviewerActorLabel
+      ? `Completed by ${stage.reviewerActorLabel}.`
+      : "Completed review stage.";
+  }
+
+  if (stage.required) {
+    return "Admin approval is required to complete this stage. Operator or admin can reject with rationale.";
+  }
+
+  return "Admin can approve this optional stage. Operator or admin can reject, and optional stages can be skipped with rationale.";
+}
+
+export function ReviewStagesPanel({
+  runId,
+  workflowSummary,
+  initialStages,
+  initialSummary,
+}: {
+  runId: string;
+  workflowSummary?: RunWorkflowSummary;
+  initialStages?: ReviewStage[];
+  initialSummary?: ReviewStageSummary | null;
+}) {
+  const [stages, setStages] = useState<ReviewStage[]>(initialStages ?? []);
+  const [summary, setSummary] = useState<ReviewStageSummary | null>(initialSummary ?? null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialStages === undefined || initialSummary === undefined);
   const [busy, setBusy] = useState<string | null>(null);
   const [rationale, setRationale] = useState("");
   const [actorLabel, setActorLabel] = useState("operator");
@@ -106,25 +133,36 @@ export function ReviewStagesPanel({ runId }: { runId: string }) {
   const blocksApproval =
     summary !== null &&
     (summary.pendingCount > 0 || summary.rejectedCount > 0);
+  const policyRequiresReview = workflowSummary?.policy.status === "requires_review";
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Review stages</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-semibold">Review stages</h2>
+          <OperatorHelp term="review_stages" label="What are review stages?" />
+        </div>
         <button
           type="button"
           disabled={busy !== null}
           onClick={() => void generateStages()}
           className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
         >
-          {busy === "generate" ? "Generating…" : "Generate / reconcile"}
+          {busy === "generate" ? "Generating…" : "Generate or refresh stages"}
         </button>
       </div>
 
       {blocksApproval && (
         <p className="mb-3 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-sm text-amber-200">
-          Final approval is blocked until all required review stages are approved.
+          Complete required review stages before final run approval.
           {summary!.rejectedCount > 0 && " One or more required stages were rejected."}
+        </p>
+      )}
+
+      {policyRequiresReview && (
+        <p className="mb-3 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-sm text-amber-100">
+          Senior review is required before approval. Generate or complete the required review
+          stages here, then return to the approval section.
         </p>
       )}
 
@@ -133,9 +171,43 @@ export function ReviewStagesPanel({ runId }: { runId: string }) {
 
       {!loading && stages.length === 0 && (
         <p className="text-sm text-[var(--muted)]">
-          No review stages yet. Generate stages after policy evaluation.
+          No review stages yet. Evaluate policy first, then generate stages when senior review is
+          required.
         </p>
       )}
+
+      {summary && (
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
+            <p className="text-[var(--muted)]">Required</p>
+            <p className="mt-1 font-medium">{summary.requiredCount}</p>
+          </div>
+          <div className="rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
+            <p className="text-[var(--muted)]">Pending</p>
+            <p className="mt-1 font-medium">{summary.pendingCount}</p>
+          </div>
+          <div className="rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
+            <p className="text-[var(--muted)]">Approved</p>
+            <p className="mt-1 font-medium">{summary.approvedCount}</p>
+          </div>
+          <div className="rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
+            <p className="text-[var(--muted)]">Rejected</p>
+            <p className="mt-1 font-medium">{summary.rejectedCount}</p>
+          </div>
+          <div className="rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm">
+            <p className="text-[var(--muted)]">Skipped</p>
+            <p className="mt-1 font-medium">{summary.skippedCount}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-3 rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm text-[var(--muted)]">
+        <p className="font-medium text-white">How this affects approval</p>
+        <p className="mt-1">
+          Required review stages explain why senior review is needed. Once all required stages are
+          approved, final run approval becomes available in the approval section.
+        </p>
+      </div>
 
       <div className="mb-3 grid gap-2 sm:grid-cols-2">
         <label className="text-xs text-[var(--muted)]">
@@ -167,7 +239,12 @@ export function ReviewStagesPanel({ runId }: { runId: string }) {
                 {stage.required ? "required" : "optional"}
               </span>
             </div>
-            {stage.reason && <p className="mb-2 text-[var(--muted)]">{stage.reason}</p>}
+            {stage.reason && (
+              <p className="mb-2 text-[var(--muted)]">
+                <span className="font-medium text-white">Why review is required:</span> {stage.reason}
+              </p>
+            )}
+            <p className="mb-2 text-xs text-[var(--muted)]">{actorGuidance(stage)}</p>
             <div className="mb-2 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
               {stage.evidenceBundleHashPrefix && (
                 <span>evidence {stage.evidenceBundleHashPrefix}</span>

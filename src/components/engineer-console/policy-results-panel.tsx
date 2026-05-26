@@ -1,8 +1,10 @@
 "use client";
 
+import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { OperatorHelp } from "./operator-help";
 import { StatusBadge } from "./status-badge";
 
 interface PolicyResult {
@@ -65,7 +67,10 @@ export function PolicyResultsPanel({ runId }: { runId: string }) {
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Policy results</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-semibold">Policy results</h2>
+          <OperatorHelp term="governance_policy" label="What is governance policy?" />
+        </div>
         <button
           type="button"
           disabled={busy}
@@ -92,6 +97,15 @@ export function PolicyResultsPanel({ runId }: { runId: string }) {
             </span>
           </div>
           <p className="mb-3 text-sm">{latest.recommendedNextAction}</p>
+          {latest.status === "requires_review" && (
+            <p className="mb-3 text-sm text-amber-200">
+              Senior review is required before approval. Complete the required review stages in{" "}
+              <a href="#review-stages" className="underline underline-offset-2">
+                Review stages
+              </a>
+              .
+            </p>
+          )}
 
           {latest.blockers.length > 0 && (
             <div className="mb-3">
@@ -129,7 +143,10 @@ export function PolicyResultsPanel({ runId }: { runId: string }) {
       )}
 
       {!loading && !latest && (
-        <p className="text-sm text-[var(--muted)]">No policy evaluation yet. Run evaluate policy.</p>
+        <p className="text-sm text-[var(--muted)]">
+          No policy evaluation yet. Evaluate policy to see whether approval is ready, requires
+          senior review, or is blocked.
+        </p>
       )}
 
       {history.length > 1 && (

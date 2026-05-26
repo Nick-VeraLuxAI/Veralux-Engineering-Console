@@ -59,7 +59,7 @@
 | 20 | D | Evidence bundle | **Pass (proxy)** | Unit tests |
 | 21 | D | Replay verification | **Pass (proxy)** | Unit tests |
 | 22 | D | Approval path | **Not executed** | Staging UI path |
-| 23 | E | PR creation | **Pass (proxy)** | E2E release panels + unit; **no real `gh` on staging** |
+| 23 | E | PR creation | **Pass** | Staging retry recovery now passes. The console reused the existing run commit, recognized the remote branch was already pushed, skipped duplicate commit/push work, and detected/recorded the existing draft PR. Previous failure history remains visible for audit context while the current PR state shows the recovered state. |
 | 24 | E | Merge controls | **Pass (proxy)** | E2E fixture merge UI; **no real merge on staging** |
 | 25 | E | Deployment readiness | **Pass (proxy)** | Unit tests |
 | 26 | E | Deployment approval | **Pass (proxy)** | Unit tests |
@@ -72,7 +72,7 @@
 | 33 | F | Restore verification | **Not executed** | Staging copy of backup file |
 | 34 | F | Encrypted restore drill | **Skipped** | Optional |
 
-**Counts (this review):** Pass / proxy **18** · Not executed **14** · Skipped **2**
+**Counts (this review):** Pass / proxy **19** · Not executed **13** · Skipped **2**
 
 ---
 
@@ -84,11 +84,36 @@
 | SDR-2 | High | Backup/alert verified on **dev/audit workstation**, not staging `ENGINEER_CONSOLE_DB_PATH` + cron env | Backup |
 | SDR-3 | High | Webhook alerting (`ENGINEER_CONSOLE_BACKUP_ALERT_MODE=webhook`) not exercised in evidence | Backup |
 | SDR-4 | High | Off-host rsync + encryption not exercised in evidence | Backup |
-| SDR-5 | Medium | Real `gh` PR create/merge not run on staging host | Release |
+| SDR-5 | Medium | Real merge and later release actions were not run on staging host | Release |
 | SDR-6 | Medium | Deployment execution and health check against staging profiles not run | Release |
 | SDR-7 | Low | Branch protection requiring GitHub Actions `verify` job not verified in this review | CI |
+| SDR-8 | High | PR creation retry after partial failure was not idempotent: a retry attempted `git commit` again after the run commit and branch push had already succeeded | Release |
 
-**No critical product code defects** were identified during automated verification.
+**Update:** SDR-8 is now closed by the staging retest. PR retry recovery passed in the staging UI after the recovery-state reconciliation and GitHub argument validation fixes.
+
+**PR state card reconciliation follow-up:** The PR state card previously favored stale failed request history over current resumable readiness. The fix makes current resumable readiness the canonical state while preserving failed request history as context.
+
+---
+
+## 4A. Operator UX note
+
+Separate from the technical readiness findings above, the staging dry run also exposed significant operator-workflow friction: manual `runId` handling, raw worker-plan JSON editing, unclear approval control placement, difficult PR retry interpretation, and weak next-action guidance across the run page.
+
+UX-1 now adds a **Run Command Center** and **Lifecycle** stepper at the top of the run page to improve orientation and next-action clarity without changing governance behavior.
+
+UX-2 now improves the worker-plan flow with a **Guided worker-plan builder**, visible `runId` context instead of manual lookup, task-vs-plan intent preview, model-draft comparison warnings, and safer advanced JSON guidance. These changes reduce staging friction without weakening validation or execution controls.
+
+UX-3 now improves approval/review discoverability with a top-of-page **Approval actions** card, visible rationale requirements before submit, clearer **Request Fix** / **Stop Run** affordances, and stronger review-stage guidance when policy requires senior review. These changes preserve the same human approval, rationale, and decision-record rules.
+
+UX-4 now improves release-path clarity with a top-of-panel **PR state** card that explains commit reuse, branch push state, existing PR detection, and retry safety after partial failures, plus an action-oriented **Hard release gates** checklist that links directly to the blocking panel. These changes preserve the same PR readiness rules, hard release-gate enforcement, and manual merge/deploy/sign-off boundaries.
+
+UX-5 now reduces run-page density with a **Current Action** zone and grouped progressive-disclosure sections so operators can focus on the active workflow step without losing access to technical panels and audit history.
+
+UX-6 now improves setup and staging onboarding with a dashboard **Setup readiness** panel, a **Run staging smoke workflow** helper, clearer approved-repo-root guidance on the repos page, a staging-only README smoke task preset, and empty states that explain what is missing and what to click next. These changes preserve the same repo-root validation, auth rules, release controls, and manual action boundaries.
+
+UX-9 now improves staging triage above the run page with a read-only dashboard **Operator Queue**, deterministic priority buckets, read-only queue filters, richer task/run summaries, and setup/staging attention items for manual `verify:ci`, backup verification, and `docs/staging-dry-run-report.md` follow-up. These changes preserve the same manual run, approval, PR, merge, deploy, and sign-off boundaries.
+
+See [operator-ux-audit.md](./operator-ux-audit.md) for the full UX journey map, severity-ranked issue inventory, information-architecture recommendation, and phased redesign backlog, and [operator-ux-guide.md](./operator-ux-guide.md) for the new operator-facing usage notes. The remaining UX items still do **not** require weakening governance behavior, but several are strong candidates to fix before production operator use and before external demos.
 
 ---
 
@@ -127,7 +152,20 @@
 ## 8. PR / merge / deployment / health
 
 - **Automated:** Hard gates API blocked without merge; release panels render fixture PR/merge; deployment modules have extensive Vitest coverage.
-- **Staging gap:** Items **23–28** need a staging host with `gh`, deployment profiles JSON, and health profiles JSON as documented in [end-to-end-demo-script.md](./end-to-end-demo-script.md).
+- **Staging finding (fixed locally):** PR creation initially had a partial-failure retry bug. After a commit and branch push succeeded, retrying **Create draft PR** attempted a second `git commit` instead of resuming from the recorded commit/branch state.
+- **Fix applied:** PR creation now resumes the latest PR request, reuses an existing run commit, skips redundant push when the remote branch already matches, and records an existing PR instead of creating a duplicate.
+- **Follow-up fix applied:** The PR state card now treats current resumable readiness, run-branch reconciliation, and remote-branch state as the canonical source of truth, while showing the previous failed step only as historical context.
+- **GitHub argument validation:** The earlier false-positive `Invalid characters in gh arguments` rejection is closed. Controlled `gh` execution still uses argv-only validation, but now allows legitimate PR title/body punctuation and markdown content.
+- **Retest result:** Local unit coverage and clean `verify:ci` pass with the retry path covered, and the app-driven staging retest now passes.
+
+### PR retry recovery — PASS
+
+The Engineering Console successfully resumed PR creation after partial failure. It reused the existing run commit, recognized the remote branch was already pushed, skipped duplicate commit/push work, and detected/recorded the existing draft PR.
+
+Previous failure history remains visible for audit context, but the current PR state now correctly shows the recovered state.
+
+Status: PASS after PR retry recovery and GitHub argument validation fixes.
+- **Staging gap:** Items **24–28** still need a staging host with merge permissions, deployment profiles JSON, and health profiles JSON as documented in [end-to-end-demo-script.md](./end-to-end-demo-script.md).
 
 ---
 
@@ -202,9 +240,9 @@ Prior audit ([production-readiness-audit.md](./production-readiness-audit.md)) w
 
 | Command | Result |
 |---------|--------|
-| `npm test` | **418 passed** (44 files) |
+| `npm test` | **432 passed** (45 files) |
 | `npm run build` | **Pass** |
-| `npm run verify:ci` | **PASS (91s)** |
+| `npm run verify:ci` | **PASS (93s)** |
 | `npm run backup:db:secure` | **Pass** (`ok: true`) |
 | `npm run backup:db:alert` | **Pass** (mode `none`) |
 

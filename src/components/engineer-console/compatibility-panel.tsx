@@ -1,8 +1,10 @@
 "use client";
 
+import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
+import { OperatorHelp } from "./operator-help";
 import { StatusBadge } from "./status-badge";
 
 interface AnalysisRun {
@@ -101,7 +103,13 @@ export function CompatibilityPanel() {
     <div className="space-y-6">
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold">Compatibility analysis</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold">Compatibility analysis</h2>
+            <OperatorHelp
+              term="compatibility_analysis"
+              label="What is compatibility analysis?"
+            />
+          </div>
           <button
             type="button"
             disabled={busy}
@@ -114,6 +122,25 @@ export function CompatibilityPanel() {
 
         {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
         {loading && <p className="text-sm text-[var(--muted)]">Loading…</p>}
+        {!loading && (
+          <p className="mb-3 text-sm text-[var(--muted)]">
+            This compares registered repos for shared interfaces and possible cross-repo impact. It
+            records findings only and does not change code.
+          </p>
+        )}
+
+        {!loading && !latest && surfaces.length === 0 && links.length === 0 && (
+          <div className="rounded border border-dashed border-[var(--border)] p-3 text-sm text-[var(--muted)]">
+            <p className="font-medium text-white">Run code index, then compatibility analysis.</p>
+            <p className="mt-2">
+              What is missing: no compatibility analysis results are recorded yet. Why it matters:
+              compatibility findings help governance review understand cross-repo impact. What to
+              click next: open <a href="/engineer/repos" className="underline underline-offset-2">Registered repositories</a>,
+              verify a repo, run file index, run code index, then return here and click{" "}
+              <strong>Run compatibility analysis</strong>.
+            </p>
+          </div>
+        )}
 
         {latest && (
           <dl className="grid gap-2 text-sm sm:grid-cols-3">
@@ -156,7 +183,9 @@ export function CompatibilityPanel() {
           </select>
         </div>
         {links.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">No cross-repo links yet.</p>
+          <p className="text-sm text-[var(--muted)]">
+            No cross-repo links yet. Run code index, then compatibility analysis.
+          </p>
         ) : (
           <ul className="max-h-64 space-y-2 overflow-auto text-xs">
             {links.map((link) => (
@@ -176,7 +205,10 @@ export function CompatibilityPanel() {
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
         <h2 className="mb-3 font-semibold">API surfaces</h2>
         {surfaces.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">No API surfaces detected yet.</p>
+          <p className="text-sm text-[var(--muted)]">
+            No API surfaces detected yet. Run file index, then code index, then compatibility
+            analysis.
+          </p>
         ) : (
           <div className="max-h-64 overflow-auto">
             <table className="w-full text-left text-xs">
