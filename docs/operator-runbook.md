@@ -1,11 +1,12 @@
 # Engineering Console — Operator runbook
 
-Operational guide for VeraLux Engineering Console through Phase UX-15. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
+Operational guide for VeraLux Engineering Console through Phase UX-15. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), [intelligence-layer-audit.md](./intelligence-layer-audit.md), [intelligence-layer-guide.md](./intelligence-layer-guide.md), and phase-specific docs linked in each section.
 
 ## Prerequisites
 
 - Node.js 20+ and `npm install` in the console repo
 - Optional browser smoke: `npx playwright install chromium` then `npm run test:e2e` (Q2 adds `test:e2e:auth`, `test:e2e:gates` — see [e2e-smoke-tests.md](./e2e-smoke-tests.md))
+- Free ports `3000`, `3001`, and `3002` for the Playwright suites, or set `E2E_PORT`, `E2E_AUTH_PORT`, and `E2E_GATES_PORT` explicitly before running the E2E commands
 - Target git repositories on disk (absolute paths)
 - For PR/merge: `git` and `gh` CLI authenticated on the host
 - For Kimi drafts: `ENGINEER_CONSOLE_MODEL_PROVIDER=kimi` and `KIMI_API_KEY`
@@ -17,6 +18,8 @@ npm run dev
 ```
 
 Open `http://localhost:3000/engineer`.
+
+`verify:ci` `e2e-local` bootstrap was stabilized after A1 exposed a shared Playwright `webServer` startup timeout. The fix preserves E2E coverage and makes local CI startup deterministic by isolating Playwright builds in `.next-e2e`, probing a lightweight readiness URL, and letting Playwright own the `next start` process for the suite.
 
 ---
 
@@ -743,4 +746,6 @@ After staging passes, use [production-launch-checklist.md](./production-launch-c
 | Production launch | [production-launch-checklist.md](./production-launch-checklist.md) |
 | Production readiness | [production-readiness-audit.md](./production-readiness-audit.md) |
 | Hardening gaps | [final-hardening-notes.md](./final-hardening-notes.md) |
+ | Intelligence layer readiness | [intelligence-layer-audit.md](./intelligence-layer-audit.md) |
+ | Run intelligence card | [intelligence-layer-guide.md](./intelligence-layer-guide.md) |
 | Operator UX guide | [operator-ux-guide.md](./operator-ux-guide.md) |

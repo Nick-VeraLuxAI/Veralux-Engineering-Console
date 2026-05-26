@@ -2,6 +2,10 @@
 
 import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Surface } from "@/components/ui/surface";
 
 import { useCallback, useEffect, useState } from "react";
 import { OperatorHelp } from "./operator-help";
@@ -65,102 +69,110 @@ export function PolicyResultsPanel({ runId }: { runId: string }) {
   }
 
   return (
-    <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-semibold">Policy results</h2>
-          <OperatorHelp term="governance_policy" label="What is governance policy?" />
-        </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void evaluate()}
-          className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
-        >
-          {busy ? "Evaluating…" : "Evaluate policy"}
-        </button>
-      </div>
+    <Surface as="section">
+      <SectionHeader
+        title="Policy results"
+        description="Review the latest governance result and escalation requirements without changing approval authority."
+        meta={<OperatorHelp term="governance_policy" label="What is governance policy?" />}
+        actions={
+          <Button disabled={busy} onClick={() => void evaluate()} size="sm" variant="secondary">
+            {busy ? "Evaluating…" : "Evaluate policy"}
+          </Button>
+        }
+      />
 
-      {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
-      {loading && <p className="text-sm text-[var(--muted)]">Loading policy results…</p>}
+      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {loading && <p className="mt-4 text-sm text-[var(--muted)]">Loading policy results…</p>}
 
       {latest && (
         <>
-          <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
-            <StatusBadge status={latest.status} />
-            <span className="font-mono text-xs text-[var(--muted)]">
-              v{latest.policyVersion} · {latest.policyHashPrefix}
-            </span>
-            <span className="text-[var(--muted)]">
-              {new Date(latest.evaluatedAt).toLocaleString()}
-              {latest.source ? ` · ${latest.source}` : ""}
-            </span>
-          </div>
-          <p className="mb-3 text-sm">{latest.recommendedNextAction}</p>
+          <Surface className="mt-4 text-sm" padding="sm" variant="inset">
+            <div className="flex flex-wrap items-center gap-3">
+              <StatusBadge status={latest.status} />
+              <span className="font-mono text-xs text-[var(--muted)]">
+                v{latest.policyVersion} · {latest.policyHashPrefix}
+              </span>
+              <span className="text-[var(--muted)]">
+                {new Date(latest.evaluatedAt).toLocaleString()}
+                {latest.source ? ` · ${latest.source}` : ""}
+              </span>
+            </div>
+            <p className="mt-3">{latest.recommendedNextAction}</p>
+          </Surface>
           {latest.status === "requires_review" && (
-            <p className="mb-3 text-sm text-amber-200">
-              Senior review is required before approval. Complete the required review stages in{" "}
-              <a href="#review-stages" className="underline underline-offset-2">
-                Review stages
-              </a>
-              .
-            </p>
+            <Surface className="mt-4 text-sm text-amber-100" padding="sm" variant="warning">
+              <p>
+                Senior review is required before approval. Complete the required review stages in{" "}
+                <a href="#review-stages" className="underline underline-offset-2">
+                  Review stages
+                </a>
+                .
+              </p>
+            </Surface>
           )}
 
           {latest.blockers.length > 0 && (
-            <div className="mb-3">
-              <h3 className="mb-1 text-xs font-medium text-red-300">Blockers</h3>
-              <ul className="list-inside list-disc text-sm text-red-200">
+            <Surface className="mt-4" padding="sm" variant="danger">
+              <h3 className="text-xs font-medium text-red-100">Blockers</h3>
+              <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-red-100">
                 {latest.blockers.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-            </div>
+            </Surface>
           )}
 
           {latest.reviewRequired.length > 0 && (
-            <div className="mb-3">
-              <h3 className="mb-1 text-xs font-medium text-amber-300">Review required</h3>
-              <ul className="list-inside list-disc text-sm text-amber-200">
+            <Surface className="mt-4" padding="sm" variant="warning">
+              <h3 className="text-xs font-medium text-amber-100">Review required</h3>
+              <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-amber-100">
                 {latest.reviewRequired.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-            </div>
+            </Surface>
           )}
 
           {latest.warnings.length > 0 && (
-            <div className="mb-3">
-              <h3 className="mb-1 text-xs font-medium text-yellow-300">Warnings</h3>
-              <ul className="list-inside list-disc text-sm text-yellow-200">
+            <Surface className="mt-4" padding="sm" variant="warning">
+              <h3 className="text-xs font-medium text-amber-100">Warnings</h3>
+              <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-amber-100">
                 {latest.warnings.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-            </div>
+            </Surface>
           )}
         </>
       )}
 
       {!loading && !latest && (
-        <p className="text-sm text-[var(--muted)]">
-          No policy evaluation yet. Evaluate policy to see whether approval is ready, requires
-          senior review, or is blocked.
-        </p>
+        <div className="mt-4">
+          <EmptyState
+            compact
+            title="No policy evaluation yet"
+            description="Evaluate policy to see whether approval is ready, requires senior review, or is blocked."
+          />
+        </div>
       )}
 
       {history.length > 1 && (
-        <details className="mt-3 text-xs text-[var(--muted)]">
+        <details className="mt-4 text-xs text-[var(--muted)]">
           <summary className="cursor-pointer">History ({history.length})</summary>
-          <ul className="mt-2 space-y-1">
+          <ul className="mt-3 space-y-2">
             {history.slice(1, 6).map((item) => (
               <li key={item.id ?? `${item.evaluatedAt}-${item.status}`}>
-                <StatusBadge status={item.status} /> · {new Date(item.evaluatedAt).toLocaleString()}
+                <Surface padding="sm" variant="inset">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge status={item.status} />
+                    <span>{new Date(item.evaluatedAt).toLocaleString()}</span>
+                  </div>
+                </Surface>
               </li>
             ))}
           </ul>
         </details>
       )}
-    </section>
+    </Surface>
   );
 }

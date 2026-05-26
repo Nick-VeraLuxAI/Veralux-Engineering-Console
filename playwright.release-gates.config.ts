@@ -3,6 +3,7 @@ import { E2E_GATES_AUDIT_SCOPE, E2E_GATES_DB_PATH } from "./tests/e2e/env";
 
 /** Use 3000 when running standalone; set E2E_GATES_PORT=3002 if 3000 is busy. */
 const port = Number(process.env.E2E_GATES_PORT ?? 3002);
+const readinessUrl = `http://127.0.0.1:${port}/api/engineer-console/auth/me`;
 
 const baseWebServer = baseConfig.webServer;
 const baseEnv =
@@ -20,13 +21,16 @@ export default {
   webServer: {
     ...baseWebServer,
     command: [
+      "rm -rf .next-e2e",
+      "&&",
       "npm run engineer-console:init-db",
       "&&",
-      "NODE_ENV=test npm run build",
+      "npm run build",
       "&&",
-      "NODE_ENV=test npx next start -p " + String(port),
+      "npx next start -p " + String(port),
     ].join(" "),
-    url: `http://127.0.0.1:${port}/engineer`,
+    url: readinessUrl,
+    name: "Release gates E2E",
     reuseExistingServer: false,
     timeout: 300_000,
     env: {

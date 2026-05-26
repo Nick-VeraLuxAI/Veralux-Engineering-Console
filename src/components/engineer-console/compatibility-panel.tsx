@@ -1,7 +1,12 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Surface } from "@/components/ui/surface";
 
 import { useCallback, useEffect, useState } from "react";
 import { OperatorHelp } from "./operator-help";
@@ -101,116 +106,140 @@ export function CompatibilityPanel() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-semibold">Compatibility analysis</h2>
+      <Surface as="section">
+        <SectionHeader
+          title="Compatibility analysis"
+          description="Compare registered repos for shared interfaces and cross-repo impact without changing code."
+          meta={
             <OperatorHelp
               term="compatibility_analysis"
               label="What is compatibility analysis?"
             />
-          </div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void analyze()}
-            className="rounded border border-[var(--border)] px-3 py-1 text-xs disabled:opacity-50"
-          >
-            {busy ? "Analyzing…" : "Run compatibility analysis"}
-          </button>
-        </div>
+          }
+          actions={
+            <Button
+              disabled={busy}
+              onClick={() => void analyze()}
+              size="sm"
+              variant="secondary"
+            >
+              {busy ? "Analyzing…" : "Run compatibility analysis"}
+            </Button>
+          }
+        />
 
-        {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
-        {loading && <p className="text-sm text-[var(--muted)]">Loading…</p>}
+        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+        {loading && <p className="mt-4 text-sm text-[var(--muted)]">Loading…</p>}
         {!loading && (
-          <p className="mb-3 text-sm text-[var(--muted)]">
+          <p className="mt-4 text-sm text-[var(--muted)]">
             This compares registered repos for shared interfaces and possible cross-repo impact. It
             records findings only and does not change code.
           </p>
         )}
 
         {!loading && !latest && surfaces.length === 0 && links.length === 0 && (
-          <div className="rounded border border-dashed border-[var(--border)] p-3 text-sm text-[var(--muted)]">
-            <p className="font-medium text-white">Run code index, then compatibility analysis.</p>
-            <p className="mt-2">
-              What is missing: no compatibility analysis results are recorded yet. Why it matters:
-              compatibility findings help governance review understand cross-repo impact. What to
-              click next: open <a href="/engineer/repos" className="underline underline-offset-2">Registered repositories</a>,
-              verify a repo, run file index, run code index, then return here and click{" "}
-              <strong>Run compatibility analysis</strong>.
-            </p>
+          <div className="mt-4">
+            <EmptyState
+              compact
+              title="Run code index, then compatibility analysis"
+              description={
+                <>
+                  What is missing: no compatibility analysis results are recorded yet. Why it
+                  matters: compatibility findings help governance review understand cross-repo
+                  impact. What to click next: verify a repo, run file index, run code index, then
+                  return here and run compatibility analysis.
+                </>
+              }
+              action={
+                <Link
+                  href="/engineer/repos"
+                  className="inline-flex items-center rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-elevated)] px-3 py-1.5 text-sm font-medium text-white transition hover:border-white/20 hover:bg-white/[0.08]"
+                >
+                  Open registered repositories
+                </Link>
+              }
+            />
           </div>
         )}
 
         {latest && (
-          <dl className="grid gap-2 text-sm sm:grid-cols-3">
-            <div>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+            <Surface padding="sm" variant="inset">
               <dt className="text-[var(--muted)]">Latest run</dt>
-              <dd>
+              <dd className="mt-1">
                 <StatusBadge status={latest.status} /> ·{" "}
                 {new Date(latest.startedAt).toLocaleString()}
               </dd>
-            </div>
-            <div>
+            </Surface>
+            <Surface padding="sm" variant="inset">
               <dt className="text-[var(--muted)]">Surfaces / links</dt>
-              <dd>
+              <dd className="mt-1">
                 {latest.surfaceCount} surfaces · {latest.linkCount} links
               </dd>
-            </div>
-            <div>
+            </Surface>
+            <Surface padding="sm" variant="inset">
               <dt className="text-[var(--muted)]">Warnings / breaking</dt>
-              <dd>
+              <dd className="mt-1">
                 {latest.warningCount} warnings · {latest.breakingCount} breaking
               </dd>
-            </div>
+            </Surface>
           </dl>
         )}
-      </section>
+      </Surface>
 
-      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="font-semibold">Cross-repo links</h2>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded border border-[var(--border)] bg-transparent px-2 py-1 text-xs"
-          >
-            <option value="">All statuses</option>
-            <option value="compatible">Compatible</option>
-            <option value="warning">Warning</option>
-            <option value="breaking">Breaking</option>
-            <option value="unknown">Unknown</option>
-          </select>
-        </div>
+      <Surface as="section">
+        <SectionHeader
+          title="Cross-repo links"
+          actions={
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] px-2 py-1.5 text-xs text-white"
+            >
+              <option value="">All statuses</option>
+              <option value="compatible">Compatible</option>
+              <option value="warning">Warning</option>
+              <option value="breaking">Breaking</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          }
+        />
         {links.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">
-            No cross-repo links yet. Run code index, then compatibility analysis.
-          </p>
+          <div className="mt-4">
+            <EmptyState
+              compact
+              title="No cross-repo links yet"
+              description="Run code index, then compatibility analysis."
+            />
+          </div>
         ) : (
-          <ul className="max-h-64 space-y-2 overflow-auto text-xs">
+          <ul className="mt-4 max-h-64 space-y-2 overflow-auto text-xs">
             {links.map((link) => (
-              <li key={link.id} className="rounded border border-[var(--border)] p-2">
-                <div className="mb-1 flex flex-wrap items-center gap-2">
+              <Surface key={link.id} as="li" padding="sm" variant="inset">
+                <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge status={link.status} />
                   <code>{link.linkType}</code>
                   <span className="text-[var(--muted)]">{link.confidence}</span>
                 </div>
-                <p>{link.summary}</p>
-              </li>
+                <p className="mt-2">{link.summary}</p>
+              </Surface>
             ))}
           </ul>
         )}
-      </section>
+      </Surface>
 
-      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-        <h2 className="mb-3 font-semibold">API surfaces</h2>
+      <Surface as="section">
+        <SectionHeader title="API surfaces" />
         {surfaces.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">
-            No API surfaces detected yet. Run file index, then code index, then compatibility
-            analysis.
-          </p>
+          <div className="mt-4">
+            <EmptyState
+              compact
+              title="No API surfaces detected yet"
+              description="Run file index, then code index, then compatibility analysis."
+            />
+          </div>
         ) : (
-          <div className="max-h-64 overflow-auto">
+          <div className="mt-4 max-h-64 overflow-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="text-[var(--muted)]">
@@ -235,7 +264,7 @@ export function CompatibilityPanel() {
             </table>
           </div>
         )}
-      </section>
+      </Surface>
     </div>
   );
 }

@@ -1,6 +1,28 @@
 # Engineering Console operator UX guide
 
-Operator-facing guide for the UX-1 through UX-18 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), and [operator-ux-audit.md](./operator-ux-audit.md) for the broader redesign backlog.
+Operator-facing guide for the UX-1 through UX-18 workflow updates. Pair with [operator-runbook.md](./operator-runbook.md), [operator-glossary.md](./operator-glossary.md), [operator-ux-audit.md](./operator-ux-audit.md), and [intelligence-layer-audit.md](./intelligence-layer-audit.md) for the broader autonomy-readiness and redesign backlog.
+
+---
+
+## What changed in A1
+
+The run detail page now includes a read-only **Run Intelligence** card near the top of the workspace.
+
+It summarizes:
+
+1. **Risk level**
+   Deterministic low/medium/high/critical classification from changed files and normalized danger points.
+
+2. **Confidence**
+   Deterministic confidence in the current read-only interpretation, based on tests, replay, policy, review, and release signals.
+
+3. **Escalation**
+   Plain-English guidance for whether the run looks routine, needs operator review, requires review stages, needs senior approval, or is effectively blocked.
+
+4. **Suggested playbooks**
+   Read-only recommendations for future recovery automation such as branch checkout, commit reuse, existing PR reuse, re-indexing, replay refresh, and policy refresh.
+
+This card is advisory only. It does **not** approve, create PRs, merge, deploy, sign off, or bypass any existing gate. See [intelligence-layer-guide.md](./intelligence-layer-guide.md) for the A1 behavior and future A2/A3 path.
 
 ---
 

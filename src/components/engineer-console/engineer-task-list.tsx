@@ -6,6 +6,9 @@ import { useState } from "react";
 import type { StagingTaskPreset } from "@/lib/engineer-console/setup/setup-ux";
 import type { OperatorQueueItem } from "@/lib/engineer-console/run-ux/operator-queue";
 import type { EngineeringTask } from "@/lib/engineer-console/types";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Surface } from "@/components/ui/surface";
 import { StatusBadge } from "./status-badge";
 import { CreateTaskForm } from "./create-task-form";
 import { StartRunButton } from "./start-run-button";
@@ -25,6 +28,10 @@ export function EngineerTaskList({
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const [taskListReady, setTaskListReady] = useState(false);
+  const primaryLinkClassName =
+    "inline-flex items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--surface-elevated)] px-3 py-1.5 text-sm font-medium text-white transition hover:border-white/20 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
+  const secondaryLinkClassName =
+    "inline-flex items-center justify-center rounded-[var(--radius-md)] border border-[var(--border)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--muted)] transition hover:bg-white/[0.04] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
   const latestItemByTaskId = new Map(
     taskQueueItems
       .filter((item) => item.taskId)
@@ -38,47 +45,45 @@ export function EngineerTaskList({
   return (
     <div data-engineer-task-list-ready={taskListReady ? "true" : "false"}>
       <div className="mb-4">
-        <button
-          type="button"
-          onClick={() => setShowCreate(true)}
-          className="rounded bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
-        >
+        <Button onClick={() => setShowCreate(true)} variant="primary">
           Create task
-        </button>
+        </Button>
       </div>
       {initialTasks.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center text-[var(--muted)]">
-          <p className="font-medium text-white">
-            {registeredRepoCount === 0 ? "Register a repo first" : "Create your first engineering task"}
-          </p>
-          <p className="mt-2">
-            What is missing: there are no tasks yet. Why it matters: tasks are the safe entry point
-            for runs and release workflows. What to click next:{" "}
-            {registeredRepoCount === 0 ? (
-              <>
-                open{" "}
-                <Link href="/engineer/repos" className="underline underline-offset-2">
-                  Registered repositories
-                </Link>
-                , verify and index a repo, then create a task.
-              </>
-            ) : (
-              <>click <strong>Create task</strong> to define the first run.</>
-            )}
-          </p>
-          {showStagingPreset ? (
-            <p className="mt-3 text-xs">
-              The staging README smoke task preset is available in the task form for safe smoke
-              verification.
-            </p>
-          ) : null}
-        </div>
+        <EmptyState
+          centered
+          title={registeredRepoCount === 0 ? "Register a repo first" : "Create your first engineering task"}
+          description={
+            <>
+              What is missing: there are no tasks yet. Why it matters: tasks are the safe entry
+              point for runs and release workflows. What to click next:{" "}
+              {registeredRepoCount === 0 ? (
+                <>use the link below to open registered repositories, verify and index a repo, then create a task.</>
+              ) : (
+                <>click Create task to define the first run.</>
+              )}
+              {showStagingPreset ? (
+                <span className="mt-3 block text-xs">
+                  The staging README smoke task preset is available in the task form for safe smoke
+                  verification.
+                </span>
+              ) : null}
+            </>
+          }
+          action={
+            registeredRepoCount === 0 ? (
+              <Link href="/engineer/repos" className={primaryLinkClassName}>
+                Open Registered repositories
+              </Link>
+            ) : null
+          }
+        />
       ) : (
-        <ul className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--card)]">
+        <Surface as="ul" className="divide-y divide-[var(--border)]" padding="none">
           {initialTasks.map((task) => {
             const latest = latestItemByTaskId.get(task.id) ?? null;
             return (
-              <li key={task.id} className="p-4">
+              <li key={task.id} className="p-4 sm:p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -124,14 +129,14 @@ export function EngineerTaskList({
                     {latest?.runId ? (
                       <Link
                         href={latest.href}
-                        className="rounded border border-[var(--border)] px-3 py-1.5 text-sm text-white hover:bg-[var(--background)]"
+                        className={primaryLinkClassName}
                       >
                         Open run
                       </Link>
                     ) : null}
                     <Link
                       href={`/engineer/tasks/${task.id}`}
-                      className="rounded border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted)] hover:text-white"
+                      className={secondaryLinkClassName}
                     >
                       Open task
                     </Link>
@@ -141,7 +146,7 @@ export function EngineerTaskList({
               </li>
             );
           })}
-        </ul>
+        </Surface>
       )}
       {showCreate && (
         <CreateTaskForm
