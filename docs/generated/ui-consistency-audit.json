@@ -1,70 +1,14 @@
 {
-  "overallScore": 79,
+  "overallScore": 90,
   "scores": {
     "canvasConsistency": 95,
-    "routeConsistency": 74,
-    "componentReuse": 66,
-    "accessibility": 95,
+    "routeConsistency": 91,
+    "componentReuse": 89,
+    "accessibility": 97,
     "visualDensityRisk": 19,
-    "legacyPatternRisk": 86
+    "legacyPatternRisk": 55
   },
   "findings": [
-    {
-      "file": "src/components",
-      "category": "component-reuse",
-      "severity": "high",
-      "message": "Raw button usage is widespread without a shared Button primitive.",
-      "evidence": "40 component files include raw `<button>` elements.",
-      "suggestedFix": "Introduce a reusable button primitive or at least a smaller button style vocabulary before further visual polish spreads."
-    },
-    {
-      "file": "src/components",
-      "category": "component-reuse",
-      "severity": "high",
-      "message": "Repeated panel/card shells appear without a shared surface primitive.",
-      "evidence": "44 files repeat border/card shell patterns.",
-      "suggestedFix": "Create a shared surface/panel primitive or refactor repeated shells into fewer reusable wrappers."
-    },
-    {
-      "file": "src/components/engineer-console/approval-actions.tsx",
-      "category": "inconsistent-styling",
-      "severity": "high",
-      "message": "Mixes light-surface assumptions into an engineer-facing dark UI surface.",
-      "evidence": "text-black",
-      "suggestedFix": "Audit this surface for dark-theme token alignment before making larger visual changes elsewhere."
-    },
-    {
-      "file": "src/components/engineer-console/create-task-form.tsx",
-      "category": "legacy-layout",
-      "severity": "high",
-      "message": "Stacks many repeated card/panel shells in one file.",
-      "evidence": "7 repeated border/card shell patterns detected.",
-      "suggestedFix": "Consolidate repeated shells into shared primitives or reduce first-screen panel density on this surface."
-    },
-    {
-      "file": "src/components/engineer-console/engineer-route-shell.tsx",
-      "category": "legacy-layout",
-      "severity": "high",
-      "message": "Uses `max-w-*` layout boxing on a major surface.",
-      "evidence": "max-w-6xl",
-      "suggestedFix": "Confirm this route intentionally uses boxed content rather than inheriting the newer immersive or calmer shell patterns."
-    },
-    {
-      "file": "src/components/engineer-console/engineer-route-shell.tsx",
-      "category": "legacy-layout",
-      "severity": "high",
-      "message": "Uses centered `mx-auto` wrappers on a major UI surface.",
-      "evidence": "Found `mx-auto` in a route-level or major shell component.",
-      "suggestedFix": "Review whether this surface should stay boxed or move toward a more intentional full-bleed/layout-shell pattern."
-    },
-    {
-      "file": "src/components/engineer-console/registered-repos-panel.tsx",
-      "category": "legacy-layout",
-      "severity": "high",
-      "message": "Stacks many repeated card/panel shells in one file.",
-      "evidence": "8 repeated border/card shell patterns detected.",
-      "suggestedFix": "Consolidate repeated shells into shared primitives or reduce first-screen panel density on this surface."
-    },
     {
       "file": "src/components/engineer-console/review-stages-panel.tsx",
       "category": "legacy-layout",
@@ -82,35 +26,11 @@
       "suggestedFix": "Check whether some explanation can move behind details-on-demand, help affordances, or deeper panels."
     },
     {
-      "file": "src/components/engineer-console/run-live-panel.tsx",
-      "category": "legacy-layout",
-      "severity": "high",
-      "message": "Stacks many repeated card/panel shells in one file.",
-      "evidence": "10 repeated border/card shell patterns detected.",
-      "suggestedFix": "Consolidate repeated shells into shared primitives or reduce first-screen panel density on this surface."
-    },
-    {
       "file": "src/components/engineer-console/run-workspace-shell.tsx",
       "category": "legacy-layout",
       "severity": "high",
       "message": "Stacks many repeated card/panel shells in one file.",
       "evidence": "10 repeated border/card shell patterns detected.",
-      "suggestedFix": "Consolidate repeated shells into shared primitives or reduce first-screen panel density on this surface."
-    },
-    {
-      "file": "src/components/engineer-console/worker-plan-panel.tsx",
-      "category": "inconsistent-styling",
-      "severity": "high",
-      "message": "Mixes light-surface assumptions into an engineer-facing dark UI surface.",
-      "evidence": "text-black",
-      "suggestedFix": "Audit this surface for dark-theme token alignment before making larger visual changes elsewhere."
-    },
-    {
-      "file": "src/components/engineer-console/worker-plan-panel.tsx",
-      "category": "legacy-layout",
-      "severity": "high",
-      "message": "Stacks many repeated card/panel shells in one file.",
-      "evidence": "7 repeated border/card shell patterns detected.",
       "suggestedFix": "Consolidate repeated shells into shared primitives or reduce first-screen panel density on this surface."
     },
     {
@@ -128,14 +48,6 @@
       "message": "Uses centered `mx-auto` wrappers on a major UI surface.",
       "evidence": "Found `mx-auto` in a route-level or major shell component.",
       "suggestedFix": "Review whether this surface should stay boxed or move toward a more intentional full-bleed/layout-shell pattern."
-    },
-    {
-      "file": "src/components",
-      "category": "component-reuse",
-      "severity": "medium",
-      "message": "No shared `src/components/ui` design-system layer was found.",
-      "evidence": "Audit found bespoke feature components but no generic `components/ui` directory.",
-      "suggestedFix": "If shared primitives are becoming widespread, introduce them intentionally instead of continuing ad hoc feature-level styling."
     },
     {
       "file": "src/components/engineer-console",
@@ -184,6 +96,14 @@
       "message": "Stacks many repeated card/panel shells in one file.",
       "evidence": "4 repeated border/card shell patterns detected.",
       "suggestedFix": "Consolidate repeated shells into shared primitives or reduce first-screen panel density on this surface."
+    },
+    {
+      "file": "src/components/engineer-console/engineer-route-shell.tsx",
+      "category": "legacy-layout",
+      "severity": "medium",
+      "message": "Uses larger page/card padding that may reinforce older high-density layouts.",
+      "evidence": "px-8, py-8",
+      "suggestedFix": "Check whether this surface can use calmer spacing or progressive disclosure instead of large padded card stacks."
     },
     {
       "file": "src/components/engineer-console/engineering-workflow-home.tsx",
@@ -338,14 +258,6 @@
       "suggestedFix": "Consider routing repeated pill/status treatments through a smaller shared badge vocabulary."
     },
     {
-      "file": "src/components/engineer-console/engineer-route-shell.tsx",
-      "category": "accessibility",
-      "severity": "low",
-      "message": "Interactive elements appear without explicit `focus-visible` styling.",
-      "evidence": "4 button/link elements detected and no focus-visible utility found.",
-      "suggestedFix": "Add consistent keyboard focus treatment to interactive controls on this surface."
-    },
-    {
       "file": "src/components/engineer-console/engineer-task-list.tsx",
       "category": "accessibility",
       "severity": "low",
@@ -391,11 +303,11 @@
     {
       "route": "/engineer/repos",
       "area": "Repositories",
-      "status": "inconsistent",
-      "risk": "medium",
-      "score": 62,
-      "mainIssue": "Uses `max-w-*` layout boxing on a major surface.",
-      "recommendedAction": "Confirm this route intentionally uses boxed content rather than inheriting the newer immersive or calmer shell patterns.",
+      "status": "premium aligned",
+      "risk": "low",
+      "score": 95,
+      "mainIssue": "Uses larger page/card padding that may reinforce older high-density layouts.",
+      "recommendedAction": "Check whether this surface can use calmer spacing or progressive disclosure instead of large padded card stacks.",
       "files": [
         "src/app/(main)/engineer/repos/page.tsx",
         "src/components/engineer-console/registered-repos-panel.tsx",
@@ -405,11 +317,11 @@
     {
       "route": "/engineer/compatibility",
       "area": "Compatibility",
-      "status": "inconsistent",
-      "risk": "medium",
-      "score": 74,
-      "mainIssue": "Uses `max-w-*` layout boxing on a major surface.",
-      "recommendedAction": "Confirm this route intentionally uses boxed content rather than inheriting the newer immersive or calmer shell patterns.",
+      "status": "premium aligned",
+      "risk": "low",
+      "score": 95,
+      "mainIssue": "Uses larger page/card padding that may reinforce older high-density layouts.",
+      "recommendedAction": "Check whether this surface can use calmer spacing or progressive disclosure instead of large padded card stacks.",
       "files": [
         "src/app/(main)/engineer/compatibility/page.tsx",
         "src/components/engineer-console/compatibility-panel.tsx",
@@ -419,11 +331,11 @@
     {
       "route": "/engineer/tasks",
       "area": "Task entry surfaces",
-      "status": "inconsistent",
-      "risk": "high",
-      "score": 60,
-      "mainIssue": "Stacks many repeated card/panel shells in one file.",
-      "recommendedAction": "Consolidate repeated shells into shared primitives or reduce first-screen panel density on this surface.",
+      "status": "premium aligned",
+      "risk": "low",
+      "score": 93,
+      "mainIssue": "Uses larger page/card padding that may reinforce older high-density layouts.",
+      "recommendedAction": "Check whether this surface can use calmer spacing or progressive disclosure instead of large padded card stacks.",
       "files": [
         "src/components/engineer-console/engineer-task-list.tsx",
         "src/components/engineer-console/create-task-form.tsx",
@@ -434,9 +346,9 @@
     {
       "route": "/engineer/runs/:id",
       "area": "Run workspace",
-      "status": "needs visual pass",
-      "risk": "high",
-      "score": 52,
+      "status": "inconsistent",
+      "risk": "medium",
+      "score": 64,
       "mainIssue": "Contains a large amount of visible copy for a first-screen or primary surface.",
       "recommendedAction": "Check whether some explanation can move behind details-on-demand, help affordances, or deeper panels.",
       "files": [
@@ -474,7 +386,7 @@
       "phase": "Phase 2",
       "title": "Migrate shared primitives",
       "items": [
-        "Raw button usage is widespread without a shared Button primitive.",
+        "Multiple overlay-like implementations increase drift risk across drawers, windows, and issue centers.",
         "Establish a smaller surface/elevation vocabulary for dark glass, borders, radius, and shadows."
       ]
     },
@@ -498,63 +410,63 @@
   "topRisks": [
     {
       "severity": "high",
-      "message": "Raw button usage is widespread without a shared Button primitive.",
-      "file": "src/components"
+      "message": "Stacks many repeated card/panel shells in one file.",
+      "file": "src/components/engineer-console/review-stages-panel.tsx"
     },
     {
       "severity": "high",
-      "message": "Repeated panel/card shells appear without a shared surface primitive.",
-      "file": "src/components"
-    },
-    {
-      "severity": "high",
-      "message": "Mixes light-surface assumptions into an engineer-facing dark UI surface.",
-      "file": "src/components/engineer-console/approval-actions.tsx"
+      "message": "Contains a large amount of visible copy for a first-screen or primary surface.",
+      "file": "src/components/engineer-console/run-live-panel.tsx"
     },
     {
       "severity": "high",
       "message": "Stacks many repeated card/panel shells in one file.",
-      "file": "src/components/engineer-console/create-task-form.tsx"
+      "file": "src/components/engineer-console/run-workspace-shell.tsx"
     },
     {
-      "severity": "high",
+      "severity": "medium",
       "message": "Uses `max-w-*` layout boxing on a major surface.",
-      "file": "src/components/engineer-console/engineer-route-shell.tsx"
+      "file": "src/app/page.tsx"
+    },
+    {
+      "severity": "medium",
+      "message": "Uses centered `mx-auto` wrappers on a major UI surface.",
+      "file": "src/app/page.tsx"
     }
   ],
   "topStrengths": [
     "Premium immersive engineering chrome is centralized in 9 reusable canvas components.",
     "A shared status badge primitive exists for at least part of the state vocabulary.",
     "Operator help and glossary guidance are already documented and partially componentized.",
-    "Keyboard focus styling appears in 15 scanned source files.",
+    "Keyboard focus styling appears in 21 scanned source files.",
     "The app already exposes a small global token palette through CSS variables in `globals.css`."
   ],
-  "recommendedNextAction": "Raw button usage is widespread without a shared Button primitive.",
+  "recommendedNextAction": "Stacks many repeated card/panel shells in one file.",
   "summary": {
     "severityCounts": {
       "critical": 0,
-      "high": 13,
+      "high": 3,
       "medium": 25,
-      "low": 7
+      "low": 6
     },
-    "severitySummary": "13 high, 25 medium, 7 low",
-    "rawButtonFiles": 40,
-    "panelShellFiles": 44,
+    "severitySummary": "3 high, 25 medium, 6 low",
+    "rawButtonFiles": 37,
+    "panelShellFiles": 39,
     "hardcodedColorFiles": 14,
-    "hardcodedColorFindings": 3,
+    "hardcodedColorFindings": 1,
     "badgeHeavyFiles": 2,
-    "accessibilityFiles": 3,
+    "accessibilityFiles": 2,
     "densityFiles": 3,
-    "legacyFiles": 22,
+    "legacyFiles": 18,
     "overlayComponentCount": 7,
     "navComponentCount": 6,
     "premiumComponentCoverage": {
       "present": 9,
       "total": 9
     },
-    "sharedUiFolderPresent": false,
-    "genericButtonPrimitivePresent": false,
-    "genericCardPrimitivePresent": false,
+    "sharedUiFolderPresent": true,
+    "genericButtonPrimitivePresent": true,
+    "genericCardPrimitivePresent": true,
     "escapeHandlersPresent": true,
     "docsWithUiGuidance": 16
   }

@@ -16,6 +16,8 @@ import {
   type WorkerPlanPreviewItem,
 } from "@/lib/engineer-console/worker-plan/worker-plan-ux";
 import type { WorkerPlanReportSummary } from "@/lib/engineer-console/types";
+import { Button } from "@/components/ui/button";
+import { Surface } from "@/components/ui/surface";
 import { OperatorHelp } from "./operator-help";
 
 type PlanSource = "guided" | "advanced";
@@ -31,6 +33,12 @@ const EMPTY_OPERATION: GuidedWorkerPlanOperationInput = {
   reason: "",
   content: "",
 };
+
+const FIELD_CLASS_NAME =
+  "mt-1 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
+
+const MONO_FIELD_CLASS_NAME =
+  "mt-1 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-2 font-mono text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
 
 function builderStateFromPlanJson(
   jsonText: string,
@@ -350,7 +358,7 @@ export function WorkerPlanPanel({
         </div>
       </div>
 
-      <div className="mb-4 grid gap-3 rounded border border-[var(--border)] p-3 text-sm sm:grid-cols-2">
+      <Surface className="mb-4 grid gap-3 text-sm sm:grid-cols-2" padding="sm" variant="inset">
         <div>
           <p className="text-[var(--muted)]">Current runId</p>
           <p className="font-mono text-xs">{runId}</p>
@@ -358,33 +366,35 @@ export function WorkerPlanPanel({
         <div>
           <p className="text-[var(--muted)]">Execution source</p>
           <div className="mt-1 flex flex-wrap gap-2">
-            <button
-              type="button"
+            <Button
               onClick={() => setPlanSource("guided")}
-              className={`rounded border px-3 py-1.5 text-sm ${
+              size="sm"
+              variant={planSource === "guided" ? "secondary" : "ghost"}
+              className={
                 planSource === "guided"
                   ? "border-amber-500 bg-amber-500/20 text-amber-100"
                   : "border-[var(--border)]"
-              }`}
+              }
             >
               Guided builder
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={() => setPlanSource("advanced")}
-              className={`rounded border px-3 py-1.5 text-sm ${
+              size="sm"
+              variant={planSource === "advanced" ? "secondary" : "ghost"}
+              className={
                 planSource === "advanced"
                   ? "border-amber-500 bg-amber-500/20 text-amber-100"
                   : "border-[var(--border)]"
-              }`}
+              }
             >
               Advanced JSON
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </Surface>
 
-      <section className="mb-4 rounded border border-[var(--border)] p-3">
+      <Surface as="section" className="mb-4" padding="sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="font-medium">Guided worker-plan builder</h3>
@@ -394,29 +404,29 @@ export function WorkerPlanPanel({
           </div>
           <div className="flex flex-wrap gap-2">
             {showReadmeSmokeHelper && (
-              <button
-                type="button"
+              <Button
                 onClick={populateReadmeSmokePlan}
-                className="rounded border border-[var(--border)] px-3 py-1.5 text-sm"
+                size="sm"
+                variant="secondary"
               >
                 Create README smoke plan
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
+            <Button
               onClick={syncGuidedJsonToAdvanced}
               disabled={!guidedJsonPreview.json}
-              className="rounded border border-[var(--border)] px-3 py-1.5 text-sm disabled:opacity-40"
+              size="sm"
+              variant="subtle"
             >
               Copy to advanced JSON
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={addOperation}
-              className="rounded border border-[var(--border)] px-3 py-1.5 text-sm"
+              size="sm"
+              variant="secondary"
             >
               Add operation
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -430,7 +440,7 @@ export function WorkerPlanPanel({
                 summary: event.target.value,
               }))
             }
-            className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] p-2 text-sm"
+            className={FIELD_CLASS_NAME}
             placeholder="Describe what this worker plan should do"
           />
         </label>
@@ -440,7 +450,7 @@ export function WorkerPlanPanel({
           <p className="mt-1 text-xs text-[var(--muted)]">
             Guided mode keeps `allowedFiles` aligned to the operation paths below.
           </p>
-          <div className="mt-2 rounded border border-[var(--border)] bg-[var(--background)] p-3">
+          <Surface className="mt-2" padding="sm" variant="inset">
             {guidedAllowedFiles.length === 0 ? (
               <p className="text-xs text-[var(--muted)]">No allowed files yet.</p>
             ) : (
@@ -450,21 +460,26 @@ export function WorkerPlanPanel({
                 ))}
               </ul>
             )}
-          </div>
+          </Surface>
         </div>
 
         <div className="mt-4 space-y-4">
           {guidedBuilder.operations.map((operation, index) => (
-            <div key={`${index}-${operation.path}-${operation.type}`} className="rounded border border-[var(--border)] p-3">
+            <Surface
+              key={`${index}-${operation.path}-${operation.type}`}
+              padding="sm"
+              variant="inset"
+            >
               <div className="mb-3 flex items-center justify-between gap-2">
                 <h4 className="text-sm font-medium">Operation {index + 1}</h4>
-                <button
-                  type="button"
+                <Button
                   onClick={() => removeOperation(index)}
-                  className="rounded border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted)]"
+                  size="sm"
+                  variant="ghost"
+                  className="min-h-0 px-2 py-1 text-[var(--muted)]"
                 >
                   Remove
-                </button>
+                </Button>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -473,7 +488,7 @@ export function WorkerPlanPanel({
                   <select
                     value={operation.type}
                     onChange={(event) => updateOperation(index, "type", event.target.value)}
-                    className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] p-2 text-sm"
+                    className={FIELD_CLASS_NAME}
                   >
                     <option value="create_file">create_file</option>
                     <option value="update_file">update_file</option>
@@ -486,7 +501,7 @@ export function WorkerPlanPanel({
                   <input
                     value={operation.path}
                     onChange={(event) => updateOperation(index, "path", event.target.value)}
-                    className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] p-2 font-mono text-xs"
+                    className={MONO_FIELD_CLASS_NAME}
                     placeholder="README.md"
                   />
                 </label>
@@ -497,7 +512,7 @@ export function WorkerPlanPanel({
                 <input
                   value={operation.reason}
                   onChange={(event) => updateOperation(index, "reason", event.target.value)}
-                  className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] p-2 text-sm"
+                  className={FIELD_CLASS_NAME}
                   placeholder="Why this change is needed"
                 />
               </label>
@@ -508,11 +523,11 @@ export function WorkerPlanPanel({
                   value={operation.content}
                   onChange={(event) => updateOperation(index, "content", event.target.value)}
                   rows={6}
-                  className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] p-2 font-mono text-xs"
+                  className={MONO_FIELD_CLASS_NAME}
                   spellCheck={false}
                 />
               </label>
-            </div>
+            </Surface>
           ))}
         </div>
 
@@ -536,9 +551,9 @@ export function WorkerPlanPanel({
             </p>
           )}
         </div>
-      </section>
+      </Surface>
 
-      <section className="mb-4 rounded border border-[var(--border)] p-3">
+      <Surface as="section" className="mb-4" padding="sm">
         <h3 className="font-medium">Plan intent preview</h3>
         <p className="mt-1 text-xs text-[var(--muted)]">
           This is guidance for the human reviewer. Existing backend validation still runs on
@@ -546,14 +561,14 @@ export function WorkerPlanPanel({
         </p>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <div className="rounded border border-[var(--border)] p-3">
+          <Surface padding="sm" variant="inset">
             <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Task</p>
             <p className="mt-2 text-sm font-medium">{taskTitle}</p>
             <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--muted)]">
               {taskDescription || "No task description recorded."}
             </p>
-          </div>
-          <div className="rounded border border-[var(--border)] p-3">
+          </Surface>
+          <Surface padding="sm" variant="inset">
             <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Plan</p>
             {activePlan ? (
               <>
@@ -574,22 +589,22 @@ export function WorkerPlanPanel({
                   : "Fix the advanced JSON to preview the execution plan."}
               </p>
             )}
-          </div>
+          </Surface>
         </div>
 
         {activeIntentWarnings.length > 0 && (
-          <div className="mt-3 rounded border border-amber-500/40 bg-amber-500/10 p-3">
+          <Surface className="mt-3" padding="sm" variant="warning">
             <p className="text-sm font-medium text-amber-200">Intent warnings</p>
             <ul className="mt-2 list-inside list-disc text-sm text-amber-100">
               {activeIntentWarnings.map((warning) => (
                 <li key={warning}>{warning}</li>
               ))}
             </ul>
-          </div>
+          </Surface>
         )}
-      </section>
+      </Surface>
 
-      <section className="mb-4 rounded border border-[var(--border)] p-3">
+      <Surface as="section" className="mb-4" padding="sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="font-medium">Advanced JSON editor</h3>
@@ -598,13 +613,13 @@ export function WorkerPlanPanel({
               automatically.
             </p>
           </div>
-          <button
-            type="button"
+          <Button
             onClick={handleInsertRunId}
-            className="rounded border border-[var(--border)] px-3 py-1.5 text-sm"
+            size="sm"
+            variant="secondary"
           >
             Insert current runId
-          </button>
+          </Button>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-3 text-sm">
@@ -631,7 +646,7 @@ export function WorkerPlanPanel({
           value={jsonText}
           onChange={(event) => setJsonText(event.target.value)}
           rows={14}
-          className="mt-3 w-full rounded border border-[var(--border)] bg-[var(--background)] p-3 font-mono text-xs"
+        className="mt-3 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 font-mono text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
           spellCheck={false}
         />
 
@@ -650,18 +665,18 @@ export function WorkerPlanPanel({
             ))}
           </ul>
         )}
-      </section>
+      </Surface>
 
-      <button
-        type="button"
+      <Button
         onClick={handleSubmit}
         disabled={loading}
-        className="rounded bg-amber-600 px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
+        variant="secondary"
+        className="border-amber-500/30 bg-amber-500/14 text-[var(--warning-foreground)] shadow-[0_18px_40px_rgba(217,119,6,0.14)] hover:bg-amber-500/22"
       >
         {loading
           ? "Validating & executing..."
           : `Validate and execute ${planSource === "guided" ? "guided worker plan" : "advanced JSON"}`}
-      </button>
+      </Button>
 
       <p className="mt-2 text-xs text-[var(--muted)]">
         Submitting validates, executes file operations, then runs quality gates. No commit,

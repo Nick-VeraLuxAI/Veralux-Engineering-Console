@@ -112,6 +112,8 @@ describe("UX-6 setup guidance", () => {
     expect(html).toContain("Approved repo roots");
     expect(html).toContain("Path must be inside approved repo roots.");
     expect(html).toContain("Run file index before code index.");
+    expect(html).toContain("Verify");
+    expect(html).toContain("Detect scripts/profile");
   });
 
   it("staging smoke helper logic appears in development or staging-like environments", () => {
@@ -153,6 +155,8 @@ describe("UX-6 setup guidance", () => {
 
     expect(enabledHtml).toContain("Staging helper preset");
     expect(enabledHtml).toContain("Use staging README preset");
+    expect(enabledHtml).toContain("Create task");
+    expect(enabledHtml).toContain("Cancel");
     expect(disabledHtml).not.toContain("Staging helper preset");
   });
 

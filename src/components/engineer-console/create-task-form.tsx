@@ -7,7 +7,12 @@ import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { StagingTaskPreset } from "@/lib/engineer-console/setup/setup-ux";
+import { Button } from "@/components/ui/button";
+import { Surface } from "@/components/ui/surface";
 import type { PublicRegisteredRepo } from "./registered-repos-panel";
+
+const FIELD_CLASS_NAME =
+  "mt-1 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
 
 export function CreateTaskForm({
   onClose,
@@ -76,21 +81,24 @@ export function CreateTaskForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <form
+      <Surface
+        as="form"
         onSubmit={handleSubmit}
-        className="w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-xl"
+        className="w-full max-w-lg"
+        padding="lg"
+        variant="elevated"
       >
         <h2 className="mb-4 text-lg font-semibold">Create engineering task</h2>
         {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
-        <div className="mb-4 rounded border border-[var(--border)] bg-[var(--background)] p-3 text-sm text-[var(--muted)]">
+        <Surface className="mb-4 text-sm text-[var(--muted)]" padding="sm" variant="inset">
           <p className="font-medium text-white">Safest default</p>
           <p className="mt-1">
             Prefer a verified registered repository. Manual path fallback remains available, but it
             should still point to an approved repo root.
           </p>
-        </div>
+        </Surface>
         {registeredRepoCount === 0 ? (
-          <div className="mb-4 rounded border border-amber-900/50 bg-amber-950/20 p-3 text-sm text-amber-200">
+          <Surface className="mb-4 text-sm text-amber-200" padding="sm" variant="warning">
             <p className="font-medium">Register and verify a repo first.</p>
             <p className="mt-1">
               What is missing: there are no registered repos yet. Why it matters: verified repos are
@@ -100,22 +108,23 @@ export function CreateTaskForm({
               </Link>
               .
             </p>
-          </div>
+          </Surface>
         ) : null}
         {showStagingPreset ? (
-          <div className="mb-4 rounded border border-blue-900/50 bg-blue-950/20 p-3 text-sm">
+          <Surface className="mb-4 text-sm" padding="sm" variant="glass">
             <p className="font-medium text-white">Staging helper preset</p>
             <p className="mt-1 text-[var(--muted)]">
               Use a small and safe README smoke task for staging verification.
             </p>
-            <button
-              type="button"
+            <Button
               onClick={applyStagingPreset}
-              className="mt-3 rounded border border-[var(--border)] px-3 py-2 text-sm font-medium"
+              className="mt-3"
+              size="sm"
+              variant="secondary"
             >
               Use staging README preset
-            </button>
-          </div>
+            </Button>
+          </Surface>
         ) : null}
         <label className="mb-3 block text-sm">
           Title
@@ -123,7 +132,7 @@ export function CreateTaskForm({
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2"
+            className={FIELD_CLASS_NAME}
           />
         </label>
         <label className="mb-3 block text-sm">
@@ -132,7 +141,7 @@ export function CreateTaskForm({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2"
+            className={FIELD_CLASS_NAME}
           />
         </label>
         <label className="mb-3 block text-sm">
@@ -143,7 +152,7 @@ export function CreateTaskForm({
               setRegisteredRepoId(e.target.value);
               if (e.target.value) setTargetRepoPath("");
             }}
-            className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2"
+            className={FIELD_CLASS_NAME}
           >
             <option value="">— Manual path fallback —</option>
             {repos.map((repo) => (
@@ -161,7 +170,7 @@ export function CreateTaskForm({
             value={targetRepoPath}
             onChange={(e) => setTargetRepoPath(e.target.value)}
             placeholder="/path/to/your/repo"
-            className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 font-mono text-xs disabled:opacity-50"
+            className={`${FIELD_CLASS_NAME} font-mono text-xs disabled:opacity-50`}
           />
         </label>
         <p className="mb-3 text-xs text-[var(--muted)]">
@@ -173,7 +182,7 @@ export function CreateTaskForm({
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
-            className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2"
+            className={FIELD_CLASS_NAME}
           >
             <option value="low">low</option>
             <option value="normal">normal</option>
@@ -182,22 +191,21 @@ export function CreateTaskForm({
           </select>
         </label>
         <div className="flex justify-end gap-2">
-          <button
-            type="button"
+          <Button
             onClick={onClose}
-            className="rounded border border-[var(--border)] px-4 py-2 text-sm"
+            variant="ghost"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={submitting}
-            className="rounded bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            variant="primary"
           >
             {submitting ? "Creating…" : "Create task"}
-          </button>
+          </Button>
         </div>
-      </form>
+      </Surface>
     </div>
   );
 }

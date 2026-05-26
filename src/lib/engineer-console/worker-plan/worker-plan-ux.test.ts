@@ -304,6 +304,8 @@ describe("worker plan UX helpers", () => {
     );
 
     expect(html).toContain("Guided worker-plan builder");
+    expect(html).toContain("Advanced JSON editor");
+    expect(html).toContain("Validate and execute guided worker plan");
     expect(mockFetch).not.toHaveBeenCalled();
   });
 });

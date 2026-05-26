@@ -6,10 +6,28 @@
   --card: #1a2332;
   --border: #2f3b4d;
   --accent: #3b82f6;
+  --accent-gold: #d7b66b;
   --muted: #8b98a5;
+  --muted-foreground: #b7c2cd;
   --success: #22c55e;
   --warning: #eab308;
   --danger: #ef4444;
+  --surface: rgba(22, 29, 39, 0.92);
+  --surface-elevated: rgba(28, 36, 48, 0.98);
+  --surface-glass: rgba(16, 22, 31, 0.74);
+  --surface-inset: rgba(8, 12, 18, 0.82);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --success-foreground: #f3fff7;
+  --warning-foreground: #fff6dc;
+  --danger-foreground: #ffe8e8;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.24);
+  --shadow-elevated: 0 24px 56px rgba(0, 0, 0, 0.3);
+  --shadow-glass: 0 20px 48px rgba(0, 0, 0, 0.28);
+  --focus-ring: rgba(96, 165, 250, 0.85);
 }
 
 body {

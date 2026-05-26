@@ -1,38 +1,36 @@
 import React from "react";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-zinc-600",
-  queued: "bg-blue-600",
-  running: "bg-amber-600",
-  waiting_for_approval: "bg-purple-600",
-  approved: "bg-emerald-600",
-  failed: "bg-red-600",
-  stopped: "bg-orange-700",
-  completed: "bg-emerald-700",
-  warning: "bg-amber-700",
-  missing: "bg-red-700",
-  not_checked: "bg-zinc-700",
-  pending: "bg-zinc-500",
-  preparing_workspace: "bg-blue-500",
-  creating_branch: "bg-blue-500",
-  generating_patch: "bg-amber-500",
-  applying_patch: "bg-amber-500",
-  validating_worker_plan: "bg-cyan-600",
-  executing_worker_plan: "bg-cyan-700",
-  running_quality_gates: "bg-indigo-500",
-  low: "bg-emerald-600",
-  medium: "bg-amber-600",
-  high: "bg-orange-600",
-  blocked: "bg-red-700",
+const STATUS_VARIANTS: Record<string, BadgeVariant> = {
+  draft: "muted",
+  queued: "info",
+  running: "active",
+  waiting_for_approval: "warning",
+  approved: "ready",
+  failed: "blocked",
+  stopped: "blocked",
+  completed: "completed",
+  warning: "warning",
+  missing: "blocked",
+  not_checked: "muted",
+  pending: "muted",
+  preparing_workspace: "info",
+  creating_branch: "info",
+  generating_patch: "active",
+  applying_patch: "active",
+  validating_worker_plan: "active",
+  executing_worker_plan: "active",
+  running_quality_gates: "active",
+  low: "ready",
+  medium: "warning",
+  high: "warning",
+  blocked: "blocked",
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const color = STATUS_COLORS[status] ?? "bg-zinc-600";
   return (
-    <span
-      className={`inline-flex rounded px-2 py-0.5 text-xs font-medium text-white ${color}`}
-    >
+    <Badge variant={STATUS_VARIANTS[status] ?? "muted"} size="md">
       {status.replace(/_/g, " ")}
-    </span>
+    </Badge>
   );
 }

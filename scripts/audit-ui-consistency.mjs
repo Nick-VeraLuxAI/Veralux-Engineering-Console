@@ -761,7 +761,7 @@ export async function buildUiConsistencyAudit({ repoRoot } = {}) {
     /src\/components\/(?:ui\/)?button\.(tsx|ts|jsx|js)$/.test(filePath),
   );
   const genericCardPrimitivePresent = componentPaths.some((filePath) =>
-    /src\/components\/(?:ui\/)?card\.(tsx|ts|jsx|js)$/.test(filePath),
+    /src\/components\/(?:ui\/)?(?:card|surface)\.(tsx|ts|jsx|js)$/.test(filePath),
   );
   const escapeHandlersPresent = [...fileMap.entries()].some(
     ([filePath, content]) => filePath.startsWith("src/components/engineer-console/") && hasEscapeHandling(content),

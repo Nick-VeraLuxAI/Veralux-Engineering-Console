@@ -29,6 +29,8 @@ import {
   resolveRunWorkspaceViewForHash,
   type RunWorkspaceViewId,
 } from "@/lib/engineer-console/run-ux/run-workspace";
+import { Badge } from "@/components/ui/badge";
+import { Surface } from "@/components/ui/surface";
 import { StatusBadge } from "./status-badge";
 import { ApprovalActions } from "./approval-actions";
 import { WorkerPlanPanel } from "./worker-plan-panel";
@@ -303,7 +305,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
             </div>
 
             <div className="space-y-5">
-              <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+              <Surface as="section">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="font-semibold">Needs attention</h2>
@@ -312,15 +314,15 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px]">
-                    <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[var(--muted)]">
+                    <Badge size="sm" variant="muted">
                       {issues.length} total
-                    </span>
-                    <span className="rounded-full border border-red-500/40 bg-red-950/20 px-2 py-0.5 text-red-200">
+                    </Badge>
+                    <Badge size="sm" variant="blocked">
                       {criticalIssueCount} critical
-                    </span>
-                    <span className="rounded-full border border-amber-500/40 bg-amber-950/20 px-2 py-0.5 text-amber-200">
+                    </Badge>
+                    <Badge size="sm" variant="warning">
                       {warningIssueCount} warning
-                    </span>
+                    </Badge>
                   </div>
                 </div>
                 {issues.length === 0 ? (
@@ -340,13 +342,13 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex flex-wrap items-center gap-2">
                               <span
-                                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${issueToneClasses(issue.severity)}`}
+                                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${issueToneClasses(issue.severity)}`}
                               >
                                 {issue.severity}
                               </span>
-                              <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--muted)]">
+                              <Badge size="sm" variant="muted">
                                 {getRunWorkspaceView(issue.view).label}
-                              </span>
+                              </Badge>
                             </div>
                             <span className="text-[11px] text-[var(--muted)]">Open workspace</span>
                           </div>
@@ -358,7 +360,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
                     ))}
                   </ul>
                 )}
-              </section>
+              </Surface>
 
               <div id="run-lifecycle" className="scroll-mt-28">
                 <RunLifecycleStepper steps={lifecycleSteps} currentStageId={guidance.currentStageId} />
@@ -376,9 +378,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
             </div>
           </div>
 
-          <section
+          <Surface
+            as="section"
             id={RUN_PANEL_IDS.runState}
-            className="scroll-mt-28 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+            className="scroll-mt-28"
             tabIndex={-1}
           >
             <h2 className="mb-3 font-semibold">Run state</h2>
@@ -409,11 +412,11 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
               </div>
             </dl>
             {data.run.agentMessage ? (
-              <p className="mt-3 rounded bg-[var(--background)] p-3 text-sm text-[var(--muted)]">
+              <p className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-inset)] p-3 text-sm text-[var(--muted)]">
                 {data.run.agentMessage}
               </p>
             ) : null}
-          </section>
+          </Surface>
         </RunWorkspaceViewPanel>
 
         <RunWorkspaceViewPanel viewId="work_plan" activeView={visibleView}>
@@ -436,9 +439,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
               />
             </div>
 
-            <section
+            <Surface
+              as="section"
               id={RUN_PANEL_IDS.changedFiles}
-              className="scroll-mt-28 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+              className="scroll-mt-28"
               tabIndex={-1}
             >
               <h2 className="mb-3 font-semibold">Changed files</h2>
@@ -458,11 +462,12 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
                   ))}
                 </ul>
               )}
-            </section>
+            </Surface>
 
-            <section
+            <Surface
+              as="section"
               id={RUN_PANEL_IDS.qualityGates}
-              className="scroll-mt-28 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+              className="scroll-mt-28"
               tabIndex={-1}
             >
               <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -479,7 +484,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
               ) : (
                 <div className="space-y-3">
                   {data.qualityGates.map((gate) => (
-                    <div key={gate.id} className="rounded border border-[var(--border)] p-3 text-sm">
+                    <Surface key={gate.id} padding="sm" variant="inset">
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <code>{gate.command}</code>
                         <StatusBadge status={gate.status} />
@@ -497,11 +502,11 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
                           {gate.stderr.slice(0, 4000)}
                         </pre>
                       ) : null}
-                    </div>
+                    </Surface>
                   ))}
                 </div>
               )}
-            </section>
+            </Surface>
           </div>
         </RunWorkspaceViewPanel>
 
@@ -528,9 +533,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
             </div>
 
             {report ? (
-              <section
+              <Surface
+                as="section"
                 id={RUN_PANEL_IDS.approval}
-                className="scroll-mt-28 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+                className="scroll-mt-28"
                 tabIndex={-1}
               >
                 <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -546,14 +552,14 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
                 <p className="mb-2 text-sm">{report.taskSummary}</p>
                 <p className="mb-2 text-sm text-[var(--muted)]">{report.recommendedNextAction}</p>
                 {report.workerPlan ? (
-                  <div className="mb-3 rounded border border-[var(--border)] p-3 text-sm">
+                  <Surface className="mb-3 text-sm" padding="sm" variant="inset">
                     <p className="font-medium">Worker plan: {report.workerPlan.summary}</p>
                     <p className="text-xs text-[var(--muted)]">
                       validation {report.workerPlan.validationStatus} · execution{" "}
                       {report.workerPlan.executionStatus} · {report.workerPlan.executedCount}{" "}
                       operation(s)
                     </p>
-                  </div>
+                  </Surface>
                 ) : null}
                 {report.governanceIssues.length > 0 ? (
                   <ul className="mb-3 list-inside list-disc text-sm text-amber-300">
@@ -578,7 +584,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
                     rationaleGuidance={approvalCardState.rationale.guidance}
                   />
                 ) : null}
-              </section>
+              </Surface>
             ) : null}
           </div>
         </RunWorkspaceViewPanel>
@@ -623,7 +629,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
 
         <RunWorkspaceViewPanel viewId="audit" activeView={visibleView}>
           <div id="technical-audit" className="scroll-mt-28 space-y-4" tabIndex={-1}>
-            <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+            <Surface as="section">
               <h2 className="mb-3 font-semibold">Audit overview</h2>
               <p className="mb-3 text-sm text-[var(--muted)]">
                 What this is: the audit-focused workspace for timeline verification and technical
@@ -632,22 +638,22 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
                 next: inspect the timeline, then open chain diagnostics if verification failed.
               </p>
               <dl className="grid gap-3 text-sm sm:grid-cols-3">
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+                <Surface padding="sm" variant="inset">
                   <dt className="text-[var(--muted)]">Audit events</dt>
                   <dd className="mt-1 text-white">{data.uxSummary.audit.eventCount}</dd>
-                </div>
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+                </Surface>
+                <Surface padding="sm" variant="inset">
                   <dt className="text-[var(--muted)]">Chain status</dt>
                   <dd className="mt-1 text-white">
                     {data.uxSummary.audit.chainOk ? "verified" : "failed"}
                   </dd>
-                </div>
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+                </Surface>
+                <Surface padding="sm" variant="inset">
                   <dt className="text-[var(--muted)]">Chain failures</dt>
                   <dd className="mt-1 text-white">{data.uxSummary.audit.chainFailureCount}</dd>
-                </div>
+                </Surface>
               </dl>
-            </section>
+            </Surface>
 
             <div id={RUN_PANEL_IDS.auditTimeline} className="scroll-mt-28" tabIndex={-1}>
               <AuditTimelinePanel runId={runId} />

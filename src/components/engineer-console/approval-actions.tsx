@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+import { Button } from "@/components/ui/button";
 
 export function ApprovalActions({
   runId,
@@ -87,40 +88,39 @@ export function ApprovalActions({
           value={rationale}
           onChange={(e) => setRationale(e.target.value)}
           rows={3}
-          className="w-full rounded border border-[var(--border)] bg-[var(--background)] p-2 text-sm"
+          className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
           placeholder="Describe why you are approving, requesting a fix, or stopping..."
         />
       </label>
       <div className="flex flex-wrap gap-2">
         {showApprove && (
-          <button
-            type="button"
+          <Button
             disabled={!canApprove || loading !== null}
             onClick={() => sendAction("approve")}
-            className="rounded bg-[var(--success)] px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+            variant="primary"
+            className="bg-[var(--success)] text-[var(--success-foreground)] shadow-[0_18px_40px_rgba(34,197,94,0.2)] hover:bg-[var(--success)]/90"
           >
             {loading === "approve" ? "Approving..." : "Approve run"}
-          </button>
+          </Button>
         )}
         {showRequestFix && (
-          <button
-            type="button"
+          <Button
             disabled={loading !== null}
             onClick={() => void sendAction("request_fix")}
-            className="rounded bg-[var(--warning)] px-4 py-2 text-sm font-medium text-black disabled:opacity-40"
+            variant="secondary"
+            className="border-amber-500/30 bg-amber-500/14 text-[var(--warning-foreground)] shadow-[0_18px_40px_rgba(217,119,6,0.14)] hover:bg-amber-500/22"
           >
             {loading === "request_fix" ? "Sending..." : "Request Fix"}
-          </button>
+          </Button>
         )}
         {showStop && (
-          <button
-            type="button"
+          <Button
             disabled={loading !== null}
             onClick={() => void sendAction("stop")}
-            className="rounded bg-[var(--danger)] px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+            variant="danger"
           >
             {loading === "stop" ? "Stopping..." : "Stop Run"}
-          </button>
+          </Button>
         )}
       </div>
       <p className="text-xs text-[var(--muted)]">
