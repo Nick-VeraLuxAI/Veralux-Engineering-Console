@@ -148,6 +148,12 @@ Post Phase 10 audit for production readiness and client use. Phase Q5 production
 
 ---
 
+## CI bootstrap note
+
+`verify:ci` `e2e-local` bootstrap was stabilized after A1 exposed a shared Playwright `webServer` startup timeout. The fix preserves E2E coverage and makes local CI startup deterministic by isolating Playwright builds in `.next-e2e`, probing a lightweight readiness URL, and letting Playwright own a single `next start` process with explicit test env.
+
+---
+
 ## Suggested next phase (single recommendation)
 
 **Production launch:** Complete [production-launch-checklist.md](./production-launch-checklist.md) after staging dry run.

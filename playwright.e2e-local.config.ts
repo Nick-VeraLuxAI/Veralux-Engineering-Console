@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 import { E2E_LOCAL_DB_PATH } from "./tests/e2e/env";
 
 const port = Number(process.env.E2E_PORT ?? 3000);
+const readinessUrl = `http://127.0.0.1:${port}/api/engineer-console/auth/me`;
 
 /**
  * Trusted-local smoke + release panels on one `next start` instance.
@@ -24,18 +25,25 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: [
+      "rm -rf .next-e2e",
+      "&&",
       "npm run engineer-console:init-db",
       "&&",
-      "NODE_ENV=test npm run build",
+      "npm run build",
       "&&",
-      "NODE_ENV=test npx next start -p " + String(port),
+      "npx next start -p " + String(port),
     ].join(" "),
-    url: `http://127.0.0.1:${port}/engineer`,
+    url: readinessUrl,
     reuseExistingServer: false,
     timeout: 300_000,
+    gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
+    stdout: "pipe",
+    stderr: "pipe",
+    name: "Trusted local E2E",
     env: {
       ...process.env,
       PORT: String(port),
+      NEXT_E2E: "1",
       NODE_ENV: "test",
       ENGINEER_CONSOLE_DB_PATH: E2E_LOCAL_DB_PATH,
       ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV: "true",

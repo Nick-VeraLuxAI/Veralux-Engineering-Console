@@ -6,6 +6,7 @@ Operational guide for VeraLux Engineering Console through Phase UX-15. Pair with
 
 - Node.js 20+ and `npm install` in the console repo
 - Optional browser smoke: `npx playwright install chromium` then `npm run test:e2e` (Q2 adds `test:e2e:auth`, `test:e2e:gates` — see [e2e-smoke-tests.md](./e2e-smoke-tests.md))
+- Free ports `3000`, `3001`, and `3002` for the Playwright suites, or set `E2E_PORT`, `E2E_AUTH_PORT`, and `E2E_GATES_PORT` explicitly before running the E2E commands
 - Target git repositories on disk (absolute paths)
 - For PR/merge: `git` and `gh` CLI authenticated on the host
 - For Kimi drafts: `ENGINEER_CONSOLE_MODEL_PROVIDER=kimi` and `KIMI_API_KEY`
@@ -17,6 +18,8 @@ npm run dev
 ```
 
 Open `http://localhost:3000/engineer`.
+
+`verify:ci` `e2e-local` bootstrap was stabilized after A1 exposed a shared Playwright `webServer` startup timeout. The fix preserves E2E coverage and makes local CI startup deterministic by isolating Playwright builds in `.next-e2e`, probing a lightweight readiness URL, and letting Playwright own the `next start` process for the suite.
 
 ---
 
