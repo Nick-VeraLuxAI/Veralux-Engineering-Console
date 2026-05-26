@@ -14,6 +14,7 @@ import {
   RUN_PANEL_IDS,
   type RunWorkflowSummary,
 } from "@/lib/engineer-console/run-ux/run-ux-types";
+import type { RunIntelligenceSummary } from "@/lib/engineer-console/intelligence/danger-point-types";
 import { deriveRunCurrentActionZoneState } from "@/lib/engineer-console/run-ux/run-page-sections";
 import {
   RUN_NAV_TARGET_IDS,
@@ -55,6 +56,7 @@ import { DeploymentHealthPolicyPanel } from "./deployment-health-policy-panel";
 import { ReleaseChecklistPanel } from "./release-checklist-panel";
 import { ReleaseSignoffPanel } from "./release-signoff-panel";
 import { RunCommandCenter } from "./run-command-center";
+import { RunIntelligenceCard } from "./run-intelligence-card";
 import { RunLifecycleStepper } from "./run-lifecycle-stepper";
 import { RunApprovalActionCard } from "./run-approval-action-card";
 import { RunCurrentActionZone } from "./run-current-action-zone";
@@ -73,6 +75,7 @@ interface RunDetailPayload {
   approvalReport: ApprovalReport | null;
   workerPlanDraft?: WorkerPlanDraftPayload | null;
   uxSummary: RunWorkflowSummary;
+  intelligenceSummary: RunIntelligenceSummary;
 }
 
 type HistoryMode = "push" | "replace" | "none";
@@ -303,6 +306,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
 
               <div id="run-command-center" className="scroll-mt-28">
                 <RunCommandCenter summary={data.uxSummary} guidance={guidance} />
+              </div>
+
+              <div id="run-intelligence" className="scroll-mt-28">
+                <RunIntelligenceCard summary={data.intelligenceSummary} />
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 # Engineering Console — Operator runbook
 
-Operational guide for VeraLux Engineering Console through Phase UX-15. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), and phase-specific docs linked in each section.
+Operational guide for VeraLux Engineering Console through Phase UX-15. Pair with [env-reference.md](./env-reference.md), [operator-glossary.md](./operator-glossary.md), [end-to-end-demo-script.md](./end-to-end-demo-script.md), [intelligence-layer-audit.md](./intelligence-layer-audit.md), [intelligence-layer-guide.md](./intelligence-layer-guide.md), and phase-specific docs linked in each section.
 
 ## Prerequisites
 
@@ -743,4 +743,6 @@ After staging passes, use [production-launch-checklist.md](./production-launch-c
 | Production launch | [production-launch-checklist.md](./production-launch-checklist.md) |
 | Production readiness | [production-readiness-audit.md](./production-readiness-audit.md) |
 | Hardening gaps | [final-hardening-notes.md](./final-hardening-notes.md) |
+ | Intelligence layer readiness | [intelligence-layer-audit.md](./intelligence-layer-audit.md) |
+ | Run intelligence card | [intelligence-layer-guide.md](./intelligence-layer-guide.md) |
 | Operator UX guide | [operator-ux-guide.md](./operator-ux-guide.md) |

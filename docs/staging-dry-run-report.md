@@ -107,13 +107,15 @@ UX-3 now improves approval/review discoverability with a top-of-page **Approval 
 
 UX-4 now improves release-path clarity with a top-of-panel **PR state** card that explains commit reuse, branch push state, existing PR detection, and retry safety after partial failures, plus an action-oriented **Hard release gates** checklist that links directly to the blocking panel. These changes preserve the same PR readiness rules, hard release-gate enforcement, and manual merge/deploy/sign-off boundaries.
 
+A1 now builds on those staging lessons with a read-only **Run Intelligence** card that normalizes danger points, risk, confidence, escalation guidance, and future playbook recommendations without changing validation, approval, PR, merge, deploy, or sign-off authority.
+
 UX-5 now reduces run-page density with a **Current Action** zone and grouped progressive-disclosure sections so operators can focus on the active workflow step without losing access to technical panels and audit history.
 
 UX-6 now improves setup and staging onboarding with a dashboard **Setup readiness** panel, a **Run staging smoke workflow** helper, clearer approved-repo-root guidance on the repos page, a staging-only README smoke task preset, and empty states that explain what is missing and what to click next. These changes preserve the same repo-root validation, auth rules, release controls, and manual action boundaries.
 
 UX-9 now improves staging triage above the run page with a read-only dashboard **Operator Queue**, deterministic priority buckets, read-only queue filters, richer task/run summaries, and setup/staging attention items for manual `verify:ci`, backup verification, and `docs/staging-dry-run-report.md` follow-up. These changes preserve the same manual run, approval, PR, merge, deploy, and sign-off boundaries.
 
-See [operator-ux-audit.md](./operator-ux-audit.md) for the full UX journey map, severity-ranked issue inventory, information-architecture recommendation, and phased redesign backlog, and [operator-ux-guide.md](./operator-ux-guide.md) for the new operator-facing usage notes. The remaining UX items still do **not** require weakening governance behavior, but several are strong candidates to fix before production operator use and before external demos.
+See [operator-ux-audit.md](./operator-ux-audit.md) for the full UX journey map, severity-ranked issue inventory, information-architecture recommendation, and phased redesign backlog, [operator-ux-guide.md](./operator-ux-guide.md) for the new operator-facing usage notes, [intelligence-layer-audit.md](./intelligence-layer-audit.md) for the follow-on A1 danger-point interpreter and autonomy-readiness audit, and [intelligence-layer-guide.md](./intelligence-layer-guide.md) for the shipped read-only A1 operator behavior. The remaining UX items still do **not** require weakening governance behavior, but several are strong candidates to fix before production operator use and before external demos.
 
 ---
 

@@ -21,6 +21,7 @@ import {
   getLatestWorkerPlanDraftForRun,
 } from "@/lib/engineer-console/worker-plan/worker-plan-draft-manager";
 import { buildRunWorkflowSummary } from "@/lib/engineer-console/run-ux/build-run-workflow-summary";
+import { buildRunIntelligenceSummary } from "@/lib/engineer-console/intelligence/build-intelligence-summary";
 
 export const runtime = "nodejs";
 
@@ -73,6 +74,14 @@ export async function GET(
     approvalReport,
     changedFiles,
   });
+  const intelligenceSummary = buildRunIntelligenceSummary({
+    run,
+    task,
+    qualityGates,
+    approvalReport,
+    changedFiles,
+    uxSummary,
+  });
 
   return NextResponse.json({
     run,
@@ -106,5 +115,6 @@ export async function GET(
         }
       : null,
     uxSummary,
+    intelligenceSummary,
   });
 }

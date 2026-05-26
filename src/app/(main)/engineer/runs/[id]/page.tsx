@@ -16,6 +16,7 @@ import { getWorkerPlanChangedFilesScope } from "@/lib/engineer-console/worker-pl
 import { getChangedFiles, getDiffSummary } from "@/lib/engineer-console/workspace/git-workspace";
 import type { ApprovalReport } from "@/lib/engineer-console/types";
 import { buildRunWorkflowSummary } from "@/lib/engineer-console/run-ux/build-run-workflow-summary";
+import { buildRunIntelligenceSummary } from "@/lib/engineer-console/intelligence/build-intelligence-summary";
 import { RunLivePanel } from "@/components/engineer-console/run-live-panel";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +59,14 @@ export default async function RunDetailPage({
     approvalReport,
     changedFiles,
   });
+  const intelligenceSummary = buildRunIntelligenceSummary({
+    run,
+    task,
+    qualityGates,
+    approvalReport,
+    changedFiles,
+    uxSummary,
+  });
 
   return (
     <div>
@@ -77,6 +86,7 @@ export default async function RunDetailPage({
           diffSummary,
           qualityGates,
           approvalReport,
+          intelligenceSummary,
           workerPlanDraft: latestDraft
             ? {
                 id: latestDraft.id,
