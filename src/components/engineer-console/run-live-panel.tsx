@@ -22,7 +22,7 @@ import {
   buildRunQuickNavItems,
   resolveRunNavigationShortcut,
 } from "@/lib/engineer-console/run-ux/run-navigation";
-import { deriveRunIssues, type RunIssue } from "@/lib/engineer-console/run-ux/run-issues";
+import { deriveRunIssueQueue, type RunIssue } from "@/lib/engineer-console/run-ux/run-issues";
 import {
   DEFAULT_RUN_WORKSPACE_VIEW,
   getRunWorkspaceView,
@@ -123,22 +123,15 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
   const currentAction = deriveRunCurrentActionZoneState(data.uxSummary, guidance);
   const quickNavItems = buildRunQuickNavItems(data.uxSummary, guidance);
   const expertSummaryItems = buildRunExpertSummaryItems(data.uxSummary, guidance);
-  const issues = deriveRunIssues(data.uxSummary, guidance);
-  const currentIssue = issues[0] ?? null;
+  const issueQueue = deriveRunIssueQueue(data.uxSummary, guidance);
+  const issues = issueQueue.ordered;
+  const currentIssue = issueQueue.active[0] ?? null;
   const viewIssueCounts = useMemo(() => {
-    return issues.reduce<Partial<Record<RunWorkspaceViewId, number>>>((counts, issue) => {
+    return issueQueue.active.reduce<Partial<Record<RunWorkspaceViewId, number>>>((counts, issue) => {
       counts[issue.view] = (counts[issue.view] ?? 0) + 1;
       return counts;
     }, {});
-  }, [issues]);
-  const criticalIssueCount = useMemo(
-    () => issues.filter((issue) => issue.severity === "critical").length,
-    [issues],
-  );
-  const warningIssueCount = useMemo(
-    () => issues.filter((issue) => issue.severity === "warning").length,
-    [issues],
-  );
+  }, [issueQueue.active]);
   const routedView = getRunWorkspaceViewForTarget(pendingTargetId);
   const visibleView = routedView ?? activeView;
 
@@ -282,8 +275,10 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         runStatus={data.run.status}
         currentStageLabel={guidance.currentStageLabel}
         riskLevel={data.run.riskLevel}
-        blockerCount={guidance.blockers.length}
-        warningCount={guidance.warnings.length}
+        blockerCount={issueQueue.attention.activeBlockerCount}
+        warningCount={issueQueue.attention.activeWarningCount}
+        futureRequirementCount={issueQueue.attention.futureRequirementCount}
+        historicalCount={issueQueue.attention.historicalCount}
         nextAction={guidance.nextRecommendedAction}
         activeView={visibleView}
         onSelectView={selectView}
@@ -321,18 +316,23 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
                   actions={
                     <>
                       <Badge size="sm" variant="muted">
-                        {issues.length} total
+                        {issueQueue.active.length} active
                       </Badge>
                       <Badge size="sm" variant="blocked">
-                        {criticalIssueCount} critical
+                        {issueQueue.attention.activeBlockerCount} blocker
                       </Badge>
                       <Badge size="sm" variant="warning">
-                        {warningIssueCount} warning
+                        {issueQueue.attention.activeWarningCount} warning
                       </Badge>
+                      {issueQueue.future.length > 0 ? (
+                        <Badge size="sm" variant="info">
+                          {issueQueue.future.length} later
+                        </Badge>
+                      ) : null}
                     </>
                   }
                 />
-                {issues.length === 0 ? (
+                {issueQueue.active.length === 0 ? (
                   <div className="mt-4">
                     <EmptyState
                       compact
@@ -342,7 +342,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
                   </div>
                 ) : (
                   <ul className="mt-4 space-y-3">
-                    {issues.slice(0, 3).map((issue) => (
+                    {issueQueue.active.slice(0, 3).map((issue) => (
                       <li key={issue.id}>
                         <button
                           type="button"
@@ -672,7 +672,7 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
         </RunWorkspaceViewPanel>
       </RunWorkspaceShell>
 
-      <RunIssueCenter issues={issues} onOpenIssue={openIssue} />
+      <RunIssueCenter issueQueue={issueQueue} onOpenIssue={openIssue} />
     </div>
   );
 }

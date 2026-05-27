@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import type { RunIssue } from "@/lib/engineer-console/run-ux/run-issues";
+import type { RunIssue, RunIssueQueue } from "@/lib/engineer-console/run-ux/run-issues";
 import { getRunWorkspaceView } from "@/lib/engineer-console/run-ux/run-workspace";
 
 const SEVERITY_STYLES: Record<RunIssue["severity"], string> = {
@@ -21,41 +21,98 @@ function severityLabel(severity: RunIssue["severity"]): string {
   }
 }
 
-export function RunIssueCenter({
+function applicabilityLabel(issue: RunIssue): string {
+  switch (issue.applicability) {
+    case "future_requirement":
+      return "Later";
+    case "historical_context":
+    case "stale":
+      return "Historical";
+    default:
+      return "Now";
+  }
+}
+
+function IssueList({
   issues,
   onOpenIssue,
-  initiallyExpanded,
+  emptyLabel,
 }: {
   issues: RunIssue[];
   onOpenIssue: (issue: RunIssue) => void;
+  emptyLabel?: string;
+}) {
+  if (issues.length === 0) {
+    return emptyLabel ? (
+      <p className="mt-2 text-xs text-[var(--muted)]">{emptyLabel}</p>
+    ) : null;
+  }
+
+  return (
+    <ul className="mt-3 space-y-3">
+      {issues.map((issue) => (
+        <li key={issue.id}>
+          <button
+            type="button"
+            onClick={() => onOpenIssue(issue)}
+            className="block w-full rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-left transition hover:border-white/20 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${SEVERITY_STYLES[issue.severity]}`}
+                >
+                  {severityLabel(issue.severity)}
+                </span>
+                <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--muted)]">
+                  {applicabilityLabel(issue)}
+                </span>
+                <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--muted)]">
+                  {getRunWorkspaceView(issue.view).label}
+                </span>
+              </div>
+              <span className="text-[11px] text-[var(--muted)]">Open workspace</span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-white">{issue.title}</span>
+            </div>
+            <p className="mt-2 text-sm text-[var(--muted)]">{issue.message}</p>
+            <p className="mt-2 text-xs text-white">Suggested action: {issue.suggestedAction}</p>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function RunIssueCenter({
+  issueQueue,
+  onOpenIssue,
+  initiallyExpanded,
+}: {
+  issueQueue: RunIssueQueue;
+  onOpenIssue: (issue: RunIssue) => void;
   initiallyExpanded?: boolean;
 }) {
-  const criticalCount = useMemo(
-    () => issues.filter((issue) => issue.severity === "critical").length,
-    [issues],
-  );
-  const warningCount = useMemo(
-    () => issues.filter((issue) => issue.severity === "warning").length,
-    [issues],
-  );
-  const infoCount = useMemo(
-    () => issues.filter((issue) => issue.severity === "info").length,
-    [issues],
-  );
-  const [expanded, setExpanded] = useState(() => initiallyExpanded ?? criticalCount > 0);
+  const { active, future, historical, attention } = issueQueue;
+  const activeBlockerCount = attention.activeBlockerCount;
+  const activeWarningCount = attention.activeWarningCount;
+  const [expanded, setExpanded] = useState(() => initiallyExpanded ?? activeBlockerCount > 0);
 
   const headerTone =
-    criticalCount > 0
+    activeBlockerCount > 0
       ? "border-red-500/40 bg-red-950/35"
-      : issues.length > 0
+      : active.length > 0 || future.length > 0
         ? "border-amber-500/40 bg-amber-950/25"
         : "border-[var(--border)] bg-[var(--card)]/95";
 
   useEffect(() => {
-    if (criticalCount > 0) {
+    if (activeBlockerCount > 0) {
       setExpanded(true);
     }
-  }, [criticalCount]);
+  }, [activeBlockerCount]);
+
+  const totalVisible = active.length + future.length + historical.length;
 
   return (
     <aside
@@ -68,21 +125,21 @@ export function RunIssueCenter({
         <span
           aria-hidden="true"
           className={`h-2.5 w-2.5 rounded-full ${
-            criticalCount > 0 ? "bg-red-300" : issues.length > 0 ? "bg-amber-300" : "bg-emerald-300"
+            activeBlockerCount > 0 ? "bg-red-300" : totalVisible > 0 ? "bg-amber-300" : "bg-emerald-300"
           }`}
         />
         <div className="min-w-0">
           <p className="text-sm font-medium text-white">Issue Center</p>
           <p className="text-[11px] text-[var(--muted)]">
-            {issues.length === 0
-              ? "All clear right now."
-              : criticalCount > 0
-                ? `${criticalCount} critical issue${criticalCount === 1 ? "" : "s"} need attention.`
-                : `${issues.length} problem${issues.length === 1 ? "" : "s"} ready for review.`}
+            {activeBlockerCount > 0
+              ? `${activeBlockerCount} active blocker${activeBlockerCount === 1 ? "" : "s"} need attention.`
+              : totalVisible === 0
+                ? "All clear right now."
+                : `${active.length} active, ${future.length} later.`}
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--muted)]">
-          {issues.length}
+          {activeBlockerCount > 0 ? activeBlockerCount : totalVisible}
         </span>
         <button
           type="button"
@@ -98,81 +155,83 @@ export function RunIssueCenter({
         <div className="pointer-events-auto w-full rounded-2xl border border-[var(--border)] bg-[var(--card)]/95 p-4 shadow-2xl backdrop-blur sm:w-[min(24rem,calc(100vw-2rem))]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-white">Problems needing attention</h2>
+              <h2 className="text-sm font-semibold text-white">Lifecycle-aware issues</h2>
               <p className="mt-1 text-xs text-[var(--muted)]">
-                Click an issue to open the relevant workspace view and panel.
+                Active blockers match the current stage. Future requirements are shown separately.
               </p>
             </div>
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-            {criticalCount > 0 ? (
+            {activeBlockerCount > 0 ? (
               <span className="rounded-full border border-red-500/40 bg-red-950/30 px-2 py-0.5 text-red-100">
-                {criticalCount} critical
+                {activeBlockerCount} active blocker{activeBlockerCount === 1 ? "" : "s"}
               </span>
             ) : null}
-            {warningCount > 0 ? (
+            {activeWarningCount > 0 ? (
               <span className="rounded-full border border-amber-500/40 bg-amber-950/30 px-2 py-0.5 text-amber-100">
-                {warningCount} warning{warningCount === 1 ? "" : "s"}
+                {activeWarningCount} active warning{activeWarningCount === 1 ? "" : "s"}
               </span>
             ) : null}
-            {infoCount > 0 ? (
+            {attention.futureRequirementCount > 0 ? (
               <span className="rounded-full border border-blue-500/40 bg-blue-950/30 px-2 py-0.5 text-blue-100">
-                {infoCount} info
+                {attention.futureRequirementCount} later
               </span>
             ) : null}
-            {issues.length === 0 ? (
+            {attention.historicalCount > 0 ? (
+              <span className="rounded-full border border-[var(--border)] bg-[var(--background)] px-2 py-0.5 text-[var(--muted)]">
+                {attention.historicalCount} historical
+              </span>
+            ) : null}
+            {totalVisible === 0 ? (
               <span className="rounded-full border border-emerald-500/30 bg-emerald-950/20 px-2 py-0.5 text-emerald-100">
                 No active issues
               </span>
             ) : null}
           </div>
 
-          {issues.length === 0 ? (
+          {totalVisible === 0 ? (
             <div className="mt-4 rounded-xl border border-dashed border-[var(--border)] p-3 text-sm text-[var(--muted)]">
               <p className="font-medium text-white">All clear right now</p>
               <p className="mt-1">
-                No critical, warning, or info issues are currently derived from the recorded run
-                state.
+                No active blockers, warnings, or future requirements are derived for the current lifecycle
+                stage.
               </p>
             </div>
           ) : (
-            <ul className="mt-4 space-y-3">
-              {issues.map((issue) => (
-                <li key={issue.id}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenIssue(issue)}
-                    className="block w-full rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-left transition hover:border-white/20 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${SEVERITY_STYLES[issue.severity]}`}
-                        >
-                          {severityLabel(issue.severity)}
-                        </span>
-                        <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--muted)]">
-                          {getRunWorkspaceView(issue.view).label}
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-[var(--muted)]">Open workspace</span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span
-                        className="text-sm font-medium text-white"
-                      >
-                        {issue.title}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm text-[var(--muted)]">{issue.message}</p>
-                    <p className="mt-2 text-xs text-white">
-                      Suggested action: {issue.suggestedAction}
-                    </p>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-4 space-y-5">
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Active now
+                </h3>
+                <IssueList
+                  issues={active}
+                  onOpenIssue={onOpenIssue}
+                  emptyLabel="No active blockers or warnings for the current stage."
+                />
+              </section>
+
+              {future.length > 0 ? (
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    Future requirements
+                  </h3>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Recorded governance signals that apply in later lifecycle stages.
+                  </p>
+                  <IssueList issues={future} onOpenIssue={onOpenIssue} />
+                </section>
+              ) : null}
+
+              {historical.length > 0 ? (
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    Historical / system notices
+                  </h3>
+                  <IssueList issues={historical} onOpenIssue={onOpenIssue} />
+                </section>
+              ) : null}
+            </div>
           )}
         </div>
       ) : null}

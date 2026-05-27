@@ -253,7 +253,13 @@ UX-11 converts the run detail page from one long panel stack into a focused **Ru
    A sticky top bar now shows the task title, run status, current stage, blocker and warning counts, and the current recommended action. The bar can only navigate; it does not expose approval, PR, merge, deploy, or sign-off mutations.
 
 3. **Issue Center overlay**
-   A bottom-right **Issue Center** now derives active critical, warning, and info issues from the existing run summary. It is UI-only and read-only. Clicking an issue routes the operator to the relevant workspace view and panel.
+   A bottom-right **Issue Center** now derives issues from the existing run summary. It is UI-only and read-only. Clicking an issue routes the operator to the relevant workspace view and panel.
+
+   **Lifecycle-aware prioritization (post UX-11 fix):**
+   - **Active now** — blockers and warnings that apply to the current lifecycle stage (for example worker-plan validation errors while the run is still in **Worker Plan**).
+   - **Future requirements** — recorded governance signals that matter later (for example release gates, replay, policy, or approval before those stages). These are shown with calmer copy such as “required later” and do **not** count as active blockers in the workspace header.
+   - **Historical / system notices** — scope-level audit chain notices or other diagnostics that are not tied to the current run’s active workflow.
+   - The sticky workspace header **Current attention** counts (`active blocker(s)`, `active warning(s)`, `future requirement(s)`) now come from the same normalized issue model as the Issue Center, so counts cannot disagree.
 
 4. **Deep-link routing**
    Panel links such as `#pr-creation`, `#review-stages`, `#release-signoff`, and `#audit-timeline` now open the correct workspace view before scrolling to the target panel.

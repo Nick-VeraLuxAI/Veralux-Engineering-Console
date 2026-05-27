@@ -252,7 +252,13 @@ Prior audit ([production-readiness-audit.md](./production-readiness-audit.md)) w
 
 ---
 
-## 16. Recommended next phase
+## 16. Run workspace issue-queue UX fix (2026-05-26)
+
+Staging/UI review found the run workspace could show **0 blockers** in the header while the Issue Center listed release/policy/replay/approval items as critical. The fix adds lifecycle applicability (`active_now` vs `future_requirement` vs `historical_context`) without weakening hard release gates, policy, replay, or approval enforcement. Re-verify on staging: open a **Worker Plan**-stage run and confirm release gates appear under **Future requirements**, not **Active now**.
+
+---
+
+## 17. Recommended next phase
 
 1. **Execute staging dry run** on host (1–2 days) — use [end-to-end-demo-script.md](./end-to-end-demo-script.md).
 2. **Update this report** with operator pass/fail table and change go/no-go to **GO** if clean.
@@ -261,7 +267,7 @@ Prior audit ([production-readiness-audit.md](./production-readiness-audit.md)) w
 
 ---
 
-## 17. Operator sign-off (fill after staging run)
+## 18. Operator sign-off (fill after staging run)
 
 | Role | Name | Date | Staging result |
 |------|------|------|----------------|

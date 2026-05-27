@@ -148,6 +148,10 @@ Post Phase 10 audit for production readiness and client use. Phase Q5 production
 
 ---
 
+## Lifecycle-aware issue queue note
+
+The run workspace Issue Center and **Current attention** header now share one lifecycle-aware issue model. Release gates, policy, replay, and approval items recorded early in a run are classified as **future requirements** until the run reaches the matching lifecycle stage. Governance enforcement is unchanged; only presentation and prioritization were fixed so Worker Plan-stage runs no longer show release-phase items as active critical blockers.
+
 ## CI bootstrap note
 
 `verify:ci` `e2e-local` bootstrap was stabilized after A1 exposed a shared Playwright `webServer` startup timeout. The fix preserves E2E coverage and makes local CI startup deterministic by isolating Playwright builds in `.next-e2e`, probing a lightweight readiness URL, and letting Playwright own a single `next start` process with explicit test env.

@@ -23,6 +23,8 @@ interface RunWorkspaceShellProps {
   riskLevel: string | null;
   blockerCount: number;
   warningCount: number;
+  futureRequirementCount?: number;
+  historicalCount?: number;
   nextAction: string;
   activeView: RunWorkspaceViewId;
   onSelectView: (viewId: RunWorkspaceViewId) => void;
@@ -62,6 +64,8 @@ export function RunWorkspaceShell({
   riskLevel,
   blockerCount,
   warningCount,
+  futureRequirementCount = 0,
+  historicalCount = 0,
   nextAction,
   activeView,
   onSelectView,
@@ -153,10 +157,21 @@ export function RunWorkspaceShell({
 
           <div className="grid gap-3 xl:grid-cols-[12rem_minmax(0,1fr)_minmax(18rem,0.95fr)]">
             <Surface className="rounded-2xl" variant="glass">
-              <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Attention</p>
+              <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Current attention</p>
               <div className="mt-3 space-y-2 text-sm">
-                <p className="font-medium text-white">{blockerCount} blocker(s)</p>
-                <p className="text-[var(--muted)]">{warningCount} warning(s)</p>
+                <p className="font-medium text-white">{blockerCount} active blocker(s)</p>
+                <p className="text-[var(--muted)]">{warningCount} active warning(s)</p>
+                {futureRequirementCount > 0 ? (
+                  <p className="text-[var(--muted)]">
+                    {futureRequirementCount} future requirement
+                    {futureRequirementCount === 1 ? "" : "s"}
+                  </p>
+                ) : null}
+                {historicalCount > 0 ? (
+                  <p className="text-[var(--muted)]">
+                    {historicalCount} historical notice{historicalCount === 1 ? "" : "s"}
+                  </p>
+                ) : null}
               </div>
             </Surface>
 

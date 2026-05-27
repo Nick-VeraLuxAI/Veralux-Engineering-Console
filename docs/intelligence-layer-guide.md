@@ -17,6 +17,8 @@ It does four things:
 
 The card is advisory only. It does not approve, request fix, stop, create PRs, merge, deploy, or sign off.
 
+A1 does **not** own the Issue Center queue. The run workspace Issue Center uses a separate lifecycle-aware issue model (`deriveRunIssueQueue`) so future release/policy/replay requirements are not surfaced as current critical blockers while the run is still in an earlier stage. Run Intelligence danger points may still mention future risks; use the Issue Center **Active now** section for what blocks the current step.
+
 ---
 
 ## What danger points are
