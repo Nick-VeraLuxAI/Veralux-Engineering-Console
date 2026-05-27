@@ -13,6 +13,7 @@ export default defineConfig({
     include: ["src/lib/engineer-console/**/*.test.ts"],
     maxWorkers: 1,
     minWorkers: 1,
+    setupFiles: ["src/lib/engineer-console/test-support/vitest-setup.ts"],
   },
   resolve: {
     alias: {

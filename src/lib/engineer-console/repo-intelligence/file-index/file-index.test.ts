@@ -29,6 +29,8 @@ import {
 import { collectRepoContext } from "../../model-router/repo-context-collector";
 import { validateWorkerPlan } from "../../worker-plan/worker-plan-validation";
 import type { WorkerPlan } from "../../worker-plan/worker-plan-types";
+import { setTestRepoRootsAllowlist } from "../../test-support/engineer-console-test-env";
+import { RepoPathPolicyError } from "../registered-repos/registered-repo-types";
 
 let tmpDb: string;
 let tmpRepo: string;
@@ -53,6 +55,7 @@ beforeEach(() => {
   execSync("git init", { cwd: tmpRepo, stdio: "ignore" });
   execSync('git config user.email "test@example.com"', { cwd: tmpRepo, stdio: "ignore" });
   execSync('git config user.name "Test"', { cwd: tmpRepo, stdio: "ignore" });
+  setTestRepoRootsAllowlist(path.resolve(tmpRepo));
 });
 
 afterEach(() => {
@@ -74,6 +77,22 @@ describe("file index policy", () => {
     expect(shouldSkipFilePath(".env").skip).toBe(true);
     expect(shouldSkipFilePath("secrets/id_rsa").skip).toBe(true);
     expect(shouldSkipFilePath("src/app.ts").skip).toBe(false);
+  });
+
+  it("rejects registration outside ENGINEER_CONSOLE_REPO_ROOTS when configured", async () => {
+    const outsideRepo = fs.mkdtempSync(path.join(os.tmpdir(), "ec-outside-"));
+    try {
+      setTestRepoRootsAllowlist(path.resolve(tmpRepo));
+      await expect(registerRepo({ path: outsideRepo, name: "outside-allowlist" })).rejects.toThrow(
+        RepoPathPolicyError,
+      );
+      await expect(registerRepo({ path: outsideRepo, name: "outside-allowlist" })).rejects.toThrow(
+        /outside ENGINEER_CONSOLE_REPO_ROOTS/,
+      );
+    } finally {
+      fs.rmSync(outsideRepo, { recursive: true, force: true });
+      setTestRepoRootsAllowlist(path.resolve(tmpRepo));
+    }
   });
 
   it("skips oversized files", () => {

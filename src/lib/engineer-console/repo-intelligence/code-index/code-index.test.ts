@@ -25,6 +25,8 @@ import {
   toPublicSymbol,
 } from "./code-index-manager";
 import { collectRepoContext } from "../../model-router/repo-context-collector";
+import { setTestRepoRootsAllowlist } from "../../test-support/engineer-console-test-env";
+import { RepoPathPolicyError } from "../registered-repos/registered-repo-types";
 
 let tmpDb: string;
 let tmpRepo: string;
@@ -53,6 +55,7 @@ beforeEach(async () => {
   execSync("git init", { cwd: tmpRepo, stdio: "ignore" });
   execSync('git config user.email "t@e.com"', { cwd: tmpRepo, stdio: "ignore" });
   execSync('git config user.name "T"', { cwd: tmpRepo, stdio: "ignore" });
+  setTestRepoRootsAllowlist(path.resolve(tmpRepo));
 
   const summary = await registerRepo({ path: tmpRepo, name: "code-index-repo" });
   repoId = summary.id;
@@ -125,6 +128,21 @@ describe("chunking", () => {
   });
 });
 
+describe("repo path policy", () => {
+  it("rejects registration outside ENGINEER_CONSOLE_REPO_ROOTS when configured", async () => {
+    const outsideRepo = fs.mkdtempSync(path.join(os.tmpdir(), "ec-code-outside-"));
+    try {
+      setTestRepoRootsAllowlist(path.resolve(tmpRepo));
+      await expect(registerRepo({ path: outsideRepo, name: "outside" })).rejects.toThrow(
+        RepoPathPolicyError,
+      );
+    } finally {
+      fs.rmSync(outsideRepo, { recursive: true, force: true });
+      setTestRepoRootsAllowlist(path.resolve(tmpRepo));
+    }
+  });
+});
+
 describe("code index pipeline", () => {
   it("stores symbols and chunks without absolute paths", () => {
     const run = runCodeIndexForRepo(repoId);
@@ -152,6 +170,7 @@ describe("code index pipeline", () => {
 
   it("rejects code index without file index", async () => {
     const emptyRepo = fs.mkdtempSync(path.join(os.tmpdir(), "ec-empty-"));
+    setTestRepoRootsAllowlist(path.resolve(tmpRepo), path.resolve(emptyRepo));
     fs.mkdirSync(path.join(emptyRepo, "src"));
     fs.writeFileSync(path.join(emptyRepo, "src", "a.ts"), "export const a = 1;\n");
     execSync("git init", { cwd: emptyRepo, stdio: "ignore" });
@@ -159,6 +178,7 @@ describe("code index pipeline", () => {
     await reverifyRegisteredRepo(s.id);
     expect(() => runCodeIndexForRepo(s.id)).toThrow(/file index/i);
     fs.rmSync(emptyRepo, { recursive: true, force: true });
+    setTestRepoRootsAllowlist(path.resolve(tmpRepo));
   });
 });
 

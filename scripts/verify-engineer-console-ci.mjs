@@ -29,11 +29,18 @@ export const VERIFY_CI_STEPS = [
 /** Expected wall-clock when run sequentially on a typical dev machine. */
 export const VERIFY_CI_EXPECTED_RUNTIME = "roughly 8–15 minutes";
 
-function runCommand(command) {
+function unitTestEnv(baseEnv) {
+  const env = { ...baseEnv, NODE_ENV: "test" };
+  delete env.ENGINEER_CONSOLE_REPO_ROOTS;
+  delete env.ENGINEER_CONSOLE_RELEASE_GATES_ENABLED;
+  return env;
+}
+
+function runCommand(command, options = {}) {
   const result = spawnSync(command, {
     shell: true,
     stdio: "inherit",
-    env: process.env,
+    env: options.env ?? process.env,
   });
   return result.status ?? 1;
 }
@@ -57,7 +64,10 @@ function main() {
     if (step.note) console.log(`NOTE: ${step.note}`);
     console.log("=".repeat(60));
 
-    const code = runCommand(step.command);
+    const code =
+      step.id === "unit"
+        ? runCommand(step.command, { env: unitTestEnv(process.env) })
+        : runCommand(step.command);
     if (code !== 0) {
       console.log("");
       console.log("=".repeat(60));

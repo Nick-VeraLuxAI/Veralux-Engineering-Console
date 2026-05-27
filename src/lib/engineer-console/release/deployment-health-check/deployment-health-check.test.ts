@@ -66,6 +66,9 @@ import {
 import type { HealthCheckProfileConfig } from "./deployment-health-check-types";
 import { buildRedactedReplayPackage } from "../../governance/replay-verification/replay-package-builder";
 import { getHealthCheckHttpMethod } from "./execute-http-health-check";
+import { enableHardReleaseGatesForTest } from "../../test-support/engineer-console-test-env";
+import { persistReleaseChecklistForHardGates } from "../../test-support/release-gate-fixtures";
+import { DeploymentGateError } from "../deployment-gates/deployment-gate-types";
 
 const DEPLOY_PROFILE = {
   name: "staging-dashboard",
@@ -122,6 +125,7 @@ beforeEach(() => {
   process.env.ENGINEER_CONSOLE_AUTH_ENABLED = "true";
   process.env.ENGINEER_CONSOLE_SESSION_SECRET = "health-check-secret";
   process.env.ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV = "false";
+  enableHardReleaseGatesForTest();
   resetEngineerConsoleDbForTests();
   initializeEngineerConsoleDatabase();
   fetchCalls = [];
@@ -252,6 +256,7 @@ function insertPrAndMerge(runId: string, taskId: string) {
 
 async function seedSucceededDeployment(runId: string, taskId: string) {
   insertPrAndMerge(runId, taskId);
+  await persistReleaseChecklistForHardGates(runId);
   const env = listDeploymentEnvironments().find((e) => e.name === "staging")!;
   const check = createDeploymentReadinessCheck({
     runId,
@@ -275,6 +280,51 @@ async function seedSucceededDeployment(runId: string, taskId: string) {
   });
   return execution;
 }
+
+describe("hard release gate prerequisites", () => {
+  it("blocks deployment approval without a persisted checklist when hard gates are enabled", async () => {
+    const { run, task } = await seedApprovedRun();
+    insertPrAndMerge(run.id, task.id);
+    const env = listDeploymentEnvironments().find((e) => e.name === "staging")!;
+    const check = createDeploymentReadinessCheck({
+      runId: run.id,
+      environmentId: env.id,
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "admin",
+    });
+
+    await expect(
+      createDeploymentApproval({
+        runId: run.id,
+        readinessCheckId: check.id,
+        decision: "approved",
+        actorType: AUDIT_ACTOR_TYPES.HUMAN,
+        actorLabel: "admin",
+      }),
+    ).rejects.toThrow(DeploymentGateError);
+  });
+
+  it("allows deployment approval after checklist is persisted for hard gates", async () => {
+    const { run, task } = await seedApprovedRun();
+    insertPrAndMerge(run.id, task.id);
+    await persistReleaseChecklistForHardGates(run.id);
+    const env = listDeploymentEnvironments().find((e) => e.name === "staging")!;
+    const check = createDeploymentReadinessCheck({
+      runId: run.id,
+      environmentId: env.id,
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "admin",
+    });
+    const approval = await createDeploymentApproval({
+      runId: run.id,
+      readinessCheckId: check.id,
+      decision: "approved",
+      actorType: AUDIT_ACTOR_TYPES.HUMAN,
+      actorLabel: "admin",
+    });
+    expect(approval.decision).toBe("approved");
+  });
+});
 
 describe("health profile configuration", () => {
   it("blocks when no health profiles configured", async () => {
