@@ -45,6 +45,12 @@ interface CommitCandidatePublic {
   deployReadinessReviewedAt?: string | null;
   deployReadinessReviewedBy?: string | null;
   deployReadinessEvidencePath?: string | null;
+  deploymentPacketStatus?: string | null;
+  deploymentTargetEnvironment?: string | null;
+  deploymentPacketPath?: string | null;
+  deploymentPlanPath?: string | null;
+  deploymentPacketCreatedAt?: string | null;
+  deploymentPacketCreatedBy?: string | null;
   notMerged?: boolean;
 }
 
@@ -115,6 +121,14 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
   const [deployReadinessResult, setDeployReadinessResult] = useState<{
     decision: string;
     deployReadinessPath: string;
+  } | null>(null);
+  const [deploymentTargetEnvironment, setDeploymentTargetEnvironment] = useState("staging");
+  const [deploymentPacketReason, setDeploymentPacketReason] = useState("");
+  const [deploymentNotes, setDeploymentNotes] = useState("");
+  const [deploymentPacketResult, setDeploymentPacketResult] = useState<{
+    targetEnvironment: string;
+    deploymentPacketPath: string;
+    deploymentPlanPath: string;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -274,6 +288,72 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
       latest.mergeStatus === "pull_request_merged") &&
     Boolean(latest.mergeEvidencePath) &&
     Boolean(latest.mergeCommitSha || latest.mergeStatus === "pull_request_merged");
+
+  const canPrepareDeploymentPacket =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest &&
+    (latest.status === "deploy_readiness_recorded" ||
+      latest.status === "deployment_packet_prepared" ||
+      latest.deployReadinessStatus === "deploy_readiness_recorded") &&
+    latest.deployReadinessDecision === "ready" &&
+    Boolean(latest.mergeEvidencePath) &&
+    (latest.mergeStatus === "pull_request_merged" ||
+      latest.status === "pull_request_merged" ||
+      latest.status === "deploy_readiness_recorded" ||
+      latest.status === "deployment_packet_prepared");
+
+  async function handlePrepareDeploymentPacket() {
+    const reason = deploymentPacketReason.trim();
+    if (!reason) {
+      setError("Deployment packet approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate for deployment packet.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/deployment-packet`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            targetEnvironment: deploymentTargetEnvironment,
+            deploymentNotes: deploymentNotes.trim() || undefined,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        targetEnvironment?: string;
+        deploymentPacketPath?: string;
+        deploymentPlanPath?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setDeploymentPacketResult({
+        targetEnvironment: body.targetEnvironment ?? deploymentTargetEnvironment,
+        deploymentPacketPath: body.deploymentPacketPath ?? "",
+        deploymentPlanPath: body.deploymentPlanPath ?? "",
+      });
+      setMessage(
+        "Deployment packet prepared. This does not deploy or mark the run complete.",
+      );
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Deployment packet preparation failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleRecordDeployReadiness() {
     const reason = deployReadinessReason.trim();
@@ -1087,6 +1167,99 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
           {latest?.deployReadinessReviewedAt ? (
             <p className="mt-1 text-xs text-[var(--muted)]">
               reviewed: {latest.deployReadinessReviewedBy} at {latest.deployReadinessReviewedAt}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Not deployed. Run is not marked complete.
+          </p>
+        </div>
+      ) : null}
+
+      {canPrepareDeploymentPacket ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Deployment packet (Phase 17)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This prepares a deployment packet only.</li>
+            <li>This does not deploy.</li>
+            <li>This does not mark the run complete.</li>
+          </ul>
+          <div className="rounded bg-[var(--surface-inset)] p-2 text-xs text-[var(--muted)]">
+            <p>
+              Deploy readiness: {latest?.deployReadinessDecision ?? "—"} (
+              {latest?.deployReadinessStatus ?? "—"})
+            </p>
+            <p>Merge status: {latest?.mergeStatus ?? latest?.status ?? "—"}</p>
+            <p className="font-mono">
+              merge commit: {latest?.mergeCommitSha ?? "—"}
+            </p>
+            <p>Quality gates: {evidence?.postApplyQualityGates?.overallStatus ?? "—"}</p>
+            <p>Sign-off: {signoff?.decision ?? "—"} ({signoff?.reviewer ?? "—"})</p>
+          </div>
+          <label className="block text-xs font-medium" htmlFor="deployment-target-environment">
+            Target environment
+          </label>
+          <select
+            id="deployment-target-environment"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 text-xs"
+            value={deploymentTargetEnvironment}
+            onChange={(e) => setDeploymentTargetEnvironment(e.target.value)}
+            disabled={busy}
+          >
+            <option value="staging">staging</option>
+          </select>
+          <label className="block text-xs font-medium" htmlFor="deployment-packet-reason">
+            Operator reason (required)
+          </label>
+          <textarea
+            id="deployment-packet-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={deploymentPacketReason}
+            onChange={(e) => setDeploymentPacketReason(e.target.value)}
+            disabled={busy}
+          />
+          <label className="block text-xs font-medium" htmlFor="deployment-notes">
+            Deployment notes (optional)
+          </label>
+          <textarea
+            id="deployment-notes"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={deploymentNotes}
+            onChange={(e) => setDeploymentNotes(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !deploymentPacketReason.trim()}
+            onClick={() => void handlePrepareDeploymentPacket()}
+          >
+            {busy ? "Preparing…" : "Prepare deployment packet"}
+          </button>
+        </div>
+      ) : null}
+
+      {deploymentPacketResult ||
+      latest?.deploymentPacketStatus === "deployment_packet_prepared" ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Deployment packet prepared</p>
+          <p className="text-xs">
+            target:{" "}
+            {deploymentPacketResult?.targetEnvironment ??
+              latest?.deploymentTargetEnvironment ??
+              "—"}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            packet:{" "}
+            {deploymentPacketResult?.deploymentPacketPath ?? latest?.deploymentPacketPath}
+          </p>
+          <p className="font-mono text-xs text-[var(--muted)]">
+            plan: {deploymentPacketResult?.deploymentPlanPath ?? latest?.deploymentPlanPath}
+          </p>
+          {latest?.deploymentPacketCreatedAt ? (
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              prepared: {latest.deploymentPacketCreatedBy} at {latest.deploymentPacketCreatedAt}
             </p>
           ) : null}
           <p className="mt-2 text-xs text-[var(--muted)]">

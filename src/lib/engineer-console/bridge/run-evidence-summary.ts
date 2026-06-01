@@ -21,6 +21,7 @@ import {
   summarizeLatestMergeReadinessForBridge,
   summarizeLatestPullRequestMergeForBridge,
   summarizeLatestDeployReadinessForBridge,
+  summarizeLatestDeploymentPacketForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -174,6 +175,23 @@ export interface RunEvidenceSummaryForBridge {
   deployReadinessReviewedAt: string | null;
   deployReadinessReviewedBy: string | null;
   deployReadinessEvidencePath: string | null;
+  latestDeploymentPacket: {
+    candidateId: string | null;
+    deploymentPacketStatus: string | null;
+    deploymentTargetEnvironment: string | null;
+    deploymentPacketPath: string | null;
+    deploymentPlanPath: string | null;
+    deploymentPacketCreatedAt: string | null;
+    deploymentPacketCreatedBy: string | null;
+    notDeployed: true;
+    notComplete: true;
+  };
+  deploymentPacketStatus: string | null;
+  deploymentTargetEnvironment: string | null;
+  deploymentPacketPath: string | null;
+  deploymentPlanPath: string | null;
+  deploymentPacketCreatedAt: string | null;
+  deploymentPacketCreatedBy: string | null;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -308,6 +326,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const mergeReadinessReview = summarizeLatestMergeReadinessForBridge(runId);
   const pullRequestMerge = summarizeLatestPullRequestMergeForBridge(runId);
   const deployReadinessReview = summarizeLatestDeployReadinessForBridge(runId);
+  const deploymentPacket = summarizeLatestDeploymentPacketForBridge(runId);
 
   return {
     runId: run.id,
@@ -366,6 +385,16 @@ export async function buildRunEvidenceSummaryForBridge(
       deployReadinessReview.latestDeployReadiness.deployReadinessReviewedBy,
     deployReadinessEvidencePath:
       deployReadinessReview.latestDeployReadiness.deployReadinessEvidencePath,
+    latestDeploymentPacket: deploymentPacket.latestDeploymentPacket,
+    deploymentPacketStatus: deploymentPacket.latestDeploymentPacket.deploymentPacketStatus,
+    deploymentTargetEnvironment:
+      deploymentPacket.latestDeploymentPacket.deploymentTargetEnvironment,
+    deploymentPacketPath: deploymentPacket.latestDeploymentPacket.deploymentPacketPath,
+    deploymentPlanPath: deploymentPacket.latestDeploymentPacket.deploymentPlanPath,
+    deploymentPacketCreatedAt:
+      deploymentPacket.latestDeploymentPacket.deploymentPacketCreatedAt,
+    deploymentPacketCreatedBy:
+      deploymentPacket.latestDeploymentPacket.deploymentPacketCreatedBy,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

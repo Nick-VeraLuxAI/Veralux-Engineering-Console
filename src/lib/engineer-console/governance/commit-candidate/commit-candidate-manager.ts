@@ -62,6 +62,13 @@ interface Row {
   deploy_readiness_reviewed_by: string | null;
   deploy_readiness_reason: string | null;
   deploy_readiness_evidence_path: string | null;
+  deployment_packet_status: string | null;
+  deployment_target_environment: string | null;
+  deployment_packet_path: string | null;
+  deployment_plan_path: string | null;
+  deployment_packet_created_at: string | null;
+  deployment_packet_created_by: string | null;
+  deployment_packet_reason: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -126,6 +133,13 @@ function mapRow(row: Row): CommitCandidateRecord {
     deployReadinessReviewedBy: row.deploy_readiness_reviewed_by ?? null,
     deployReadinessReason: row.deploy_readiness_reason ?? null,
     deployReadinessEvidencePath: row.deploy_readiness_evidence_path ?? null,
+    deploymentPacketStatus: row.deployment_packet_status ?? null,
+    deploymentTargetEnvironment: row.deployment_target_environment ?? null,
+    deploymentPacketPath: row.deployment_packet_path ?? null,
+    deploymentPlanPath: row.deployment_plan_path ?? null,
+    deploymentPacketCreatedAt: row.deployment_packet_created_at ?? null,
+    deploymentPacketCreatedBy: row.deployment_packet_created_by ?? null,
+    deploymentPacketReason: row.deployment_packet_reason ?? null,
     notCommitted: row.not_committed !== 0,
     notPushed: row.not_pushed !== 0,
     notMerged: row.not_merged !== 0,
@@ -181,6 +195,13 @@ export function insertCommitCandidate(
     | "deployReadinessReviewedBy"
     | "deployReadinessReason"
     | "deployReadinessEvidencePath"
+    | "deploymentPacketStatus"
+    | "deploymentTargetEnvironment"
+    | "deploymentPacketPath"
+    | "deploymentPlanPath"
+    | "deploymentPacketCreatedAt"
+    | "deploymentPacketCreatedBy"
+    | "deploymentPacketReason"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -262,6 +283,13 @@ export function insertCommitCandidate(
     deployReadinessReviewedBy: null,
     deployReadinessReason: null,
     deployReadinessEvidencePath: null,
+    deploymentPacketStatus: null,
+    deploymentTargetEnvironment: null,
+    deploymentPacketPath: null,
+    deploymentPlanPath: null,
+    deploymentPacketCreatedAt: null,
+    deploymentPacketCreatedBy: null,
+    deploymentPacketReason: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -493,5 +521,38 @@ export function markCommitCandidateDeployReadinessRecorded(input: {
       deploy_readiness_reviewed_by: input.deployReadinessReviewedBy,
       deploy_readiness_reason: input.deployReadinessReason,
       deploy_readiness_evidence_path: input.deployReadinessEvidencePath,
+    });
+}
+
+export function markCommitCandidateDeploymentPacketPrepared(input: {
+  candidateId: string;
+  deploymentTargetEnvironment: string;
+  deploymentPacketCreatedAt: string;
+  deploymentPacketCreatedBy: string;
+  deploymentPacketReason: string;
+  deploymentPacketPath: string;
+  deploymentPlanPath: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'deployment_packet_prepared',
+        deployment_packet_status = 'deployment_packet_prepared',
+        deployment_target_environment = @deployment_target_environment,
+        deployment_packet_created_at = @deployment_packet_created_at,
+        deployment_packet_created_by = @deployment_packet_created_by,
+        deployment_packet_reason = @deployment_packet_reason,
+        deployment_packet_path = @deployment_packet_path,
+        deployment_plan_path = @deployment_plan_path
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      deployment_target_environment: input.deploymentTargetEnvironment,
+      deployment_packet_created_at: input.deploymentPacketCreatedAt,
+      deployment_packet_created_by: input.deploymentPacketCreatedBy,
+      deployment_packet_reason: input.deploymentPacketReason,
+      deployment_packet_path: input.deploymentPacketPath,
+      deployment_plan_path: input.deploymentPlanPath,
     });
 }

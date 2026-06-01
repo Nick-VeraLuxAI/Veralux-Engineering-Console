@@ -606,3 +606,51 @@ export function summarizeLatestDeployReadinessForBridge(runId: string): {
     },
   };
 }
+
+export function summarizeLatestDeploymentPacketForBridge(runId: string): {
+  latestDeploymentPacket: {
+    candidateId: string | null;
+    deploymentPacketStatus: string | null;
+    deploymentTargetEnvironment: string | null;
+    deploymentPacketPath: string | null;
+    deploymentPlanPath: string | null;
+    deploymentPacketCreatedAt: string | null;
+    deploymentPacketCreatedBy: string | null;
+    notDeployed: true;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const hasDeploymentPacket =
+    latest &&
+    (latest.status === "deployment_packet_prepared" ||
+      latest.deploymentPacketStatus === "deployment_packet_prepared");
+  if (!hasDeploymentPacket) {
+    return {
+      latestDeploymentPacket: {
+        candidateId: latest?.id ?? null,
+        deploymentPacketStatus: latest?.deploymentPacketStatus ?? null,
+        deploymentTargetEnvironment: null,
+        deploymentPacketPath: null,
+        deploymentPlanPath: null,
+        deploymentPacketCreatedAt: null,
+        deploymentPacketCreatedBy: null,
+        notDeployed: true,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestDeploymentPacket: {
+      candidateId: latest.id,
+      deploymentPacketStatus: latest.deploymentPacketStatus,
+      deploymentTargetEnvironment: latest.deploymentTargetEnvironment,
+      deploymentPacketPath: latest.deploymentPacketPath,
+      deploymentPlanPath: latest.deploymentPlanPath,
+      deploymentPacketCreatedAt: latest.deploymentPacketCreatedAt,
+      deploymentPacketCreatedBy: latest.deploymentPacketCreatedBy,
+      notDeployed: true,
+      notComplete: true,
+    },
+  };
+}
