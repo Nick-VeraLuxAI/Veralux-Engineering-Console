@@ -160,6 +160,29 @@ CREATE TABLE IF NOT EXISTS engineer_worker_plan_drafts (
 CREATE INDEX IF NOT EXISTS idx_engineer_worker_plan_drafts_run_id
   ON engineer_worker_plan_drafts (run_id);
 
+-- Phase 6: Hermes worker handoff (Engineering Console governed; export-only by default)
+CREATE TABLE IF NOT EXISTS engineer_hermes_worker_dispatches (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  worker_plan_id TEXT,
+  worker_backend TEXT NOT NULL DEFAULT 'hermes',
+  status TEXT NOT NULL DEFAULT 'prepared',
+  packet_hash TEXT NOT NULL,
+  packet_json TEXT NOT NULL,
+  export_path TEXT,
+  evidence_placeholder_path TEXT NOT NULL,
+  prepared_at TEXT NOT NULL,
+  dispatched_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE,
+  FOREIGN KEY (task_id) REFERENCES engineering_tasks (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_hermes_worker_dispatches_run_id
+  ON engineer_hermes_worker_dispatches (run_id);
+
 -- Phase G1: append-only tamper-evident audit chain (no UPDATE/DELETE by convention)
 CREATE TABLE IF NOT EXISTS engineer_audit_events (
   id TEXT PRIMARY KEY NOT NULL,
