@@ -25,9 +25,10 @@ export async function GET(
   return NextResponse.json({
     summary: result.summary,
     evidence: result.evidence,
+    patchProposal: result.patchProposal,
     dispatchId: result.dispatchId,
     auditRecorded: result.auditRecorded,
     governanceNote:
-      "Hermes evidence is input for operator review only. Engineering Console remains source-of-truth for approval and sign-off.",
+      "Hermes evidence and patch proposals are input for operator review only. Patches are not applied automatically. Engineering Console remains source-of-truth for approval and sign-off.",
   });
 }

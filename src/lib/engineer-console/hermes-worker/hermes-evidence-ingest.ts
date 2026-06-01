@@ -9,10 +9,15 @@ import {
   toHermesWorkerEvidenceSummary,
 } from "./read-hermes-worker-evidence";
 import type { HermesEngineeringEvidenceV1, HermesWorkerEvidenceSummary } from "./hermes-evidence-types";
+import {
+  EMPTY_HERMES_PATCH_PROPOSAL_VIEW,
+  readHermesPatchProposalArtifacts,
+} from "./read-hermes-patch-proposal";
 
 export interface HermesWorkerEvidenceIngestResult {
   summary: HermesWorkerEvidenceSummary;
   evidence: HermesEngineeringEvidenceV1 | null;
+  patchProposal: ReturnType<typeof readHermesPatchProposalArtifacts>;
   dispatchId: string | null;
   auditRecorded: boolean;
 }
@@ -32,6 +37,7 @@ export function ingestHermesWorkerEvidenceForRun(runId: string): HermesWorkerEvi
     return {
       summary: toHermesWorkerEvidenceSummary(null, null),
       evidence: null,
+      patchProposal: EMPTY_HERMES_PATCH_PROPOSAL_VIEW,
       dispatchId: null,
       auditRecorded: false,
     };
@@ -45,10 +51,13 @@ export function ingestHermesWorkerEvidenceForRun(runId: string): HermesWorkerEvi
     return {
       summary: toHermesWorkerEvidenceSummary(latestDispatch, null),
       evidence: null,
+      patchProposal: EMPTY_HERMES_PATCH_PROPOSAL_VIEW,
       dispatchId: latestDispatch?.id ?? null,
       auditRecorded: false,
     };
   }
+
+  const patchProposal = readHermesPatchProposalArtifacts(latest.dispatch, latest.evidence);
 
   let auditRecorded = false;
   if (!hasEvidenceReceivedAudit(runId, latest.dispatch.id)) {
@@ -58,6 +67,8 @@ export function ingestHermesWorkerEvidenceForRun(runId: string): HermesWorkerEvi
       boundaryValid: latest.evidence.boundaryValidation?.valid ?? null,
       evidenceOnly: true,
       notSignOff: true,
+      patchProposal: patchProposal.available,
+      changesApplied: latest.evidence.changesApplied === true,
     });
     auditRecorded = true;
   }
@@ -65,6 +76,7 @@ export function ingestHermesWorkerEvidenceForRun(runId: string): HermesWorkerEvi
   return {
     summary: toHermesWorkerEvidenceSummary(latest.dispatch, latest.evidence),
     evidence: latest.evidence,
+    patchProposal,
     dispatchId: latest.dispatch.id,
     auditRecorded,
   };

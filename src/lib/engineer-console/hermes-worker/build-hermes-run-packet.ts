@@ -174,6 +174,12 @@ export function buildHermesRunPacketForRun(runId: string): BuildHermesRunPacketR
       allowedFiles: plan.allowedFiles,
       operationPaths,
       validationStatus: workerPlanRecord.validationStatus,
+      proposedOperations: plan.operations.map((op) => ({
+        type: op.type,
+        path: op.path,
+        content: op.content,
+        reason: op.reason,
+      })),
     },
     qualityGates: {
       expectedCommands,

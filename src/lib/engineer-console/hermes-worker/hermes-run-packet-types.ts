@@ -30,12 +30,21 @@ export interface HermesCommandPolicy {
   allowedCommands: string[];
 }
 
+export interface HermesProposedOperation {
+  type: "create_file" | "update_file" | "append_file";
+  path: string;
+  content: string;
+  reason: string;
+}
+
 export interface HermesWorkerPlanRef {
   workerPlanId: string;
   summary: string;
   allowedFiles: string[];
   operationPaths: string[];
   validationStatus: string;
+  /** Bounded operation payloads for Hermes patch proposal (Phase 8). */
+  proposedOperations: HermesProposedOperation[];
 }
 
 export interface HermesEvidenceTarget {

@@ -18,16 +18,30 @@ interface HermesDispatchPublic {
   workerBackend: string;
 }
 
+interface HermesPatchProposalSummary {
+  available: boolean;
+  status: string | null;
+  changedFileCount: number;
+  proposedPatchPath: string | null;
+  summaryPath: string | null;
+  proposedFilesPath: string | null;
+  proposedPatchPreview: string | null;
+  summaryExcerpt: string | null;
+}
+
 interface HermesEvidenceSummary {
   available: boolean;
   dispatchId: string | null;
   status: string | null;
+  mode: string | null;
   inspectedAt: string | null;
   instructionsSummary: string | null;
   filesInspectedCount: number;
   boundaryValid: boolean | null;
   evidenceOnlyNotSignOff: true;
   proposedChangesMode: string | null;
+  changesApplied: boolean;
+  patchProposal: HermesPatchProposalSummary;
 }
 
 export function HermesWorkerPanel({ runId }: { runId: string }) {
@@ -43,8 +57,14 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
       `/api/engineer-console/runs/${runId}/hermes-worker/evidence`,
     );
     if (!res.ok) return;
-    const body = (await res.json()) as { summary: HermesEvidenceSummary };
-    setEvidence(body.summary);
+    const body = (await res.json()) as {
+      summary: HermesEvidenceSummary;
+      patchProposal?: HermesPatchProposalSummary;
+    };
+    setEvidence({
+      ...body.summary,
+      patchProposal: body.patchProposal ?? body.summary.patchProposal,
+    });
   }, [runId]);
 
   const load = useCallback(async () => {
@@ -163,20 +183,61 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
       {error ? <p className="mb-2 text-sm text-[var(--danger)]">{error}</p> : null}
 
       {evidence?.available ? (
-        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
-          <p className="mb-2 font-medium">Returned Hermes evidence (review only)</p>
-          <p className="mb-2 text-[var(--muted)]">
-            Status: {evidence.status ?? "—"} · Not sign-off · Engineering Console remains
-            source-of-truth.
-          </p>
-          {evidence.instructionsSummary ? (
-            <p className="mb-2 text-[var(--muted)]">{evidence.instructionsSummary}</p>
+        <div className="mb-4 space-y-3">
+          <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+            <p className="mb-2 font-medium">Returned Hermes evidence (review only)</p>
+            <p className="mb-2 text-[var(--muted)]">
+              Status: {evidence.status ?? "—"} · Mode: {evidence.mode ?? "—"} · Changes applied:{" "}
+              {evidence.changesApplied ? "yes" : "no"} · Not sign-off
+            </p>
+            {evidence.instructionsSummary ? (
+              <p className="mb-2 text-[var(--muted)]">{evidence.instructionsSummary}</p>
+            ) : null}
+            <p className="font-mono text-xs text-[var(--muted)]">
+              files inspected: {evidence.filesInspectedCount} · boundary valid:{" "}
+              {evidence.boundaryValid === null ? "—" : String(evidence.boundaryValid)}
+            </p>
+          </div>
+
+          {evidence.patchProposal?.available ? (
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-sm">
+              <p className="mb-2 font-medium">Patch proposed (not applied)</p>
+              <p className="mb-2 text-[var(--muted)]">
+                {evidence.patchProposal.changedFileCount} file(s) in proposal · Status:{" "}
+                {evidence.patchProposal.status ?? "patch_proposed"}
+              </p>
+              {evidence.patchProposal.summaryExcerpt ? (
+                <pre className="mb-3 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-[var(--surface-inset)] p-2 font-mono text-xs">
+                  {evidence.patchProposal.summaryExcerpt}
+                </pre>
+              ) : null}
+              {evidence.patchProposal.proposedPatchPreview ? (
+                <details className="mb-2">
+                  <summary className="cursor-pointer text-[var(--muted)]">
+                    Proposed patch (preview)
+                  </summary>
+                  <pre className="mt-2 max-h-48 overflow-auto rounded bg-[var(--surface-inset)] p-2 font-mono text-xs">
+                    {evidence.patchProposal.proposedPatchPreview}
+                  </pre>
+                </details>
+              ) : null}
+              <ul className="space-y-1 font-mono text-xs text-[var(--muted)]">
+                {evidence.patchProposal.proposedPatchPath ? (
+                  <li className="break-all">diff: {evidence.patchProposal.proposedPatchPath}</li>
+                ) : null}
+                {evidence.patchProposal.summaryPath ? (
+                  <li className="break-all">summary: {evidence.patchProposal.summaryPath}</li>
+                ) : null}
+                {evidence.patchProposal.proposedFilesPath ? (
+                  <li className="break-all">files: {evidence.patchProposal.proposedFilesPath}</li>
+                ) : null}
+              </ul>
+              <p className="mt-2 text-xs text-[var(--muted)]">
+                Read-only evidence paths on the Console host. Patch not applied — review in
+                Engineering Console before any future apply phase.
+              </p>
+            </div>
           ) : null}
-          <p className="font-mono text-xs text-[var(--muted)]">
-            files inspected: {evidence.filesInspectedCount} · boundary valid:{" "}
-            {evidence.boundaryValid === null ? "—" : String(evidence.boundaryValid)} · mode:{" "}
-            {evidence.proposedChangesMode ?? "—"}
-          </p>
         </div>
       ) : (
         <p className="mb-4 text-sm text-[var(--muted)]">
