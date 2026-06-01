@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Surface } from "@/components/ui/surface";
 import { StatusBadge } from "./status-badge";
 import { ApprovalActions } from "./approval-actions";
+import { EngineeringReviewSignoffPanel } from "./engineering-review-signoff-panel";
 import { HermesWorkerPanel } from "./hermes-worker-panel";
 import { WorkerPlanPanel } from "./worker-plan-panel";
 import {
@@ -441,6 +442,8 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
             </div>
 
             <HermesWorkerPanel runId={runId} />
+
+            <EngineeringReviewSignoffPanel runId={runId} />
 
             <Surface
               as="section"

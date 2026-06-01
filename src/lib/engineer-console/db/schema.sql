@@ -240,6 +240,24 @@ CREATE INDEX IF NOT EXISTS idx_engineer_hermes_quality_gate_runs_run_id
 CREATE INDEX IF NOT EXISTS idx_engineer_hermes_quality_gate_runs_batch_id
   ON engineer_hermes_quality_gate_runs (batch_id);
 
+-- Phase 11: engineering review sign-off (append-only history; Console-owned)
+CREATE TABLE IF NOT EXISTS engineer_run_review_signoffs (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  decision TEXT NOT NULL,
+  reviewer TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  evidence_snapshot_hash TEXT NOT NULL,
+  evidence_summary_json TEXT NOT NULL,
+  quality_gate_summary_json TEXT NOT NULL,
+  patch_application_summary_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_run_review_signoffs_run_id
+  ON engineer_run_review_signoffs (run_id, created_at DESC);
+
 -- Phase G1: append-only tamper-evident audit chain (no UPDATE/DELETE by convention)
 CREATE TABLE IF NOT EXISTS engineer_audit_events (
   id TEXT PRIMARY KEY NOT NULL,

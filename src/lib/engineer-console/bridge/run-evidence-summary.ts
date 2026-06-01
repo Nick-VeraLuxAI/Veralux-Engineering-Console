@@ -13,6 +13,7 @@ import { summarizeReviewStages, listReviewStagesForRun } from "../governance/rev
 import { evaluateMergeReadiness } from "../release/merge-controls/evaluate-merge-readiness";
 import { evaluateDeploymentReadiness } from "../release/deployment-gates/evaluate-deployment-readiness";
 import { listDeploymentEnvironments } from "../release/deployment-gates/deployment-environments";
+import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
 import type { HermesWorkerEvidenceSummary } from "../hermes-worker/hermes-evidence-types";
 
@@ -45,6 +46,20 @@ export interface RunEvidenceSummaryForBridge {
   hermesPatchProposal: HermesWorkerEvidenceSummary["patchProposal"];
   hermesPatchApplication: HermesWorkerEvidenceSummary["patchApplication"];
   hermesPostApplyQualityGates: HermesWorkerEvidenceSummary["postApplyQualityGates"];
+  latestReviewSignoff: {
+    signoffId: string | null;
+    reviewDecision: string | null;
+    reviewedAt: string | null;
+    reviewer: string | null;
+    reason: string | null;
+    evidenceSnapshotHash: string | null;
+    notMerge: true;
+    notDeploy: true;
+  };
+  reviewDecision: string | null;
+  reviewedAt: string | null;
+  reviewer: string | null;
+  evidenceSnapshotHash: string | null;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -171,6 +186,7 @@ export async function buildRunEvidenceSummaryForBridge(
       uxSummary.hardGates.signoffCompletedStatus === "blocked");
 
   const hermesEvidence = ingestHermesWorkerEvidenceForRun(runId);
+  const reviewSignoff = summarizeLatestEngineeringReviewSignoff(runId);
 
   return {
     runId: run.id,
@@ -199,6 +215,11 @@ export async function buildRunEvidenceSummaryForBridge(
     hermesPatchProposal: hermesEvidence.summary.patchProposal,
     hermesPatchApplication: hermesEvidence.summary.patchApplication,
     hermesPostApplyQualityGates: hermesEvidence.summary.postApplyQualityGates,
+    latestReviewSignoff: reviewSignoff.latestReviewSignoff,
+    reviewDecision: reviewSignoff.latestReviewSignoff.reviewDecision,
+    reviewedAt: reviewSignoff.latestReviewSignoff.reviewedAt,
+    reviewer: reviewSignoff.latestReviewSignoff.reviewer,
+    evidenceSnapshotHash: reviewSignoff.latestReviewSignoff.evidenceSnapshotHash,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??
