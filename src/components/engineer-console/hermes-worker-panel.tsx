@@ -42,6 +42,14 @@ interface HermesEvidenceSummary {
   proposedChangesMode: string | null;
   changesApplied: boolean;
   patchProposal: HermesPatchProposalSummary;
+  patchApplication: {
+    status: string;
+    appliedAt: string | null;
+    appliedBy: string | null;
+    changedFiles: string[];
+    rollbackArtifactPath: string | null;
+    notSignOff: true;
+  };
 }
 
 export function HermesWorkerPanel({ runId }: { runId: string }) {
@@ -49,8 +57,9 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<"prepare" | "dispatch" | null>(null);
+  const [busy, setBusy] = useState<"prepare" | "dispatch" | "apply" | "rollback" | null>(null);
   const [evidence, setEvidence] = useState<HermesEvidenceSummary | null>(null);
+  const [applyReason, setApplyReason] = useState("");
 
   const loadEvidence = useCallback(async () => {
     const res = await engineerConsoleFetch(
@@ -147,6 +156,50 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
   }
 
   const latestPrepared = dispatches.find((d) => d.status === "prepared");
+  const applyDispatchId = evidence?.dispatchId ?? dispatches[0]?.id;
+  const canApplyPatch =
+    evidence?.patchProposal?.available &&
+    evidence.patchApplication?.status === "not_applied" &&
+    !evidence.changesApplied &&
+    Boolean(applyDispatchId);
+
+  async function handleApplyPatch() {
+    if (!applyDispatchId) return;
+    const reason = applyReason.trim();
+    if (!reason) {
+      setError("Approval reason is required before applying the patch.");
+      return;
+    }
+    setBusy("apply");
+    setMessage(null);
+    setError(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/hermes-worker/apply-patch`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dispatchId: applyDispatchId,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as { error?: string; changedFiles?: string[] };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setMessage(
+        `Patch applied to repository (${body.changedFiles?.length ?? 0} file(s)). This is not sign-off.`,
+      );
+      setApplyReason("");
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Apply patch failed");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <Surface as="section" id="hermes-worker" className="scroll-mt-28" tabIndex={-1}>
@@ -232,10 +285,53 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
                   <li className="break-all">files: {evidence.patchProposal.proposedFilesPath}</li>
                 ) : null}
               </ul>
-              <p className="mt-2 text-xs text-[var(--muted)]">
-                Read-only evidence paths on the Console host. Patch not applied — review in
-                Engineering Console before any future apply phase.
+              <p className="mb-3 rounded bg-[var(--surface-inset)] p-2 text-xs text-[var(--danger)]">
+                Patch will modify repo files. Explicit operator approval is required. Engineering
+                Console applies the patch — not Hermes. This does not approve, merge, deploy, or
+                sign off the run.
               </p>
+
+              {canApplyPatch ? (
+                <div className="space-y-2 border-t border-[var(--border)] pt-3">
+                  <label className="block text-xs font-medium" htmlFor="hermes-apply-reason">
+                    Approval reason (required)
+                  </label>
+                  <textarea
+                    id="hermes-apply-reason"
+                    className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+                    rows={3}
+                    value={applyReason}
+                    onChange={(e) => setApplyReason(e.target.value)}
+                    placeholder="Why is it safe to apply this proposed patch now?"
+                  />
+                  <button
+                    type="button"
+                    className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+                    disabled={busy !== null || !applyReason.trim()}
+                    onClick={() => void handleApplyPatch()}
+                  >
+                    {busy === "apply" ? "Applying…" : "Apply patch (Console only)"}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {evidence.patchApplication?.status === "patch_applied" ? (
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+              <p className="mb-2 font-medium">Patch applied (not sign-off)</p>
+              <p className="mb-2 text-[var(--muted)]">
+                Applied by {evidence.patchApplication.appliedBy ?? "—"} at{" "}
+                {evidence.patchApplication.appliedAt ?? "—"}
+              </p>
+              <p className="font-mono text-xs text-[var(--muted)]">
+                changed: {evidence.patchApplication.changedFiles.join(", ") || "—"}
+              </p>
+              {evidence.patchApplication.rollbackArtifactPath ? (
+                <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+                  rollback artifact: {evidence.patchApplication.rollbackArtifactPath}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>

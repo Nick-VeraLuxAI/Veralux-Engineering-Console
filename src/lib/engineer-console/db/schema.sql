@@ -183,6 +183,30 @@ CREATE TABLE IF NOT EXISTS engineer_hermes_worker_dispatches (
 CREATE INDEX IF NOT EXISTS idx_engineer_hermes_worker_dispatches_run_id
   ON engineer_hermes_worker_dispatches (run_id);
 
+-- Phase 9: Hermes patch application (Engineering Console only; one apply per dispatch)
+CREATE TABLE IF NOT EXISTS engineer_hermes_patch_applications (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  dispatch_id TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'applied',
+  packet_hash TEXT NOT NULL,
+  patch_hash TEXT NOT NULL,
+  changed_files_json TEXT NOT NULL DEFAULT '[]',
+  rollback_artifact_path TEXT NOT NULL,
+  apply_result_path TEXT NOT NULL,
+  applied_by TEXT NOT NULL,
+  apply_reason TEXT NOT NULL,
+  applied_at TEXT NOT NULL,
+  rolled_back_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE,
+  FOREIGN KEY (dispatch_id) REFERENCES engineer_hermes_worker_dispatches (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_hermes_patch_applications_run_id
+  ON engineer_hermes_patch_applications (run_id);
+
 -- Phase G1: append-only tamper-evident audit chain (no UPDATE/DELETE by convention)
 CREATE TABLE IF NOT EXISTS engineer_audit_events (
   id TEXT PRIMARY KEY NOT NULL,

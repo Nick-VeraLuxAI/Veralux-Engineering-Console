@@ -5,7 +5,8 @@ export type HermesEvidenceStatus =
   | "inspected"
   | "prepared"
   | "failed"
-  | "patch_proposed";
+  | "patch_proposed"
+  | "patch_applied";
 
 export type HermesEvidenceMode = "dry-run" | "patch-proposal";
 
@@ -81,5 +82,14 @@ export interface HermesWorkerEvidenceSummary {
     /** Truncated diff for UI; full file on disk. */
     proposedPatchPreview: string | null;
     summaryExcerpt: string | null;
+  };
+  patchApplication: {
+    status: "not_applied" | "patch_applied" | "rolled_back";
+    appliedAt: string | null;
+    appliedBy: string | null;
+    changedFiles: string[];
+    rollbackArtifactPath: string | null;
+    /** Application is not sign-off. */
+    notSignOff: true;
   };
 }

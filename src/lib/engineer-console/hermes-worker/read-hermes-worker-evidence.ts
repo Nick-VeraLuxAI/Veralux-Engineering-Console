@@ -6,7 +6,54 @@ import {
   type HermesWorkerEvidenceSummary,
 } from "./hermes-evidence-types";
 import type { HermesWorkerDispatchRecord } from "./hermes-run-packet-types";
+import { getHermesPatchApplicationByDispatchId } from "./hermes-patch-application-manager";
 import { readHermesPatchProposalArtifacts } from "./read-hermes-patch-proposal";
+
+function buildPatchApplicationSummary(
+  dispatch: HermesWorkerDispatchRecord | null,
+  evidence: HermesEngineeringEvidenceV1 | null,
+): HermesWorkerEvidenceSummary["patchApplication"] {
+  if (!dispatch) {
+    return {
+      status: "not_applied",
+      appliedAt: null,
+      appliedBy: null,
+      changedFiles: [],
+      rollbackArtifactPath: null,
+      notSignOff: true,
+    };
+  }
+  const application = getHermesPatchApplicationByDispatchId(dispatch.id);
+  if (application) {
+    const changedFiles = JSON.parse(application.changedFilesJson) as string[];
+    return {
+      status: application.status === "rolled_back" ? "rolled_back" : "patch_applied",
+      appliedAt: application.appliedAt,
+      appliedBy: application.appliedBy,
+      changedFiles,
+      rollbackArtifactPath: application.rollbackArtifactPath,
+      notSignOff: true,
+    };
+  }
+  if (evidence?.changesApplied === true) {
+    return {
+      status: "patch_applied",
+      appliedAt: (evidence as { appliedAt?: string }).appliedAt ?? evidence.timestamp,
+      appliedBy: (evidence as { appliedBy?: string }).appliedBy ?? null,
+      changedFiles: (evidence as { changedFiles?: string[] }).changedFiles ?? [],
+      rollbackArtifactPath: (evidence as { rollbackArtifactPath?: string }).rollbackArtifactPath ?? null,
+      notSignOff: true,
+    };
+  }
+  return {
+    status: "not_applied",
+    appliedAt: null,
+    appliedBy: null,
+    changedFiles: [],
+    rollbackArtifactPath: null,
+    notSignOff: true,
+  };
+}
 
 export function resolveHermesEvidenceReportPath(dispatch: HermesWorkerDispatchRecord): string {
   return path.join(
@@ -67,6 +114,7 @@ export function toHermesWorkerEvidenceSummary(
       proposedChangesMode: null,
       changesApplied: false,
       patchProposal: emptyPatch,
+      patchApplication: buildPatchApplicationSummary(dispatch, null),
     };
   }
 
@@ -95,6 +143,7 @@ export function toHermesWorkerEvidenceSummary(
       proposedPatchPreview: patchView.proposedPatchPreview,
       summaryExcerpt: patchView.summaryExcerpt,
     },
+    patchApplication: buildPatchApplicationSummary(dispatch, evidence),
   };
 }
 

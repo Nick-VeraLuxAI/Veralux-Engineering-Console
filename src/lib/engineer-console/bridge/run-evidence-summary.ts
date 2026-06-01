@@ -43,6 +43,7 @@ export interface RunEvidenceSummaryForBridge {
   evidenceBundleExists: boolean;
   hermesWorkerEvidence: HermesWorkerEvidenceSummary;
   hermesPatchProposal: HermesWorkerEvidenceSummary["patchProposal"];
+  hermesPatchApplication: HermesWorkerEvidenceSummary["patchApplication"];
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -195,6 +196,7 @@ export async function buildRunEvidenceSummaryForBridge(
     evidenceBundleExists: uxSummary.evidence.exists,
     hermesWorkerEvidence: hermesEvidence.summary,
     hermesPatchProposal: hermesEvidence.summary.patchProposal,
+    hermesPatchApplication: hermesEvidence.summary.patchApplication,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??
