@@ -12,6 +12,7 @@ export type CommitCandidateStatus =
   | "remote_branch_pushed"
   | "pull_request_created"
   | "pull_request_packet_prepared"
+  | "merge_readiness_recorded"
   | "rejected";
 
 export interface EngineeringCommitPrCandidatePacketV1 {
@@ -77,6 +78,12 @@ export interface CommitCandidateRecord {
   prCreatedBy: string | null;
   prCreateReason: string | null;
   prEvidencePath: string | null;
+  mergeReadinessStatus: string | null;
+  mergeReadinessDecision: string | null;
+  mergeReadinessReviewedAt: string | null;
+  mergeReadinessReviewedBy: string | null;
+  mergeReadinessReason: string | null;
+  mergeReadinessEvidencePath: string | null;
   notCommitted: boolean;
   notPushed: boolean;
   notMerged: true;

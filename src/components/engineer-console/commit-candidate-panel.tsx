@@ -29,6 +29,12 @@ interface CommitCandidatePublic {
   prNumber?: string | null;
   prEvidencePath?: string | null;
   prBaseBranch?: string | null;
+  prHeadBranch?: string | null;
+  mergeReadinessStatus?: string | null;
+  mergeReadinessDecision?: string | null;
+  mergeReadinessReviewedAt?: string | null;
+  mergeReadinessReviewedBy?: string | null;
+  mergeReadinessEvidencePath?: string | null;
 }
 
 interface ReviewSignoffLatest {
@@ -73,6 +79,15 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     pullRequestNumber: number | null;
     prEvidencePath: string;
     status: string;
+  } | null>(null);
+  const [mergeReadinessDecision, setMergeReadinessDecision] = useState<
+    "ready" | "not_ready" | "blocked"
+  >("ready");
+  const [mergeReadinessReason, setMergeReadinessReason] = useState("");
+  const [mergeReadinessNotes, setMergeReadinessNotes] = useState("");
+  const [mergeReadinessResult, setMergeReadinessResult] = useState<{
+    decision: string;
+    mergeReadinessPath: string;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -201,6 +216,70 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     !latest.prUrl &&
     latest.prStatus !== "pull_request_created" &&
     latest.prStatus !== "pull_request_packet_prepared";
+
+  const canRecordMergeReadiness =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest &&
+    (latest.status === "pull_request_created" ||
+      latest.status === "pull_request_packet_prepared" ||
+      latest.status === "merge_readiness_recorded") &&
+    Boolean(latest.prEvidencePath) &&
+    Boolean(latest.localCommitHash) &&
+    Boolean(latest.remotePushEvidencePath);
+
+  async function handleRecordMergeReadiness() {
+    const reason = mergeReadinessReason.trim();
+    if (!reason) {
+      setError("Merge readiness approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate for merge readiness review.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/merge-readiness`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            decision: mergeReadinessDecision,
+            notes: mergeReadinessNotes.trim() || undefined,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        decision?: string;
+        mergeReadinessPath?: string;
+        notMerged?: boolean;
+        notDeployed?: boolean;
+        notComplete?: boolean;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setMergeReadinessResult({
+        decision: body.decision ?? mergeReadinessDecision,
+        mergeReadinessPath: body.mergeReadinessPath ?? "",
+      });
+      setMessage(
+        "Merge readiness recorded. This does not merge, deploy, or mark the run complete.",
+      );
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Merge readiness recording failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleCreatePr(mode: "create_pr" | "prepare_packet") {
     const reason = prReason.trim();
@@ -601,6 +680,102 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
           <p className="mt-1 font-mono text-xs text-[var(--muted)]">
             evidence: {prResult?.prEvidencePath ?? latest?.prEvidencePath}
           </p>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Not merged. Not deployed. Run is not marked complete.
+          </p>
+        </div>
+      ) : null}
+
+      {canRecordMergeReadiness ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Merge readiness review (Phase 14)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This records merge readiness only.</li>
+            <li>This does not merge.</li>
+            <li>This does not deploy.</li>
+            <li>This does not mark the run complete.</li>
+          </ul>
+          <div className="rounded bg-[var(--surface-inset)] p-2 text-xs text-[var(--muted)]">
+            <p>PR status: {latest?.prStatus ?? latest?.status ?? "—"}</p>
+            {latest?.prUrl ? <p className="font-mono">url: {latest.prUrl}</p> : null}
+            {latest?.prNumber ? <p className="font-mono">number: {latest.prNumber}</p> : null}
+            <p>
+              branches:{" "}
+              <span className="font-mono">
+                {latest?.prBaseBranch ?? "main"} ← {latest?.prHeadBranch ?? latest?.remoteBranchName}
+              </span>
+            </p>
+            <p className="font-mono">commit: {latest?.localCommitHash}</p>
+            <p>Quality gates: {evidence?.postApplyQualityGates?.overallStatus ?? "—"}</p>
+            <p>Sign-off: {signoff?.decision ?? "—"} ({signoff?.reviewer ?? "—"})</p>
+          </div>
+          <label className="block text-xs font-medium" htmlFor="merge-readiness-decision">
+            Decision
+          </label>
+          <select
+            id="merge-readiness-decision"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 text-xs"
+            value={mergeReadinessDecision}
+            onChange={(e) =>
+              setMergeReadinessDecision(e.target.value as "ready" | "not_ready" | "blocked")
+            }
+            disabled={busy}
+          >
+            <option value="ready">ready</option>
+            <option value="not_ready">not_ready</option>
+            <option value="blocked">blocked</option>
+          </select>
+          <label className="block text-xs font-medium" htmlFor="merge-readiness-reason">
+            Operator reason (required)
+          </label>
+          <textarea
+            id="merge-readiness-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={mergeReadinessReason}
+            onChange={(e) => setMergeReadinessReason(e.target.value)}
+            disabled={busy}
+          />
+          <label className="block text-xs font-medium" htmlFor="merge-readiness-notes">
+            Notes (optional)
+          </label>
+          <textarea
+            id="merge-readiness-notes"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={mergeReadinessNotes}
+            onChange={(e) => setMergeReadinessNotes(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !mergeReadinessReason.trim()}
+            onClick={() => void handleRecordMergeReadiness()}
+          >
+            {busy ? "Recording…" : "Record merge readiness"}
+          </button>
+        </div>
+      ) : null}
+
+      {mergeReadinessResult ||
+      latest?.mergeReadinessDecision ||
+      latest?.mergeReadinessStatus === "merge_readiness_recorded" ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Merge readiness recorded</p>
+          <p className="text-xs">
+            decision:{" "}
+            {mergeReadinessResult?.decision ?? latest?.mergeReadinessDecision ?? "—"}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            evidence:{" "}
+            {mergeReadinessResult?.mergeReadinessPath ?? latest?.mergeReadinessEvidencePath}
+          </p>
+          {latest?.mergeReadinessReviewedAt ? (
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              reviewed: {latest.mergeReadinessReviewedBy} at {latest.mergeReadinessReviewedAt}
+            </p>
+          ) : null}
           <p className="mt-2 text-xs text-[var(--muted)]">
             Not merged. Not deployed. Run is not marked complete.
           </p>

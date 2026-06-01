@@ -427,7 +427,8 @@ export function summarizeLatestPullRequestForBridge(runId: string): {
   const hasPr =
     latest &&
     (latest.status === "pull_request_created" ||
-      latest.status === "pull_request_packet_prepared");
+      latest.status === "pull_request_packet_prepared" ||
+      latest.status === "merge_readiness_recorded");
   if (!hasPr) {
     return {
       latestPullRequest: {
@@ -459,6 +460,54 @@ export function summarizeLatestPullRequestForBridge(runId: string): {
       prCreatedAt: latest.prCreatedAt,
       prCreatedBy: latest.prCreatedBy,
       prEvidencePath: latest.prEvidencePath,
+      notMerged: true,
+      notDeployed: true,
+      notComplete: true,
+    },
+  };
+}
+
+export function summarizeLatestMergeReadinessForBridge(runId: string): {
+  latestMergeReadiness: {
+    candidateId: string | null;
+    mergeReadinessStatus: string | null;
+    mergeReadinessDecision: string | null;
+    mergeReadinessReviewedAt: string | null;
+    mergeReadinessReviewedBy: string | null;
+    mergeReadinessEvidencePath: string | null;
+    notMerged: true;
+    notDeployed: true;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const hasReadiness =
+    latest &&
+    (latest.status === "merge_readiness_recorded" ||
+      latest.mergeReadinessStatus === "merge_readiness_recorded");
+  if (!hasReadiness) {
+    return {
+      latestMergeReadiness: {
+        candidateId: latest?.id ?? null,
+        mergeReadinessStatus: latest?.mergeReadinessStatus ?? null,
+        mergeReadinessDecision: null,
+        mergeReadinessReviewedAt: null,
+        mergeReadinessReviewedBy: null,
+        mergeReadinessEvidencePath: null,
+        notMerged: true,
+        notDeployed: true,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestMergeReadiness: {
+      candidateId: latest.id,
+      mergeReadinessStatus: latest.mergeReadinessStatus,
+      mergeReadinessDecision: latest.mergeReadinessDecision,
+      mergeReadinessReviewedAt: latest.mergeReadinessReviewedAt,
+      mergeReadinessReviewedBy: latest.mergeReadinessReviewedBy,
+      mergeReadinessEvidencePath: latest.mergeReadinessEvidencePath,
       notMerged: true,
       notDeployed: true,
       notComplete: true,

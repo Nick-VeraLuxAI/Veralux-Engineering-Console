@@ -18,6 +18,7 @@ import {
   summarizeLatestLocalCommitForBridge,
   summarizeLatestRemoteBranchPushForBridge,
   summarizeLatestPullRequestForBridge,
+  summarizeLatestMergeReadinessForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -125,6 +126,21 @@ export interface RunEvidenceSummaryForBridge {
     notDeployed: true;
     notComplete: true;
   };
+  latestMergeReadiness: {
+    candidateId: string | null;
+    mergeReadinessStatus: string | null;
+    mergeReadinessDecision: string | null;
+    mergeReadinessReviewedAt: string | null;
+    mergeReadinessReviewedBy: string | null;
+    mergeReadinessEvidencePath: string | null;
+    notMerged: true;
+    notDeployed: true;
+    notComplete: true;
+  };
+  mergeReadinessDecision: string | null;
+  mergeReadinessReviewedAt: string | null;
+  mergeReadinessReviewedBy: string | null;
+  mergeReadinessEvidencePath: string | null;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -256,6 +272,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const localCommit = summarizeLatestLocalCommitForBridge(runId);
   const remotePush = summarizeLatestRemoteBranchPushForBridge(runId);
   const pullRequest = summarizeLatestPullRequestForBridge(runId);
+  const mergeReadinessReview = summarizeLatestMergeReadinessForBridge(runId);
 
   return {
     runId: run.id,
@@ -293,6 +310,12 @@ export async function buildRunEvidenceSummaryForBridge(
     latestLocalCommit: localCommit.latestLocalCommit,
     latestRemoteBranchPush: remotePush.latestRemoteBranchPush,
     latestPullRequest: pullRequest.latestPullRequest,
+    latestMergeReadiness: mergeReadinessReview.latestMergeReadiness,
+    mergeReadinessDecision: mergeReadinessReview.latestMergeReadiness.mergeReadinessDecision,
+    mergeReadinessReviewedAt: mergeReadinessReview.latestMergeReadiness.mergeReadinessReviewedAt,
+    mergeReadinessReviewedBy: mergeReadinessReview.latestMergeReadiness.mergeReadinessReviewedBy,
+    mergeReadinessEvidencePath:
+      mergeReadinessReview.latestMergeReadiness.mergeReadinessEvidencePath,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

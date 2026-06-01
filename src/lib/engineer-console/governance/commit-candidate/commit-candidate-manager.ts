@@ -43,6 +43,12 @@ interface Row {
   pr_created_by: string | null;
   pr_create_reason: string | null;
   pr_evidence_path: string | null;
+  merge_readiness_status: string | null;
+  merge_readiness_decision: string | null;
+  merge_readiness_reviewed_at: string | null;
+  merge_readiness_reviewed_by: string | null;
+  merge_readiness_reason: string | null;
+  merge_readiness_evidence_path: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -88,6 +94,12 @@ function mapRow(row: Row): CommitCandidateRecord {
     prCreatedBy: row.pr_created_by ?? null,
     prCreateReason: row.pr_create_reason ?? null,
     prEvidencePath: row.pr_evidence_path ?? null,
+    mergeReadinessStatus: row.merge_readiness_status ?? null,
+    mergeReadinessDecision: row.merge_readiness_decision ?? null,
+    mergeReadinessReviewedAt: row.merge_readiness_reviewed_at ?? null,
+    mergeReadinessReviewedBy: row.merge_readiness_reviewed_by ?? null,
+    mergeReadinessReason: row.merge_readiness_reason ?? null,
+    mergeReadinessEvidencePath: row.merge_readiness_evidence_path ?? null,
     notCommitted: row.not_committed !== 0,
     notPushed: row.not_pushed !== 0,
     notMerged: true,
@@ -124,6 +136,12 @@ export function insertCommitCandidate(
     | "prCreatedBy"
     | "prCreateReason"
     | "prEvidencePath"
+    | "mergeReadinessStatus"
+    | "mergeReadinessDecision"
+    | "mergeReadinessReviewedAt"
+    | "mergeReadinessReviewedBy"
+    | "mergeReadinessReason"
+    | "mergeReadinessEvidencePath"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -186,6 +204,12 @@ export function insertCommitCandidate(
     prCreatedBy: null,
     prCreateReason: null,
     prEvidencePath: null,
+    mergeReadinessStatus: null,
+    mergeReadinessDecision: null,
+    mergeReadinessReviewedAt: null,
+    mergeReadinessReviewedBy: null,
+    mergeReadinessReason: null,
+    mergeReadinessEvidencePath: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -323,5 +347,35 @@ export function markCommitCandidatePullRequestCreated(input: {
       pr_created_by: input.prCreatedBy,
       pr_create_reason: input.prCreateReason,
       pr_evidence_path: input.prEvidencePath,
+    });
+}
+
+export function markCommitCandidateMergeReadinessRecorded(input: {
+  candidateId: string;
+  mergeReadinessDecision: string;
+  mergeReadinessReviewedAt: string;
+  mergeReadinessReviewedBy: string;
+  mergeReadinessReason: string;
+  mergeReadinessEvidencePath: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'merge_readiness_recorded',
+        merge_readiness_status = 'merge_readiness_recorded',
+        merge_readiness_decision = @merge_readiness_decision,
+        merge_readiness_reviewed_at = @merge_readiness_reviewed_at,
+        merge_readiness_reviewed_by = @merge_readiness_reviewed_by,
+        merge_readiness_reason = @merge_readiness_reason,
+        merge_readiness_evidence_path = @merge_readiness_evidence_path
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      merge_readiness_decision: input.mergeReadinessDecision,
+      merge_readiness_reviewed_at: input.mergeReadinessReviewedAt,
+      merge_readiness_reviewed_by: input.mergeReadinessReviewedBy,
+      merge_readiness_reason: input.mergeReadinessReason,
+      merge_readiness_evidence_path: input.mergeReadinessEvidencePath,
     });
 }

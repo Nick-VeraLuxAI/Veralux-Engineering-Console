@@ -88,5 +88,18 @@ export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
         db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
       }
     }
+    const mergeReadinessColumns = [
+      ["merge_readiness_status", "TEXT"],
+      ["merge_readiness_decision", "TEXT"],
+      ["merge_readiness_reviewed_at", "TEXT"],
+      ["merge_readiness_reviewed_by", "TEXT"],
+      ["merge_readiness_reason", "TEXT"],
+      ["merge_readiness_evidence_path", "TEXT"],
+    ] as const;
+    for (const [name, type] of mergeReadinessColumns) {
+      if (!commitCandidateColumns.some((c) => c.name === name)) {
+        db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
+      }
+    }
   }
 }
