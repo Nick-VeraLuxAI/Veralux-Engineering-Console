@@ -258,6 +258,33 @@ CREATE TABLE IF NOT EXISTS engineer_run_review_signoffs (
 CREATE INDEX IF NOT EXISTS idx_engineer_run_review_signoffs_run_id
   ON engineer_run_review_signoffs (run_id, created_at DESC);
 
+-- Phase 12: governed commit/PR candidate artifacts (no git commit/push/merge/deploy)
+CREATE TABLE IF NOT EXISTS engineer_commit_candidates (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'prepared',
+  branch_name TEXT NOT NULL,
+  commit_message TEXT NOT NULL,
+  changed_files_json TEXT NOT NULL DEFAULT '[]',
+  evidence_snapshot_hash TEXT NOT NULL,
+  signoff_id TEXT NOT NULL,
+  commit_packet_path TEXT NOT NULL,
+  pr_draft_path TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  created_reason TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  not_committed INTEGER NOT NULL DEFAULT 1,
+  not_pushed INTEGER NOT NULL DEFAULT 1,
+  not_merged INTEGER NOT NULL DEFAULT 1,
+  not_deployed INTEGER NOT NULL DEFAULT 1,
+  not_complete INTEGER NOT NULL DEFAULT 1,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE,
+  FOREIGN KEY (signoff_id) REFERENCES engineer_run_review_signoffs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_commit_candidates_run_id
+  ON engineer_commit_candidates (run_id, created_at DESC);
+
 -- Phase G1: append-only tamper-evident audit chain (no UPDATE/DELETE by convention)
 CREATE TABLE IF NOT EXISTS engineer_audit_events (
   id TEXT PRIMARY KEY NOT NULL,

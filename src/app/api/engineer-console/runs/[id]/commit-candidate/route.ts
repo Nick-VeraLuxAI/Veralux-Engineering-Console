@@ -1,0 +1,47 @@
+import { NextResponse } from "next/server";
+import { listCommitCandidatesForRun } from "@/lib/engineer-console/governance/commit-candidate/commit-candidate-manager";
+import { getRunById } from "@/lib/engineer-console/run-manager/run-manager";
+import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
+import { authorizeRead } from "@/lib/engineer-console/security/route-guards";
+
+export const runtime = "nodejs";
+
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  ensureEngineerConsoleReady();
+  const auth = await authorizeRead(request);
+  if (auth instanceof NextResponse) return auth;
+  const { id: runId } = await context.params;
+
+  const run = getRunById(runId);
+  if (!run) {
+    return NextResponse.json({ error: "Run not found" }, { status: 404 });
+  }
+
+  const candidates = listCommitCandidatesForRun(runId).map((row) => ({
+    id: row.id,
+    runId: row.runId,
+    status: row.status,
+    branchName: row.branchName,
+    commitMessage: row.commitMessage,
+    changedFiles: JSON.parse(row.changedFilesJson) as string[],
+    evidenceSnapshotHash: row.evidenceSnapshotHash,
+    commitPacketPath: row.commitPacketPath,
+    prDraftPath: row.prDraftPath,
+    createdBy: row.createdBy,
+    createdAt: row.createdAt,
+    notCommitted: true as const,
+    notPushed: true as const,
+    notMerged: true as const,
+    notDeployed: true as const,
+    notComplete: true as const,
+  }));
+
+  return NextResponse.json({
+    runId,
+    latest: candidates[0] ?? null,
+    history: candidates,
+  });
+}

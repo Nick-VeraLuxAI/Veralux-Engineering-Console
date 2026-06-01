@@ -13,6 +13,7 @@ import { summarizeReviewStages, listReviewStagesForRun } from "../governance/rev
 import { evaluateMergeReadiness } from "../release/merge-controls/evaluate-merge-readiness";
 import { evaluateDeploymentReadiness } from "../release/deployment-gates/evaluate-deployment-readiness";
 import { listDeploymentEnvironments } from "../release/deployment-gates/deployment-environments";
+import { summarizeLatestCommitCandidateForBridge } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
 import type { HermesWorkerEvidenceSummary } from "../hermes-worker/hermes-evidence-types";
@@ -60,6 +61,23 @@ export interface RunEvidenceSummaryForBridge {
   reviewedAt: string | null;
   reviewer: string | null;
   evidenceSnapshotHash: string | null;
+  latestCommitCandidate: {
+    candidateId: string | null;
+    commitCandidateStatus: string | null;
+    branchName: string | null;
+    commitMessage: string | null;
+    changedFiles: string[];
+    commitPacketPath: string | null;
+    prDraftPath: string | null;
+    createdAt: string | null;
+    createdBy: string | null;
+    evidenceSnapshotHash: string | null;
+    notCommitted: true;
+    notPushed: true;
+    notMerged: true;
+    notDeployed: true;
+    notComplete: true;
+  };
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -187,6 +205,7 @@ export async function buildRunEvidenceSummaryForBridge(
 
   const hermesEvidence = ingestHermesWorkerEvidenceForRun(runId);
   const reviewSignoff = summarizeLatestEngineeringReviewSignoff(runId);
+  const commitCandidate = summarizeLatestCommitCandidateForBridge(runId);
 
   return {
     runId: run.id,
@@ -220,6 +239,7 @@ export async function buildRunEvidenceSummaryForBridge(
     reviewedAt: reviewSignoff.latestReviewSignoff.reviewedAt,
     reviewer: reviewSignoff.latestReviewSignoff.reviewer,
     evidenceSnapshotHash: reviewSignoff.latestReviewSignoff.evidenceSnapshotHash,
+    latestCommitCandidate: commitCandidate.latestCommitCandidate,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

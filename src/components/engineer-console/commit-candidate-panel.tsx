@@ -1,0 +1,252 @@
+"use client";
+
+import React, { useCallback, useEffect, useState } from "react";
+import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+import type { HermesWorkerEvidenceSummary } from "@/lib/engineer-console/hermes-worker/hermes-evidence-types";
+import { Surface } from "@/components/ui/surface";
+import { Badge } from "@/components/ui/badge";
+
+interface CommitCandidatePublic {
+  id: string;
+  branchName: string;
+  commitMessage: string;
+  changedFiles: string[];
+  commitPacketPath: string;
+  prDraftPath: string;
+  evidenceSnapshotHash: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+interface ReviewSignoffLatest {
+  decision: string;
+  reviewer: string;
+  createdAt: string;
+}
+
+export function CommitCandidatePanel({ runId }: { runId: string }) {
+  const [evidence, setEvidence] = useState<{
+    patchApplication: HermesWorkerEvidenceSummary["patchApplication"];
+    postApplyQualityGates: HermesWorkerEvidenceSummary["postApplyQualityGates"];
+  } | null>(null);
+  const [signoff, setSignoff] = useState<ReviewSignoffLatest | null>(null);
+  const [latest, setLatest] = useState<CommitCandidatePublic | null>(null);
+  const [history, setHistory] = useState<CommitCandidatePublic[]>([]);
+  const [prPreview, setPrPreview] = useState<string | null>(null);
+  const [commitMessage, setCommitMessage] = useState("");
+  const [prepareReason, setPrepareReason] = useState("");
+  const [qualityGateOverride, setQualityGateOverride] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const [evidenceRes, signoffRes, candidateRes] = await Promise.all([
+      engineerConsoleFetch(`/api/engineer-console/runs/${runId}/hermes-worker/evidence`),
+      engineerConsoleFetch(`/api/engineer-console/runs/${runId}/review-signoff`),
+      engineerConsoleFetch(`/api/engineer-console/runs/${runId}/commit-candidate`),
+    ]);
+
+    if (evidenceRes.ok) {
+      const body = (await evidenceRes.json()) as { summary: HermesWorkerEvidenceSummary };
+      setEvidence({
+        patchApplication: body.summary.patchApplication,
+        postApplyQualityGates: body.summary.postApplyQualityGates,
+      });
+    }
+
+    if (signoffRes.ok) {
+      const body = (await signoffRes.json()) as { latest: ReviewSignoffLatest | null };
+      setSignoff(body.latest);
+    }
+
+    if (candidateRes.ok) {
+      const body = (await candidateRes.json()) as {
+        latest: CommitCandidatePublic | null;
+        history: CommitCandidatePublic[];
+      };
+      setLatest(body.latest);
+      setHistory(body.history);
+      if (body.latest?.prDraftPath) {
+        setPrPreview(null);
+      }
+    }
+  }, [runId]);
+
+  useEffect(() => {
+    void load().catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : "Failed to load commit candidate context");
+    });
+  }, [load]);
+
+  async function loadPrPreview(path: string) {
+    try {
+      const res = await fetch(`/api/engineer-console/runs/${runId}/commit-candidate`);
+      void res;
+      setPrPreview(`See artifact on Console host:\n${path}`);
+    } catch {
+      setPrPreview(null);
+    }
+  }
+
+  const canPrepare =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied";
+
+  async function handlePrepare() {
+    const reason = prepareReason.trim();
+    if (!reason) {
+      setError("Operator reason is required.");
+      return;
+    }
+    const msg = commitMessage.trim();
+    if (!msg) {
+      setError("Commit message is required.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/prepare`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            commitMessage: msg,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+            qualityGateOverride,
+          }),
+        },
+      );
+      const body = (await res.json()) as { error?: string; prDraftPath?: string };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setMessage("Commit/PR candidate prepared (artifacts only — not committed or pushed).");
+      if (body.prDraftPath) {
+        await loadPrPreview(body.prDraftPath);
+      }
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Prepare commit candidate failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Surface as="section" id="commit-candidate" className="scroll-mt-28" tabIndex={-1}>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <h2 className="font-semibold">Commit / PR candidate</h2>
+        <Badge variant="muted">Artifacts only</Badge>
+      </div>
+      <p className="mb-3 text-sm text-[var(--muted)]">
+        This prepares a commit candidate only. This does not commit. This does not push. This does
+        not merge. This does not deploy. This does not mark the run complete. Approved review
+        sign-off is required.
+      </p>
+
+      {message ? <p className="mb-2 text-sm text-[var(--success)]">{message}</p> : null}
+      {error ? <p className="mb-2 text-sm text-[var(--danger)]">{error}</p> : null}
+
+      <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+        <p className="mb-2 font-medium">Evidence context</p>
+        <ul className="space-y-1 text-xs text-[var(--muted)]">
+          <li>Review sign-off: {signoff?.decision ?? "—"}</li>
+          <li>Patch application: {evidence?.patchApplication?.status ?? "—"}</li>
+          <li>Quality gates: {evidence?.postApplyQualityGates?.status ?? "not_run"}</li>
+        </ul>
+      </div>
+
+      {canPrepare ? (
+        <div className="mb-4 space-y-2">
+          <label className="block text-xs font-medium" htmlFor="commit-message">
+            Proposed commit message
+          </label>
+          <textarea
+            id="commit-message"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={3}
+            value={commitMessage}
+            onChange={(e) => setCommitMessage(e.target.value)}
+            placeholder="feat: describe the Hermes-applied change"
+            disabled={busy}
+          />
+          <label className="block text-xs font-medium" htmlFor="prepare-reason">
+            Operator reason (required)
+          </label>
+          <textarea
+            id="prepare-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={prepareReason}
+            onChange={(e) => setPrepareReason(e.target.value)}
+            disabled={busy}
+          />
+          {evidence?.postApplyQualityGates?.overallStatus === "failed" ? (
+            <label className="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={qualityGateOverride}
+                onChange={(e) => setQualityGateOverride(e.target.checked)}
+                disabled={busy}
+              />
+              Quality gate override (document in reason)
+            </label>
+          ) : null}
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !commitMessage.trim() || !prepareReason.trim()}
+            onClick={() => void handlePrepare()}
+          >
+            {busy ? "Preparing…" : "Prepare commit candidate"}
+          </button>
+        </div>
+      ) : (
+        <p className="mb-4 text-sm text-[var(--muted)]">
+          Requires approved review sign-off and an applied Hermes patch.
+        </p>
+      )}
+
+      {latest ? (
+        <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-sm">
+          <p className="mb-2 font-medium">Latest candidate</p>
+          <p className="text-[var(--muted)]">
+            Branch recommendation: <span className="font-mono">{latest.branchName}</span>
+          </p>
+          <p className="mt-1 text-xs text-[var(--muted)]">message: {latest.commitMessage}</p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            files: {latest.changedFiles.join(", ")}
+          </p>
+          <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+            packet: {latest.commitPacketPath}
+          </p>
+          <p className="break-all font-mono text-xs text-[var(--muted)]">
+            PR draft: {latest.prDraftPath}
+          </p>
+          {prPreview ? (
+            <pre className="mt-2 max-h-48 overflow-auto rounded bg-[var(--surface-inset)] p-2 text-xs">
+              {prPreview}
+            </pre>
+          ) : null}
+        </div>
+      ) : null}
+
+      {history.length > 1 ? (
+        <details className="mt-3 text-sm">
+          <summary className="cursor-pointer text-[var(--muted)]">Prior candidates</summary>
+          <ul className="mt-2 space-y-1 font-mono text-xs text-[var(--muted)]">
+            {history.slice(1).map((row) => (
+              <li key={row.id}>
+                {row.createdAt}: {row.branchName}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </Surface>
+  );
+}
