@@ -291,7 +291,15 @@ export function rollbackHermesPatchForRun(input: {
   runId: string;
   dispatchId: string;
   operatorApproval: OperatorPatchApproval;
-}): { runId: string; dispatchId: string; status: "rolled_back"; restoredFiles: string[] } {
+}): {
+  runId: string;
+  dispatchId: string;
+  status: "rolled_back";
+  restoredFiles: string[];
+  rolledBackAt: string;
+  rolledBackBy: string;
+  consoleUrl: string;
+} {
   if (!input.operatorApproval.approved) {
     throw new HermesPatchApplyError("Operator approval required for rollback", "APPROVAL_REQUIRED");
   }
@@ -331,14 +339,16 @@ export function rollbackHermesPatchForRun(input: {
     restoredFiles.push(file.path);
   }
 
-  markHermesPatchRolledBack(input.dispatchId);
+  const rolledBackBy = input.operatorApproval.approvedBy.trim();
+  const rolledBackReason = input.operatorApproval.reason.trim();
+  markHermesPatchRolledBack(input.dispatchId, { rolledBackBy, rolledBackReason });
 
   auditHermesPatchRollbackApplied(
     input.runId,
     dispatchRecord.taskId,
     input.dispatchId,
-    { restoredFiles },
-    input.operatorApproval.approvedBy,
+    { restoredFiles, reason: rolledBackReason },
+    rolledBackBy,
   );
 
   return {
@@ -346,5 +356,8 @@ export function rollbackHermesPatchForRun(input: {
     dispatchId: input.dispatchId,
     status: "rolled_back",
     restoredFiles,
+    rolledBackAt: new Date().toISOString(),
+    rolledBackBy,
+    consoleUrl: `/engineer/runs/${input.runId}`,
   };
 }

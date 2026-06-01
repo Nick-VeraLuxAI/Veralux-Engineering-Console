@@ -198,6 +198,8 @@ CREATE TABLE IF NOT EXISTS engineer_hermes_patch_applications (
   apply_reason TEXT NOT NULL,
   applied_at TEXT NOT NULL,
   rolled_back_at TEXT,
+  rolled_back_by TEXT,
+  rolled_back_reason TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE,

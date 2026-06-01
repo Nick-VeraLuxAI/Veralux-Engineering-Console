@@ -2,6 +2,15 @@
 
 import React from "react";
 import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
+import type { HermesWorkerEvidenceSummary } from "@/lib/engineer-console/hermes-worker/hermes-evidence-types";
+import {
+  canShowHermesPatchApplyControls,
+  canShowHermesPatchRollbackControls,
+} from "@/lib/engineer-console/hermes-worker/hermes-patch-rollback-ui-eligibility";
+import {
+  hermesWorkerApplyPatchPath,
+  hermesWorkerRollbackPatchPath,
+} from "@/lib/engineer-console/hermes-worker/hermes-worker-api-paths";
 import { useCallback, useEffect, useState } from "react";
 import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
@@ -42,14 +51,7 @@ interface HermesEvidenceSummary {
   proposedChangesMode: string | null;
   changesApplied: boolean;
   patchProposal: HermesPatchProposalSummary;
-  patchApplication: {
-    status: string;
-    appliedAt: string | null;
-    appliedBy: string | null;
-    changedFiles: string[];
-    rollbackArtifactPath: string | null;
-    notSignOff: true;
-  };
+  patchApplication: HermesWorkerEvidenceSummary["patchApplication"];
 }
 
 export function HermesWorkerPanel({ runId }: { runId: string }) {
@@ -60,6 +62,7 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
   const [busy, setBusy] = useState<"prepare" | "dispatch" | "apply" | "rollback" | null>(null);
   const [evidence, setEvidence] = useState<HermesEvidenceSummary | null>(null);
   const [applyReason, setApplyReason] = useState("");
+  const [rollbackReason, setRollbackReason] = useState("");
 
   const loadEvidence = useCallback(async () => {
     const res = await engineerConsoleFetch(
@@ -156,15 +159,16 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
   }
 
   const latestPrepared = dispatches.find((d) => d.status === "prepared");
-  const applyDispatchId = evidence?.dispatchId ?? dispatches[0]?.id;
-  const canApplyPatch =
-    evidence?.patchProposal?.available &&
-    evidence.patchApplication?.status === "not_applied" &&
-    !evidence.changesApplied &&
-    Boolean(applyDispatchId);
+  const hermesDispatchId = evidence?.dispatchId ?? dispatches[0]?.id;
+  const canApplyPatch = canShowHermesPatchApplyControls(evidence?.patchApplication, {
+    patchProposalAvailable: Boolean(evidence?.patchProposal?.available),
+    changesApplied: Boolean(evidence?.changesApplied),
+    hasDispatchId: Boolean(hermesDispatchId),
+  });
+  const canRollbackPatch = canShowHermesPatchRollbackControls(evidence?.patchApplication);
 
   async function handleApplyPatch() {
-    if (!applyDispatchId) return;
+    if (!hermesDispatchId) return;
     const reason = applyReason.trim();
     if (!reason) {
       setError("Approval reason is required before applying the patch.");
@@ -174,17 +178,14 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
     setMessage(null);
     setError(null);
     try {
-      const res = await engineerConsoleFetch(
-        `/api/engineer-console/runs/${runId}/hermes-worker/apply-patch`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            dispatchId: applyDispatchId,
-            operatorApproval: { approved: true, approvedBy: "operator", reason },
-          }),
-        },
-      );
+      const res = await engineerConsoleFetch(hermesWorkerApplyPatchPath(runId), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dispatchId: hermesDispatchId,
+          operatorApproval: { approved: true, approvedBy: "operator", reason },
+        }),
+      });
       const body = (await res.json()) as { error?: string; changedFiles?: string[] };
       if (!res.ok) {
         throw new Error(body.error ?? `HTTP ${res.status}`);
@@ -196,6 +197,41 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
       await load();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Apply patch failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleRollbackPatch() {
+    if (!hermesDispatchId) return;
+    const reason = rollbackReason.trim();
+    if (!reason) {
+      setError("Rollback reason is required before restoring files.");
+      return;
+    }
+    setBusy("rollback");
+    setMessage(null);
+    setError(null);
+    try {
+      const res = await engineerConsoleFetch(hermesWorkerRollbackPatchPath(runId), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dispatchId: hermesDispatchId,
+          operatorApproval: { approved: true, approvedBy: "operator", reason },
+        }),
+      });
+      const body = (await res.json()) as { error?: string; restoredFiles?: string[] };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setMessage(
+        `Patch rolled back (${body.restoredFiles?.length ?? 0} file(s) restored). Recorded in audit ledger — not sign-off.`,
+      );
+      setRollbackReason("");
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Rollback patch failed");
     } finally {
       setBusy(null);
     }
@@ -332,6 +368,61 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
                   rollback artifact: {evidence.patchApplication.rollbackArtifactPath}
                 </p>
               ) : null}
+
+              {canRollbackPatch ? (
+                <div className="mt-3 space-y-2 border-t border-[var(--border)] pt-3">
+                  <p className="rounded bg-[var(--surface)] p-2 text-xs text-[var(--danger)]">
+                    Rollback will modify repo files using the stored rollback artifact. Engineering
+                    Console owns rollback — not Hermes. This does not merge, deploy, or sign off
+                    the run.
+                  </p>
+                  <label className="block text-xs font-medium" htmlFor="hermes-rollback-reason">
+                    Rollback reason (required)
+                  </label>
+                  <textarea
+                    id="hermes-rollback-reason"
+                    className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+                    rows={3}
+                    value={rollbackReason}
+                    onChange={(e) => setRollbackReason(e.target.value)}
+                    placeholder="Why should this applied patch be rolled back now?"
+                  />
+                  <button
+                    type="button"
+                    className="rounded-[var(--radius-md)] border border-[var(--danger)] px-3 py-1.5 text-sm font-medium text-[var(--danger)] disabled:opacity-50"
+                    disabled={busy !== null || !rollbackReason.trim()}
+                    onClick={() => void handleRollbackPatch()}
+                  >
+                    {busy === "rollback" ? "Rolling back…" : "Rollback applied patch"}
+                  </button>
+                  <p className="text-xs text-[var(--muted)]">
+                    Audit: <code className="font-mono">HERMES_PATCH_ROLLBACK_APPLIED</code> (see run
+                    audit timeline)
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {evidence.patchApplication?.status === "rolled_back" ? (
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+              <p className="mb-2 font-medium">Patch rolled back (not sign-off)</p>
+              <p className="mb-2 text-[var(--muted)]">
+                Rolled back by {evidence.patchApplication.rolledBackBy ?? "—"} at{" "}
+                {evidence.patchApplication.rolledBackAt ?? "—"}
+              </p>
+              {evidence.patchApplication.rolledBackReason ? (
+                <p className="mb-2 text-xs text-[var(--muted)]">
+                  reason: {evidence.patchApplication.rolledBackReason}
+                </p>
+              ) : null}
+              <p className="font-mono text-xs text-[var(--muted)]">
+                previously changed: {evidence.patchApplication.changedFiles.join(", ") || "—"}
+              </p>
+              <p className="mt-2 text-xs text-[var(--muted)]">
+                Repository files were restored from the rollback artifact. Re-apply requires a new
+                operator approval if the proposal is still valid.
+              </p>
             </div>
           ) : null}
         </div>

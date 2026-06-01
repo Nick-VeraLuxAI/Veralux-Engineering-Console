@@ -21,6 +21,8 @@ export interface HermesPatchApplicationRecord {
   applyReason: string;
   appliedAt: string;
   rolledBackAt: string | null;
+  rolledBackBy: string | null;
+  rolledBackReason: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +41,8 @@ interface PatchApplicationRow {
   apply_reason: string;
   applied_at: string;
   rolled_back_at: string | null;
+  rolled_back_by: string | null;
+  rolled_back_reason: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +62,8 @@ function mapRow(row: PatchApplicationRow): HermesPatchApplicationRecord {
     applyReason: row.apply_reason,
     appliedAt: row.applied_at,
     rolledBackAt: row.rolled_back_at,
+    rolledBackBy: row.rolled_back_by,
+    rolledBackReason: row.rolled_back_reason,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -128,19 +134,26 @@ export function insertHermesPatchApplication(input: {
   return record;
 }
 
-export function markHermesPatchRolledBack(dispatchId: string): HermesPatchApplicationRecord {
+export function markHermesPatchRolledBack(
+  dispatchId: string,
+  input: { rolledBackBy: string; rolledBackReason: string },
+): HermesPatchApplicationRecord {
   const now = nowIso();
   getEngineerConsoleDb()
     .prepare(
       `UPDATE engineer_hermes_patch_applications SET
         status = 'rolled_back',
         rolled_back_at = @rolled_back_at,
+        rolled_back_by = @rolled_back_by,
+        rolled_back_reason = @rolled_back_reason,
         updated_at = @updated_at
        WHERE dispatch_id = @dispatch_id`,
     )
     .run({
       dispatch_id: dispatchId,
       rolled_back_at: now,
+      rolled_back_by: input.rolledBackBy,
+      rolled_back_reason: input.rolledBackReason,
       updated_at: now,
     });
   const record = getHermesPatchApplicationByDispatchId(dispatchId);

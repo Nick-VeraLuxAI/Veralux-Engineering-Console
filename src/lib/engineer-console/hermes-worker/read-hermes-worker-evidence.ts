@@ -20,6 +20,9 @@ function buildPatchApplicationSummary(
       appliedBy: null,
       changedFiles: [],
       rollbackArtifactPath: null,
+      rolledBackAt: null,
+      rolledBackBy: null,
+      rolledBackReason: null,
       notSignOff: true,
     };
   }
@@ -32,6 +35,9 @@ function buildPatchApplicationSummary(
       appliedBy: application.appliedBy,
       changedFiles,
       rollbackArtifactPath: application.rollbackArtifactPath,
+      rolledBackAt: application.rolledBackAt,
+      rolledBackBy: application.rolledBackBy,
+      rolledBackReason: application.rolledBackReason,
       notSignOff: true,
     };
   }
@@ -42,6 +48,9 @@ function buildPatchApplicationSummary(
       appliedBy: (evidence as { appliedBy?: string }).appliedBy ?? null,
       changedFiles: (evidence as { changedFiles?: string[] }).changedFiles ?? [],
       rollbackArtifactPath: (evidence as { rollbackArtifactPath?: string }).rollbackArtifactPath ?? null,
+      rolledBackAt: null,
+      rolledBackBy: null,
+      rolledBackReason: null,
       notSignOff: true,
     };
   }
@@ -51,6 +60,9 @@ function buildPatchApplicationSummary(
     appliedBy: null,
     changedFiles: [],
     rollbackArtifactPath: null,
+    rolledBackAt: null,
+    rolledBackBy: null,
+    rolledBackReason: null,
     notSignOff: true,
   };
 }

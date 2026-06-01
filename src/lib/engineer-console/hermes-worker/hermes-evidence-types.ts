@@ -89,6 +89,10 @@ export interface HermesWorkerEvidenceSummary {
     appliedBy: string | null;
     changedFiles: string[];
     rollbackArtifactPath: string | null;
+    rolledBackAt: string | null;
+    rolledBackBy: string | null;
+    /** Truncated for UI; full text in audit ledger. */
+    rolledBackReason: string | null;
     /** Application is not sign-off. */
     notSignOff: true;
   };
