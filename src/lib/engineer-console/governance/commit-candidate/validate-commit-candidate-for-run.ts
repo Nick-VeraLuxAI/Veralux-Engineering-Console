@@ -244,7 +244,7 @@ export function summarizeLatestCommitCandidateForBridge(runId: string): {
     createdBy: string | null;
     evidenceSnapshotHash: string | null;
     notCommitted: boolean;
-    notPushed: true;
+    notPushed: boolean;
     notMerged: true;
     notDeployed: true;
     notComplete: true;
@@ -285,7 +285,7 @@ export function summarizeLatestCommitCandidateForBridge(runId: string): {
       createdBy: latest.createdBy,
       evidenceSnapshotHash: latest.evidenceSnapshotHash,
       notCommitted: latest.notCommitted,
-      notPushed: true,
+      notPushed: latest.notPushed,
       notMerged: true,
       notDeployed: true,
       notComplete: true,
@@ -301,7 +301,7 @@ export function summarizeLatestLocalCommitForBridge(runId: string): {
     localCommitCreatedAt: string | null;
     localCommitCreatedBy: string | null;
     localCommitEvidencePath: string | null;
-    notPushed: true;
+    notPushed: boolean;
     notPrCreated: true;
     notMerged: true;
     notDeployed: true;
@@ -309,7 +309,11 @@ export function summarizeLatestLocalCommitForBridge(runId: string): {
   };
 } {
   const latest = getLatestCommitCandidateForRun(runId);
-  if (!latest || latest.status !== "local_commit_created") {
+  const hasLocalCommit =
+    latest &&
+    (latest.status === "local_commit_created" || latest.status === "remote_branch_pushed") &&
+    latest.localCommitHash;
+  if (!hasLocalCommit) {
     return {
       latestLocalCommit: {
         candidateId: latest?.id ?? null,
@@ -318,7 +322,7 @@ export function summarizeLatestLocalCommitForBridge(runId: string): {
         localCommitCreatedAt: null,
         localCommitCreatedBy: null,
         localCommitEvidencePath: null,
-        notPushed: true,
+        notPushed: latest?.notPushed ?? true,
         notPrCreated: true,
         notMerged: true,
         notDeployed: true,
@@ -334,7 +338,60 @@ export function summarizeLatestLocalCommitForBridge(runId: string): {
       localCommitCreatedAt: latest.localCommitCreatedAt,
       localCommitCreatedBy: latest.localCommitCreatedBy,
       localCommitEvidencePath: latest.localCommitEvidencePath,
-      notPushed: true,
+      notPushed: latest.notPushed,
+      notPrCreated: true,
+      notMerged: true,
+      notDeployed: true,
+      notComplete: true,
+    },
+  };
+}
+
+export function summarizeLatestRemoteBranchPushForBridge(runId: string): {
+  latestRemoteBranchPush: {
+    candidateId: string | null;
+    remotePushStatus: string | null;
+    remoteName: string | null;
+    remoteBranchName: string | null;
+    remoteRef: string | null;
+    remotePushedAt: string | null;
+    remotePushedBy: string | null;
+    remotePushEvidencePath: string | null;
+    notPrCreated: true;
+    notMerged: true;
+    notDeployed: true;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  if (!latest || latest.status !== "remote_branch_pushed") {
+    return {
+      latestRemoteBranchPush: {
+        candidateId: latest?.id ?? null,
+        remotePushStatus: latest?.remotePushStatus ?? null,
+        remoteName: null,
+        remoteBranchName: null,
+        remoteRef: null,
+        remotePushedAt: null,
+        remotePushedBy: null,
+        remotePushEvidencePath: null,
+        notPrCreated: true,
+        notMerged: true,
+        notDeployed: true,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestRemoteBranchPush: {
+      candidateId: latest.id,
+      remotePushStatus: latest.remotePushStatus,
+      remoteName: latest.remoteName,
+      remoteBranchName: latest.remoteBranchName,
+      remoteRef: latest.remoteRef,
+      remotePushedAt: latest.remotePushedAt,
+      remotePushedBy: latest.remotePushedBy,
+      remotePushEvidencePath: latest.remotePushEvidencePath,
       notPrCreated: true,
       notMerged: true,
       notDeployed: true,

@@ -16,6 +16,7 @@ import { listDeploymentEnvironments } from "../release/deployment-gates/deployme
 import {
   summarizeLatestCommitCandidateForBridge,
   summarizeLatestLocalCommitForBridge,
+  summarizeLatestRemoteBranchPushForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -76,7 +77,7 @@ export interface RunEvidenceSummaryForBridge {
     createdBy: string | null;
     evidenceSnapshotHash: string | null;
     notCommitted: boolean;
-    notPushed: true;
+    notPushed: boolean;
     notMerged: true;
     notDeployed: true;
     notComplete: true;
@@ -88,7 +89,21 @@ export interface RunEvidenceSummaryForBridge {
     localCommitCreatedAt: string | null;
     localCommitCreatedBy: string | null;
     localCommitEvidencePath: string | null;
-    notPushed: true;
+    notPushed: boolean;
+    notPrCreated: true;
+    notMerged: true;
+    notDeployed: true;
+    notComplete: true;
+  };
+  latestRemoteBranchPush: {
+    candidateId: string | null;
+    remotePushStatus: string | null;
+    remoteName: string | null;
+    remoteBranchName: string | null;
+    remoteRef: string | null;
+    remotePushedAt: string | null;
+    remotePushedBy: string | null;
+    remotePushEvidencePath: string | null;
     notPrCreated: true;
     notMerged: true;
     notDeployed: true;
@@ -223,6 +238,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const reviewSignoff = summarizeLatestEngineeringReviewSignoff(runId);
   const commitCandidate = summarizeLatestCommitCandidateForBridge(runId);
   const localCommit = summarizeLatestLocalCommitForBridge(runId);
+  const remotePush = summarizeLatestRemoteBranchPushForBridge(runId);
 
   return {
     runId: run.id,
@@ -258,6 +274,7 @@ export async function buildRunEvidenceSummaryForBridge(
     evidenceSnapshotHash: reviewSignoff.latestReviewSignoff.evidenceSnapshotHash,
     latestCommitCandidate: commitCandidate.latestCommitCandidate,
     latestLocalCommit: localCommit.latestLocalCommit,
+    latestRemoteBranchPush: remotePush.latestRemoteBranchPush,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

@@ -25,6 +25,14 @@ interface Row {
   local_commit_created_by: string | null;
   local_commit_reason: string | null;
   local_commit_evidence_path: string | null;
+  remote_push_status: string | null;
+  remote_name: string | null;
+  remote_branch_name: string | null;
+  remote_ref: string | null;
+  remote_pushed_at: string | null;
+  remote_pushed_by: string | null;
+  remote_push_reason: string | null;
+  remote_push_evidence_path: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -52,8 +60,16 @@ function mapRow(row: Row): CommitCandidateRecord {
     localCommitCreatedBy: row.local_commit_created_by ?? null,
     localCommitReason: row.local_commit_reason ?? null,
     localCommitEvidencePath: row.local_commit_evidence_path ?? null,
+    remotePushStatus: row.remote_push_status ?? null,
+    remoteName: row.remote_name ?? null,
+    remoteBranchName: row.remote_branch_name ?? null,
+    remoteRef: row.remote_ref ?? null,
+    remotePushedAt: row.remote_pushed_at ?? null,
+    remotePushedBy: row.remote_pushed_by ?? null,
+    remotePushReason: row.remote_push_reason ?? null,
+    remotePushEvidencePath: row.remote_push_evidence_path ?? null,
     notCommitted: row.not_committed !== 0,
-    notPushed: true,
+    notPushed: row.not_pushed !== 0,
     notMerged: true,
     notDeployed: true,
     notComplete: true,
@@ -70,6 +86,14 @@ export function insertCommitCandidate(
     | "localCommitCreatedBy"
     | "localCommitReason"
     | "localCommitEvidencePath"
+    | "remotePushStatus"
+    | "remoteName"
+    | "remoteBranchName"
+    | "remoteRef"
+    | "remotePushedAt"
+    | "remotePushedBy"
+    | "remotePushReason"
+    | "remotePushEvidencePath"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -114,6 +138,14 @@ export function insertCommitCandidate(
     localCommitCreatedBy: null,
     localCommitReason: null,
     localCommitEvidencePath: null,
+    remotePushStatus: null,
+    remoteName: null,
+    remoteBranchName: null,
+    remoteRef: null,
+    remotePushedAt: null,
+    remotePushedBy: null,
+    remotePushReason: null,
+    remotePushEvidencePath: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -169,5 +201,42 @@ export function markCommitCandidateLocalCommitCreated(input: {
       local_commit_created_by: input.localCommitCreatedBy,
       local_commit_reason: input.localCommitReason,
       local_commit_evidence_path: input.localCommitEvidencePath,
+    });
+}
+
+export function markCommitCandidateRemoteBranchPushed(input: {
+  candidateId: string;
+  remoteName: string;
+  remoteBranchName: string;
+  remoteRef: string;
+  remotePushedAt: string;
+  remotePushedBy: string;
+  remotePushReason: string;
+  remotePushEvidencePath: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'remote_branch_pushed',
+        remote_push_status = 'remote_branch_pushed',
+        remote_name = @remote_name,
+        remote_branch_name = @remote_branch_name,
+        remote_ref = @remote_ref,
+        remote_pushed_at = @remote_pushed_at,
+        remote_pushed_by = @remote_pushed_by,
+        remote_push_reason = @remote_push_reason,
+        remote_push_evidence_path = @remote_push_evidence_path,
+        not_pushed = 0
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      remote_name: input.remoteName,
+      remote_branch_name: input.remoteBranchName,
+      remote_ref: input.remoteRef,
+      remote_pushed_at: input.remotePushedAt,
+      remote_pushed_by: input.remotePushedBy,
+      remote_push_reason: input.remotePushReason,
+      remote_push_evidence_path: input.remotePushEvidencePath,
     });
 }

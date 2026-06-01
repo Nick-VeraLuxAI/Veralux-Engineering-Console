@@ -20,6 +20,9 @@ interface CommitCandidatePublic {
   notCommitted?: boolean;
   localCommitHash?: string | null;
   localCommitEvidencePath?: string | null;
+  notPushed?: boolean;
+  remoteRef?: string | null;
+  remotePushEvidencePath?: string | null;
 }
 
 interface ReviewSignoffLatest {
@@ -47,6 +50,13 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
   const [localCommitResult, setLocalCommitResult] = useState<{
     commitHash: string;
     commitEvidencePath: string;
+    branchName: string;
+  } | null>(null);
+  const [pushReason, setPushReason] = useState("");
+  const [remoteName, setRemoteName] = useState("origin");
+  const [pushResult, setPushResult] = useState<{
+    remoteRef: string;
+    pushEvidencePath: string;
     branchName: string;
   } | null>(null);
 
@@ -154,6 +164,62 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
       await load();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Local commit failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const canPushRemote =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest?.status === "local_commit_created" &&
+    Boolean(latest.localCommitHash) &&
+    latest.notPushed !== false;
+
+  async function handlePushRemote() {
+    const reason = pushReason.trim();
+    if (!reason) {
+      setError("Remote push approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate to push.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/push-branch`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            remoteName: remoteName.trim() || "origin",
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        remoteRef?: string;
+        pushEvidencePath?: string;
+        branchName?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setPushResult({
+        remoteRef: body.remoteRef ?? "",
+        pushEvidencePath: body.pushEvidencePath ?? "",
+        branchName: body.branchName ?? latest.branchName,
+      });
+      setMessage("Remote branch pushed. No PR created. Not merged. Not deployed.");
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Remote branch push failed");
     } finally {
       setBusy(false);
     }
@@ -318,8 +384,60 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
           <p className="mt-1 font-mono text-xs text-[var(--muted)]">
             evidence: {localCommitResult?.commitEvidencePath ?? latest?.localCommitEvidencePath}
           </p>
+          {latest?.notPushed !== false && !pushResult && !latest?.remoteRef ? (
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              Not pushed yet. Not merged. Not deployed. Run is not marked complete.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {canPushRemote ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Governed remote branch push (Phase 12C)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This pushes a remote branch only.</li>
+            <li>This does not create a PR.</li>
+            <li>This does not merge.</li>
+            <li>This does not deploy.</li>
+          </ul>
+          <p className="text-xs text-[var(--muted)]">
+            Remote: <span className="font-mono">{remoteName}</span> → branch{" "}
+            <span className="font-mono">{latest?.branchName}</span>
+          </p>
+          <label className="block text-xs font-medium" htmlFor="push-reason">
+            Remote push approval reason (required)
+          </label>
+          <textarea
+            id="push-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={pushReason}
+            onChange={(e) => setPushReason(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !pushReason.trim()}
+            onClick={() => void handlePushRemote()}
+          >
+            {busy ? "Pushing…" : "Push governed branch"}
+          </button>
+        </div>
+      ) : null}
+
+      {pushResult || latest?.remoteRef ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Remote branch pushed</p>
+          <p className="font-mono text-xs">
+            ref: {pushResult?.remoteRef ?? latest?.remoteRef}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            evidence: {pushResult?.pushEvidencePath ?? latest?.remotePushEvidencePath}
+          </p>
           <p className="mt-2 text-xs text-[var(--muted)]">
-            Not pushed. Not merged. Not deployed. Run is not marked complete.
+            No PR created. Not merged. Not deployed. Run is not marked complete.
           </p>
         </div>
       ) : null}
