@@ -20,6 +20,7 @@ import {
   summarizeLatestPullRequestForBridge,
   summarizeLatestMergeReadinessForBridge,
   summarizeLatestPullRequestMergeForBridge,
+  summarizeLatestDeployReadinessForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -159,6 +160,20 @@ export interface RunEvidenceSummaryForBridge {
   mergedAt: string | null;
   mergedBy: string | null;
   mergeEvidencePath: string | null;
+  latestDeployReadiness: {
+    candidateId: string | null;
+    deployReadinessStatus: string | null;
+    deployReadinessDecision: string | null;
+    deployReadinessReviewedAt: string | null;
+    deployReadinessReviewedBy: string | null;
+    deployReadinessEvidencePath: string | null;
+    notDeployed: true;
+    notComplete: true;
+  };
+  deployReadinessDecision: string | null;
+  deployReadinessReviewedAt: string | null;
+  deployReadinessReviewedBy: string | null;
+  deployReadinessEvidencePath: string | null;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -292,6 +307,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const pullRequest = summarizeLatestPullRequestForBridge(runId);
   const mergeReadinessReview = summarizeLatestMergeReadinessForBridge(runId);
   const pullRequestMerge = summarizeLatestPullRequestMergeForBridge(runId);
+  const deployReadinessReview = summarizeLatestDeployReadinessForBridge(runId);
 
   return {
     runId: run.id,
@@ -342,6 +358,14 @@ export async function buildRunEvidenceSummaryForBridge(
     mergedAt: pullRequestMerge.latestPullRequestMerge.mergedAt,
     mergedBy: pullRequestMerge.latestPullRequestMerge.mergedBy,
     mergeEvidencePath: pullRequestMerge.latestPullRequestMerge.mergeEvidencePath,
+    latestDeployReadiness: deployReadinessReview.latestDeployReadiness,
+    deployReadinessDecision: deployReadinessReview.latestDeployReadiness.deployReadinessDecision,
+    deployReadinessReviewedAt:
+      deployReadinessReview.latestDeployReadiness.deployReadinessReviewedAt,
+    deployReadinessReviewedBy:
+      deployReadinessReview.latestDeployReadiness.deployReadinessReviewedBy,
+    deployReadinessEvidencePath:
+      deployReadinessReview.latestDeployReadiness.deployReadinessEvidencePath,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

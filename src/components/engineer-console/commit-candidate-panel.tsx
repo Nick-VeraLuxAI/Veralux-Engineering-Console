@@ -40,6 +40,11 @@ interface CommitCandidatePublic {
   mergeCommitSha?: string | null;
   mergedAt?: string | null;
   mergeEvidencePath?: string | null;
+  deployReadinessStatus?: string | null;
+  deployReadinessDecision?: string | null;
+  deployReadinessReviewedAt?: string | null;
+  deployReadinessReviewedBy?: string | null;
+  deployReadinessEvidencePath?: string | null;
   notMerged?: boolean;
 }
 
@@ -101,6 +106,15 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     mergeCommitSha: string | null;
     mergeEvidencePath: string;
     pullRequestUrl: string;
+  } | null>(null);
+  const [deployReadinessDecision, setDeployReadinessDecision] = useState<
+    "ready" | "not_ready" | "blocked"
+  >("ready");
+  const [deployReadinessReason, setDeployReadinessReason] = useState("");
+  const [deployReadinessNotes, setDeployReadinessNotes] = useState("");
+  const [deployReadinessResult, setDeployReadinessResult] = useState<{
+    decision: string;
+    deployReadinessPath: string;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -250,6 +264,66 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     Boolean(latest.prUrl) &&
     Boolean(latest.prNumber) &&
     latest.mergeStatus !== "pull_request_merged";
+
+  const canRecordDeployReadiness =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest &&
+    (latest.status === "pull_request_merged" ||
+      latest.status === "deploy_readiness_recorded" ||
+      latest.mergeStatus === "pull_request_merged") &&
+    Boolean(latest.mergeEvidencePath) &&
+    Boolean(latest.mergeCommitSha || latest.mergeStatus === "pull_request_merged");
+
+  async function handleRecordDeployReadiness() {
+    const reason = deployReadinessReason.trim();
+    if (!reason) {
+      setError("Deploy readiness approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate for deploy readiness review.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/deploy-readiness`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            decision: deployReadinessDecision,
+            notes: deployReadinessNotes.trim() || undefined,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        decision?: string;
+        deployReadinessPath?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setDeployReadinessResult({
+        decision: body.decision ?? deployReadinessDecision,
+        deployReadinessPath: body.deployReadinessPath ?? "",
+      });
+      setMessage(
+        "Deploy readiness recorded. This does not deploy or mark the run complete.",
+      );
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Deploy readiness recording failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleMergePr() {
     const reason = mergeReason.trim();
@@ -926,6 +1000,97 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
           </p>
           <p className="mt-2 text-xs text-[var(--muted)]">
             Not deployed. Run is not marked complete. Branch was not deleted.
+          </p>
+        </div>
+      ) : null}
+
+      {canRecordDeployReadiness ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Deploy readiness review (Phase 16)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This records deploy readiness only.</li>
+            <li>This does not deploy.</li>
+            <li>This does not mark the run complete.</li>
+          </ul>
+          <div className="rounded bg-[var(--surface-inset)] p-2 text-xs text-[var(--muted)]">
+            <p>Merge status: {latest?.mergeStatus ?? latest?.status ?? "—"}</p>
+            <p className="font-mono">PR: {latest?.prUrl ?? "—"}</p>
+            <p className="font-mono">number: {latest?.prNumber ?? "—"}</p>
+            <p className="font-mono">
+              merge commit: {latest?.mergeCommitSha ?? "—"}
+            </p>
+            <p>Quality gates: {evidence?.postApplyQualityGates?.overallStatus ?? "—"}</p>
+            <p>Sign-off: {signoff?.decision ?? "—"} ({signoff?.reviewer ?? "—"})</p>
+          </div>
+          <label className="block text-xs font-medium" htmlFor="deploy-readiness-decision">
+            Decision
+          </label>
+          <select
+            id="deploy-readiness-decision"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 text-xs"
+            value={deployReadinessDecision}
+            onChange={(e) =>
+              setDeployReadinessDecision(e.target.value as "ready" | "not_ready" | "blocked")
+            }
+            disabled={busy}
+          >
+            <option value="ready">ready</option>
+            <option value="not_ready">not_ready</option>
+            <option value="blocked">blocked</option>
+          </select>
+          <label className="block text-xs font-medium" htmlFor="deploy-readiness-reason">
+            Operator reason (required)
+          </label>
+          <textarea
+            id="deploy-readiness-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={deployReadinessReason}
+            onChange={(e) => setDeployReadinessReason(e.target.value)}
+            disabled={busy}
+          />
+          <label className="block text-xs font-medium" htmlFor="deploy-readiness-notes">
+            Notes (optional)
+          </label>
+          <textarea
+            id="deploy-readiness-notes"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={deployReadinessNotes}
+            onChange={(e) => setDeployReadinessNotes(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !deployReadinessReason.trim()}
+            onClick={() => void handleRecordDeployReadiness()}
+          >
+            {busy ? "Recording…" : "Record deploy readiness"}
+          </button>
+        </div>
+      ) : null}
+
+      {deployReadinessResult ||
+      latest?.deployReadinessDecision ||
+      latest?.deployReadinessStatus === "deploy_readiness_recorded" ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Deploy readiness recorded</p>
+          <p className="text-xs">
+            decision:{" "}
+            {deployReadinessResult?.decision ?? latest?.deployReadinessDecision ?? "—"}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            evidence:{" "}
+            {deployReadinessResult?.deployReadinessPath ?? latest?.deployReadinessEvidencePath}
+          </p>
+          {latest?.deployReadinessReviewedAt ? (
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              reviewed: {latest.deployReadinessReviewedBy} at {latest.deployReadinessReviewedAt}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Not deployed. Run is not marked complete.
           </p>
         </div>
       ) : null}

@@ -115,5 +115,18 @@ export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
         db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
       }
     }
+    const deployReadinessColumns = [
+      ["deploy_readiness_status", "TEXT"],
+      ["deploy_readiness_decision", "TEXT"],
+      ["deploy_readiness_reviewed_at", "TEXT"],
+      ["deploy_readiness_reviewed_by", "TEXT"],
+      ["deploy_readiness_reason", "TEXT"],
+      ["deploy_readiness_evidence_path", "TEXT"],
+    ] as const;
+    for (const [name, type] of deployReadinessColumns) {
+      if (!commitCandidateColumns.some((c) => c.name === name)) {
+        db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
+      }
+    }
   }
 }

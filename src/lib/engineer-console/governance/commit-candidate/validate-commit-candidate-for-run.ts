@@ -561,3 +561,48 @@ export function summarizeLatestPullRequestMergeForBridge(runId: string): {
     },
   };
 }
+
+export function summarizeLatestDeployReadinessForBridge(runId: string): {
+  latestDeployReadiness: {
+    candidateId: string | null;
+    deployReadinessStatus: string | null;
+    deployReadinessDecision: string | null;
+    deployReadinessReviewedAt: string | null;
+    deployReadinessReviewedBy: string | null;
+    deployReadinessEvidencePath: string | null;
+    notDeployed: true;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const hasDeployReadiness =
+    latest &&
+    (latest.status === "deploy_readiness_recorded" ||
+      latest.deployReadinessStatus === "deploy_readiness_recorded");
+  if (!hasDeployReadiness) {
+    return {
+      latestDeployReadiness: {
+        candidateId: latest?.id ?? null,
+        deployReadinessStatus: latest?.deployReadinessStatus ?? null,
+        deployReadinessDecision: null,
+        deployReadinessReviewedAt: null,
+        deployReadinessReviewedBy: null,
+        deployReadinessEvidencePath: null,
+        notDeployed: true,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestDeployReadiness: {
+      candidateId: latest.id,
+      deployReadinessStatus: latest.deployReadinessStatus,
+      deployReadinessDecision: latest.deployReadinessDecision,
+      deployReadinessReviewedAt: latest.deployReadinessReviewedAt,
+      deployReadinessReviewedBy: latest.deployReadinessReviewedBy,
+      deployReadinessEvidencePath: latest.deployReadinessEvidencePath,
+      notDeployed: true,
+      notComplete: true,
+    },
+  };
+}

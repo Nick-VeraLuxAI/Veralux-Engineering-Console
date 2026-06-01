@@ -56,6 +56,12 @@ interface Row {
   merged_by: string | null;
   merge_reason: string | null;
   merge_evidence_path: string | null;
+  deploy_readiness_status: string | null;
+  deploy_readiness_decision: string | null;
+  deploy_readiness_reviewed_at: string | null;
+  deploy_readiness_reviewed_by: string | null;
+  deploy_readiness_reason: string | null;
+  deploy_readiness_evidence_path: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -114,6 +120,12 @@ function mapRow(row: Row): CommitCandidateRecord {
     mergedBy: row.merged_by ?? null,
     mergeReason: row.merge_reason ?? null,
     mergeEvidencePath: row.merge_evidence_path ?? null,
+    deployReadinessStatus: row.deploy_readiness_status ?? null,
+    deployReadinessDecision: row.deploy_readiness_decision ?? null,
+    deployReadinessReviewedAt: row.deploy_readiness_reviewed_at ?? null,
+    deployReadinessReviewedBy: row.deploy_readiness_reviewed_by ?? null,
+    deployReadinessReason: row.deploy_readiness_reason ?? null,
+    deployReadinessEvidencePath: row.deploy_readiness_evidence_path ?? null,
     notCommitted: row.not_committed !== 0,
     notPushed: row.not_pushed !== 0,
     notMerged: row.not_merged !== 0,
@@ -163,6 +175,12 @@ export function insertCommitCandidate(
     | "mergedBy"
     | "mergeReason"
     | "mergeEvidencePath"
+    | "deployReadinessStatus"
+    | "deployReadinessDecision"
+    | "deployReadinessReviewedAt"
+    | "deployReadinessReviewedBy"
+    | "deployReadinessReason"
+    | "deployReadinessEvidencePath"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -238,6 +256,12 @@ export function insertCommitCandidate(
     mergedBy: null,
     mergeReason: null,
     mergeEvidencePath: null,
+    deployReadinessStatus: null,
+    deployReadinessDecision: null,
+    deployReadinessReviewedAt: null,
+    deployReadinessReviewedBy: null,
+    deployReadinessReason: null,
+    deployReadinessEvidencePath: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -439,5 +463,35 @@ export function markCommitCandidatePullRequestMerged(input: {
       merged_by: input.mergedBy,
       merge_reason: input.mergeReason,
       merge_evidence_path: input.mergeEvidencePath,
+    });
+}
+
+export function markCommitCandidateDeployReadinessRecorded(input: {
+  candidateId: string;
+  deployReadinessDecision: string;
+  deployReadinessReviewedAt: string;
+  deployReadinessReviewedBy: string;
+  deployReadinessReason: string;
+  deployReadinessEvidencePath: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'deploy_readiness_recorded',
+        deploy_readiness_status = 'deploy_readiness_recorded',
+        deploy_readiness_decision = @deploy_readiness_decision,
+        deploy_readiness_reviewed_at = @deploy_readiness_reviewed_at,
+        deploy_readiness_reviewed_by = @deploy_readiness_reviewed_by,
+        deploy_readiness_reason = @deploy_readiness_reason,
+        deploy_readiness_evidence_path = @deploy_readiness_evidence_path
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      deploy_readiness_decision: input.deployReadinessDecision,
+      deploy_readiness_reviewed_at: input.deployReadinessReviewedAt,
+      deploy_readiness_reviewed_by: input.deployReadinessReviewedBy,
+      deploy_readiness_reason: input.deployReadinessReason,
+      deploy_readiness_evidence_path: input.deployReadinessEvidencePath,
     });
 }
