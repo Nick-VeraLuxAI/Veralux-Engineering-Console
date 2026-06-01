@@ -33,6 +33,16 @@ interface Row {
   remote_pushed_by: string | null;
   remote_push_reason: string | null;
   remote_push_evidence_path: string | null;
+  pr_status: string | null;
+  pr_provider: string | null;
+  pr_base_branch: string | null;
+  pr_head_branch: string | null;
+  pr_url: string | null;
+  pr_number: string | null;
+  pr_created_at: string | null;
+  pr_created_by: string | null;
+  pr_create_reason: string | null;
+  pr_evidence_path: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -68,6 +78,16 @@ function mapRow(row: Row): CommitCandidateRecord {
     remotePushedBy: row.remote_pushed_by ?? null,
     remotePushReason: row.remote_push_reason ?? null,
     remotePushEvidencePath: row.remote_push_evidence_path ?? null,
+    prStatus: row.pr_status ?? null,
+    prProvider: row.pr_provider ?? null,
+    prBaseBranch: row.pr_base_branch ?? null,
+    prHeadBranch: row.pr_head_branch ?? null,
+    prUrl: row.pr_url ?? null,
+    prNumber: row.pr_number ?? null,
+    prCreatedAt: row.pr_created_at ?? null,
+    prCreatedBy: row.pr_created_by ?? null,
+    prCreateReason: row.pr_create_reason ?? null,
+    prEvidencePath: row.pr_evidence_path ?? null,
     notCommitted: row.not_committed !== 0,
     notPushed: row.not_pushed !== 0,
     notMerged: true,
@@ -94,6 +114,16 @@ export function insertCommitCandidate(
     | "remotePushedBy"
     | "remotePushReason"
     | "remotePushEvidencePath"
+    | "prStatus"
+    | "prProvider"
+    | "prBaseBranch"
+    | "prHeadBranch"
+    | "prUrl"
+    | "prNumber"
+    | "prCreatedAt"
+    | "prCreatedBy"
+    | "prCreateReason"
+    | "prEvidencePath"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -146,6 +176,16 @@ export function insertCommitCandidate(
     remotePushedBy: null,
     remotePushReason: null,
     remotePushEvidencePath: null,
+    prStatus: null,
+    prProvider: null,
+    prBaseBranch: null,
+    prHeadBranch: null,
+    prUrl: null,
+    prNumber: null,
+    prCreatedAt: null,
+    prCreatedBy: null,
+    prCreateReason: null,
+    prEvidencePath: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -238,5 +278,50 @@ export function markCommitCandidateRemoteBranchPushed(input: {
       remote_pushed_by: input.remotePushedBy,
       remote_push_reason: input.remotePushReason,
       remote_push_evidence_path: input.remotePushEvidencePath,
+    });
+}
+
+export function markCommitCandidatePullRequestCreated(input: {
+  candidateId: string;
+  status: "pull_request_created" | "pull_request_packet_prepared";
+  prProvider: string;
+  prBaseBranch: string;
+  prHeadBranch: string;
+  prUrl: string | null;
+  prNumber: string | null;
+  prCreatedAt: string;
+  prCreatedBy: string;
+  prCreateReason: string;
+  prEvidencePath: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = @status,
+        pr_status = @pr_status,
+        pr_provider = @pr_provider,
+        pr_base_branch = @pr_base_branch,
+        pr_head_branch = @pr_head_branch,
+        pr_url = @pr_url,
+        pr_number = @pr_number,
+        pr_created_at = @pr_created_at,
+        pr_created_by = @pr_created_by,
+        pr_create_reason = @pr_create_reason,
+        pr_evidence_path = @pr_evidence_path
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      status: input.status,
+      pr_status: input.status,
+      pr_provider: input.prProvider,
+      pr_base_branch: input.prBaseBranch,
+      pr_head_branch: input.prHeadBranch,
+      pr_url: input.prUrl,
+      pr_number: input.prNumber,
+      pr_created_at: input.prCreatedAt,
+      pr_created_by: input.prCreatedBy,
+      pr_create_reason: input.prCreateReason,
+      pr_evidence_path: input.prEvidencePath,
     });
 }

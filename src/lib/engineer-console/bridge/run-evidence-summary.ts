@@ -17,6 +17,7 @@ import {
   summarizeLatestCommitCandidateForBridge,
   summarizeLatestLocalCommitForBridge,
   summarizeLatestRemoteBranchPushForBridge,
+  summarizeLatestPullRequestForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -104,7 +105,22 @@ export interface RunEvidenceSummaryForBridge {
     remotePushedAt: string | null;
     remotePushedBy: string | null;
     remotePushEvidencePath: string | null;
-    notPrCreated: true;
+    notPrCreated: boolean;
+    notMerged: true;
+    notDeployed: true;
+    notComplete: true;
+  };
+  latestPullRequest: {
+    candidateId: string | null;
+    pullRequestStatus: string | null;
+    prProvider: string | null;
+    prUrl: string | null;
+    prNumber: string | null;
+    prBaseBranch: string | null;
+    prHeadBranch: string | null;
+    prCreatedAt: string | null;
+    prCreatedBy: string | null;
+    prEvidencePath: string | null;
     notMerged: true;
     notDeployed: true;
     notComplete: true;
@@ -239,6 +255,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const commitCandidate = summarizeLatestCommitCandidateForBridge(runId);
   const localCommit = summarizeLatestLocalCommitForBridge(runId);
   const remotePush = summarizeLatestRemoteBranchPushForBridge(runId);
+  const pullRequest = summarizeLatestPullRequestForBridge(runId);
 
   return {
     runId: run.id,
@@ -275,6 +292,7 @@ export async function buildRunEvidenceSummaryForBridge(
     latestCommitCandidate: commitCandidate.latestCommitCandidate,
     latestLocalCommit: localCommit.latestLocalCommit,
     latestRemoteBranchPush: remotePush.latestRemoteBranchPush,
+    latestPullRequest: pullRequest.latestPullRequest,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

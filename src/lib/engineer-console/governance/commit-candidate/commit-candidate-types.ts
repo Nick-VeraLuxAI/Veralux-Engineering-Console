@@ -2,12 +2,16 @@ export const ENGINEERING_COMMIT_PR_CANDIDATE_SCHEMA = "engineering-commit-pr-can
 export const ENGINEERING_LOCAL_COMMIT_RESULT_SCHEMA = "engineering-local-commit-result/v1" as const;
 export const ENGINEERING_REMOTE_BRANCH_PUSH_RESULT_SCHEMA =
   "engineering-remote-branch-push-result/v1" as const;
+export const ENGINEERING_PULL_REQUEST_RESULT_SCHEMA =
+  "engineering-pull-request-result/v1" as const;
 
 export type CommitCandidateStatus =
   | "prepared"
   | "commit_candidate_prepared"
   | "local_commit_created"
   | "remote_branch_pushed"
+  | "pull_request_created"
+  | "pull_request_packet_prepared"
   | "rejected";
 
 export interface EngineeringCommitPrCandidatePacketV1 {
@@ -63,6 +67,16 @@ export interface CommitCandidateRecord {
   remotePushedBy: string | null;
   remotePushReason: string | null;
   remotePushEvidencePath: string | null;
+  prStatus: string | null;
+  prProvider: string | null;
+  prBaseBranch: string | null;
+  prHeadBranch: string | null;
+  prUrl: string | null;
+  prNumber: string | null;
+  prCreatedAt: string | null;
+  prCreatedBy: string | null;
+  prCreateReason: string | null;
+  prEvidencePath: string | null;
   notCommitted: boolean;
   notPushed: boolean;
   notMerged: true;

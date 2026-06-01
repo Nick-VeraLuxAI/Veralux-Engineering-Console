@@ -71,5 +71,22 @@ export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
         `ALTER TABLE engineer_commit_candidates ADD COLUMN remote_push_evidence_path TEXT`,
       );
     }
+    const prColumns = [
+      ["pr_status", "TEXT"],
+      ["pr_provider", "TEXT"],
+      ["pr_base_branch", "TEXT"],
+      ["pr_head_branch", "TEXT"],
+      ["pr_url", "TEXT"],
+      ["pr_number", "TEXT"],
+      ["pr_created_at", "TEXT"],
+      ["pr_created_by", "TEXT"],
+      ["pr_create_reason", "TEXT"],
+      ["pr_evidence_path", "TEXT"],
+    ] as const;
+    for (const [name, type] of prColumns) {
+      if (!commitCandidateColumns.some((c) => c.name === name)) {
+        db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
+      }
+    }
   }
 }

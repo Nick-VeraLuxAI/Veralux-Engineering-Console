@@ -22,7 +22,13 @@ interface CommitCandidatePublic {
   localCommitEvidencePath?: string | null;
   notPushed?: boolean;
   remoteRef?: string | null;
+  remoteBranchName?: string | null;
   remotePushEvidencePath?: string | null;
+  prStatus?: string | null;
+  prUrl?: string | null;
+  prNumber?: string | null;
+  prEvidencePath?: string | null;
+  prBaseBranch?: string | null;
 }
 
 interface ReviewSignoffLatest {
@@ -59,6 +65,15 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     pushEvidencePath: string;
     branchName: string;
   } | null>(null);
+  const [githubPrAvailable, setGithubPrAvailable] = useState(true);
+  const [baseBranch, setBaseBranch] = useState("main");
+  const [prReason, setPrReason] = useState("");
+  const [prResult, setPrResult] = useState<{
+    pullRequestUrl: string | null;
+    pullRequestNumber: number | null;
+    prEvidencePath: string;
+    status: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     const [evidenceRes, signoffRes, candidateRes] = await Promise.all([
@@ -84,7 +99,9 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
       const body = (await candidateRes.json()) as {
         latest: CommitCandidatePublic | null;
         history: CommitCandidatePublic[];
+        githubPrCreationAvailable?: boolean;
       };
+      setGithubPrAvailable(body.githubPrCreationAvailable !== false);
       setLatest(body.latest);
       setHistory(body.history);
       if (body.latest?.prDraftPath) {
@@ -175,6 +192,71 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     latest?.status === "local_commit_created" &&
     Boolean(latest.localCommitHash) &&
     latest.notPushed !== false;
+
+  const canCreatePr =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest?.status === "remote_branch_pushed" &&
+    Boolean(latest.remoteRef) &&
+    !latest.prUrl &&
+    latest.prStatus !== "pull_request_created" &&
+    latest.prStatus !== "pull_request_packet_prepared";
+
+  async function handleCreatePr(mode: "create_pr" | "prepare_packet") {
+    const reason = prReason.trim();
+    if (!reason) {
+      setError("PR creation approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate for PR creation.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/create-pr`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            baseBranch: baseBranch.trim() || "main",
+            mode,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        status?: string;
+        pullRequestUrl?: string | null;
+        pullRequestNumber?: number | null;
+        prEvidencePath?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setPrResult({
+        pullRequestUrl: body.pullRequestUrl ?? null,
+        pullRequestNumber: body.pullRequestNumber ?? null,
+        prEvidencePath: body.prEvidencePath ?? "",
+        status: body.status ?? "",
+      });
+      setMessage(
+        body.status === "pull_request_created"
+          ? "Governed pull request created. Not merged. Not deployed."
+          : "PR packet prepared (no GitHub PR created). Not merged. Not deployed.",
+      );
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "PR creation failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handlePushRemote() {
     const reason = pushReason.trim();
@@ -438,6 +520,89 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
           </p>
           <p className="mt-2 text-xs text-[var(--muted)]">
             No PR created. Not merged. Not deployed. Run is not marked complete.
+          </p>
+        </div>
+      ) : null}
+
+      {canCreatePr ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Governed pull request (Phase 13)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This creates or prepares a pull request only.</li>
+            <li>This does not merge.</li>
+            <li>This does not deploy.</li>
+            <li>This does not mark the run complete.</li>
+          </ul>
+          <p className="text-xs text-[var(--muted)]">
+            Head branch: <span className="font-mono">{latest?.remoteBranchName ?? latest?.branchName}</span>
+          </p>
+          <p className="text-xs text-[var(--muted)]">
+            PR title (from task): {latest?.commitMessage ?? "—"}
+          </p>
+          <label className="block text-xs font-medium" htmlFor="base-branch">
+            Base branch
+          </label>
+          <input
+            id="base-branch"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            value={baseBranch}
+            onChange={(e) => setBaseBranch(e.target.value)}
+            disabled={busy}
+          />
+          <label className="block text-xs font-medium" htmlFor="pr-reason">
+            PR creation approval reason (required)
+          </label>
+          <textarea
+            id="pr-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={prReason}
+            onChange={(e) => setPrReason(e.target.value)}
+            disabled={busy}
+          />
+          <div className="flex flex-wrap gap-2">
+            {githubPrAvailable ? (
+              <button
+                type="button"
+                className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+                disabled={busy || !prReason.trim()}
+                onClick={() => void handleCreatePr("create_pr")}
+              >
+                {busy ? "Creating…" : "Create governed PR"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+              disabled={busy || !prReason.trim()}
+              onClick={() => void handleCreatePr("prepare_packet")}
+            >
+              {busy ? "Preparing…" : "Prepare PR packet"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {prResult || latest?.prUrl || latest?.prStatus ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Pull request recorded</p>
+          {prResult?.pullRequestUrl ?? latest?.prUrl ? (
+            <p className="font-mono text-xs">
+              url: {prResult?.pullRequestUrl ?? latest?.prUrl}
+            </p>
+          ) : (
+            <p className="text-xs text-[var(--muted)]">No GitHub PR URL (packet-only mode).</p>
+          )}
+          {(prResult?.pullRequestNumber ?? latest?.prNumber) ? (
+            <p className="font-mono text-xs">
+              number: {prResult?.pullRequestNumber ?? latest?.prNumber}
+            </p>
+          ) : null}
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            evidence: {prResult?.prEvidencePath ?? latest?.prEvidencePath}
+          </p>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Not merged. Not deployed. Run is not marked complete.
           </p>
         </div>
       ) : null}

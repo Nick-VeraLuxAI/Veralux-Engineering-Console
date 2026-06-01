@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listCommitCandidatesForRun } from "@/lib/engineer-console/governance/commit-candidate/commit-candidate-manager";
+import { isGovernedGithubPrClientEnabled } from "@/lib/engineer-console/governance/commit-candidate/governed-github-pr";
 import { getRunById } from "@/lib/engineer-console/run-manager/run-manager";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import { authorizeRead } from "@/lib/engineer-console/security/route-guards";
@@ -44,6 +45,13 @@ export async function GET(
     remotePushedAt: row.remotePushedAt,
     remotePushedBy: row.remotePushedBy,
     remotePushEvidencePath: row.remotePushEvidencePath,
+    prStatus: row.prStatus,
+    prProvider: row.prProvider,
+    prUrl: row.prUrl,
+    prNumber: row.prNumber,
+    prBaseBranch: row.prBaseBranch,
+    prHeadBranch: row.prHeadBranch,
+    prEvidencePath: row.prEvidencePath,
     notPushed: row.notPushed,
     notMerged: true as const,
     notDeployed: true as const,
@@ -52,6 +60,7 @@ export async function GET(
 
   return NextResponse.json({
     runId,
+    githubPrCreationAvailable: isGovernedGithubPrClientEnabled(),
     latest: candidates[0] ?? null,
     history: candidates,
   });

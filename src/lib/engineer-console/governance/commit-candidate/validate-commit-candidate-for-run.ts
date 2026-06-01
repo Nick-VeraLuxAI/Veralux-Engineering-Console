@@ -357,14 +357,20 @@ export function summarizeLatestRemoteBranchPushForBridge(runId: string): {
     remotePushedAt: string | null;
     remotePushedBy: string | null;
     remotePushEvidencePath: string | null;
-    notPrCreated: true;
+    notPrCreated: boolean;
     notMerged: true;
     notDeployed: true;
     notComplete: true;
   };
 } {
   const latest = getLatestCommitCandidateForRun(runId);
-  if (!latest || latest.status !== "remote_branch_pushed") {
+  const hasRemotePush =
+    latest &&
+    (latest.status === "remote_branch_pushed" ||
+      latest.status === "pull_request_created" ||
+      latest.status === "pull_request_packet_prepared") &&
+    latest.remoteRef;
+  if (!hasRemotePush) {
     return {
       latestRemoteBranchPush: {
         candidateId: latest?.id ?? null,
@@ -392,7 +398,67 @@ export function summarizeLatestRemoteBranchPushForBridge(runId: string): {
       remotePushedAt: latest.remotePushedAt,
       remotePushedBy: latest.remotePushedBy,
       remotePushEvidencePath: latest.remotePushEvidencePath,
-      notPrCreated: true,
+      notPrCreated: !(latest.prUrl || latest.status === "pull_request_created"),
+      notMerged: true,
+      notDeployed: true,
+      notComplete: true,
+    },
+  };
+}
+
+export function summarizeLatestPullRequestForBridge(runId: string): {
+  latestPullRequest: {
+    candidateId: string | null;
+    pullRequestStatus: string | null;
+    prProvider: string | null;
+    prUrl: string | null;
+    prNumber: string | null;
+    prBaseBranch: string | null;
+    prHeadBranch: string | null;
+    prCreatedAt: string | null;
+    prCreatedBy: string | null;
+    prEvidencePath: string | null;
+    notMerged: true;
+    notDeployed: true;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const hasPr =
+    latest &&
+    (latest.status === "pull_request_created" ||
+      latest.status === "pull_request_packet_prepared");
+  if (!hasPr) {
+    return {
+      latestPullRequest: {
+        candidateId: latest?.id ?? null,
+        pullRequestStatus: latest?.prStatus ?? null,
+        prProvider: null,
+        prUrl: null,
+        prNumber: null,
+        prBaseBranch: null,
+        prHeadBranch: null,
+        prCreatedAt: null,
+        prCreatedBy: null,
+        prEvidencePath: null,
+        notMerged: true,
+        notDeployed: true,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestPullRequest: {
+      candidateId: latest.id,
+      pullRequestStatus: latest.prStatus,
+      prProvider: latest.prProvider,
+      prUrl: latest.prUrl,
+      prNumber: latest.prNumber,
+      prBaseBranch: latest.prBaseBranch,
+      prHeadBranch: latest.prHeadBranch,
+      prCreatedAt: latest.prCreatedAt,
+      prCreatedBy: latest.prCreatedBy,
+      prEvidencePath: latest.prEvidencePath,
       notMerged: true,
       notDeployed: true,
       notComplete: true,
