@@ -13,6 +13,8 @@ import { summarizeReviewStages, listReviewStagesForRun } from "../governance/rev
 import { evaluateMergeReadiness } from "../release/merge-controls/evaluate-merge-readiness";
 import { evaluateDeploymentReadiness } from "../release/deployment-gates/evaluate-deployment-readiness";
 import { listDeploymentEnvironments } from "../release/deployment-gates/deployment-environments";
+import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
+import type { HermesWorkerEvidenceSummary } from "../hermes-worker/hermes-evidence-types";
 
 export type BridgeGateStatus = "passed" | "failed" | "skipped" | "not_run";
 
@@ -39,6 +41,7 @@ export interface RunEvidenceSummaryForBridge {
   warnings: string[];
   replayStatus: string | null;
   evidenceBundleExists: boolean;
+  hermesWorkerEvidence: HermesWorkerEvidenceSummary;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -164,6 +167,8 @@ export async function buildRunEvidenceSummaryForBridge(
     (uxSummary.release.checklistStatus === "passed" ||
       uxSummary.hardGates.signoffCompletedStatus === "blocked");
 
+  const hermesEvidence = ingestHermesWorkerEvidenceForRun(runId);
+
   return {
     runId: run.id,
     taskId: task.id,
@@ -187,6 +192,7 @@ export async function buildRunEvidenceSummaryForBridge(
     warnings,
     replayStatus: uxSummary.replay.status,
     evidenceBundleExists: uxSummary.evidence.exists,
+    hermesWorkerEvidence: hermesEvidence.summary,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

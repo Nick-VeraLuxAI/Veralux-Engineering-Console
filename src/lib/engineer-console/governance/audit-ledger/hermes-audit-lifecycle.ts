@@ -56,3 +56,20 @@ export function auditHermesEvidencePlaceholderCreated(
     payload,
   });
 }
+
+export function auditHermesEvidenceReceived(
+  runId: string,
+  taskId: string,
+  dispatchId: string,
+  payload: Record<string, unknown>,
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.HERMES_EVIDENCE_RECEIVED,
+    entityType: AUDIT_ENTITY_TYPES.HERMES_WORKER,
+    entityId: dispatchId,
+    actorType: AUDIT_ACTOR_TYPES.SYSTEM,
+    taskId,
+    runId,
+    payload,
+  });
+}

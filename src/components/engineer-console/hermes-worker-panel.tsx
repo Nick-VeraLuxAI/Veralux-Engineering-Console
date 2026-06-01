@@ -18,12 +18,34 @@ interface HermesDispatchPublic {
   workerBackend: string;
 }
 
+interface HermesEvidenceSummary {
+  available: boolean;
+  dispatchId: string | null;
+  status: string | null;
+  inspectedAt: string | null;
+  instructionsSummary: string | null;
+  filesInspectedCount: number;
+  boundaryValid: boolean | null;
+  evidenceOnlyNotSignOff: true;
+  proposedChangesMode: string | null;
+}
+
 export function HermesWorkerPanel({ runId }: { runId: string }) {
   const [dispatches, setDispatches] = useState<HermesDispatchPublic[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<"prepare" | "dispatch" | null>(null);
+  const [evidence, setEvidence] = useState<HermesEvidenceSummary | null>(null);
+
+  const loadEvidence = useCallback(async () => {
+    const res = await engineerConsoleFetch(
+      `/api/engineer-console/runs/${runId}/hermes-worker/evidence`,
+    );
+    if (!res.ok) return;
+    const body = (await res.json()) as { summary: HermesEvidenceSummary };
+    setEvidence(body.summary);
+  }, [runId]);
 
   const load = useCallback(async () => {
     const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/hermes-worker`);
@@ -34,7 +56,8 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
     const body = (await res.json()) as { dispatches: HermesDispatchPublic[] };
     setDispatches(body.dispatches);
     setError(null);
-  }, [runId]);
+    await loadEvidence();
+  }, [runId, loadEvidence]);
 
   useEffect(() => {
     setLoading(true);
@@ -138,6 +161,30 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
 
       {message ? <p className="mb-2 text-sm text-[var(--success)]">{message}</p> : null}
       {error ? <p className="mb-2 text-sm text-[var(--danger)]">{error}</p> : null}
+
+      {evidence?.available ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-2 font-medium">Returned Hermes evidence (review only)</p>
+          <p className="mb-2 text-[var(--muted)]">
+            Status: {evidence.status ?? "—"} · Not sign-off · Engineering Console remains
+            source-of-truth.
+          </p>
+          {evidence.instructionsSummary ? (
+            <p className="mb-2 text-[var(--muted)]">{evidence.instructionsSummary}</p>
+          ) : null}
+          <p className="font-mono text-xs text-[var(--muted)]">
+            files inspected: {evidence.filesInspectedCount} · boundary valid:{" "}
+            {evidence.boundaryValid === null ? "—" : String(evidence.boundaryValid)} · mode:{" "}
+            {evidence.proposedChangesMode ?? "—"}
+          </p>
+        </div>
+      ) : (
+        <p className="mb-4 text-sm text-[var(--muted)]">
+          No Hermes evidence report on disk yet. After export, run{" "}
+          <code className="font-mono text-xs">hermes-consume-engineering-packet --file …</code> on
+          the worker host, then refresh this page.
+        </p>
+      )}
 
       {loading ? (
         <p className="text-sm text-[var(--muted)]">Loading Hermes handoffs…</p>
