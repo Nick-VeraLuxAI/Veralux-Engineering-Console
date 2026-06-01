@@ -91,6 +91,33 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function assertFixtureRunTaskExist(params: {
+  runId: string;
+  taskId?: string;
+  fixtureName: string;
+}): { runTaskId: string } {
+  const run = getRunById(params.runId);
+  if (!run) {
+    const dbPath = process.env.ENGINEER_CONSOLE_DB_PATH ?? "<unset>";
+    throw new Error(
+      `[${params.fixtureName}] Run not found: ${params.runId}. ` +
+        `DB path: ${dbPath}. This usually indicates shared-DB fixture reset or mismatched E2E DB path configuration.`,
+    );
+  }
+  if (params.taskId && run.taskId !== params.taskId) {
+    throw new Error(
+      `[${params.fixtureName}] Run/task mismatch: run ${params.runId} belongs to task ${run.taskId}, not ${params.taskId}.`,
+    );
+  }
+  const task = getTaskById(params.taskId ?? run.taskId);
+  if (!task) {
+    throw new Error(
+      `[${params.fixtureName}] Task not found: ${params.taskId ?? run.taskId} for run ${params.runId}.`,
+    );
+  }
+  return { runTaskId: run.taskId };
+}
+
 export function ensurePolicyStatusPassed(runId: string): void {
   const row = getEngineerConsoleDb()
     .prepare(
@@ -144,6 +171,7 @@ export function blockPolicyForRun(runId: string): void {
 }
 
 export function insertPrRequest(runId: string, taskId: string): string {
+  assertFixtureRunTaskExist({ runId, taskId, fixtureName: "insertPrRequest" });
   const id = uuidv4();
   const now = nowIso();
   getEngineerConsoleDb()
@@ -307,7 +335,13 @@ export async function seedApprovedGovernanceForRun(
 ): Promise<void> {
   const approveReviewStages = options.approveReviewStages !== false;
   const run = getRunById(runId);
-  if (!run) throw new Error(`Run not found: ${runId}`);
+  if (!run) {
+    const dbPath = process.env.ENGINEER_CONSOLE_DB_PATH ?? "<unset>";
+    throw new Error(
+      `[seedApprovedGovernanceForRun] Run not found: ${runId}. ` +
+        `DB path: ${dbPath}. Likely shared SQLite fixture race or mismatched E2E DB path.`,
+    );
+  }
   const task = getTaskById(run.taskId);
   if (!task) throw new Error(`Task not found: ${run.taskId}`);
 
@@ -368,6 +402,11 @@ export async function seedReleaseLifecycleRecordsOnly(
   runId: string,
   taskId: string,
 ): Promise<void> {
+  assertFixtureRunTaskExist({
+    runId,
+    taskId,
+    fixtureName: "seedReleaseLifecycleRecordsOnly",
+  });
   const prId = insertPrRequest(runId, taskId);
   insertMergedMerge(runId, prId, taskId);
 }

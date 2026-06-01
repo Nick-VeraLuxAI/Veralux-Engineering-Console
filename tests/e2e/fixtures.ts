@@ -19,12 +19,15 @@ export {
   E2E_VIEWER_EMAIL,
 } from "./env";
 
+let configuredE2eDbPath = E2E_LOCAL_DB_PATH;
+
 export function configureE2eDatabasePath(dbPath: string = E2E_LOCAL_DB_PATH): void {
+  configuredE2eDbPath = dbPath;
   ensureE2eDatabaseReady(dbPath);
 }
 
 export function getConfiguredE2eDbPath(): string {
-  return process.env.ENGINEER_CONSOLE_DB_PATH ?? E2E_LOCAL_DB_PATH;
+  return configuredE2eDbPath;
 }
 
 async function mutationHeaders(
