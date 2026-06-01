@@ -22,6 +22,7 @@ import {
   summarizeLatestPullRequestMergeForBridge,
   summarizeLatestDeployReadinessForBridge,
   summarizeLatestDeploymentPacketForBridge,
+  summarizeLatestStagingDeploymentForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -192,6 +193,25 @@ export interface RunEvidenceSummaryForBridge {
   deploymentPlanPath: string | null;
   deploymentPacketCreatedAt: string | null;
   deploymentPacketCreatedBy: string | null;
+  latestStagingDeployment: {
+    candidateId: string | null;
+    stagingDeploymentStatus: string | null;
+    stagingDeploymentAdapter: string | null;
+    stagingDeploymentStartedAt: string | null;
+    stagingDeploymentFinishedAt: string | null;
+    stagingDeploymentExitCode: number | null;
+    stagingDeploymentEvidencePath: string | null;
+    stagingDeployedBy: string | null;
+    notProduction: true;
+    notComplete: true;
+  };
+  stagingDeploymentStatus: string | null;
+  stagingDeploymentAdapter: string | null;
+  stagingDeploymentStartedAt: string | null;
+  stagingDeploymentFinishedAt: string | null;
+  stagingDeploymentExitCode: number | null;
+  stagingDeploymentEvidencePath: string | null;
+  stagingDeployedBy: string | null;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -327,6 +347,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const pullRequestMerge = summarizeLatestPullRequestMergeForBridge(runId);
   const deployReadinessReview = summarizeLatestDeployReadinessForBridge(runId);
   const deploymentPacket = summarizeLatestDeploymentPacketForBridge(runId);
+  const stagingDeployment = summarizeLatestStagingDeploymentForBridge(runId);
 
   return {
     runId: run.id,
@@ -395,6 +416,18 @@ export async function buildRunEvidenceSummaryForBridge(
       deploymentPacket.latestDeploymentPacket.deploymentPacketCreatedAt,
     deploymentPacketCreatedBy:
       deploymentPacket.latestDeploymentPacket.deploymentPacketCreatedBy,
+    latestStagingDeployment: stagingDeployment.latestStagingDeployment,
+    stagingDeploymentStatus: stagingDeployment.latestStagingDeployment.stagingDeploymentStatus,
+    stagingDeploymentAdapter: stagingDeployment.latestStagingDeployment.stagingDeploymentAdapter,
+    stagingDeploymentStartedAt:
+      stagingDeployment.latestStagingDeployment.stagingDeploymentStartedAt,
+    stagingDeploymentFinishedAt:
+      stagingDeployment.latestStagingDeployment.stagingDeploymentFinishedAt,
+    stagingDeploymentExitCode:
+      stagingDeployment.latestStagingDeployment.stagingDeploymentExitCode,
+    stagingDeploymentEvidencePath:
+      stagingDeployment.latestStagingDeployment.stagingDeploymentEvidencePath,
+    stagingDeployedBy: stagingDeployment.latestStagingDeployment.stagingDeployedBy,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

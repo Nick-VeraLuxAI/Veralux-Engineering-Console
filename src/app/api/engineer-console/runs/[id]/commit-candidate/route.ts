@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { listCommitCandidatesForRun } from "@/lib/engineer-console/governance/commit-candidate/commit-candidate-manager";
+import { isLocalScriptStagingAdapterAvailable } from "@/lib/engineer-console/governance/commit-candidate/local-script-staging-deployment-adapter";
 import { isGovernedGithubPrClientEnabled } from "@/lib/engineer-console/governance/commit-candidate/governed-github-pr";
 import { getRunById } from "@/lib/engineer-console/run-manager/run-manager";
+import { getTaskById } from "@/lib/engineer-console/task-manager/task-manager";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import { authorizeRead } from "@/lib/engineer-console/security/route-guards";
 
@@ -77,15 +79,29 @@ export async function GET(
     deploymentPacketCreatedAt: row.deploymentPacketCreatedAt,
     deploymentPacketCreatedBy: row.deploymentPacketCreatedBy,
     deploymentPacketReason: row.deploymentPacketReason,
+    stagingDeploymentStatus: row.stagingDeploymentStatus,
+    stagingDeploymentAdapter: row.stagingDeploymentAdapter,
+    stagingDeploymentStartedAt: row.stagingDeploymentStartedAt,
+    stagingDeploymentFinishedAt: row.stagingDeploymentFinishedAt,
+    stagingDeploymentExitCode: row.stagingDeploymentExitCode,
+    stagingDeploymentEvidencePath: row.stagingDeploymentEvidencePath,
+    stagingDeployedBy: row.stagingDeployedBy,
+    stagingDeployReason: row.stagingDeployReason,
     notPushed: row.notPushed,
     notMerged: row.notMerged,
     notDeployed: true as const,
     notComplete: true as const,
   }));
 
+  const task = getTaskById(run.taskId);
+  const stagingDeployAdapterAvailable = task
+    ? isLocalScriptStagingAdapterAvailable(task.targetRepoPath)
+    : false;
+
   return NextResponse.json({
     runId,
     githubPrCreationAvailable: isGovernedGithubPrClientEnabled(),
+    stagingDeployAdapterAvailable,
     latest: candidates[0] ?? null,
     history: candidates,
   });

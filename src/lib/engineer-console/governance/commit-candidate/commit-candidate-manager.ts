@@ -69,6 +69,14 @@ interface Row {
   deployment_packet_created_at: string | null;
   deployment_packet_created_by: string | null;
   deployment_packet_reason: string | null;
+  staging_deployment_status: string | null;
+  staging_deployment_adapter: string | null;
+  staging_deployment_started_at: string | null;
+  staging_deployment_finished_at: string | null;
+  staging_deployment_exit_code: number | null;
+  staging_deployment_evidence_path: string | null;
+  staging_deployed_by: string | null;
+  staging_deploy_reason: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -140,6 +148,14 @@ function mapRow(row: Row): CommitCandidateRecord {
     deploymentPacketCreatedAt: row.deployment_packet_created_at ?? null,
     deploymentPacketCreatedBy: row.deployment_packet_created_by ?? null,
     deploymentPacketReason: row.deployment_packet_reason ?? null,
+    stagingDeploymentStatus: row.staging_deployment_status ?? null,
+    stagingDeploymentAdapter: row.staging_deployment_adapter ?? null,
+    stagingDeploymentStartedAt: row.staging_deployment_started_at ?? null,
+    stagingDeploymentFinishedAt: row.staging_deployment_finished_at ?? null,
+    stagingDeploymentExitCode: row.staging_deployment_exit_code ?? null,
+    stagingDeploymentEvidencePath: row.staging_deployment_evidence_path ?? null,
+    stagingDeployedBy: row.staging_deployed_by ?? null,
+    stagingDeployReason: row.staging_deploy_reason ?? null,
     notCommitted: row.not_committed !== 0,
     notPushed: row.not_pushed !== 0,
     notMerged: row.not_merged !== 0,
@@ -202,6 +218,14 @@ export function insertCommitCandidate(
     | "deploymentPacketCreatedAt"
     | "deploymentPacketCreatedBy"
     | "deploymentPacketReason"
+    | "stagingDeploymentStatus"
+    | "stagingDeploymentAdapter"
+    | "stagingDeploymentStartedAt"
+    | "stagingDeploymentFinishedAt"
+    | "stagingDeploymentExitCode"
+    | "stagingDeploymentEvidencePath"
+    | "stagingDeployedBy"
+    | "stagingDeployReason"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -290,6 +314,14 @@ export function insertCommitCandidate(
     deploymentPacketCreatedAt: null,
     deploymentPacketCreatedBy: null,
     deploymentPacketReason: null,
+    stagingDeploymentStatus: null,
+    stagingDeploymentAdapter: null,
+    stagingDeploymentStartedAt: null,
+    stagingDeploymentFinishedAt: null,
+    stagingDeploymentExitCode: null,
+    stagingDeploymentEvidencePath: null,
+    stagingDeployedBy: null,
+    stagingDeployReason: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -554,5 +586,77 @@ export function markCommitCandidateDeploymentPacketPrepared(input: {
       deployment_packet_reason: input.deploymentPacketReason,
       deployment_packet_path: input.deploymentPacketPath,
       deployment_plan_path: input.deploymentPlanPath,
+    });
+}
+
+export function markCommitCandidateStagingDeployed(input: {
+  candidateId: string;
+  stagingDeploymentAdapter: string;
+  stagingDeploymentStartedAt: string;
+  stagingDeploymentFinishedAt: string;
+  stagingDeploymentExitCode: number;
+  stagingDeploymentEvidencePath: string;
+  stagingDeployedBy: string;
+  stagingDeployReason: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'staging_deployed',
+        staging_deployment_status = 'staging_deployed',
+        staging_deployment_adapter = @staging_deployment_adapter,
+        staging_deployment_started_at = @staging_deployment_started_at,
+        staging_deployment_finished_at = @staging_deployment_finished_at,
+        staging_deployment_exit_code = @staging_deployment_exit_code,
+        staging_deployment_evidence_path = @staging_deployment_evidence_path,
+        staging_deployed_by = @staging_deployed_by,
+        staging_deploy_reason = @staging_deploy_reason
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      staging_deployment_adapter: input.stagingDeploymentAdapter,
+      staging_deployment_started_at: input.stagingDeploymentStartedAt,
+      staging_deployment_finished_at: input.stagingDeploymentFinishedAt,
+      staging_deployment_exit_code: input.stagingDeploymentExitCode,
+      staging_deployment_evidence_path: input.stagingDeploymentEvidencePath,
+      staging_deployed_by: input.stagingDeployedBy,
+      staging_deploy_reason: input.stagingDeployReason,
+    });
+}
+
+export function markCommitCandidateStagingDeploymentFailed(input: {
+  candidateId: string;
+  stagingDeploymentAdapter: string;
+  stagingDeploymentStartedAt: string;
+  stagingDeploymentFinishedAt: string;
+  stagingDeploymentExitCode: number;
+  stagingDeploymentEvidencePath: string;
+  stagingDeployedBy: string;
+  stagingDeployReason: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'staging_deployment_failed',
+        staging_deployment_status = 'staging_deployment_failed',
+        staging_deployment_adapter = @staging_deployment_adapter,
+        staging_deployment_started_at = @staging_deployment_started_at,
+        staging_deployment_finished_at = @staging_deployment_finished_at,
+        staging_deployment_exit_code = @staging_deployment_exit_code,
+        staging_deployment_evidence_path = @staging_deployment_evidence_path,
+        staging_deployed_by = @staging_deployed_by,
+        staging_deploy_reason = @staging_deploy_reason
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      staging_deployment_adapter: input.stagingDeploymentAdapter,
+      staging_deployment_started_at: input.stagingDeploymentStartedAt,
+      staging_deployment_finished_at: input.stagingDeploymentFinishedAt,
+      staging_deployment_exit_code: input.stagingDeploymentExitCode,
+      staging_deployment_evidence_path: input.stagingDeploymentEvidencePath,
+      staging_deployed_by: input.stagingDeployedBy,
+      staging_deploy_reason: input.stagingDeployReason,
     });
 }

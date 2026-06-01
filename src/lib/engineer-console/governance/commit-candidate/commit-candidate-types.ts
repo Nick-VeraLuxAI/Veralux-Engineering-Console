@@ -16,6 +16,8 @@ export type CommitCandidateStatus =
   | "pull_request_merged"
   | "deploy_readiness_recorded"
   | "deployment_packet_prepared"
+  | "staging_deployed"
+  | "staging_deployment_failed"
   | "rejected";
 
 export interface EngineeringCommitPrCandidatePacketV1 {
@@ -107,6 +109,14 @@ export interface CommitCandidateRecord {
   deploymentPacketCreatedAt: string | null;
   deploymentPacketCreatedBy: string | null;
   deploymentPacketReason: string | null;
+  stagingDeploymentStatus: string | null;
+  stagingDeploymentAdapter: string | null;
+  stagingDeploymentStartedAt: string | null;
+  stagingDeploymentFinishedAt: string | null;
+  stagingDeploymentExitCode: number | null;
+  stagingDeploymentEvidencePath: string | null;
+  stagingDeployedBy: string | null;
+  stagingDeployReason: string | null;
   notCommitted: boolean;
   notPushed: boolean;
   notMerged: boolean;

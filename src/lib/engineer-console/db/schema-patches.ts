@@ -142,5 +142,20 @@ export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
         db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
       }
     }
+    const stagingDeploymentColumns = [
+      ["staging_deployment_status", "TEXT"],
+      ["staging_deployment_adapter", "TEXT"],
+      ["staging_deployment_started_at", "TEXT"],
+      ["staging_deployment_finished_at", "TEXT"],
+      ["staging_deployment_exit_code", "INTEGER"],
+      ["staging_deployment_evidence_path", "TEXT"],
+      ["staging_deployed_by", "TEXT"],
+      ["staging_deploy_reason", "TEXT"],
+    ] as const;
+    for (const [name, type] of stagingDeploymentColumns) {
+      if (!commitCandidateColumns.some((c) => c.name === name)) {
+        db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
+      }
+    }
   }
 }

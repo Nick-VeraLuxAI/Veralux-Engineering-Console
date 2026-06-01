@@ -654,3 +654,56 @@ export function summarizeLatestDeploymentPacketForBridge(runId: string): {
     },
   };
 }
+
+export function summarizeLatestStagingDeploymentForBridge(runId: string): {
+  latestStagingDeployment: {
+    candidateId: string | null;
+    stagingDeploymentStatus: string | null;
+    stagingDeploymentAdapter: string | null;
+    stagingDeploymentStartedAt: string | null;
+    stagingDeploymentFinishedAt: string | null;
+    stagingDeploymentExitCode: number | null;
+    stagingDeploymentEvidencePath: string | null;
+    stagingDeployedBy: string | null;
+    notProduction: true;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const hasStagingDeployment =
+    latest &&
+    (latest.status === "staging_deployed" ||
+      latest.status === "staging_deployment_failed" ||
+      latest.stagingDeploymentStatus === "staging_deployed" ||
+      latest.stagingDeploymentStatus === "staging_deployment_failed");
+  if (!hasStagingDeployment) {
+    return {
+      latestStagingDeployment: {
+        candidateId: latest?.id ?? null,
+        stagingDeploymentStatus: latest?.stagingDeploymentStatus ?? null,
+        stagingDeploymentAdapter: null,
+        stagingDeploymentStartedAt: null,
+        stagingDeploymentFinishedAt: null,
+        stagingDeploymentExitCode: null,
+        stagingDeploymentEvidencePath: null,
+        stagingDeployedBy: null,
+        notProduction: true,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestStagingDeployment: {
+      candidateId: latest.id,
+      stagingDeploymentStatus: latest.stagingDeploymentStatus,
+      stagingDeploymentAdapter: latest.stagingDeploymentAdapter,
+      stagingDeploymentStartedAt: latest.stagingDeploymentStartedAt,
+      stagingDeploymentFinishedAt: latest.stagingDeploymentFinishedAt,
+      stagingDeploymentExitCode: latest.stagingDeploymentExitCode,
+      stagingDeploymentEvidencePath: latest.stagingDeploymentEvidencePath,
+      stagingDeployedBy: latest.stagingDeployedBy,
+      notProduction: true,
+      notComplete: true,
+    },
+  };
+}

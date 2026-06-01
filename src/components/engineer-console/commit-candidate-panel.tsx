@@ -51,6 +51,13 @@ interface CommitCandidatePublic {
   deploymentPlanPath?: string | null;
   deploymentPacketCreatedAt?: string | null;
   deploymentPacketCreatedBy?: string | null;
+  stagingDeploymentStatus?: string | null;
+  stagingDeploymentAdapter?: string | null;
+  stagingDeploymentStartedAt?: string | null;
+  stagingDeploymentFinishedAt?: string | null;
+  stagingDeploymentExitCode?: number | null;
+  stagingDeploymentEvidencePath?: string | null;
+  stagingDeployedBy?: string | null;
   notMerged?: boolean;
 }
 
@@ -130,6 +137,13 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     deploymentPacketPath: string;
     deploymentPlanPath: string;
   } | null>(null);
+  const [stagingDeployAdapterAvailable, setStagingDeployAdapterAvailable] = useState(false);
+  const [stagingDeployReason, setStagingDeployReason] = useState("");
+  const [stagingDeployResult, setStagingDeployResult] = useState<{
+    status: string;
+    exitCode: number;
+    deploymentEvidencePath: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     const [evidenceRes, signoffRes, candidateRes] = await Promise.all([
@@ -156,8 +170,10 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
         latest: CommitCandidatePublic | null;
         history: CommitCandidatePublic[];
         githubPrCreationAvailable?: boolean;
+        stagingDeployAdapterAvailable?: boolean;
       };
       setGithubPrAvailable(body.githubPrCreationAvailable !== false);
+      setStagingDeployAdapterAvailable(body.stagingDeployAdapterAvailable === true);
       setLatest(body.latest);
       setHistory(body.history);
       if (body.latest?.prDraftPath) {
@@ -302,6 +318,71 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
       latest.status === "pull_request_merged" ||
       latest.status === "deploy_readiness_recorded" ||
       latest.status === "deployment_packet_prepared");
+
+  const canDeployToStaging =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest &&
+    (latest.status === "deployment_packet_prepared" ||
+      latest.deploymentPacketStatus === "deployment_packet_prepared" ||
+      latest.status === "staging_deployment_failed") &&
+    latest.deploymentTargetEnvironment === "staging" &&
+    Boolean(latest.deploymentPacketPath) &&
+    stagingDeployAdapterAvailable;
+
+  async function handleDeployToStaging() {
+    const reason = stagingDeployReason.trim();
+    if (!reason) {
+      setError("Staging deployment approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate for staging deployment.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/staging-deploy`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            targetEnvironment: "staging",
+            deploymentAdapter: "local-script",
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        status?: string;
+        exitCode?: number;
+        deploymentEvidencePath?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setStagingDeployResult({
+        status: body.status ?? "staging_deployed",
+        exitCode: body.exitCode ?? 0,
+        deploymentEvidencePath: body.deploymentEvidencePath ?? "",
+      });
+      setMessage(
+        body.status === "staging_deployed"
+          ? "Staging deployment completed. This does not deploy to production or mark the run complete."
+          : "Staging deployment failed. Evidence was recorded. Run is not marked complete.",
+      );
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Staging deployment failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handlePrepareDeploymentPacket() {
     const reason = deploymentPacketReason.trim();
@@ -1264,6 +1345,87 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
           ) : null}
           <p className="mt-2 text-xs text-[var(--muted)]">
             Not deployed. Run is not marked complete.
+          </p>
+        </div>
+      ) : null}
+
+      {canDeployToStaging ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Staging deployment (Phase 18)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This deploys to staging only.</li>
+            <li>This does not deploy to production.</li>
+            <li>This does not mark the run complete.</li>
+          </ul>
+          <div className="rounded bg-[var(--surface-inset)] p-2 text-xs text-[var(--muted)]">
+            <p>
+              Deployment packet: {latest?.deploymentPacketStatus ?? latest?.status ?? "—"}
+            </p>
+            <p>Target environment: staging</p>
+            <p>Adapter: local-script ({stagingDeployAdapterAvailable ? "available" : "unavailable"})</p>
+            <p className="font-mono">
+              script: scripts/deploy-staging.sh
+            </p>
+          </div>
+          <label className="block text-xs font-medium" htmlFor="staging-deploy-reason">
+            Operator reason (required)
+          </label>
+          <textarea
+            id="staging-deploy-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={stagingDeployReason}
+            onChange={(e) => setStagingDeployReason(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !stagingDeployReason.trim() || !stagingDeployAdapterAvailable}
+            onClick={() => void handleDeployToStaging()}
+          >
+            {busy ? "Deploying…" : "Deploy to staging"}
+          </button>
+        </div>
+      ) : null}
+
+      {latest?.deploymentPacketStatus === "deployment_packet_prepared" &&
+      !stagingDeployAdapterAvailable &&
+      latest.status !== "staging_deployed" &&
+      latest.status !== "staging_deployment_failed" ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-xs text-[var(--muted)]">
+          Staging deployment adapter unavailable. Add{" "}
+          <span className="font-mono">scripts/deploy-staging.sh</span> to the target repository.
+        </div>
+      ) : null}
+
+      {stagingDeployResult ||
+      latest?.stagingDeploymentStatus === "staging_deployed" ||
+      latest?.stagingDeploymentStatus === "staging_deployment_failed" ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">
+            {latest?.stagingDeploymentStatus === "staging_deployment_failed" ||
+            stagingDeployResult?.status === "staging_deployment_failed"
+              ? "Staging deployment failed"
+              : "Staging deployment completed"}
+          </p>
+          <p className="text-xs">
+            status: {stagingDeployResult?.status ?? latest?.stagingDeploymentStatus ?? "—"}
+          </p>
+          <p className="text-xs">
+            exit code: {stagingDeployResult?.exitCode ?? latest?.stagingDeploymentExitCode ?? "—"}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            evidence:{" "}
+            {stagingDeployResult?.deploymentEvidencePath ?? latest?.stagingDeploymentEvidencePath}
+          </p>
+          {latest?.stagingDeploymentFinishedAt ? (
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              deployed: {latest.stagingDeployedBy} finished {latest.stagingDeploymentFinishedAt}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Not production. Run is not marked complete.
           </p>
         </div>
       ) : null}
