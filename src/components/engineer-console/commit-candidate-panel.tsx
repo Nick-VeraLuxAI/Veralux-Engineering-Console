@@ -35,6 +35,12 @@ interface CommitCandidatePublic {
   mergeReadinessReviewedAt?: string | null;
   mergeReadinessReviewedBy?: string | null;
   mergeReadinessEvidencePath?: string | null;
+  mergeStatus?: string | null;
+  mergeMethod?: string | null;
+  mergeCommitSha?: string | null;
+  mergedAt?: string | null;
+  mergeEvidencePath?: string | null;
+  notMerged?: boolean;
 }
 
 interface ReviewSignoffLatest {
@@ -88,6 +94,13 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
   const [mergeReadinessResult, setMergeReadinessResult] = useState<{
     decision: string;
     mergeReadinessPath: string;
+  } | null>(null);
+  const [mergeMethod, setMergeMethod] = useState<"squash" | "merge" | "rebase">("squash");
+  const [mergeReason, setMergeReason] = useState("");
+  const [mergeResult, setMergeResult] = useState<{
+    mergeCommitSha: string | null;
+    mergeEvidencePath: string;
+    pullRequestUrl: string;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -227,6 +240,67 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     Boolean(latest.prEvidencePath) &&
     Boolean(latest.localCommitHash) &&
     Boolean(latest.remotePushEvidencePath);
+
+  const canMergePr =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    githubPrAvailable &&
+    latest?.status === "merge_readiness_recorded" &&
+    latest.mergeReadinessDecision === "ready" &&
+    Boolean(latest.prUrl) &&
+    Boolean(latest.prNumber) &&
+    latest.mergeStatus !== "pull_request_merged";
+
+  async function handleMergePr() {
+    const reason = mergeReason.trim();
+    if (!reason) {
+      setError("Merge approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate for governed merge.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/merge-pr`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            mergeMethod,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        mergeCommitSha?: string | null;
+        mergeEvidencePath?: string;
+        pullRequestUrl?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setMergeResult({
+        mergeCommitSha: body.mergeCommitSha ?? null,
+        mergeEvidencePath: body.mergeEvidencePath ?? "",
+        pullRequestUrl: body.pullRequestUrl ?? latest.prUrl ?? "",
+      });
+      setMessage(
+        "Governed pull request merged. This does not deploy or mark the run complete.",
+      );
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Governed PR merge failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleRecordMergeReadiness() {
     const reason = mergeReadinessReason.trim();
@@ -778,6 +852,80 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
           ) : null}
           <p className="mt-2 text-xs text-[var(--muted)]">
             Not merged. Not deployed. Run is not marked complete.
+          </p>
+        </div>
+      ) : null}
+
+      {canMergePr ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Governed PR merge (Phase 15)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This merges the pull request.</li>
+            <li>This does not deploy.</li>
+            <li>This does not mark the run complete.</li>
+            <li>This does not delete the branch.</li>
+          </ul>
+          <div className="rounded bg-[var(--surface-inset)] p-2 text-xs text-[var(--muted)]">
+            <p>PR: {latest?.prUrl}</p>
+            <p>number: {latest?.prNumber}</p>
+            <p>merge readiness: {latest?.mergeReadinessDecision ?? "—"}</p>
+            <p>Quality gates: {evidence?.postApplyQualityGates?.overallStatus ?? "—"}</p>
+            <p>Sign-off: {signoff?.decision ?? "—"}</p>
+          </div>
+          <label className="block text-xs font-medium" htmlFor="merge-method">
+            Merge method
+          </label>
+          <select
+            id="merge-method"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 text-xs"
+            value={mergeMethod}
+            onChange={(e) =>
+              setMergeMethod(e.target.value as "squash" | "merge" | "rebase")
+            }
+            disabled={busy}
+          >
+            <option value="squash">squash</option>
+            <option value="merge">merge</option>
+            <option value="rebase">rebase</option>
+          </select>
+          <label className="block text-xs font-medium" htmlFor="merge-reason">
+            Merge approval reason (required)
+          </label>
+          <textarea
+            id="merge-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={mergeReason}
+            onChange={(e) => setMergeReason(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !mergeReason.trim()}
+            onClick={() => void handleMergePr()}
+          >
+            {busy ? "Merging…" : "Merge governed PR"}
+          </button>
+        </div>
+      ) : null}
+
+      {mergeResult || latest?.mergeStatus === "pull_request_merged" ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Pull request merged</p>
+          <p className="text-xs">
+            url: {mergeResult?.pullRequestUrl ?? latest?.prUrl ?? "—"}
+          </p>
+          {(mergeResult?.mergeCommitSha ?? latest?.mergeCommitSha) ? (
+            <p className="font-mono text-xs">
+              merge commit: {mergeResult?.mergeCommitSha ?? latest?.mergeCommitSha}
+            </p>
+          ) : null}
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            evidence: {mergeResult?.mergeEvidencePath ?? latest?.mergeEvidencePath}
+          </p>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Not deployed. Run is not marked complete. Branch was not deleted.
           </p>
         </div>
       ) : null}

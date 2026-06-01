@@ -49,6 +49,13 @@ interface Row {
   merge_readiness_reviewed_by: string | null;
   merge_readiness_reason: string | null;
   merge_readiness_evidence_path: string | null;
+  merge_status: string | null;
+  merge_method: string | null;
+  merge_commit_sha: string | null;
+  merged_at: string | null;
+  merged_by: string | null;
+  merge_reason: string | null;
+  merge_evidence_path: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -100,11 +107,18 @@ function mapRow(row: Row): CommitCandidateRecord {
     mergeReadinessReviewedBy: row.merge_readiness_reviewed_by ?? null,
     mergeReadinessReason: row.merge_readiness_reason ?? null,
     mergeReadinessEvidencePath: row.merge_readiness_evidence_path ?? null,
+    mergeStatus: row.merge_status ?? null,
+    mergeMethod: row.merge_method ?? null,
+    mergeCommitSha: row.merge_commit_sha ?? null,
+    mergedAt: row.merged_at ?? null,
+    mergedBy: row.merged_by ?? null,
+    mergeReason: row.merge_reason ?? null,
+    mergeEvidencePath: row.merge_evidence_path ?? null,
     notCommitted: row.not_committed !== 0,
     notPushed: row.not_pushed !== 0,
-    notMerged: true,
-    notDeployed: true,
-    notComplete: true,
+    notMerged: row.not_merged !== 0,
+    notDeployed: row.not_deployed !== 0,
+    notComplete: row.not_complete !== 0,
   };
 }
 
@@ -142,6 +156,13 @@ export function insertCommitCandidate(
     | "mergeReadinessReviewedBy"
     | "mergeReadinessReason"
     | "mergeReadinessEvidencePath"
+    | "mergeStatus"
+    | "mergeMethod"
+    | "mergeCommitSha"
+    | "mergedAt"
+    | "mergedBy"
+    | "mergeReason"
+    | "mergeEvidencePath"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -210,6 +231,13 @@ export function insertCommitCandidate(
     mergeReadinessReviewedBy: null,
     mergeReadinessReason: null,
     mergeReadinessEvidencePath: null,
+    mergeStatus: null,
+    mergeMethod: null,
+    mergeCommitSha: null,
+    mergedAt: null,
+    mergedBy: null,
+    mergeReason: null,
+    mergeEvidencePath: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -377,5 +405,39 @@ export function markCommitCandidateMergeReadinessRecorded(input: {
       merge_readiness_reviewed_by: input.mergeReadinessReviewedBy,
       merge_readiness_reason: input.mergeReadinessReason,
       merge_readiness_evidence_path: input.mergeReadinessEvidencePath,
+    });
+}
+
+export function markCommitCandidatePullRequestMerged(input: {
+  candidateId: string;
+  mergeMethod: string;
+  mergeCommitSha: string | null;
+  mergedAt: string;
+  mergedBy: string;
+  mergeReason: string;
+  mergeEvidencePath: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'pull_request_merged',
+        merge_status = 'pull_request_merged',
+        merge_method = @merge_method,
+        merge_commit_sha = @merge_commit_sha,
+        merged_at = @merged_at,
+        merged_by = @merged_by,
+        merge_reason = @merge_reason,
+        merge_evidence_path = @merge_evidence_path,
+        not_merged = 0
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      merge_method: input.mergeMethod,
+      merge_commit_sha: input.mergeCommitSha,
+      merged_at: input.mergedAt,
+      merged_by: input.mergedBy,
+      merge_reason: input.mergeReason,
+      merge_evidence_path: input.mergeEvidencePath,
     });
 }

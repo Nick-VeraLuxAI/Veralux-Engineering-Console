@@ -38,9 +38,16 @@ function assertGhMergeArgsAllowed(args: string[]): void {
   }
 
   if (args[1] === "merge") {
-    const methodFlags = args.filter((a) => a === "--squash" || a === "--merge");
+    const methodFlags = args.filter(
+      (a) => a === "--squash" || a === "--merge" || a === "--rebase",
+    );
     if (methodFlags.length !== 1) {
-      throw new MergeControlError("gh pr merge requires exactly one of --squash or --merge.");
+      throw new MergeControlError(
+        "gh pr merge requires exactly one of --squash, --merge, or --rebase.",
+      );
+    }
+    if (args.some((a) => a === "--auto")) {
+      throw new MergeControlError("gh pr merge must not use --auto.");
     }
     const deleteBranchFlags = args.filter((a) => a.startsWith("--delete-branch"));
     if (deleteBranchFlags.length !== 1 || deleteBranchFlags[0] !== "--delete-branch=false") {
@@ -127,9 +134,10 @@ export async function mergeGithubPr(
   repoPath: string,
   prNumber: string | null,
   prUrl: string | null,
-  mergeMethod: MergeMethod = "squash",
-): Promise<void> {
+  mergeMethod: MergeMethod | "rebase" = "squash",
+): Promise<GhCommandResult> {
   const ref = resolvePrRef(prNumber, prUrl);
-  const methodFlag = mergeMethod === "merge" ? "--merge" : "--squash";
-  await runGhMerge(["pr", "merge", ref, methodFlag, "--delete-branch=false"], repoPath);
+  const methodFlag =
+    mergeMethod === "merge" ? "--merge" : mergeMethod === "rebase" ? "--rebase" : "--squash";
+  return runGhMerge(["pr", "merge", ref, methodFlag, "--delete-branch=false"], repoPath);
 }

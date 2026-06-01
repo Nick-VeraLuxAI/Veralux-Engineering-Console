@@ -19,6 +19,7 @@ import {
   summarizeLatestRemoteBranchPushForBridge,
   summarizeLatestPullRequestForBridge,
   summarizeLatestMergeReadinessForBridge,
+  summarizeLatestPullRequestMergeForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -141,6 +142,23 @@ export interface RunEvidenceSummaryForBridge {
   mergeReadinessReviewedAt: string | null;
   mergeReadinessReviewedBy: string | null;
   mergeReadinessEvidencePath: string | null;
+  latestPullRequestMerge: {
+    candidateId: string | null;
+    mergeStatus: string | null;
+    mergeMethod: string | null;
+    mergeCommitSha: string | null;
+    mergedAt: string | null;
+    mergedBy: string | null;
+    mergeEvidencePath: string | null;
+    notDeployed: true;
+    notComplete: true;
+  };
+  mergeStatus: string | null;
+  mergeMethod: string | null;
+  mergeCommitSha: string | null;
+  mergedAt: string | null;
+  mergedBy: string | null;
+  mergeEvidencePath: string | null;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -273,6 +291,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const remotePush = summarizeLatestRemoteBranchPushForBridge(runId);
   const pullRequest = summarizeLatestPullRequestForBridge(runId);
   const mergeReadinessReview = summarizeLatestMergeReadinessForBridge(runId);
+  const pullRequestMerge = summarizeLatestPullRequestMergeForBridge(runId);
 
   return {
     runId: run.id,
@@ -316,6 +335,13 @@ export async function buildRunEvidenceSummaryForBridge(
     mergeReadinessReviewedBy: mergeReadinessReview.latestMergeReadiness.mergeReadinessReviewedBy,
     mergeReadinessEvidencePath:
       mergeReadinessReview.latestMergeReadiness.mergeReadinessEvidencePath,
+    latestPullRequestMerge: pullRequestMerge.latestPullRequestMerge,
+    mergeStatus: pullRequestMerge.latestPullRequestMerge.mergeStatus,
+    mergeMethod: pullRequestMerge.latestPullRequestMerge.mergeMethod,
+    mergeCommitSha: pullRequestMerge.latestPullRequestMerge.mergeCommitSha,
+    mergedAt: pullRequestMerge.latestPullRequestMerge.mergedAt,
+    mergedBy: pullRequestMerge.latestPullRequestMerge.mergedBy,
+    mergeEvidencePath: pullRequestMerge.latestPullRequestMerge.mergeEvidencePath,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

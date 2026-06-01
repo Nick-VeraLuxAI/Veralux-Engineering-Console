@@ -514,3 +514,50 @@ export function summarizeLatestMergeReadinessForBridge(runId: string): {
     },
   };
 }
+
+export function summarizeLatestPullRequestMergeForBridge(runId: string): {
+  latestPullRequestMerge: {
+    candidateId: string | null;
+    mergeStatus: string | null;
+    mergeMethod: string | null;
+    mergeCommitSha: string | null;
+    mergedAt: string | null;
+    mergedBy: string | null;
+    mergeEvidencePath: string | null;
+    notDeployed: true;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const hasMerge =
+    latest &&
+    (latest.status === "pull_request_merged" || latest.mergeStatus === "pull_request_merged");
+  if (!hasMerge) {
+    return {
+      latestPullRequestMerge: {
+        candidateId: latest?.id ?? null,
+        mergeStatus: latest?.mergeStatus ?? null,
+        mergeMethod: null,
+        mergeCommitSha: null,
+        mergedAt: null,
+        mergedBy: null,
+        mergeEvidencePath: null,
+        notDeployed: true,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestPullRequestMerge: {
+      candidateId: latest.id,
+      mergeStatus: latest.mergeStatus,
+      mergeMethod: latest.mergeMethod,
+      mergeCommitSha: latest.mergeCommitSha,
+      mergedAt: latest.mergedAt,
+      mergedBy: latest.mergedBy,
+      mergeEvidencePath: latest.mergeEvidencePath,
+      notDeployed: true,
+      notComplete: true,
+    },
+  };
+}
