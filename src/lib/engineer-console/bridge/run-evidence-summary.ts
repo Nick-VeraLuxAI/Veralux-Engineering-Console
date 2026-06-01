@@ -13,7 +13,10 @@ import { summarizeReviewStages, listReviewStagesForRun } from "../governance/rev
 import { evaluateMergeReadiness } from "../release/merge-controls/evaluate-merge-readiness";
 import { evaluateDeploymentReadiness } from "../release/deployment-gates/evaluate-deployment-readiness";
 import { listDeploymentEnvironments } from "../release/deployment-gates/deployment-environments";
-import { summarizeLatestCommitCandidateForBridge } from "../governance/commit-candidate/validate-commit-candidate-for-run";
+import {
+  summarizeLatestCommitCandidateForBridge,
+  summarizeLatestLocalCommitForBridge,
+} from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
 import type { HermesWorkerEvidenceSummary } from "../hermes-worker/hermes-evidence-types";
@@ -72,8 +75,21 @@ export interface RunEvidenceSummaryForBridge {
     createdAt: string | null;
     createdBy: string | null;
     evidenceSnapshotHash: string | null;
-    notCommitted: true;
+    notCommitted: boolean;
     notPushed: true;
+    notMerged: true;
+    notDeployed: true;
+    notComplete: true;
+  };
+  latestLocalCommit: {
+    candidateId: string | null;
+    localCommitStatus: string | null;
+    localCommitHash: string | null;
+    localCommitCreatedAt: string | null;
+    localCommitCreatedBy: string | null;
+    localCommitEvidencePath: string | null;
+    notPushed: true;
+    notPrCreated: true;
     notMerged: true;
     notDeployed: true;
     notComplete: true;
@@ -206,6 +222,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const hermesEvidence = ingestHermesWorkerEvidenceForRun(runId);
   const reviewSignoff = summarizeLatestEngineeringReviewSignoff(runId);
   const commitCandidate = summarizeLatestCommitCandidateForBridge(runId);
+  const localCommit = summarizeLatestLocalCommitForBridge(runId);
 
   return {
     runId: run.id,
@@ -240,6 +257,7 @@ export async function buildRunEvidenceSummaryForBridge(
     reviewer: reviewSignoff.latestReviewSignoff.reviewer,
     evidenceSnapshotHash: reviewSignoff.latestReviewSignoff.evidenceSnapshotHash,
     latestCommitCandidate: commitCandidate.latestCommitCandidate,
+    latestLocalCommit: localCommit.latestLocalCommit,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

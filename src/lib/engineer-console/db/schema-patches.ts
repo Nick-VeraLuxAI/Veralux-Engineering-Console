@@ -23,4 +23,27 @@ export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
       db.exec(`ALTER TABLE engineer_hermes_patch_applications ADD COLUMN rolled_back_reason TEXT`);
     }
   }
+
+  const commitCandidateColumns = db
+    .prepare(`PRAGMA table_info(engineer_commit_candidates)`)
+    .all() as Array<{ name: string }>;
+  if (commitCandidateColumns.length > 0) {
+    if (!commitCandidateColumns.some((c) => c.name === "local_commit_hash")) {
+      db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN local_commit_hash TEXT`);
+    }
+    if (!commitCandidateColumns.some((c) => c.name === "local_commit_created_at")) {
+      db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN local_commit_created_at TEXT`);
+    }
+    if (!commitCandidateColumns.some((c) => c.name === "local_commit_created_by")) {
+      db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN local_commit_created_by TEXT`);
+    }
+    if (!commitCandidateColumns.some((c) => c.name === "local_commit_reason")) {
+      db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN local_commit_reason TEXT`);
+    }
+    if (!commitCandidateColumns.some((c) => c.name === "local_commit_evidence_path")) {
+      db.exec(
+        `ALTER TABLE engineer_commit_candidates ADD COLUMN local_commit_evidence_path TEXT`,
+      );
+    }
+  }
 }

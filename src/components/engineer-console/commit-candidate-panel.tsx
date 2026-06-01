@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface CommitCandidatePublic {
   id: string;
+  status?: string;
   branchName: string;
   commitMessage: string;
   changedFiles: string[];
@@ -16,6 +17,9 @@ interface CommitCandidatePublic {
   evidenceSnapshotHash: string;
   createdBy: string;
   createdAt: string;
+  notCommitted?: boolean;
+  localCommitHash?: string | null;
+  localCommitEvidencePath?: string | null;
 }
 
 interface ReviewSignoffLatest {
@@ -39,6 +43,12 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [localCommitReason, setLocalCommitReason] = useState("");
+  const [localCommitResult, setLocalCommitResult] = useState<{
+    commitHash: string;
+    commitEvidencePath: string;
+    branchName: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     const [evidenceRes, signoffRes, candidateRes] = await Promise.all([
@@ -92,6 +102,62 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
   const canPrepare =
     signoff?.decision === "approved" &&
     evidence?.patchApplication?.status === "patch_applied";
+
+  const canLocalCommit =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest &&
+    (latest.status === "commit_candidate_prepared" || latest.status === "prepared") &&
+    latest.notCommitted !== false &&
+    !latest.localCommitHash;
+
+  async function handleLocalCommit() {
+    const reason = localCommitReason.trim();
+    if (!reason) {
+      setError("Local commit approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate to commit.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/commit-local`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        commitHash?: string;
+        commitEvidencePath?: string;
+        branchName?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setLocalCommitResult({
+        commitHash: body.commitHash ?? "",
+        commitEvidencePath: body.commitEvidencePath ?? "",
+        branchName: body.branchName ?? "",
+      });
+      setMessage("Local git commit created. Not pushed. Not merged. Not deployed.");
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Local commit failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handlePrepare() {
     const reason = prepareReason.trim();
@@ -211,9 +277,59 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
         </p>
       )}
 
+      {canLocalCommit ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Local governed commit (Phase 12B)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This creates a local git commit only.</li>
+            <li>This does not push.</li>
+            <li>This does not create a PR.</li>
+            <li>This does not merge.</li>
+            <li>This does not deploy.</li>
+          </ul>
+          <label className="block text-xs font-medium" htmlFor="local-commit-reason">
+            Local commit approval reason (required)
+          </label>
+          <textarea
+            id="local-commit-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={localCommitReason}
+            onChange={(e) => setLocalCommitReason(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !localCommitReason.trim()}
+            onClick={() => void handleLocalCommit()}
+          >
+            {busy ? "Committing…" : "Create local commit"}
+          </button>
+        </div>
+      ) : null}
+
+      {localCommitResult || latest?.localCommitHash ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Local commit recorded</p>
+          <p className="font-mono text-xs">
+            hash: {localCommitResult?.commitHash ?? latest?.localCommitHash}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            evidence: {localCommitResult?.commitEvidencePath ?? latest?.localCommitEvidencePath}
+          </p>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Not pushed. Not merged. Not deployed. Run is not marked complete.
+          </p>
+        </div>
+      ) : null}
+
       {latest ? (
         <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-sm">
           <p className="mb-2 font-medium">Latest candidate</p>
+          {latest.status ? (
+            <p className="text-xs text-[var(--muted)]">status: {latest.status}</p>
+          ) : null}
           <p className="text-[var(--muted)]">
             Branch recommendation: <span className="font-mono">{latest.branchName}</span>
           </p>

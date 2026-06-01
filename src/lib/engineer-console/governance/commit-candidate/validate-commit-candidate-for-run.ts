@@ -243,7 +243,7 @@ export function summarizeLatestCommitCandidateForBridge(runId: string): {
     createdAt: string | null;
     createdBy: string | null;
     evidenceSnapshotHash: string | null;
-    notCommitted: true;
+    notCommitted: boolean;
     notPushed: true;
     notMerged: true;
     notDeployed: true;
@@ -284,8 +284,58 @@ export function summarizeLatestCommitCandidateForBridge(runId: string): {
       createdAt: latest.createdAt,
       createdBy: latest.createdBy,
       evidenceSnapshotHash: latest.evidenceSnapshotHash,
-      notCommitted: true,
+      notCommitted: latest.notCommitted,
       notPushed: true,
+      notMerged: true,
+      notDeployed: true,
+      notComplete: true,
+    },
+  };
+}
+
+export function summarizeLatestLocalCommitForBridge(runId: string): {
+  latestLocalCommit: {
+    candidateId: string | null;
+    localCommitStatus: string | null;
+    localCommitHash: string | null;
+    localCommitCreatedAt: string | null;
+    localCommitCreatedBy: string | null;
+    localCommitEvidencePath: string | null;
+    notPushed: true;
+    notPrCreated: true;
+    notMerged: true;
+    notDeployed: true;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  if (!latest || latest.status !== "local_commit_created") {
+    return {
+      latestLocalCommit: {
+        candidateId: latest?.id ?? null,
+        localCommitStatus: latest?.status ?? null,
+        localCommitHash: null,
+        localCommitCreatedAt: null,
+        localCommitCreatedBy: null,
+        localCommitEvidencePath: null,
+        notPushed: true,
+        notPrCreated: true,
+        notMerged: true,
+        notDeployed: true,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestLocalCommit: {
+      candidateId: latest.id,
+      localCommitStatus: latest.status,
+      localCommitHash: latest.localCommitHash,
+      localCommitCreatedAt: latest.localCommitCreatedAt,
+      localCommitCreatedBy: latest.localCommitCreatedBy,
+      localCommitEvidencePath: latest.localCommitEvidencePath,
+      notPushed: true,
+      notPrCreated: true,
       notMerged: true,
       notDeployed: true,
       notComplete: true,

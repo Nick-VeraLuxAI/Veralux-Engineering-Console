@@ -1,6 +1,11 @@
 export const ENGINEERING_COMMIT_PR_CANDIDATE_SCHEMA = "engineering-commit-pr-candidate/v1" as const;
+export const ENGINEERING_LOCAL_COMMIT_RESULT_SCHEMA = "engineering-local-commit-result/v1" as const;
 
-export type CommitCandidateStatus = "prepared" | "rejected";
+export type CommitCandidateStatus =
+  | "prepared"
+  | "commit_candidate_prepared"
+  | "local_commit_created"
+  | "rejected";
 
 export interface EngineeringCommitPrCandidatePacketV1 {
   schema: typeof ENGINEERING_COMMIT_PR_CANDIDATE_SCHEMA;
@@ -42,7 +47,12 @@ export interface CommitCandidateRecord {
   createdBy: string;
   createdReason: string;
   createdAt: string;
-  notCommitted: true;
+  localCommitHash: string | null;
+  localCommitCreatedAt: string | null;
+  localCommitCreatedBy: string | null;
+  localCommitReason: string | null;
+  localCommitEvidencePath: string | null;
+  notCommitted: boolean;
   notPushed: true;
   notMerged: true;
   notDeployed: true;

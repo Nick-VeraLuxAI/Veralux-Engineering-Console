@@ -20,6 +20,11 @@ interface Row {
   created_by: string;
   created_reason: string;
   created_at: string;
+  local_commit_hash: string | null;
+  local_commit_created_at: string | null;
+  local_commit_created_by: string | null;
+  local_commit_reason: string | null;
+  local_commit_evidence_path: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -42,7 +47,12 @@ function mapRow(row: Row): CommitCandidateRecord {
     createdBy: row.created_by,
     createdReason: row.created_reason,
     createdAt: row.created_at,
-    notCommitted: true,
+    localCommitHash: row.local_commit_hash ?? null,
+    localCommitCreatedAt: row.local_commit_created_at ?? null,
+    localCommitCreatedBy: row.local_commit_created_by ?? null,
+    localCommitReason: row.local_commit_reason ?? null,
+    localCommitEvidencePath: row.local_commit_evidence_path ?? null,
+    notCommitted: row.not_committed !== 0,
     notPushed: true,
     notMerged: true,
     notDeployed: true,
@@ -51,7 +61,21 @@ function mapRow(row: Row): CommitCandidateRecord {
 }
 
 export function insertCommitCandidate(
-  input: Omit<CommitCandidateRecord, "id" | "createdAt" | "notCommitted" | "notPushed" | "notMerged" | "notDeployed" | "notComplete">,
+  input: Omit<
+    CommitCandidateRecord,
+    | "id"
+    | "createdAt"
+    | "localCommitHash"
+    | "localCommitCreatedAt"
+    | "localCommitCreatedBy"
+    | "localCommitReason"
+    | "localCommitEvidencePath"
+    | "notCommitted"
+    | "notPushed"
+    | "notMerged"
+    | "notDeployed"
+    | "notComplete"
+  >,
 ): CommitCandidateRecord {
   const id = uuidv4();
   const createdAt = nowIso();
@@ -85,12 +109,24 @@ export function insertCommitCandidate(
     ...input,
     id,
     createdAt,
+    localCommitHash: null,
+    localCommitCreatedAt: null,
+    localCommitCreatedBy: null,
+    localCommitReason: null,
+    localCommitEvidencePath: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
     notDeployed: true,
     notComplete: true,
   };
+}
+
+export function getCommitCandidateById(candidateId: string): CommitCandidateRecord | null {
+  const row = getEngineerConsoleDb()
+    .prepare(`SELECT * FROM engineer_commit_candidates WHERE id = ?`)
+    .get(candidateId) as Row | undefined;
+  return row ? mapRow(row) : null;
 }
 
 export function listCommitCandidatesForRun(runId: string): CommitCandidateRecord[] {
@@ -104,4 +140,34 @@ export function listCommitCandidatesForRun(runId: string): CommitCandidateRecord
 
 export function getLatestCommitCandidateForRun(runId: string): CommitCandidateRecord | null {
   return listCommitCandidatesForRun(runId)[0] ?? null;
+}
+
+export function markCommitCandidateLocalCommitCreated(input: {
+  candidateId: string;
+  localCommitHash: string;
+  localCommitCreatedAt: string;
+  localCommitCreatedBy: string;
+  localCommitReason: string;
+  localCommitEvidencePath: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'local_commit_created',
+        local_commit_hash = @local_commit_hash,
+        local_commit_created_at = @local_commit_created_at,
+        local_commit_created_by = @local_commit_created_by,
+        local_commit_reason = @local_commit_reason,
+        local_commit_evidence_path = @local_commit_evidence_path,
+        not_committed = 0
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      local_commit_hash: input.localCommitHash,
+      local_commit_created_at: input.localCommitCreatedAt,
+      local_commit_created_by: input.localCommitCreatedBy,
+      local_commit_reason: input.localCommitReason,
+      local_commit_evidence_path: input.localCommitEvidencePath,
+    });
 }

@@ -194,7 +194,7 @@ export async function prepareCommitCandidateForRun(input: {
 
   const record = insertCommitCandidate({
     runId: ctx.runId,
-    status: "prepared",
+    status: "commit_candidate_prepared",
     branchName: ctx.branchName,
     commitMessage: ctx.commitMessage,
     changedFilesJson: JSON.stringify(ctx.changedFiles),

@@ -356,7 +356,7 @@ describe("Governed commit/PR candidate phase 12", () => {
       operatorApproval: approval,
     });
     const bridge = await buildRunEvidenceSummaryForBridge(run.id);
-    expect(bridge?.latestCommitCandidate.commitCandidateStatus).toBe("prepared");
+    expect(bridge?.latestCommitCandidate.commitCandidateStatus).toBe("commit_candidate_prepared");
     expect(bridge?.latestCommitCandidate.notCommitted).toBe(true);
   });
 
