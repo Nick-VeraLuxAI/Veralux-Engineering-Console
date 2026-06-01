@@ -44,6 +44,7 @@ export interface RunEvidenceSummaryForBridge {
   hermesWorkerEvidence: HermesWorkerEvidenceSummary;
   hermesPatchProposal: HermesWorkerEvidenceSummary["patchProposal"];
   hermesPatchApplication: HermesWorkerEvidenceSummary["patchApplication"];
+  hermesPostApplyQualityGates: HermesWorkerEvidenceSummary["postApplyQualityGates"];
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -197,6 +198,7 @@ export async function buildRunEvidenceSummaryForBridge(
     hermesWorkerEvidence: hermesEvidence.summary,
     hermesPatchProposal: hermesEvidence.summary.patchProposal,
     hermesPatchApplication: hermesEvidence.summary.patchApplication,
+    hermesPostApplyQualityGates: hermesEvidence.summary.postApplyQualityGates,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

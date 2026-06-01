@@ -209,6 +209,37 @@ CREATE TABLE IF NOT EXISTS engineer_hermes_patch_applications (
 CREATE INDEX IF NOT EXISTS idx_engineer_hermes_patch_applications_run_id
   ON engineer_hermes_patch_applications (run_id);
 
+-- Phase 10: post-apply Hermes quality gate evidence (Engineering Console only)
+CREATE TABLE IF NOT EXISTS engineer_hermes_quality_gate_runs (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  patch_application_id TEXT NOT NULL,
+  dispatch_id TEXT NOT NULL,
+  batch_id TEXT NOT NULL,
+  gate_id TEXT NOT NULL,
+  command TEXT NOT NULL,
+  status TEXT NOT NULL,
+  exit_code INTEGER NOT NULL,
+  duration_ms INTEGER NOT NULL,
+  timed_out INTEGER NOT NULL DEFAULT 0,
+  result_artifact_path TEXT NOT NULL,
+  stdout_artifact_path TEXT NOT NULL,
+  stderr_artifact_path TEXT NOT NULL,
+  operator_by TEXT NOT NULL,
+  operator_reason TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE,
+  FOREIGN KEY (patch_application_id) REFERENCES engineer_hermes_patch_applications (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_hermes_quality_gate_runs_run_id
+  ON engineer_hermes_quality_gate_runs (run_id);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_hermes_quality_gate_runs_batch_id
+  ON engineer_hermes_quality_gate_runs (batch_id);
+
 -- Phase G1: append-only tamper-evident audit chain (no UPDATE/DELETE by convention)
 CREATE TABLE IF NOT EXISTS engineer_audit_events (
   id TEXT PRIMARY KEY NOT NULL,

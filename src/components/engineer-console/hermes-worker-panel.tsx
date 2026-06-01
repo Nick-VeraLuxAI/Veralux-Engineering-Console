@@ -7,8 +7,10 @@ import {
   canShowHermesPatchApplyControls,
   canShowHermesPatchRollbackControls,
 } from "@/lib/engineer-console/hermes-worker/hermes-patch-rollback-ui-eligibility";
+import { canShowHermesPostApplyQualityGates } from "@/lib/engineer-console/hermes-worker/hermes-patch-quality-gates-ui-eligibility";
 import {
   hermesWorkerApplyPatchPath,
+  hermesWorkerQualityGatesRunPath,
   hermesWorkerRollbackPatchPath,
 } from "@/lib/engineer-console/hermes-worker/hermes-worker-api-paths";
 import { useCallback, useEffect, useState } from "react";
@@ -52,6 +54,7 @@ interface HermesEvidenceSummary {
   changesApplied: boolean;
   patchProposal: HermesPatchProposalSummary;
   patchApplication: HermesWorkerEvidenceSummary["patchApplication"];
+  postApplyQualityGates: HermesWorkerEvidenceSummary["postApplyQualityGates"];
 }
 
 export function HermesWorkerPanel({ runId }: { runId: string }) {
@@ -59,10 +62,14 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<"prepare" | "dispatch" | "apply" | "rollback" | null>(null);
+  const [busy, setBusy] = useState<
+    "prepare" | "dispatch" | "apply" | "rollback" | "quality-gates" | null
+  >(null);
   const [evidence, setEvidence] = useState<HermesEvidenceSummary | null>(null);
   const [applyReason, setApplyReason] = useState("");
   const [rollbackReason, setRollbackReason] = useState("");
+  const [gatesReason, setGatesReason] = useState("");
+  const [selectedGateIds, setSelectedGateIds] = useState<string[]>([]);
 
   const loadEvidence = useCallback(async () => {
     const res = await engineerConsoleFetch(
@@ -166,6 +173,14 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
     hasDispatchId: Boolean(hermesDispatchId),
   });
   const canRollbackPatch = canShowHermesPatchRollbackControls(evidence?.patchApplication);
+  const canRunQualityGates = canShowHermesPostApplyQualityGates(evidence?.patchApplication);
+  const availableGateIds = evidence?.postApplyQualityGates?.availableGateIds ?? [];
+
+  useEffect(() => {
+    if (availableGateIds.length > 0 && selectedGateIds.length === 0) {
+      setSelectedGateIds(availableGateIds);
+    }
+  }, [availableGateIds, selectedGateIds.length]);
 
   async function handleApplyPatch() {
     if (!hermesDispatchId) return;
@@ -197,6 +212,54 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
       await load();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Apply patch failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function toggleGateSelection(gateId: string) {
+    setSelectedGateIds((current) =>
+      current.includes(gateId) ? current.filter((id) => id !== gateId) : [...current, gateId],
+    );
+  }
+
+  async function handleRunQualityGates() {
+    const reason = gatesReason.trim();
+    if (!reason) {
+      setError("A reason is required before running post-apply quality gates.");
+      return;
+    }
+    if (selectedGateIds.length === 0) {
+      setError("Select at least one quality gate to run.");
+      return;
+    }
+    setBusy("quality-gates");
+    setMessage(null);
+    setError(null);
+    try {
+      const res = await engineerConsoleFetch(hermesWorkerQualityGatesRunPath(runId), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gateIds: selectedGateIds,
+          operatorApproval: { approved: true, approvedBy: "operator", reason },
+        }),
+      });
+      const body = (await res.json()) as {
+        error?: string;
+        overallStatus?: string;
+        results?: Array<{ gateId: string; status: string }>;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setMessage(
+        `Quality gates completed (overall: ${body.overallStatus ?? "—"}). Passing gates is not sign-off.`,
+      );
+      setGatesReason("");
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Quality gates run failed");
     } finally {
       setBusy(null);
     }
@@ -400,6 +463,88 @@ export function HermesWorkerPanel({ runId }: { runId: string }) {
                     audit timeline)
                   </p>
                 </div>
+              ) : null}
+
+              {canRunQualityGates ? (
+                <div className="mt-3 space-y-2 border-t border-[var(--border)] pt-3">
+                  <p className="font-medium">Run post-apply quality gates</p>
+                  <p className="rounded bg-[var(--surface)] p-2 text-xs text-[var(--danger)]">
+                    Quality gates run allowlisted npm commands in the task repository. Engineering
+                    Console owns execution — not Hermes. Passing quality gates is not sign-off,
+                    merge, deploy, or run completion.
+                  </p>
+                  <fieldset className="space-y-1">
+                    <legend className="text-xs font-medium">Gates to run</legend>
+                    {availableGateIds.map((gateId) => (
+                      <label key={gateId} className="flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={selectedGateIds.includes(gateId)}
+                          onChange={() => toggleGateSelection(gateId)}
+                          disabled={busy !== null}
+                        />
+                        <span className="font-mono">{gateId}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                  <label className="block text-xs font-medium" htmlFor="hermes-gates-reason">
+                    Run reason (required)
+                  </label>
+                  <textarea
+                    id="hermes-gates-reason"
+                    className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+                    rows={3}
+                    value={gatesReason}
+                    onChange={(e) => setGatesReason(e.target.value)}
+                    placeholder="Why run these gates now after the patch was applied?"
+                  />
+                  <button
+                    type="button"
+                    className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+                    disabled={
+                      busy !== null ||
+                      !gatesReason.trim() ||
+                      selectedGateIds.length === 0
+                    }
+                    onClick={() => void handleRunQualityGates()}
+                  >
+                    {busy === "quality-gates" ? "Running gates…" : "Run post-apply quality gates"}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {evidence.postApplyQualityGates?.status === "completed" ? (
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-sm">
+              <p className="mb-2 font-medium">Post-apply quality gates (not sign-off)</p>
+              <p className="mb-2 text-[var(--muted)]">
+                Overall: {evidence.postApplyQualityGates.overallStatus ?? "—"} · Last run:{" "}
+                {evidence.postApplyQualityGates.lastRunAt ?? "—"} · Passed:{" "}
+                {evidence.postApplyQualityGates.passedCount} · Failed:{" "}
+                {evidence.postApplyQualityGates.failedCount} · Skipped:{" "}
+                {evidence.postApplyQualityGates.skippedCount}
+              </p>
+              <ul className="space-y-2 text-xs">
+                {evidence.postApplyQualityGates.results.map((row) => (
+                  <li
+                    key={`${row.gateId}-${row.finishedAt}`}
+                    className="rounded border border-[var(--border)] p-2 font-mono"
+                  >
+                    <div>
+                      {row.gateId}: {row.status} (exit {row.exitCode})
+                      {row.timedOut ? " · timed out" : ""}
+                    </div>
+                    <div className="break-all text-[var(--muted)]">result: {row.artifactPath}</div>
+                    <div className="break-all text-[var(--muted)]">stdout: {row.stdoutArtifactPath}</div>
+                    <div className="break-all text-[var(--muted)]">stderr: {row.stderrArtifactPath}</div>
+                  </li>
+                ))}
+              </ul>
+              {evidence.postApplyQualityGates.summaryArtifactPath ? (
+                <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+                  batch summary: {evidence.postApplyQualityGates.summaryArtifactPath}
+                </p>
               ) : null}
             </div>
           ) : null}

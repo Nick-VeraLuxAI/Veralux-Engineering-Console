@@ -96,4 +96,28 @@ export interface HermesWorkerEvidenceSummary {
     /** Application is not sign-off. */
     notSignOff: true;
   };
+  postApplyQualityGates: {
+    status: "not_run" | "completed";
+    lastRunAt: string | null;
+    overallStatus: "passed" | "failed" | "partial" | null;
+    passedCount: number;
+    failedCount: number;
+    skippedCount: number;
+    lastBatchId: string | null;
+    summaryArtifactPath: string | null;
+    availableGateIds: string[];
+    results: Array<{
+      gateId: string;
+      command: string;
+      status: "passed" | "failed" | "skipped";
+      exitCode: number;
+      startedAt: string;
+      finishedAt: string;
+      artifactPath: string;
+      stdoutArtifactPath: string;
+      stderrArtifactPath: string;
+      timedOut: boolean;
+    }>;
+    notSignOff: true;
+  };
 }

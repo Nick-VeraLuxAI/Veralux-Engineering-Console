@@ -35,7 +35,7 @@ export function ingestHermesWorkerEvidenceForRun(runId: string): HermesWorkerEvi
   const run = getRunById(runId);
   if (!run) {
     return {
-      summary: toHermesWorkerEvidenceSummary(null, null),
+      summary: toHermesWorkerEvidenceSummary(null, null, runId),
       evidence: null,
       patchProposal: EMPTY_HERMES_PATCH_PROPOSAL_VIEW,
       dispatchId: null,
@@ -49,7 +49,7 @@ export function ingestHermesWorkerEvidenceForRun(runId: string): HermesWorkerEvi
   if (!latest) {
     const latestDispatch = dispatches[0] ?? null;
     return {
-      summary: toHermesWorkerEvidenceSummary(latestDispatch, null),
+      summary: toHermesWorkerEvidenceSummary(latestDispatch, null, runId),
       evidence: null,
       patchProposal: EMPTY_HERMES_PATCH_PROPOSAL_VIEW,
       dispatchId: latestDispatch?.id ?? null,
@@ -74,7 +74,7 @@ export function ingestHermesWorkerEvidenceForRun(runId: string): HermesWorkerEvi
   }
 
   return {
-    summary: toHermesWorkerEvidenceSummary(latest.dispatch, latest.evidence),
+    summary: toHermesWorkerEvidenceSummary(latest.dispatch, latest.evidence, runId),
     evidence: latest.evidence,
     patchProposal,
     dispatchId: latest.dispatch.id,

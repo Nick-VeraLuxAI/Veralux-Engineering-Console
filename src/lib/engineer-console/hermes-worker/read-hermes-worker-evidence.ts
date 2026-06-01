@@ -8,6 +8,10 @@ import {
 import type { HermesWorkerDispatchRecord } from "./hermes-run-packet-types";
 import { getHermesPatchApplicationByDispatchId } from "./hermes-patch-application-manager";
 import { readHermesPatchProposalArtifacts } from "./read-hermes-patch-proposal";
+import {
+  buildHermesPostApplyQualityGatesSummary,
+  emptyHermesPostApplyQualityGatesSummary,
+} from "./read-hermes-post-apply-quality-gates";
 
 function buildPatchApplicationSummary(
   dispatch: HermesWorkerDispatchRecord | null,
@@ -99,7 +103,9 @@ export function readHermesEvidenceReportForDispatch(
 export function toHermesWorkerEvidenceSummary(
   dispatch: HermesWorkerDispatchRecord | null,
   evidence: HermesEngineeringEvidenceV1 | null,
+  runId?: string,
 ): HermesWorkerEvidenceSummary {
+  const resolvedRunId = runId ?? dispatch?.runId;
   const emptyPatch = {
     available: false,
     status: null,
@@ -127,6 +133,9 @@ export function toHermesWorkerEvidenceSummary(
       changesApplied: false,
       patchProposal: emptyPatch,
       patchApplication: buildPatchApplicationSummary(dispatch, null),
+      postApplyQualityGates: resolvedRunId
+        ? buildHermesPostApplyQualityGatesSummary(resolvedRunId)
+        : emptyHermesPostApplyQualityGatesSummary(),
     };
   }
 
@@ -156,6 +165,7 @@ export function toHermesWorkerEvidenceSummary(
       summaryExcerpt: patchView.summaryExcerpt,
     },
     patchApplication: buildPatchApplicationSummary(dispatch, evidence),
+    postApplyQualityGates: buildHermesPostApplyQualityGatesSummary(dispatch.runId),
   };
 }
 
