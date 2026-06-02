@@ -707,3 +707,48 @@ export function summarizeLatestStagingDeploymentForBridge(runId: string): {
     },
   };
 }
+
+export function summarizeLatestProductionReadinessForBridge(runId: string): {
+  latestProductionReadiness: {
+    candidateId: string | null;
+    productionReadinessStatus: string | null;
+    productionReadinessDecision: string | null;
+    productionReadinessReviewedAt: string | null;
+    productionReadinessReviewedBy: string | null;
+    productionReadinessEvidencePath: string | null;
+    notProductionDeployed: true;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const hasProductionReadiness =
+    latest &&
+    (latest.status === "production_readiness_recorded" ||
+      latest.productionReadinessStatus === "production_readiness_recorded");
+  if (!hasProductionReadiness) {
+    return {
+      latestProductionReadiness: {
+        candidateId: latest?.id ?? null,
+        productionReadinessStatus: latest?.productionReadinessStatus ?? null,
+        productionReadinessDecision: null,
+        productionReadinessReviewedAt: null,
+        productionReadinessReviewedBy: null,
+        productionReadinessEvidencePath: null,
+        notProductionDeployed: true,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestProductionReadiness: {
+      candidateId: latest.id,
+      productionReadinessStatus: latest.productionReadinessStatus,
+      productionReadinessDecision: latest.productionReadinessDecision,
+      productionReadinessReviewedAt: latest.productionReadinessReviewedAt,
+      productionReadinessReviewedBy: latest.productionReadinessReviewedBy,
+      productionReadinessEvidencePath: latest.productionReadinessEvidencePath,
+      notProductionDeployed: true,
+      notComplete: true,
+    },
+  };
+}

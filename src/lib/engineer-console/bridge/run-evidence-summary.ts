@@ -23,6 +23,7 @@ import {
   summarizeLatestDeployReadinessForBridge,
   summarizeLatestDeploymentPacketForBridge,
   summarizeLatestStagingDeploymentForBridge,
+  summarizeLatestProductionReadinessForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -212,6 +213,21 @@ export interface RunEvidenceSummaryForBridge {
   stagingDeploymentExitCode: number | null;
   stagingDeploymentEvidencePath: string | null;
   stagingDeployedBy: string | null;
+  latestProductionReadiness: {
+    candidateId: string | null;
+    productionReadinessStatus: string | null;
+    productionReadinessDecision: string | null;
+    productionReadinessReviewedAt: string | null;
+    productionReadinessReviewedBy: string | null;
+    productionReadinessEvidencePath: string | null;
+    notProductionDeployed: true;
+    notComplete: true;
+  };
+  productionReadinessStatus: string | null;
+  productionReadinessDecision: string | null;
+  productionReadinessReviewedAt: string | null;
+  productionReadinessReviewedBy: string | null;
+  productionReadinessEvidencePath: string | null;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -348,6 +364,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const deployReadinessReview = summarizeLatestDeployReadinessForBridge(runId);
   const deploymentPacket = summarizeLatestDeploymentPacketForBridge(runId);
   const stagingDeployment = summarizeLatestStagingDeploymentForBridge(runId);
+  const productionReadiness = summarizeLatestProductionReadinessForBridge(runId);
 
   return {
     runId: run.id,
@@ -428,6 +445,17 @@ export async function buildRunEvidenceSummaryForBridge(
     stagingDeploymentEvidencePath:
       stagingDeployment.latestStagingDeployment.stagingDeploymentEvidencePath,
     stagingDeployedBy: stagingDeployment.latestStagingDeployment.stagingDeployedBy,
+    latestProductionReadiness: productionReadiness.latestProductionReadiness,
+    productionReadinessStatus:
+      productionReadiness.latestProductionReadiness.productionReadinessStatus,
+    productionReadinessDecision:
+      productionReadiness.latestProductionReadiness.productionReadinessDecision,
+    productionReadinessReviewedAt:
+      productionReadiness.latestProductionReadiness.productionReadinessReviewedAt,
+    productionReadinessReviewedBy:
+      productionReadiness.latestProductionReadiness.productionReadinessReviewedBy,
+    productionReadinessEvidencePath:
+      productionReadiness.latestProductionReadiness.productionReadinessEvidencePath,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

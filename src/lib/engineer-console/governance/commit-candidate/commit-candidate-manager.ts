@@ -77,6 +77,12 @@ interface Row {
   staging_deployment_evidence_path: string | null;
   staging_deployed_by: string | null;
   staging_deploy_reason: string | null;
+  production_readiness_status: string | null;
+  production_readiness_decision: string | null;
+  production_readiness_reviewed_at: string | null;
+  production_readiness_reviewed_by: string | null;
+  production_readiness_reason: string | null;
+  production_readiness_evidence_path: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -156,6 +162,12 @@ function mapRow(row: Row): CommitCandidateRecord {
     stagingDeploymentEvidencePath: row.staging_deployment_evidence_path ?? null,
     stagingDeployedBy: row.staging_deployed_by ?? null,
     stagingDeployReason: row.staging_deploy_reason ?? null,
+    productionReadinessStatus: row.production_readiness_status ?? null,
+    productionReadinessDecision: row.production_readiness_decision ?? null,
+    productionReadinessReviewedAt: row.production_readiness_reviewed_at ?? null,
+    productionReadinessReviewedBy: row.production_readiness_reviewed_by ?? null,
+    productionReadinessReason: row.production_readiness_reason ?? null,
+    productionReadinessEvidencePath: row.production_readiness_evidence_path ?? null,
     notCommitted: row.not_committed !== 0,
     notPushed: row.not_pushed !== 0,
     notMerged: row.not_merged !== 0,
@@ -226,6 +238,12 @@ export function insertCommitCandidate(
     | "stagingDeploymentEvidencePath"
     | "stagingDeployedBy"
     | "stagingDeployReason"
+    | "productionReadinessStatus"
+    | "productionReadinessDecision"
+    | "productionReadinessReviewedAt"
+    | "productionReadinessReviewedBy"
+    | "productionReadinessReason"
+    | "productionReadinessEvidencePath"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -322,6 +340,12 @@ export function insertCommitCandidate(
     stagingDeploymentEvidencePath: null,
     stagingDeployedBy: null,
     stagingDeployReason: null,
+    productionReadinessStatus: null,
+    productionReadinessDecision: null,
+    productionReadinessReviewedAt: null,
+    productionReadinessReviewedBy: null,
+    productionReadinessReason: null,
+    productionReadinessEvidencePath: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -658,5 +682,35 @@ export function markCommitCandidateStagingDeploymentFailed(input: {
       staging_deployment_evidence_path: input.stagingDeploymentEvidencePath,
       staging_deployed_by: input.stagingDeployedBy,
       staging_deploy_reason: input.stagingDeployReason,
+    });
+}
+
+export function markCommitCandidateProductionReadinessRecorded(input: {
+  candidateId: string;
+  productionReadinessDecision: string;
+  productionReadinessReviewedAt: string;
+  productionReadinessReviewedBy: string;
+  productionReadinessReason: string;
+  productionReadinessEvidencePath: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'production_readiness_recorded',
+        production_readiness_status = 'production_readiness_recorded',
+        production_readiness_decision = @production_readiness_decision,
+        production_readiness_reviewed_at = @production_readiness_reviewed_at,
+        production_readiness_reviewed_by = @production_readiness_reviewed_by,
+        production_readiness_reason = @production_readiness_reason,
+        production_readiness_evidence_path = @production_readiness_evidence_path
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      production_readiness_decision: input.productionReadinessDecision,
+      production_readiness_reviewed_at: input.productionReadinessReviewedAt,
+      production_readiness_reviewed_by: input.productionReadinessReviewedBy,
+      production_readiness_reason: input.productionReadinessReason,
+      production_readiness_evidence_path: input.productionReadinessEvidencePath,
     });
 }

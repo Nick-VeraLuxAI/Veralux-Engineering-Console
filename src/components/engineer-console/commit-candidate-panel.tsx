@@ -58,6 +58,11 @@ interface CommitCandidatePublic {
   stagingDeploymentExitCode?: number | null;
   stagingDeploymentEvidencePath?: string | null;
   stagingDeployedBy?: string | null;
+  productionReadinessStatus?: string | null;
+  productionReadinessDecision?: string | null;
+  productionReadinessReviewedAt?: string | null;
+  productionReadinessReviewedBy?: string | null;
+  productionReadinessEvidencePath?: string | null;
   notMerged?: boolean;
 }
 
@@ -143,6 +148,15 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     status: string;
     exitCode: number;
     deploymentEvidencePath: string;
+  } | null>(null);
+  const [productionReadinessDecision, setProductionReadinessDecision] = useState<
+    "ready" | "not_ready" | "blocked"
+  >("ready");
+  const [productionReadinessReason, setProductionReadinessReason] = useState("");
+  const [productionVerificationNotes, setProductionVerificationNotes] = useState("");
+  const [productionReadinessResult, setProductionReadinessResult] = useState<{
+    decision: string;
+    productionReadinessEvidencePath: string;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -329,6 +343,67 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     latest.deploymentTargetEnvironment === "staging" &&
     Boolean(latest.deploymentPacketPath) &&
     stagingDeployAdapterAvailable;
+
+  const canRecordProductionReadiness =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest &&
+    (latest.status === "staging_deployed" ||
+      latest.stagingDeploymentStatus === "staging_deployed" ||
+      latest.status === "production_readiness_recorded") &&
+    latest.stagingDeploymentStatus !== "staging_deployment_failed" &&
+    Boolean(latest.stagingDeploymentEvidencePath) &&
+    Boolean(latest.deploymentPacketPath);
+
+  async function handleRecordProductionReadiness() {
+    const reason = productionReadinessReason.trim();
+    if (!reason) {
+      setError("Production readiness approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate for production readiness review.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/production-readiness`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            decision: productionReadinessDecision,
+            verificationNotes: productionVerificationNotes.trim() || undefined,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        decision?: string;
+        productionReadinessEvidencePath?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setProductionReadinessResult({
+        decision: body.decision ?? productionReadinessDecision,
+        productionReadinessEvidencePath: body.productionReadinessEvidencePath ?? "",
+      });
+      setMessage(
+        "Production readiness recorded. This does not deploy to production or mark the run complete.",
+      );
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Production readiness recording failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleDeployToStaging() {
     const reason = stagingDeployReason.trim();
@@ -1426,6 +1501,103 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
           ) : null}
           <p className="mt-2 text-xs text-[var(--muted)]">
             Not production. Run is not marked complete.
+          </p>
+        </div>
+      ) : null}
+
+      {canRecordProductionReadiness ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Production readiness review (Phase 19)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This records production readiness only.</li>
+            <li>This does not deploy to production.</li>
+            <li>This does not mark the run complete.</li>
+          </ul>
+          <div className="rounded bg-[var(--surface-inset)] p-2 text-xs text-[var(--muted)]">
+            <p>
+              Staging deployment: {latest?.stagingDeploymentStatus ?? latest?.status ?? "—"}
+            </p>
+            <p>
+              exit code: {latest?.stagingDeploymentExitCode ?? "—"}
+            </p>
+            <p className="font-mono break-all">
+              staging evidence: {latest?.stagingDeploymentEvidencePath ?? "—"}
+            </p>
+            <p>
+              deployment packet: {latest?.deploymentPacketStatus ?? "—"}
+            </p>
+          </div>
+          <label className="block text-xs font-medium" htmlFor="production-readiness-decision">
+            Decision
+          </label>
+          <select
+            id="production-readiness-decision"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 text-xs"
+            value={productionReadinessDecision}
+            onChange={(e) =>
+              setProductionReadinessDecision(e.target.value as "ready" | "not_ready" | "blocked")
+            }
+            disabled={busy}
+          >
+            <option value="ready">ready</option>
+            <option value="not_ready">not_ready</option>
+            <option value="blocked">blocked</option>
+          </select>
+          <label className="block text-xs font-medium" htmlFor="production-readiness-reason">
+            Operator reason (required)
+          </label>
+          <textarea
+            id="production-readiness-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={productionReadinessReason}
+            onChange={(e) => setProductionReadinessReason(e.target.value)}
+            disabled={busy}
+          />
+          <label className="block text-xs font-medium" htmlFor="production-verification-notes">
+            Verification notes (optional)
+          </label>
+          <textarea
+            id="production-verification-notes"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={productionVerificationNotes}
+            onChange={(e) => setProductionVerificationNotes(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !productionReadinessReason.trim()}
+            onClick={() => void handleRecordProductionReadiness()}
+          >
+            {busy ? "Recording…" : "Record production readiness"}
+          </button>
+        </div>
+      ) : null}
+
+      {productionReadinessResult ||
+      latest?.productionReadinessDecision ||
+      latest?.productionReadinessStatus === "production_readiness_recorded" ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Production readiness recorded</p>
+          <p className="text-xs">
+            decision:{" "}
+            {productionReadinessResult?.decision ?? latest?.productionReadinessDecision ?? "—"}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            evidence:{" "}
+            {productionReadinessResult?.productionReadinessEvidencePath ??
+              latest?.productionReadinessEvidencePath}
+          </p>
+          {latest?.productionReadinessReviewedAt ? (
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              reviewed: {latest.productionReadinessReviewedBy} at{" "}
+              {latest.productionReadinessReviewedAt}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Not production deployed. Run is not marked complete.
           </p>
         </div>
       ) : null}
