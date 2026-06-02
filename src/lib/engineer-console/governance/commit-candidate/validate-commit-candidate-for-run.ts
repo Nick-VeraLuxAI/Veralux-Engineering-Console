@@ -892,3 +892,55 @@ export function summarizeLatestCompletionReadinessForBridge(runId: string): {
     },
   };
 }
+
+export function summarizeLatestFinalCloseoutForBridge(runId: string): {
+  latestFinalCloseout: {
+    candidateId: string | null;
+    finalCloseoutStatus: string | null;
+    finalCloseoutEvidencePath: string | null;
+    finalCloseoutCompletedAt: string | null;
+    finalCloseoutCompletedBy: string | null;
+    runCompleted: boolean;
+  };
+  finalCloseoutStatus: string | null;
+  finalCloseoutEvidencePath: string | null;
+  finalCloseoutCompletedAt: string | null;
+  finalCloseoutCompletedBy: string | null;
+  runCompleted: boolean;
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const runCompleted =
+    latest?.status === "completed" || latest?.finalCloseoutStatus === "completed";
+  if (!runCompleted) {
+    return {
+      latestFinalCloseout: {
+        candidateId: latest?.id ?? null,
+        finalCloseoutStatus: latest?.finalCloseoutStatus ?? null,
+        finalCloseoutEvidencePath: null,
+        finalCloseoutCompletedAt: null,
+        finalCloseoutCompletedBy: null,
+        runCompleted: false,
+      },
+      finalCloseoutStatus: latest?.finalCloseoutStatus ?? null,
+      finalCloseoutEvidencePath: null,
+      finalCloseoutCompletedAt: null,
+      finalCloseoutCompletedBy: null,
+      runCompleted: false,
+    };
+  }
+  return {
+    latestFinalCloseout: {
+      candidateId: latest!.id,
+      finalCloseoutStatus: latest!.finalCloseoutStatus,
+      finalCloseoutEvidencePath: latest!.finalCloseoutEvidencePath,
+      finalCloseoutCompletedAt: latest!.finalCloseoutCompletedAt,
+      finalCloseoutCompletedBy: latest!.finalCloseoutCompletedBy,
+      runCompleted: true,
+    },
+    finalCloseoutStatus: latest!.finalCloseoutStatus,
+    finalCloseoutEvidencePath: latest!.finalCloseoutEvidencePath,
+    finalCloseoutCompletedAt: latest!.finalCloseoutCompletedAt,
+    finalCloseoutCompletedBy: latest!.finalCloseoutCompletedBy,
+    runCompleted: true,
+  };
+}

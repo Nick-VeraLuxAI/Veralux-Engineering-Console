@@ -105,6 +105,12 @@ interface Row {
   completion_readiness_reviewed_by: string | null;
   completion_readiness_reason: string | null;
   completion_readiness_evidence_path: string | null;
+  final_closeout_status: string | null;
+  final_closeout_evidence_path: string | null;
+  final_closeout_completed_at: string | null;
+  final_closeout_completed_by: string | null;
+  final_closeout_reason: string | null;
+  final_closeout_notes: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -212,6 +218,12 @@ function mapRow(row: Row): CommitCandidateRecord {
     completionReadinessReviewedBy: row.completion_readiness_reviewed_by ?? null,
     completionReadinessReason: row.completion_readiness_reason ?? null,
     completionReadinessEvidencePath: row.completion_readiness_evidence_path ?? null,
+    finalCloseoutStatus: row.final_closeout_status ?? null,
+    finalCloseoutEvidencePath: row.final_closeout_evidence_path ?? null,
+    finalCloseoutCompletedAt: row.final_closeout_completed_at ?? null,
+    finalCloseoutCompletedBy: row.final_closeout_completed_by ?? null,
+    finalCloseoutReason: row.final_closeout_reason ?? null,
+    finalCloseoutNotes: row.final_closeout_notes ?? null,
     notCommitted: row.not_committed !== 0,
     notPushed: row.not_pushed !== 0,
     notMerged: row.not_merged !== 0,
@@ -310,6 +322,12 @@ export function insertCommitCandidate(
     | "completionReadinessReviewedBy"
     | "completionReadinessReason"
     | "completionReadinessEvidencePath"
+    | "finalCloseoutStatus"
+    | "finalCloseoutEvidencePath"
+    | "finalCloseoutCompletedAt"
+    | "finalCloseoutCompletedBy"
+    | "finalCloseoutReason"
+    | "finalCloseoutNotes"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -434,6 +452,12 @@ export function insertCommitCandidate(
     completionReadinessReviewedBy: null,
     completionReadinessReason: null,
     completionReadinessEvidencePath: null,
+    finalCloseoutStatus: null,
+    finalCloseoutEvidencePath: null,
+    finalCloseoutCompletedAt: null,
+    finalCloseoutCompletedBy: null,
+    finalCloseoutReason: null,
+    finalCloseoutNotes: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -938,5 +962,36 @@ export function markCommitCandidateCompletionReadinessRecorded(input: {
       completion_readiness_reviewed_by: input.completionReadinessReviewedBy,
       completion_readiness_reason: input.completionReadinessReason,
       completion_readiness_evidence_path: input.completionReadinessEvidencePath,
+    });
+}
+
+export function markCommitCandidateGovernedRunCompleted(input: {
+  candidateId: string;
+  finalCloseoutEvidencePath: string;
+  finalCloseoutCompletedAt: string;
+  finalCloseoutCompletedBy: string;
+  finalCloseoutReason: string;
+  finalCloseoutNotes: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'completed',
+        final_closeout_status = 'completed',
+        final_closeout_evidence_path = @final_closeout_evidence_path,
+        final_closeout_completed_at = @final_closeout_completed_at,
+        final_closeout_completed_by = @final_closeout_completed_by,
+        final_closeout_reason = @final_closeout_reason,
+        final_closeout_notes = @final_closeout_notes,
+        not_complete = 0
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      final_closeout_evidence_path: input.finalCloseoutEvidencePath,
+      final_closeout_completed_at: input.finalCloseoutCompletedAt,
+      final_closeout_completed_by: input.finalCloseoutCompletedBy,
+      final_closeout_reason: input.finalCloseoutReason,
+      final_closeout_notes: input.finalCloseoutNotes,
     });
 }

@@ -82,6 +82,13 @@ interface CommitCandidatePublic {
   completionReadinessReviewedAt?: string | null;
   completionReadinessReviewedBy?: string | null;
   completionReadinessEvidencePath?: string | null;
+  finalCloseoutStatus?: string | null;
+  finalCloseoutEvidencePath?: string | null;
+  finalCloseoutCompletedAt?: string | null;
+  finalCloseoutCompletedBy?: string | null;
+  finalCloseoutReason?: string | null;
+  finalCloseoutNotes?: string | null;
+  notComplete?: boolean;
   notMerged?: boolean;
 }
 
@@ -200,6 +207,14 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
   const [completionReadinessResult, setCompletionReadinessResult] = useState<{
     decision: string;
     completionReadinessEvidencePath: string;
+  } | null>(null);
+  const [closeoutNotes, setCloseoutNotes] = useState("");
+  const [closeoutReason, setCloseoutReason] = useState("");
+  const [closeoutResult, setCloseoutResult] = useState<{
+    status: string;
+    closeoutEvidencePath: string;
+    completedAt: string;
+    completedBy: string;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -442,6 +457,20 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     Boolean(latest.productionDeploymentEvidencePath) &&
     latest.productionReadinessDecision === "ready";
 
+  const canCompleteGovernedRun =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest &&
+    (latest.completionReadinessStatus === "completion_readiness_recorded" ||
+      latest.status === "completion_readiness_recorded") &&
+    latest.completionReadinessDecision === "ready" &&
+    Boolean(latest.completionReadinessEvidencePath) &&
+    latest.productionDeploymentStatus === "production_deployed" &&
+    latest.productionDeploymentExitCode === 0 &&
+    Boolean(latest.productionDeploymentEvidencePath) &&
+    latest.status !== "completed" &&
+    latest.finalCloseoutStatus !== "completed";
+
   async function handleRecordProductionReadiness() {
     const reason = productionReadinessReason.trim();
     if (!reason) {
@@ -597,6 +626,54 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
       await load();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Completion readiness recording failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleCompleteGovernedRun() {
+    const reason = closeoutReason.trim();
+    if (!reason) {
+      setError("Final closeout approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate for governed run completion.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(`/api/engineer-console/runs/${runId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateId: latest.id,
+          closeoutNotes: closeoutNotes.trim() || undefined,
+          operatorApproval: { approved: true, approvedBy: "operator", reason },
+        }),
+      });
+      const body = (await res.json()) as {
+        error?: string;
+        status?: string;
+        closeoutEvidencePath?: string;
+        completedAt?: string;
+        completedBy?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setCloseoutResult({
+        status: body.status ?? "completed",
+        closeoutEvidencePath: body.closeoutEvidencePath ?? "",
+        completedAt: body.completedAt ?? "",
+        completedBy: body.completedBy ?? "operator",
+      });
+      setMessage("Governed run completed with final closeout evidence.");
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Governed run completion failed");
     } finally {
       setBusy(false);
     }
@@ -2141,6 +2218,79 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
           ) : null}
           <p className="mt-2 text-xs text-[var(--muted)]">
             Run is not marked complete.
+          </p>
+        </div>
+      ) : null}
+
+      {canCompleteGovernedRun ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-2 font-medium">Phase 23 — Final governed run closeout</p>
+          <p className="mb-2 text-xs text-[var(--muted)]">
+            Completion readiness decision:{" "}
+            <span className="font-mono">{latest?.completionReadinessDecision ?? "—"}</span>
+          </p>
+          <p className="mb-2 text-xs text-[var(--muted)]">
+            Production deployment status:{" "}
+            <span className="font-mono">{latest?.productionDeploymentStatus ?? "—"}</span>
+          </p>
+          <p className="mb-2 break-all font-mono text-xs text-[var(--muted)]">
+            Production deployment evidence: {latest?.productionDeploymentEvidencePath ?? "—"}
+          </p>
+          <p className="mb-3 text-xs text-amber-700 dark:text-amber-300">
+            This marks the run complete. This does not deploy. This does not run commands.
+          </p>
+          <label className="block text-xs font-medium" htmlFor="closeout-notes">
+            Closeout notes (optional)
+          </label>
+          <textarea
+            id="closeout-notes"
+            className="mb-2 w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={closeoutNotes}
+            onChange={(e) => setCloseoutNotes(e.target.value)}
+            disabled={busy}
+          />
+          <label className="block text-xs font-medium" htmlFor="closeout-reason">
+            Operator reason (required)
+          </label>
+          <textarea
+            id="closeout-reason"
+            className="mb-2 w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={closeoutReason}
+            onChange={(e) => setCloseoutReason(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !closeoutReason.trim()}
+            onClick={() => void handleCompleteGovernedRun()}
+          >
+            {busy ? "Completing…" : "Complete governed run"}
+          </button>
+        </div>
+      ) : null}
+
+      {closeoutResult ||
+      latest?.finalCloseoutStatus === "completed" ||
+      latest?.status === "completed" ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Governed run completed</p>
+          <p className="text-xs">
+            status: {closeoutResult?.status ?? latest?.finalCloseoutStatus ?? latest?.status ?? "—"}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            closeout evidence:{" "}
+            {closeoutResult?.closeoutEvidencePath ?? latest?.finalCloseoutEvidencePath ?? "—"}
+          </p>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            completed by:{" "}
+            {closeoutResult?.completedBy ?? latest?.finalCloseoutCompletedBy ?? "—"}
+          </p>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            completed at:{" "}
+            {closeoutResult?.completedAt ?? latest?.finalCloseoutCompletedAt ?? "—"}
           </p>
         </div>
       ) : null}

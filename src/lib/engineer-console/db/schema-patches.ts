@@ -213,5 +213,18 @@ export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
         db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
       }
     }
+    const finalCloseoutColumns = [
+      ["final_closeout_status", "TEXT"],
+      ["final_closeout_evidence_path", "TEXT"],
+      ["final_closeout_completed_at", "TEXT"],
+      ["final_closeout_completed_by", "TEXT"],
+      ["final_closeout_reason", "TEXT"],
+      ["final_closeout_notes", "TEXT"],
+    ] as const;
+    for (const [name, type] of finalCloseoutColumns) {
+      if (!commitCandidateColumns.some((c) => c.name === name)) {
+        db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
+      }
+    }
   }
 }

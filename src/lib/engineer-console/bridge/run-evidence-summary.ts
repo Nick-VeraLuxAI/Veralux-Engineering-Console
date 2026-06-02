@@ -27,6 +27,7 @@ import {
   summarizeLatestProductionDeploymentPacketForBridge,
   summarizeLatestProductionDeploymentForBridge,
   summarizeLatestCompletionReadinessForBridge,
+  summarizeLatestFinalCloseoutForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -249,7 +250,7 @@ export interface RunEvidenceSummaryForBridge {
   productionDeploymentPacketCreatedAt: string | null;
   productionDeploymentPacketCreatedBy: string | null;
   notProductionDeployed: true;
-  notComplete: true;
+  notComplete: boolean;
   latestProductionDeployment: {
     candidateId: string | null;
     productionDeploymentStatus: string | null;
@@ -282,6 +283,19 @@ export interface RunEvidenceSummaryForBridge {
   completionReadinessReviewedAt: string | null;
   completionReadinessReviewedBy: string | null;
   completionReadinessEvidencePath: string | null;
+  latestFinalCloseout: {
+    candidateId: string | null;
+    finalCloseoutStatus: string | null;
+    finalCloseoutEvidencePath: string | null;
+    finalCloseoutCompletedAt: string | null;
+    finalCloseoutCompletedBy: string | null;
+    runCompleted: boolean;
+  };
+  finalCloseoutStatus: string | null;
+  finalCloseoutEvidencePath: string | null;
+  finalCloseoutCompletedAt: string | null;
+  finalCloseoutCompletedBy: string | null;
+  runCompleted: boolean;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -422,6 +436,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const productionDeploymentPacket = summarizeLatestProductionDeploymentPacketForBridge(runId);
   const productionDeployment = summarizeLatestProductionDeploymentForBridge(runId);
   const completionReadiness = summarizeLatestCompletionReadinessForBridge(runId);
+  const finalCloseout = summarizeLatestFinalCloseoutForBridge(runId);
 
   return {
     runId: run.id,
@@ -530,7 +545,7 @@ export async function buildRunEvidenceSummaryForBridge(
       productionDeploymentPacket.latestProductionDeploymentPacket
         .productionDeploymentPacketCreatedBy,
     notProductionDeployed: true,
-    notComplete: true,
+    notComplete: finalCloseout.runCompleted ? false : true,
     latestProductionDeployment: productionDeployment.latestProductionDeployment,
     productionDeploymentStatus:
       productionDeployment.latestProductionDeployment.productionDeploymentStatus,
@@ -556,6 +571,12 @@ export async function buildRunEvidenceSummaryForBridge(
       completionReadiness.latestCompletionReadiness.completionReadinessReviewedBy,
     completionReadinessEvidencePath:
       completionReadiness.latestCompletionReadiness.completionReadinessEvidencePath,
+    latestFinalCloseout: finalCloseout.latestFinalCloseout,
+    finalCloseoutStatus: finalCloseout.finalCloseoutStatus,
+    finalCloseoutEvidencePath: finalCloseout.finalCloseoutEvidencePath,
+    finalCloseoutCompletedAt: finalCloseout.finalCloseoutCompletedAt,
+    finalCloseoutCompletedBy: finalCloseout.finalCloseoutCompletedBy,
+    runCompleted: finalCloseout.runCompleted,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

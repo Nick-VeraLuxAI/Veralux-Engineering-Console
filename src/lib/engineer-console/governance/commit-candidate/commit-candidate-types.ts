@@ -23,6 +23,7 @@ export type CommitCandidateStatus =
   | "production_deployed"
   | "production_deployment_failed"
   | "completion_readiness_recorded"
+  | "completed"
   | "rejected";
 
 export interface EngineeringCommitPrCandidatePacketV1 {
@@ -150,6 +151,12 @@ export interface CommitCandidateRecord {
   completionReadinessReviewedBy: string | null;
   completionReadinessReason: string | null;
   completionReadinessEvidencePath: string | null;
+  finalCloseoutStatus: string | null;
+  finalCloseoutEvidencePath: string | null;
+  finalCloseoutCompletedAt: string | null;
+  finalCloseoutCompletedBy: string | null;
+  finalCloseoutReason: string | null;
+  finalCloseoutNotes: string | null;
   notCommitted: boolean;
   notPushed: boolean;
   notMerged: boolean;

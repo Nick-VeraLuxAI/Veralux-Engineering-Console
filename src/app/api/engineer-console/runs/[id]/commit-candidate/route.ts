@@ -116,10 +116,16 @@ export async function GET(
     completionReadinessReviewedBy: row.completionReadinessReviewedBy,
     completionReadinessReason: row.completionReadinessReason,
     completionReadinessEvidencePath: row.completionReadinessEvidencePath,
+    finalCloseoutStatus: row.finalCloseoutStatus,
+    finalCloseoutEvidencePath: row.finalCloseoutEvidencePath,
+    finalCloseoutCompletedAt: row.finalCloseoutCompletedAt,
+    finalCloseoutCompletedBy: row.finalCloseoutCompletedBy,
+    finalCloseoutReason: row.finalCloseoutReason,
+    finalCloseoutNotes: row.finalCloseoutNotes,
     notPushed: row.notPushed,
     notMerged: row.notMerged,
-    notDeployed: true as const,
-    notComplete: true as const,
+    notDeployed: row.notDeployed,
+    notComplete: row.notComplete,
   }));
 
   const task = getTaskById(run.taskId);
