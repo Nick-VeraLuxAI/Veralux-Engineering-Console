@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listCommitCandidatesForRun } from "@/lib/engineer-console/governance/commit-candidate/commit-candidate-manager";
 import { isLocalScriptStagingAdapterAvailable } from "@/lib/engineer-console/governance/commit-candidate/local-script-staging-deployment-adapter";
+import { isLocalScriptProductionAdapterAvailable } from "@/lib/engineer-console/governance/commit-candidate/local-script-production-deployment-adapter";
 import { isGovernedGithubPrClientEnabled } from "@/lib/engineer-console/governance/commit-candidate/governed-github-pr";
 import { getRunById } from "@/lib/engineer-console/run-manager/run-manager";
 import { getTaskById } from "@/lib/engineer-console/task-manager/task-manager";
@@ -101,6 +102,14 @@ export async function GET(
     productionDeploymentPacketCreatedBy: row.productionDeploymentPacketCreatedBy,
     productionDeploymentPacketReason: row.productionDeploymentPacketReason,
     productionDeploymentRollbackNotes: row.productionDeploymentRollbackNotes,
+    productionDeploymentStatus: row.productionDeploymentStatus,
+    productionDeploymentAdapter: row.productionDeploymentAdapter,
+    productionDeploymentStartedAt: row.productionDeploymentStartedAt,
+    productionDeploymentFinishedAt: row.productionDeploymentFinishedAt,
+    productionDeploymentExitCode: row.productionDeploymentExitCode,
+    productionDeploymentEvidencePath: row.productionDeploymentEvidencePath,
+    productionDeployedBy: row.productionDeployedBy,
+    productionDeployReason: row.productionDeployReason,
     notPushed: row.notPushed,
     notMerged: row.notMerged,
     notDeployed: true as const,
@@ -111,11 +120,15 @@ export async function GET(
   const stagingDeployAdapterAvailable = task
     ? isLocalScriptStagingAdapterAvailable(task.targetRepoPath)
     : false;
+  const productionDeployAdapterAvailable = task
+    ? isLocalScriptProductionAdapterAvailable(task.targetRepoPath)
+    : false;
 
   return NextResponse.json({
     runId,
     githubPrCreationAvailable: isGovernedGithubPrClientEnabled(),
     stagingDeployAdapterAvailable,
+    productionDeployAdapterAvailable,
     latest: candidates[0] ?? null,
     history: candidates,
   });

@@ -800,3 +800,53 @@ export function summarizeLatestProductionDeploymentPacketForBridge(runId: string
     },
   };
 }
+
+export function summarizeLatestProductionDeploymentForBridge(runId: string): {
+  latestProductionDeployment: {
+    candidateId: string | null;
+    productionDeploymentStatus: string | null;
+    productionDeploymentAdapter: string | null;
+    productionDeploymentStartedAt: string | null;
+    productionDeploymentFinishedAt: string | null;
+    productionDeploymentExitCode: number | null;
+    productionDeploymentEvidencePath: string | null;
+    productionDeployedBy: string | null;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const hasProductionDeployment =
+    latest &&
+    (latest.status === "production_deployed" ||
+      latest.status === "production_deployment_failed" ||
+      latest.productionDeploymentStatus === "production_deployed" ||
+      latest.productionDeploymentStatus === "production_deployment_failed");
+  if (!hasProductionDeployment) {
+    return {
+      latestProductionDeployment: {
+        candidateId: latest?.id ?? null,
+        productionDeploymentStatus: latest?.productionDeploymentStatus ?? null,
+        productionDeploymentAdapter: null,
+        productionDeploymentStartedAt: null,
+        productionDeploymentFinishedAt: null,
+        productionDeploymentExitCode: null,
+        productionDeploymentEvidencePath: null,
+        productionDeployedBy: null,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestProductionDeployment: {
+      candidateId: latest.id,
+      productionDeploymentStatus: latest.productionDeploymentStatus,
+      productionDeploymentAdapter: latest.productionDeploymentAdapter,
+      productionDeploymentStartedAt: latest.productionDeploymentStartedAt,
+      productionDeploymentFinishedAt: latest.productionDeploymentFinishedAt,
+      productionDeploymentExitCode: latest.productionDeploymentExitCode,
+      productionDeploymentEvidencePath: latest.productionDeploymentEvidencePath,
+      productionDeployedBy: latest.productionDeployedBy,
+      notComplete: true,
+    },
+  };
+}

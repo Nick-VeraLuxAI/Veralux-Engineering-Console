@@ -20,6 +20,8 @@ export type CommitCandidateStatus =
   | "staging_deployment_failed"
   | "production_readiness_recorded"
   | "production_deployment_packet_prepared"
+  | "production_deployed"
+  | "production_deployment_failed"
   | "rejected";
 
 export interface EngineeringCommitPrCandidatePacketV1 {
@@ -133,6 +135,14 @@ export interface CommitCandidateRecord {
   productionDeploymentPacketCreatedBy: string | null;
   productionDeploymentPacketReason: string | null;
   productionDeploymentRollbackNotes: string | null;
+  productionDeploymentStatus: string | null;
+  productionDeploymentAdapter: string | null;
+  productionDeploymentStartedAt: string | null;
+  productionDeploymentFinishedAt: string | null;
+  productionDeploymentExitCode: number | null;
+  productionDeploymentEvidencePath: string | null;
+  productionDeployedBy: string | null;
+  productionDeployReason: string | null;
   notCommitted: boolean;
   notPushed: boolean;
   notMerged: boolean;

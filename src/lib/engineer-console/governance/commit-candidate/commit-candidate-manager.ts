@@ -91,6 +91,14 @@ interface Row {
   production_deployment_packet_created_by: string | null;
   production_deployment_packet_reason: string | null;
   production_deployment_rollback_notes: string | null;
+  production_deployment_status: string | null;
+  production_deployment_adapter: string | null;
+  production_deployment_started_at: string | null;
+  production_deployment_finished_at: string | null;
+  production_deployment_exit_code: number | null;
+  production_deployment_evidence_path: string | null;
+  production_deployed_by: string | null;
+  production_deploy_reason: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -184,6 +192,14 @@ function mapRow(row: Row): CommitCandidateRecord {
     productionDeploymentPacketCreatedBy: row.production_deployment_packet_created_by ?? null,
     productionDeploymentPacketReason: row.production_deployment_packet_reason ?? null,
     productionDeploymentRollbackNotes: row.production_deployment_rollback_notes ?? null,
+    productionDeploymentStatus: row.production_deployment_status ?? null,
+    productionDeploymentAdapter: row.production_deployment_adapter ?? null,
+    productionDeploymentStartedAt: row.production_deployment_started_at ?? null,
+    productionDeploymentFinishedAt: row.production_deployment_finished_at ?? null,
+    productionDeploymentExitCode: row.production_deployment_exit_code ?? null,
+    productionDeploymentEvidencePath: row.production_deployment_evidence_path ?? null,
+    productionDeployedBy: row.production_deployed_by ?? null,
+    productionDeployReason: row.production_deploy_reason ?? null,
     notCommitted: row.not_committed !== 0,
     notPushed: row.not_pushed !== 0,
     notMerged: row.not_merged !== 0,
@@ -268,6 +284,14 @@ export function insertCommitCandidate(
     | "productionDeploymentPacketCreatedBy"
     | "productionDeploymentPacketReason"
     | "productionDeploymentRollbackNotes"
+    | "productionDeploymentStatus"
+    | "productionDeploymentAdapter"
+    | "productionDeploymentStartedAt"
+    | "productionDeploymentFinishedAt"
+    | "productionDeploymentExitCode"
+    | "productionDeploymentEvidencePath"
+    | "productionDeployedBy"
+    | "productionDeployReason"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -378,6 +402,14 @@ export function insertCommitCandidate(
     productionDeploymentPacketCreatedBy: null,
     productionDeploymentPacketReason: null,
     productionDeploymentRollbackNotes: null,
+    productionDeploymentStatus: null,
+    productionDeploymentAdapter: null,
+    productionDeploymentStartedAt: null,
+    productionDeploymentFinishedAt: null,
+    productionDeploymentExitCode: null,
+    productionDeploymentEvidencePath: null,
+    productionDeployedBy: null,
+    productionDeployReason: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -780,5 +812,77 @@ export function markCommitCandidateProductionDeploymentPacketPrepared(input: {
       production_deployment_rollback_notes: input.productionDeploymentRollbackNotes,
       production_deployment_packet_path: input.productionDeploymentPacketPath,
       production_deployment_plan_path: input.productionDeploymentPlanPath,
+    });
+}
+
+export function markCommitCandidateProductionDeployed(input: {
+  candidateId: string;
+  productionDeploymentAdapter: string;
+  productionDeploymentStartedAt: string;
+  productionDeploymentFinishedAt: string;
+  productionDeploymentExitCode: number;
+  productionDeploymentEvidencePath: string;
+  productionDeployedBy: string;
+  productionDeployReason: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'production_deployed',
+        production_deployment_status = 'production_deployed',
+        production_deployment_adapter = @production_deployment_adapter,
+        production_deployment_started_at = @production_deployment_started_at,
+        production_deployment_finished_at = @production_deployment_finished_at,
+        production_deployment_exit_code = @production_deployment_exit_code,
+        production_deployment_evidence_path = @production_deployment_evidence_path,
+        production_deployed_by = @production_deployed_by,
+        production_deploy_reason = @production_deploy_reason
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      production_deployment_adapter: input.productionDeploymentAdapter,
+      production_deployment_started_at: input.productionDeploymentStartedAt,
+      production_deployment_finished_at: input.productionDeploymentFinishedAt,
+      production_deployment_exit_code: input.productionDeploymentExitCode,
+      production_deployment_evidence_path: input.productionDeploymentEvidencePath,
+      production_deployed_by: input.productionDeployedBy,
+      production_deploy_reason: input.productionDeployReason,
+    });
+}
+
+export function markCommitCandidateProductionDeploymentFailed(input: {
+  candidateId: string;
+  productionDeploymentAdapter: string;
+  productionDeploymentStartedAt: string;
+  productionDeploymentFinishedAt: string;
+  productionDeploymentExitCode: number;
+  productionDeploymentEvidencePath: string;
+  productionDeployedBy: string;
+  productionDeployReason: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'production_deployment_failed',
+        production_deployment_status = 'production_deployment_failed',
+        production_deployment_adapter = @production_deployment_adapter,
+        production_deployment_started_at = @production_deployment_started_at,
+        production_deployment_finished_at = @production_deployment_finished_at,
+        production_deployment_exit_code = @production_deployment_exit_code,
+        production_deployment_evidence_path = @production_deployment_evidence_path,
+        production_deployed_by = @production_deployed_by,
+        production_deploy_reason = @production_deploy_reason
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      production_deployment_adapter: input.productionDeploymentAdapter,
+      production_deployment_started_at: input.productionDeploymentStartedAt,
+      production_deployment_finished_at: input.productionDeploymentFinishedAt,
+      production_deployment_exit_code: input.productionDeploymentExitCode,
+      production_deployment_evidence_path: input.productionDeploymentEvidencePath,
+      production_deployed_by: input.productionDeployedBy,
+      production_deploy_reason: input.productionDeployReason,
     });
 }
