@@ -24,6 +24,7 @@ import {
   summarizeLatestDeploymentPacketForBridge,
   summarizeLatestStagingDeploymentForBridge,
   summarizeLatestProductionReadinessForBridge,
+  summarizeLatestProductionDeploymentPacketForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -228,6 +229,25 @@ export interface RunEvidenceSummaryForBridge {
   productionReadinessReviewedAt: string | null;
   productionReadinessReviewedBy: string | null;
   productionReadinessEvidencePath: string | null;
+  latestProductionDeploymentPacket: {
+    candidateId: string | null;
+    productionDeploymentPacketStatus: string | null;
+    productionDeploymentTargetEnvironment: string | null;
+    productionDeploymentPacketPath: string | null;
+    productionDeploymentPlanPath: string | null;
+    productionDeploymentPacketCreatedAt: string | null;
+    productionDeploymentPacketCreatedBy: string | null;
+    notProductionDeployed: true;
+    notComplete: true;
+  };
+  productionDeploymentPacketStatus: string | null;
+  productionDeploymentTargetEnvironment: string | null;
+  productionDeploymentPacketPath: string | null;
+  productionDeploymentPlanPath: string | null;
+  productionDeploymentPacketCreatedAt: string | null;
+  productionDeploymentPacketCreatedBy: string | null;
+  notProductionDeployed: true;
+  notComplete: true;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -365,6 +385,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const deploymentPacket = summarizeLatestDeploymentPacketForBridge(runId);
   const stagingDeployment = summarizeLatestStagingDeploymentForBridge(runId);
   const productionReadiness = summarizeLatestProductionReadinessForBridge(runId);
+  const productionDeploymentPacket = summarizeLatestProductionDeploymentPacketForBridge(runId);
 
   return {
     runId: run.id,
@@ -456,6 +477,24 @@ export async function buildRunEvidenceSummaryForBridge(
       productionReadiness.latestProductionReadiness.productionReadinessReviewedBy,
     productionReadinessEvidencePath:
       productionReadiness.latestProductionReadiness.productionReadinessEvidencePath,
+    latestProductionDeploymentPacket: productionDeploymentPacket.latestProductionDeploymentPacket,
+    productionDeploymentPacketStatus:
+      productionDeploymentPacket.latestProductionDeploymentPacket.productionDeploymentPacketStatus,
+    productionDeploymentTargetEnvironment:
+      productionDeploymentPacket.latestProductionDeploymentPacket
+        .productionDeploymentTargetEnvironment,
+    productionDeploymentPacketPath:
+      productionDeploymentPacket.latestProductionDeploymentPacket.productionDeploymentPacketPath,
+    productionDeploymentPlanPath:
+      productionDeploymentPacket.latestProductionDeploymentPacket.productionDeploymentPlanPath,
+    productionDeploymentPacketCreatedAt:
+      productionDeploymentPacket.latestProductionDeploymentPacket
+        .productionDeploymentPacketCreatedAt,
+    productionDeploymentPacketCreatedBy:
+      productionDeploymentPacket.latestProductionDeploymentPacket
+        .productionDeploymentPacketCreatedBy,
+    notProductionDeployed: true,
+    notComplete: true,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??

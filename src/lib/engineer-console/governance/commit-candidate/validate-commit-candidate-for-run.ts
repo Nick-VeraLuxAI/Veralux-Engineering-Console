@@ -752,3 +752,51 @@ export function summarizeLatestProductionReadinessForBridge(runId: string): {
     },
   };
 }
+
+export function summarizeLatestProductionDeploymentPacketForBridge(runId: string): {
+  latestProductionDeploymentPacket: {
+    candidateId: string | null;
+    productionDeploymentPacketStatus: string | null;
+    productionDeploymentTargetEnvironment: string | null;
+    productionDeploymentPacketPath: string | null;
+    productionDeploymentPlanPath: string | null;
+    productionDeploymentPacketCreatedAt: string | null;
+    productionDeploymentPacketCreatedBy: string | null;
+    notProductionDeployed: true;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const hasProductionDeploymentPacket =
+    latest &&
+    (latest.status === "production_deployment_packet_prepared" ||
+      latest.productionDeploymentPacketStatus === "production_deployment_packet_prepared");
+  if (!hasProductionDeploymentPacket) {
+    return {
+      latestProductionDeploymentPacket: {
+        candidateId: latest?.id ?? null,
+        productionDeploymentPacketStatus: latest?.productionDeploymentPacketStatus ?? null,
+        productionDeploymentTargetEnvironment: null,
+        productionDeploymentPacketPath: null,
+        productionDeploymentPlanPath: null,
+        productionDeploymentPacketCreatedAt: null,
+        productionDeploymentPacketCreatedBy: null,
+        notProductionDeployed: true,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestProductionDeploymentPacket: {
+      candidateId: latest.id,
+      productionDeploymentPacketStatus: latest.productionDeploymentPacketStatus,
+      productionDeploymentTargetEnvironment: latest.productionDeploymentTargetEnvironment,
+      productionDeploymentPacketPath: latest.productionDeploymentPacketPath,
+      productionDeploymentPlanPath: latest.productionDeploymentPlanPath,
+      productionDeploymentPacketCreatedAt: latest.productionDeploymentPacketCreatedAt,
+      productionDeploymentPacketCreatedBy: latest.productionDeploymentPacketCreatedBy,
+      notProductionDeployed: true,
+      notComplete: true,
+    },
+  };
+}

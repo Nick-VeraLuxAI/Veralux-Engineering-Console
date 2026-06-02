@@ -170,5 +170,20 @@ export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
         db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
       }
     }
+    const productionDeploymentPacketColumns = [
+      ["production_deployment_packet_status", "TEXT"],
+      ["production_deployment_target_environment", "TEXT"],
+      ["production_deployment_packet_path", "TEXT"],
+      ["production_deployment_plan_path", "TEXT"],
+      ["production_deployment_packet_created_at", "TEXT"],
+      ["production_deployment_packet_created_by", "TEXT"],
+      ["production_deployment_packet_reason", "TEXT"],
+      ["production_deployment_rollback_notes", "TEXT"],
+    ] as const;
+    for (const [name, type] of productionDeploymentPacketColumns) {
+      if (!commitCandidateColumns.some((c) => c.name === name)) {
+        db.exec(`ALTER TABLE engineer_commit_candidates ADD COLUMN ${name} ${type}`);
+      }
+    }
   }
 }

@@ -63,6 +63,13 @@ interface CommitCandidatePublic {
   productionReadinessReviewedAt?: string | null;
   productionReadinessReviewedBy?: string | null;
   productionReadinessEvidencePath?: string | null;
+  productionDeploymentPacketStatus?: string | null;
+  productionDeploymentTargetEnvironment?: string | null;
+  productionDeploymentPacketPath?: string | null;
+  productionDeploymentPlanPath?: string | null;
+  productionDeploymentPacketCreatedAt?: string | null;
+  productionDeploymentPacketCreatedBy?: string | null;
+  productionDeploymentRollbackNotes?: string | null;
   notMerged?: boolean;
 }
 
@@ -157,6 +164,14 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
   const [productionReadinessResult, setProductionReadinessResult] = useState<{
     decision: string;
     productionReadinessEvidencePath: string;
+  } | null>(null);
+  const [productionDeploymentPacketReason, setProductionDeploymentPacketReason] = useState("");
+  const [productionDeploymentNotes, setProductionDeploymentNotes] = useState("");
+  const [productionRollbackNotes, setProductionRollbackNotes] = useState("");
+  const [productionDeploymentPacketResult, setProductionDeploymentPacketResult] = useState<{
+    targetEnvironment: string;
+    productionDeploymentPacketPath: string;
+    productionDeploymentPlanPath: string;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -355,6 +370,23 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     Boolean(latest.stagingDeploymentEvidencePath) &&
     Boolean(latest.deploymentPacketPath);
 
+  const canPrepareProductionDeploymentPacket =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest &&
+    (latest.status === "production_readiness_recorded" ||
+      latest.productionReadinessStatus === "production_readiness_recorded" ||
+      latest.status === "production_deployment_packet_prepared") &&
+    latest.productionReadinessDecision === "ready" &&
+    Boolean(latest.productionReadinessEvidencePath) &&
+    (latest.stagingDeploymentStatus === "staging_deployed" ||
+      latest.status === "staging_deployed" ||
+      latest.status === "production_readiness_recorded" ||
+      latest.status === "production_deployment_packet_prepared") &&
+    Boolean(latest.stagingDeploymentEvidencePath) &&
+    latest.deploymentPacketStatus === "deployment_packet_prepared" &&
+    Boolean(latest.deploymentPacketPath);
+
   async function handleRecordProductionReadiness() {
     const reason = productionReadinessReason.trim();
     if (!reason) {
@@ -400,6 +432,66 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
       await load();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Production readiness recording failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handlePrepareProductionDeploymentPacket() {
+    const reason = productionDeploymentPacketReason.trim();
+    const rollbackNotes = productionRollbackNotes.trim();
+    if (!reason) {
+      setError("Production deployment packet approval reason is required.");
+      return;
+    }
+    if (!rollbackNotes) {
+      setError("Rollback notes are required for production deployment packet preparation.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate for production deployment packet.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/production-deployment-packet`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            targetEnvironment: "production",
+            deploymentNotes: productionDeploymentNotes.trim() || undefined,
+            rollbackNotes,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        targetEnvironment?: string;
+        productionDeploymentPacketPath?: string;
+        productionDeploymentPlanPath?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setProductionDeploymentPacketResult({
+        targetEnvironment: body.targetEnvironment ?? "production",
+        productionDeploymentPacketPath: body.productionDeploymentPacketPath ?? "",
+        productionDeploymentPlanPath: body.productionDeploymentPlanPath ?? "",
+      });
+      setMessage(
+        "Production deployment packet prepared. This does not deploy to production or mark the run complete.",
+      );
+      await load();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Production deployment packet preparation failed",
+      );
     } finally {
       setBusy(false);
     }
@@ -1594,6 +1686,111 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
             <p className="mt-1 text-xs text-[var(--muted)]">
               reviewed: {latest.productionReadinessReviewedBy} at{" "}
               {latest.productionReadinessReviewedAt}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Not production deployed. Run is not marked complete.
+          </p>
+        </div>
+      ) : null}
+
+      {canPrepareProductionDeploymentPacket ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Production deployment packet (Phase 20)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This prepares a production deployment packet only.</li>
+            <li>This does not deploy to production.</li>
+            <li>This does not mark the run complete.</li>
+          </ul>
+          <div className="rounded bg-[var(--surface-inset)] p-2 text-xs text-[var(--muted)]">
+            <p>
+              Production readiness: {latest?.productionReadinessDecision ?? "—"} (
+              {latest?.productionReadinessStatus ?? latest?.status ?? "—"})
+            </p>
+            <p>
+              Staging deployment: {latest?.stagingDeploymentStatus ?? latest?.status ?? "—"}
+            </p>
+            <p className="font-mono break-all">
+              staging evidence: {latest?.stagingDeploymentEvidencePath ?? "—"}
+            </p>
+          </div>
+          <label className="block text-xs font-medium" htmlFor="production-deployment-notes">
+            Production deployment notes (optional)
+          </label>
+          <textarea
+            id="production-deployment-notes"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={productionDeploymentNotes}
+            onChange={(e) => setProductionDeploymentNotes(e.target.value)}
+            disabled={busy}
+          />
+          <label className="block text-xs font-medium" htmlFor="production-rollback-notes">
+            Rollback notes (required)
+          </label>
+          <textarea
+            id="production-rollback-notes"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={3}
+            value={productionRollbackNotes}
+            onChange={(e) => setProductionRollbackNotes(e.target.value)}
+            disabled={busy}
+          />
+          <label className="block text-xs font-medium" htmlFor="production-deployment-packet-reason">
+            Operator reason (required)
+          </label>
+          <textarea
+            id="production-deployment-packet-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={productionDeploymentPacketReason}
+            onChange={(e) => setProductionDeploymentPacketReason(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={
+              busy ||
+              !productionDeploymentPacketReason.trim() ||
+              !productionRollbackNotes.trim()
+            }
+            onClick={() => void handlePrepareProductionDeploymentPacket()}
+          >
+            {busy ? "Preparing…" : "Prepare production deployment packet"}
+          </button>
+        </div>
+      ) : null}
+
+      {productionDeploymentPacketResult ||
+      latest?.productionDeploymentPacketStatus === "production_deployment_packet_prepared" ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Production deployment packet prepared</p>
+          <p className="text-xs">
+            target:{" "}
+            {productionDeploymentPacketResult?.targetEnvironment ??
+              latest?.productionDeploymentTargetEnvironment ??
+              "production"}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            packet:{" "}
+            {productionDeploymentPacketResult?.productionDeploymentPacketPath ??
+              latest?.productionDeploymentPacketPath}
+          </p>
+          <p className="font-mono text-xs text-[var(--muted)]">
+            plan:{" "}
+            {productionDeploymentPacketResult?.productionDeploymentPlanPath ??
+              latest?.productionDeploymentPlanPath}
+          </p>
+          {latest?.productionDeploymentPacketCreatedAt ? (
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              prepared: {latest.productionDeploymentPacketCreatedBy} at{" "}
+              {latest.productionDeploymentPacketCreatedAt}
+            </p>
+          ) : null}
+          {latest?.productionDeploymentRollbackNotes ? (
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              rollback notes recorded
             </p>
           ) : null}
           <p className="mt-2 text-xs text-[var(--muted)]">

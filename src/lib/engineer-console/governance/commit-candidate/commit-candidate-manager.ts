@@ -83,6 +83,14 @@ interface Row {
   production_readiness_reviewed_by: string | null;
   production_readiness_reason: string | null;
   production_readiness_evidence_path: string | null;
+  production_deployment_packet_status: string | null;
+  production_deployment_target_environment: string | null;
+  production_deployment_packet_path: string | null;
+  production_deployment_plan_path: string | null;
+  production_deployment_packet_created_at: string | null;
+  production_deployment_packet_created_by: string | null;
+  production_deployment_packet_reason: string | null;
+  production_deployment_rollback_notes: string | null;
   not_committed: number;
   not_pushed: number;
   not_merged: number;
@@ -168,6 +176,14 @@ function mapRow(row: Row): CommitCandidateRecord {
     productionReadinessReviewedBy: row.production_readiness_reviewed_by ?? null,
     productionReadinessReason: row.production_readiness_reason ?? null,
     productionReadinessEvidencePath: row.production_readiness_evidence_path ?? null,
+    productionDeploymentPacketStatus: row.production_deployment_packet_status ?? null,
+    productionDeploymentTargetEnvironment: row.production_deployment_target_environment ?? null,
+    productionDeploymentPacketPath: row.production_deployment_packet_path ?? null,
+    productionDeploymentPlanPath: row.production_deployment_plan_path ?? null,
+    productionDeploymentPacketCreatedAt: row.production_deployment_packet_created_at ?? null,
+    productionDeploymentPacketCreatedBy: row.production_deployment_packet_created_by ?? null,
+    productionDeploymentPacketReason: row.production_deployment_packet_reason ?? null,
+    productionDeploymentRollbackNotes: row.production_deployment_rollback_notes ?? null,
     notCommitted: row.not_committed !== 0,
     notPushed: row.not_pushed !== 0,
     notMerged: row.not_merged !== 0,
@@ -244,6 +260,14 @@ export function insertCommitCandidate(
     | "productionReadinessReviewedBy"
     | "productionReadinessReason"
     | "productionReadinessEvidencePath"
+    | "productionDeploymentPacketStatus"
+    | "productionDeploymentTargetEnvironment"
+    | "productionDeploymentPacketPath"
+    | "productionDeploymentPlanPath"
+    | "productionDeploymentPacketCreatedAt"
+    | "productionDeploymentPacketCreatedBy"
+    | "productionDeploymentPacketReason"
+    | "productionDeploymentRollbackNotes"
     | "notCommitted"
     | "notPushed"
     | "notMerged"
@@ -346,6 +370,14 @@ export function insertCommitCandidate(
     productionReadinessReviewedBy: null,
     productionReadinessReason: null,
     productionReadinessEvidencePath: null,
+    productionDeploymentPacketStatus: null,
+    productionDeploymentTargetEnvironment: null,
+    productionDeploymentPacketPath: null,
+    productionDeploymentPlanPath: null,
+    productionDeploymentPacketCreatedAt: null,
+    productionDeploymentPacketCreatedBy: null,
+    productionDeploymentPacketReason: null,
+    productionDeploymentRollbackNotes: null,
     notCommitted: true,
     notPushed: true,
     notMerged: true,
@@ -712,5 +744,41 @@ export function markCommitCandidateProductionReadinessRecorded(input: {
       production_readiness_reviewed_by: input.productionReadinessReviewedBy,
       production_readiness_reason: input.productionReadinessReason,
       production_readiness_evidence_path: input.productionReadinessEvidencePath,
+    });
+}
+
+export function markCommitCandidateProductionDeploymentPacketPrepared(input: {
+  candidateId: string;
+  productionDeploymentTargetEnvironment: string;
+  productionDeploymentPacketCreatedAt: string;
+  productionDeploymentPacketCreatedBy: string;
+  productionDeploymentPacketReason: string;
+  productionDeploymentRollbackNotes: string;
+  productionDeploymentPacketPath: string;
+  productionDeploymentPlanPath: string;
+}): void {
+  getEngineerConsoleDb()
+    .prepare(
+      `UPDATE engineer_commit_candidates SET
+        status = 'production_deployment_packet_prepared',
+        production_deployment_packet_status = 'production_deployment_packet_prepared',
+        production_deployment_target_environment = @production_deployment_target_environment,
+        production_deployment_packet_created_at = @production_deployment_packet_created_at,
+        production_deployment_packet_created_by = @production_deployment_packet_created_by,
+        production_deployment_packet_reason = @production_deployment_packet_reason,
+        production_deployment_rollback_notes = @production_deployment_rollback_notes,
+        production_deployment_packet_path = @production_deployment_packet_path,
+        production_deployment_plan_path = @production_deployment_plan_path
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.candidateId,
+      production_deployment_target_environment: input.productionDeploymentTargetEnvironment,
+      production_deployment_packet_created_at: input.productionDeploymentPacketCreatedAt,
+      production_deployment_packet_created_by: input.productionDeploymentPacketCreatedBy,
+      production_deployment_packet_reason: input.productionDeploymentPacketReason,
+      production_deployment_rollback_notes: input.productionDeploymentRollbackNotes,
+      production_deployment_packet_path: input.productionDeploymentPacketPath,
+      production_deployment_plan_path: input.productionDeploymentPlanPath,
     });
 }
