@@ -850,3 +850,45 @@ export function summarizeLatestProductionDeploymentForBridge(runId: string): {
     },
   };
 }
+
+export function summarizeLatestCompletionReadinessForBridge(runId: string): {
+  latestCompletionReadiness: {
+    candidateId: string | null;
+    completionReadinessStatus: string | null;
+    completionReadinessDecision: string | null;
+    completionReadinessReviewedAt: string | null;
+    completionReadinessReviewedBy: string | null;
+    completionReadinessEvidencePath: string | null;
+    notComplete: true;
+  };
+} {
+  const latest = getLatestCommitCandidateForRun(runId);
+  const hasCompletionReadiness =
+    latest &&
+    (latest.status === "completion_readiness_recorded" ||
+      latest.completionReadinessStatus === "completion_readiness_recorded");
+  if (!hasCompletionReadiness) {
+    return {
+      latestCompletionReadiness: {
+        candidateId: latest?.id ?? null,
+        completionReadinessStatus: latest?.completionReadinessStatus ?? null,
+        completionReadinessDecision: null,
+        completionReadinessReviewedAt: null,
+        completionReadinessReviewedBy: null,
+        completionReadinessEvidencePath: null,
+        notComplete: true,
+      },
+    };
+  }
+  return {
+    latestCompletionReadiness: {
+      candidateId: latest.id,
+      completionReadinessStatus: latest.completionReadinessStatus,
+      completionReadinessDecision: latest.completionReadinessDecision,
+      completionReadinessReviewedAt: latest.completionReadinessReviewedAt,
+      completionReadinessReviewedBy: latest.completionReadinessReviewedBy,
+      completionReadinessEvidencePath: latest.completionReadinessEvidencePath,
+      notComplete: true,
+    },
+  };
+}

@@ -77,6 +77,11 @@ interface CommitCandidatePublic {
   productionDeploymentExitCode?: number | null;
   productionDeploymentEvidencePath?: string | null;
   productionDeployedBy?: string | null;
+  completionReadinessStatus?: string | null;
+  completionReadinessDecision?: string | null;
+  completionReadinessReviewedAt?: string | null;
+  completionReadinessReviewedBy?: string | null;
+  completionReadinessEvidencePath?: string | null;
   notMerged?: boolean;
 }
 
@@ -186,6 +191,15 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     status: string;
     exitCode: number;
     deploymentEvidencePath: string;
+  } | null>(null);
+  const [completionReadinessDecision, setCompletionReadinessDecision] = useState<
+    "ready" | "not_ready" | "blocked"
+  >("ready");
+  const [completionReadinessReason, setCompletionReadinessReason] = useState("");
+  const [completionVerificationNotes, setCompletionVerificationNotes] = useState("");
+  const [completionReadinessResult, setCompletionReadinessResult] = useState<{
+    decision: string;
+    completionReadinessEvidencePath: string;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -416,6 +430,18 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
     latest.stagingDeploymentStatus === "staging_deployed" &&
     productionDeployAdapterAvailable;
 
+  const canRecordCompletionReadiness =
+    signoff?.decision === "approved" &&
+    evidence?.patchApplication?.status === "patch_applied" &&
+    latest &&
+    (latest.status === "production_deployed" ||
+      latest.productionDeploymentStatus === "production_deployed" ||
+      latest.status === "completion_readiness_recorded") &&
+    latest.productionDeploymentStatus !== "production_deployment_failed" &&
+    latest.productionDeploymentExitCode === 0 &&
+    Boolean(latest.productionDeploymentEvidencePath) &&
+    latest.productionReadinessDecision === "ready";
+
   async function handleRecordProductionReadiness() {
     const reason = productionReadinessReason.trim();
     if (!reason) {
@@ -521,6 +547,56 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
       setError(
         err instanceof Error ? err.message : "Production deployment packet preparation failed",
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRecordCompletionReadiness() {
+    const reason = completionReadinessReason.trim();
+    if (!reason) {
+      setError("Completion readiness approval reason is required.");
+      return;
+    }
+    if (!latest?.id) {
+      setError("No commit candidate for completion readiness review.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await engineerConsoleFetch(
+        `/api/engineer-console/runs/${runId}/commit-candidate/completion-readiness`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: latest.id,
+            decision: completionReadinessDecision,
+            verificationNotes: completionVerificationNotes.trim() || undefined,
+            operatorApproval: { approved: true, approvedBy: "operator", reason },
+          }),
+        },
+      );
+      const body = (await res.json()) as {
+        error?: string;
+        decision?: string;
+        completionReadinessEvidencePath?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setCompletionReadinessResult({
+        decision: body.decision ?? completionReadinessDecision,
+        completionReadinessEvidencePath: body.completionReadinessEvidencePath ?? "",
+      });
+      setMessage(
+        "Completion readiness recorded. This does not complete the run.",
+      );
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Completion readiness recording failed");
     } finally {
       setBusy(false);
     }
@@ -1965,6 +2041,102 @@ export function CommitCandidatePanel({ runId }: { runId: string }) {
           {latest?.productionDeployedBy ? (
             <p className="mt-1 text-xs text-[var(--muted)]">
               deployed by: {latest.productionDeployedBy}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Run is not marked complete.
+          </p>
+        </div>
+      ) : null}
+
+      {canRecordCompletionReadiness ? (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--border)] p-3">
+          <p className="text-sm font-medium">Completion readiness review (Phase 22)</p>
+          <ul className="list-inside list-disc text-xs text-[var(--danger)]">
+            <li>This records completion readiness only.</li>
+            <li>This does not complete the run.</li>
+          </ul>
+          <div className="rounded bg-[var(--surface-inset)] p-2 text-xs text-[var(--muted)]">
+            <p>
+              Production deployment: {latest?.productionDeploymentStatus ?? latest?.status ?? "—"}
+            </p>
+            <p>
+              exit code: {latest?.productionDeploymentExitCode ?? "—"}
+            </p>
+            <p className="font-mono break-all">
+              production evidence: {latest?.productionDeploymentEvidencePath ?? "—"}
+            </p>
+            <p>
+              production readiness: {latest?.productionReadinessDecision ?? "—"}
+            </p>
+          </div>
+          <label className="block text-xs font-medium" htmlFor="completion-readiness-decision">
+            Decision
+          </label>
+          <select
+            id="completion-readiness-decision"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 text-xs"
+            value={completionReadinessDecision}
+            onChange={(e) =>
+              setCompletionReadinessDecision(e.target.value as "ready" | "not_ready" | "blocked")
+            }
+            disabled={busy}
+          >
+            <option value="ready">ready</option>
+            <option value="not_ready">not_ready</option>
+            <option value="blocked">blocked</option>
+          </select>
+          <label className="block text-xs font-medium" htmlFor="completion-verification-notes">
+            Verification notes (optional)
+          </label>
+          <textarea
+            id="completion-verification-notes"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={completionVerificationNotes}
+            onChange={(e) => setCompletionVerificationNotes(e.target.value)}
+            disabled={busy}
+          />
+          <label className="block text-xs font-medium" htmlFor="completion-readiness-reason">
+            Operator reason (required)
+          </label>
+          <textarea
+            id="completion-readiness-reason"
+            className="w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2 font-mono text-xs"
+            rows={2}
+            value={completionReadinessReason}
+            onChange={(e) => setCompletionReadinessReason(e.target.value)}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-fg)] disabled:opacity-50"
+            disabled={busy || !completionReadinessReason.trim()}
+            onClick={() => void handleRecordCompletionReadiness()}
+          >
+            {busy ? "Recording…" : "Record completion readiness"}
+          </button>
+        </div>
+      ) : null}
+
+      {completionReadinessResult ||
+      latest?.completionReadinessDecision ||
+      latest?.completionReadinessStatus === "completion_readiness_recorded" ? (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] p-3 text-sm">
+          <p className="mb-1 font-medium">Completion readiness recorded</p>
+          <p className="text-xs">
+            decision:{" "}
+            {completionReadinessResult?.decision ?? latest?.completionReadinessDecision ?? "—"}
+          </p>
+          <p className="mt-1 font-mono text-xs text-[var(--muted)]">
+            evidence:{" "}
+            {completionReadinessResult?.completionReadinessEvidencePath ??
+              latest?.completionReadinessEvidencePath}
+          </p>
+          {latest?.completionReadinessReviewedAt ? (
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              reviewed: {latest.completionReadinessReviewedBy} at{" "}
+              {latest.completionReadinessReviewedAt}
             </p>
           ) : null}
           <p className="mt-2 text-xs text-[var(--muted)]">

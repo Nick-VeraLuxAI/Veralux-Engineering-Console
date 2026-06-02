@@ -26,6 +26,7 @@ import {
   summarizeLatestProductionReadinessForBridge,
   summarizeLatestProductionDeploymentPacketForBridge,
   summarizeLatestProductionDeploymentForBridge,
+  summarizeLatestCompletionReadinessForBridge,
 } from "../governance/commit-candidate/validate-commit-candidate-for-run";
 import { summarizeLatestEngineeringReviewSignoff } from "../governance/engineering-review-signoff/create-engineering-review-signoff";
 import { ingestHermesWorkerEvidenceForRun } from "../hermes-worker/hermes-evidence-ingest";
@@ -267,6 +268,20 @@ export interface RunEvidenceSummaryForBridge {
   productionDeploymentExitCode: number | null;
   productionDeploymentEvidencePath: string | null;
   productionDeployedBy: string | null;
+  latestCompletionReadiness: {
+    candidateId: string | null;
+    completionReadinessStatus: string | null;
+    completionReadinessDecision: string | null;
+    completionReadinessReviewedAt: string | null;
+    completionReadinessReviewedBy: string | null;
+    completionReadinessEvidencePath: string | null;
+    notComplete: true;
+  };
+  completionReadinessStatus: string | null;
+  completionReadinessDecision: string | null;
+  completionReadinessReviewedAt: string | null;
+  completionReadinessReviewedBy: string | null;
+  completionReadinessEvidencePath: string | null;
   recommendedNextAction: string | null;
   consoleRunPath: string;
   consoleTaskPath: string;
@@ -406,6 +421,7 @@ export async function buildRunEvidenceSummaryForBridge(
   const productionReadiness = summarizeLatestProductionReadinessForBridge(runId);
   const productionDeploymentPacket = summarizeLatestProductionDeploymentPacketForBridge(runId);
   const productionDeployment = summarizeLatestProductionDeploymentForBridge(runId);
+  const completionReadiness = summarizeLatestCompletionReadinessForBridge(runId);
 
   return {
     runId: run.id,
@@ -529,6 +545,17 @@ export async function buildRunEvidenceSummaryForBridge(
     productionDeploymentEvidencePath:
       productionDeployment.latestProductionDeployment.productionDeploymentEvidencePath,
     productionDeployedBy: productionDeployment.latestProductionDeployment.productionDeployedBy,
+    latestCompletionReadiness: completionReadiness.latestCompletionReadiness,
+    completionReadinessStatus:
+      completionReadiness.latestCompletionReadiness.completionReadinessStatus,
+    completionReadinessDecision:
+      completionReadiness.latestCompletionReadiness.completionReadinessDecision,
+    completionReadinessReviewedAt:
+      completionReadiness.latestCompletionReadiness.completionReadinessReviewedAt,
+    completionReadinessReviewedBy:
+      completionReadiness.latestCompletionReadiness.completionReadinessReviewedBy,
+    completionReadinessEvidencePath:
+      completionReadiness.latestCompletionReadiness.completionReadinessEvidencePath,
     recommendedNextAction:
       approvalReport?.recommendedNextAction ??
       mergeReadiness.recommendedAction ??
