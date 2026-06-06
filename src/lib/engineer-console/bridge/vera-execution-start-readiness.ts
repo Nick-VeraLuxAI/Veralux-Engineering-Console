@@ -4,25 +4,25 @@ import { getTaskById } from "../task-manager/task-manager";
 import type { EngineeringRun, EngineeringTask } from "../types";
 import { analyzeVeraHandoffTask } from "./vera-handoff-task";
 import {
+  hasVeraExecutionStartBeenRequested,
   parseVeraRunGovernanceNotes,
   VERA_EXECUTION_APPROVAL_REQUESTED_STEP,
-  VERA_IMPLEMENTATION_RUN_PREPARED_STEP,
   type VeraRunGovernanceNotes,
 } from "./vera-handoff-task-types";
 
-const NON_EXECUTING_RUN_STATUSES = new Set<EngineeringRun["status"]>(["pending"]);
+const START_ELIGIBLE_STATUS: EngineeringRun["status"] = "pending";
 
-export type VeraExecutionReadinessCheck = {
+export type VeraExecutionStartReadinessCheck = {
   id: string;
   ok: boolean;
   message: string;
 };
 
-export type VeraExecutionReadinessResult = {
+export type VeraExecutionStartReadinessResult = {
   ok: boolean;
-  safeToRequestExecutionApproval: boolean;
+  safeToStartVeraExecution: boolean;
   reasons: string[];
-  checks: VeraExecutionReadinessCheck[];
+  checks: VeraExecutionStartReadinessCheck[];
   runId: string;
   taskId: string;
   veraWorkOrderId: string | null;
@@ -33,7 +33,7 @@ export type VeraExecutionReadinessResult = {
 };
 
 function addCheck(
-  checks: VeraExecutionReadinessCheck[],
+  checks: VeraExecutionStartReadinessCheck[],
   reasons: string[],
   id: string,
   ok: boolean,
@@ -44,16 +44,18 @@ function addCheck(
   if (!ok) reasons.push(failMessage);
 }
 
-export function assessVeraExecutionReadiness(runId: string): VeraExecutionReadinessResult {
-  const checks: VeraExecutionReadinessCheck[] = [];
+export function assessVeraExecutionStartReadiness(
+  runId: string,
+): VeraExecutionStartReadinessResult {
+  const checks: VeraExecutionStartReadinessCheck[] = [];
   const reasons: string[] = [];
   const trimmedRunId = runId.trim();
-
   const run = trimmedRunId ? getRunById(trimmedRunId) : null;
+
   if (!run) {
     return {
       ok: false,
-      safeToRequestExecutionApproval: false,
+      safeToStartVeraExecution: false,
       reasons: ["Run not found."],
       checks: [{ id: "run_exists", ok: false, message: "Run not found." }],
       runId: trimmedRunId,
@@ -79,6 +81,15 @@ export function assessVeraExecutionReadiness(runId: string): VeraExecutionReadin
     "Run governance notes must include veraHandoff: true.",
   );
 
+  addCheck(
+    checks,
+    reasons,
+    "vera_execution_approval_requested",
+    governanceNotes.veraExecutionApprovalRequested === true,
+    "Vera execution approval has been requested.",
+    "Vera execution approval must be requested before start.",
+  );
+
   const taskAnalysis = task ? analyzeVeraHandoffTask(task) : null;
   addCheck(
     checks,
@@ -101,19 +112,19 @@ export function assessVeraExecutionReadiness(runId: string): VeraExecutionReadin
   addCheck(
     checks,
     reasons,
-    "prepared_step",
-    run.currentStep === VERA_IMPLEMENTATION_RUN_PREPARED_STEP,
-    `Run currentStep is ${VERA_IMPLEMENTATION_RUN_PREPARED_STEP}.`,
-    `Run must be in ${VERA_IMPLEMENTATION_RUN_PREPARED_STEP} before requesting execution approval.`,
+    "approval_requested_step",
+    run.currentStep === VERA_EXECUTION_APPROVAL_REQUESTED_STEP,
+    `Run currentStep is ${VERA_EXECUTION_APPROVAL_REQUESTED_STEP}.`,
+    `Run must be in ${VERA_EXECUTION_APPROVAL_REQUESTED_STEP} before Vera execution start.`,
   );
 
   addCheck(
     checks,
     reasons,
     "pending_status",
-    NON_EXECUTING_RUN_STATUSES.has(run.status),
-    "Run status is non-executing (pending).",
-    `Run status must remain pending (current: ${run.status}).`,
+    run.status === START_ELIGIBLE_STATUS,
+    "Run status is pending.",
+    `Run status must be pending (current: ${run.status}).`,
   );
 
   addCheck(
@@ -122,7 +133,7 @@ export function assessVeraExecutionReadiness(runId: string): VeraExecutionReadin
     "started_at_null",
     run.startedAt === null,
     "Run startedAt is null.",
-    "Run startedAt must be null.",
+    "Run has already started.",
   );
 
   addCheck(
@@ -131,13 +142,20 @@ export function assessVeraExecutionReadiness(runId: string): VeraExecutionReadin
     "branch_name_null",
     run.branchName === null,
     "Run branchName is null.",
-    "Run branchName must be null.",
+    "Run branchName is already set.",
+  );
+
+  addCheck(
+    checks,
+    reasons,
+    "no_prior_start_marker",
+    !hasVeraExecutionStartBeenRequested(run.governanceNotes),
+    "No prior Vera execution-start marker exists.",
+    "Vera execution start has already been requested for this run.",
   );
 
   const veraWorkOrderId =
-    governanceNotes.veraWorkOrderId ??
-    taskAnalysis?.veraWorkOrderId ??
-    null;
+    governanceNotes.veraWorkOrderId ?? taskAnalysis?.veraWorkOrderId ?? null;
   addCheck(
     checks,
     reasons,
@@ -166,23 +184,9 @@ export function assessVeraExecutionReadiness(runId: string): VeraExecutionReadin
     "Hermes worker dispatch already exists for this run.",
   );
 
-  const executionNotBegun =
-    run.currentStep === VERA_IMPLEMENTATION_RUN_PREPARED_STEP &&
-    run.startedAt === null &&
-    run.branchName === null &&
-    NON_EXECUTING_RUN_STATUSES.has(run.status);
-  addCheck(
-    checks,
-    reasons,
-    "execution_not_begun",
-    executionNotBegun,
-    "No execution state has begun.",
-    "Execution state has already begun.",
-  );
-
   return {
     ok: reasons.length === 0,
-    safeToRequestExecutionApproval: reasons.length === 0,
+    safeToStartVeraExecution: reasons.length === 0,
     reasons,
     checks,
     runId: run.id,
@@ -193,27 +197,4 @@ export function assessVeraExecutionReadiness(runId: string): VeraExecutionReadin
     run,
     governanceNotes,
   };
-}
-
-export function isVeraHandoffRun(run: EngineeringRun): boolean {
-  return parseVeraRunGovernanceNotes(run.governanceNotes).veraHandoff === true;
-}
-
-export function isVeraExecutionApprovalRequested(run: EngineeringRun): boolean {
-  const notes = parseVeraRunGovernanceNotes(run.governanceNotes);
-  return (
-    run.currentStep === VERA_EXECUTION_APPROVAL_REQUESTED_STEP ||
-    notes.veraExecutionApprovalRequested === true
-  );
-}
-
-export function hasVeraExecutionStarted(run: EngineeringRun): boolean {
-  const notes = parseVeraRunGovernanceNotes(run.governanceNotes);
-  return notes.veraExecutionStartRequested === true || run.startedAt !== null;
-}
-
-/** Vera handoff runs remain execution-blocked until the Vera start gate accepts execution. */
-export function isVeraRunExecutionBlocked(run: EngineeringRun): boolean {
-  if (!isVeraHandoffRun(run)) return false;
-  return !hasVeraExecutionStarted(run);
 }

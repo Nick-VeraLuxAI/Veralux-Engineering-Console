@@ -10,6 +10,9 @@ export const VERA_EXECUTION_APPROVAL_REQUEST_CONFIRMATION_PHRASE =
   "REQUEST VERA EXECUTION APPROVAL";
 export const VERA_EXECUTION_APPROVAL_REQUESTED_NOTE =
   "Execution approval requested only. No code was executed." as const;
+export const VERA_EXECUTION_START_CONFIRMATION_PHRASE = "START VERA EXECUTION";
+export const VERA_EXECUTION_START_ACCEPTED_NOTE =
+  "Vera execution start accepted. Review, merge, deploy, and PR remain separately gated." as const;
 
 export type VeraRunGovernanceNotes = {
   veraHandoff?: boolean;
@@ -19,6 +22,9 @@ export type VeraRunGovernanceNotes = {
   veraExecutionApprovalRequested?: boolean;
   requestedBy?: string;
   requestedAt?: string;
+  veraExecutionStartRequested?: boolean;
+  executionStartedBy?: string;
+  executionStartRequestedAt?: string;
   nonExecutionNote?: string;
 };
 
@@ -37,6 +43,12 @@ export function isVeraHandoffRunFromGovernanceNotes(
   governanceNotes: string | null | undefined,
 ): boolean {
   return parseVeraRunGovernanceNotes(governanceNotes).veraHandoff === true;
+}
+
+export function hasVeraExecutionStartBeenRequested(
+  governanceNotes: string | null | undefined,
+): boolean {
+  return parseVeraRunGovernanceNotes(governanceNotes).veraExecutionStartRequested === true;
 }
 
 const UUID_PATTERN =

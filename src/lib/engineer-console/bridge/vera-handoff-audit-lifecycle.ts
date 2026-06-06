@@ -94,6 +94,143 @@ export function auditVeraExecutionApprovalRequested(
   });
 }
 
+const RELEASE_GATED_FLAGS = {
+  noMergePerformed: true as const,
+  noDeploymentPerformed: true as const,
+  noPullRequestCreated: true as const,
+};
+
+export function auditVeraExecutionStartRequested(
+  taskId: string,
+  runId: string,
+  detail: {
+    startedBy: string;
+    veraWorkOrderId?: string | null;
+    readinessOk: boolean;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_EXECUTION_START_REQUESTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.startedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      readinessOk: detail.readinessOk,
+      message: "Vera execution start requested.",
+      ...RELEASE_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraExecutionStartAccepted(
+  taskId: string,
+  runId: string,
+  detail: {
+    startedBy: string;
+    veraWorkOrderId?: string | null;
+    centralExecutionFunctionCalled: boolean;
+    status: string;
+    currentStep: string | null;
+    startedAt: string | null;
+    branchName: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_EXECUTION_START_ACCEPTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.startedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      centralExecutionFunctionCalled: detail.centralExecutionFunctionCalled,
+      workerDispatchAttempted: false,
+      worktreeCreationAttempted: false,
+      worktreeCreationDelegatedToExecuteRun: true,
+      statusChanged: detail.status !== "pending",
+      startedAtSet: detail.startedAt !== null,
+      branchNameSet: detail.branchName !== null,
+      status: detail.status,
+      currentStep: detail.currentStep,
+      startedAt: detail.startedAt,
+      branchName: detail.branchName,
+      message: "Vera execution start accepted via central executeRun.",
+      ...RELEASE_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraExecutionStartRejected(
+  taskId: string,
+  detail: {
+    runId?: string;
+    startedBy?: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    readinessReasons?: string[];
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_EXECUTION_START_REJECTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: detail.runId ?? taskId,
+    actorType: detail.startedBy ? AUDIT_ACTOR_TYPES.HUMAN : AUDIT_ACTOR_TYPES.SYSTEM,
+    ...(detail.startedBy ? { actorLabel: detail.startedBy } : {}),
+    taskId,
+    ...(detail.runId ? { runId: detail.runId } : {}),
+    payload: {
+      taskId,
+      runId: detail.runId ?? null,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      centralExecutionFunctionCalled: false,
+      ...(detail.readinessReasons ? { readinessReasons: detail.readinessReasons } : {}),
+      ...RELEASE_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraExecutionStartFailed(
+  taskId: string,
+  runId: string,
+  detail: {
+    startedBy: string;
+    veraWorkOrderId?: string | null;
+    message: string;
+    centralExecutionFunctionCalled: boolean;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_EXECUTION_START_FAILED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.SYSTEM,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      startedBy: detail.startedBy,
+      message: detail.message,
+      centralExecutionFunctionCalled: detail.centralExecutionFunctionCalled,
+      ...RELEASE_GATED_FLAGS,
+    },
+  });
+}
+
 export function auditVeraExecutionApprovalRequestRejected(
   taskId: string,
   detail: {

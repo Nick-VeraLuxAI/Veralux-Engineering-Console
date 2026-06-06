@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { assessVeraExecutionReadiness, isVeraRunExecutionBlocked } from "@/lib/engineer-console/bridge/vera-execution-readiness";
+import { assessVeraExecutionStartReadiness } from "@/lib/engineer-console/bridge/vera-execution-start-readiness";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import {
   getApprovalReportJson,
@@ -22,6 +23,10 @@ import {
   canShowVeraExecutionApprovalPanel,
   VeraExecutionApprovalPanel,
 } from "@/components/engineer-console/vera-execution-approval-panel";
+import {
+  canShowVeraExecutionStartPanel,
+  VeraExecutionStartPanel,
+} from "@/components/engineer-console/vera-execution-start-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +69,9 @@ export default async function RunDetailPage({
     changedFiles,
   });
   const veraReadiness = assessVeraExecutionReadiness(id);
+  const veraStartReadiness = assessVeraExecutionStartReadiness(id);
   const showVeraExecutionApprovalPanel = canShowVeraExecutionApprovalPanel(run);
+  const showVeraExecutionStartPanel = canShowVeraExecutionStartPanel(run);
   const veraExecutionBlocked = isVeraRunExecutionBlocked(run);
 
   return (
@@ -86,6 +93,19 @@ export default async function RunDetailPage({
             checks: veraReadiness.checks,
             veraWorkOrderId: veraReadiness.veraWorkOrderId,
             repoPath: veraReadiness.repoPath,
+          }}
+        />
+      ) : null}
+      {showVeraExecutionStartPanel ? (
+        <VeraExecutionStartPanel
+          run={run}
+          taskId={task.id}
+          readiness={{
+            safeToStartVeraExecution: veraStartReadiness.safeToStartVeraExecution,
+            reasons: veraStartReadiness.reasons,
+            checks: veraStartReadiness.checks,
+            veraWorkOrderId: veraStartReadiness.veraWorkOrderId,
+            repoPath: veraStartReadiness.repoPath,
           }}
         />
       ) : null}
