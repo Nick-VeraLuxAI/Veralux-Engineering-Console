@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { analyzeVeraHandoffTask } from "@/lib/engineer-console/bridge/vera-handoff-task";
+import { findVeraPreparedRunForTask } from "@/lib/engineer-console/bridge/prepare-vera-implementation-run";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import { listRunsForTask } from "@/lib/engineer-console/run-manager/run-manager";
 import {
@@ -9,6 +11,7 @@ import {
 import { getTaskById } from "@/lib/engineer-console/task-manager/task-manager";
 import { StatusBadge } from "@/components/engineer-console/status-badge";
 import { StartRunButton } from "@/components/engineer-console/start-run-button";
+import { VeraHandoffTaskPanel } from "@/components/engineer-console/vera-handoff-task-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +27,12 @@ export default async function TaskDetailPage({
 
   const runs = listRunsForTask(id);
   const latestRun = runs[0] ?? null;
-  const canStartRun = !latestRun || latestRun.status === "failed" || latestRun.status === "completed";
+  const handoffAnalysis = analyzeVeraHandoffTask(task);
+  const veraPreparedRun = findVeraPreparedRunForTask(id);
+  const isVeraHandoffTask = handoffAnalysis.isVeraLuxOsHandoffTask;
+  const canStartRun =
+    !isVeraHandoffTask &&
+    (!latestRun || latestRun.status === "failed" || latestRun.status === "completed");
   const runSnapshots = await Promise.all(
     runs.map(async (run) => {
       const snapshot = await buildOperatorQueueSnapshot(task, run);
@@ -48,7 +56,12 @@ export default async function TaskDetailPage({
             <StatusBadge status={task.priority} />
           </div>
         </div>
-        {canStartRun ? (
+        {isVeraHandoffTask ? (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Standard <strong>Start run</strong> is disabled for VeraLux OS handoffs. Use the
+            controlled preparation panel below.
+          </div>
+        ) : canStartRun ? (
           <StartRunButton taskId={task.id} />
         ) : (
           <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[var(--muted)]">
@@ -56,6 +69,14 @@ export default async function TaskDetailPage({
           </div>
         )}
       </div>
+
+      {isVeraHandoffTask ? (
+        <VeraHandoffTaskPanel
+          task={task}
+          analysis={handoffAnalysis}
+          preparedRun={veraPreparedRun}
+        />
+      ) : null}
 
       <h2 className="mb-3 text-lg font-semibold">Runs</h2>
       {runs.length === 0 ? (
