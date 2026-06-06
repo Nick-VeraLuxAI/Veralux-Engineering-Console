@@ -1402,6 +1402,176 @@ export function auditVeraImplementationPatchContentDraftReviewFailed(
   });
 }
 
+const APPROVED_PATCH_CONTENT_APPLICATION_APPLIED_FLAGS = {
+  patchApplied: true as const,
+  noCommitCreated: true as const,
+  noPullRequestCreated: true as const,
+  noMergePerformed: true as const,
+  noDeploymentPerformed: true as const,
+  noReleasePerformed: true as const,
+};
+
+const APPROVED_PATCH_CONTENT_APPLICATION_BLOCKED_FLAGS = {
+  noPatchApplied: true as const,
+  noCommitCreated: true as const,
+  noPullRequestCreated: true as const,
+  noMergePerformed: true as const,
+  noDeploymentPerformed: true as const,
+  noReleasePerformed: true as const,
+};
+
+export function auditVeraImplementationApprovedPatchContentApplicationRequested(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    draftPath?: string | null;
+    draftHash?: string | null;
+    entryCount?: number;
+    note?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType:
+      AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_APPROVED_PATCH_CONTENT_APPLICATION_REQUESTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      draftPath: detail.draftPath ?? null,
+      draftHash: detail.draftHash ?? null,
+      entryCount: detail.entryCount ?? 0,
+      note: detail.note ?? null,
+      message: "Approved Vera patch content draft application requested.",
+      ...APPROVED_PATCH_CONTENT_APPLICATION_BLOCKED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationApprovedPatchContentApplied(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    draftPath?: string | null;
+    draftHash?: string | null;
+    applicationReportPath?: string | null;
+    applicationReportHash?: string | null;
+    appliedFiles?: string[];
+    note?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_APPROVED_PATCH_CONTENT_APPLIED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      draftPath: detail.draftPath ?? null,
+      draftHash: detail.draftHash ?? null,
+      applicationReportPath: detail.applicationReportPath ?? null,
+      applicationReportHash: detail.applicationReportHash ?? null,
+      appliedFiles: detail.appliedFiles ?? [],
+      note: detail.note ?? null,
+      message:
+        "Approved Vera patch content applied to governed worktree. Commit, PR, merge, deploy, and release remain gated.",
+      ...APPROVED_PATCH_CONTENT_APPLICATION_APPLIED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationApprovedPatchContentApplicationBlocked(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    readinessReasons?: string[];
+    reasonCodes?: string[];
+    draftPath?: string | null;
+    draftHash?: string | null;
+    entryCount?: number;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType:
+      AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_APPROVED_PATCH_CONTENT_APPLICATION_BLOCKED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      draftPath: detail.draftPath ?? null,
+      draftHash: detail.draftHash ?? null,
+      entryCount: detail.entryCount ?? 0,
+      ...(detail.readinessReasons ? { readinessReasons: detail.readinessReasons } : {}),
+      ...(detail.reasonCodes ? { reasonCodes: detail.reasonCodes } : {}),
+      ...APPROVED_PATCH_CONTENT_APPLICATION_BLOCKED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationApprovedPatchContentApplicationFailed(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    draftPath?: string | null;
+    draftHash?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType:
+      AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_APPROVED_PATCH_CONTENT_APPLICATION_FAILED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      draftPath: detail.draftPath ?? null,
+      draftHash: detail.draftHash ?? null,
+      ...APPROVED_PATCH_CONTENT_APPLICATION_BLOCKED_FLAGS,
+    },
+  });
+}
+
 export function auditVeraImplementationRunPrepareRejected(
   taskId: string,
   detail: {

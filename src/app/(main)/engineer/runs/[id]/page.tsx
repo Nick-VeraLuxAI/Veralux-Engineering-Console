@@ -55,7 +55,12 @@ import {
   canShowVeraImplementationPatchContentDraftReviewPanel,
   VeraImplementationPatchContentDraftReviewPanel,
 } from "@/components/engineer-console/vera-implementation-patch-content-draft-review-panel";
+import {
+  canShowVeraApprovedPatchContentApplicationPanel,
+  VeraApprovedPatchContentApplicationPanel,
+} from "@/components/engineer-console/vera-approved-patch-content-application-panel";
 import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
+import { assessVeraApprovedPatchContentApplicationReadiness } from "@/lib/engineer-console/bridge/vera-approved-patch-content-application-readiness";
 import { assessVeraPatchApplicationReadiness } from "@/lib/engineer-console/bridge/vera-patch-application-readiness";
 import { assessVeraPatchContentDraftReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-readiness";
 import { assessVeraPatchContentDraftReviewReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-review-readiness";
@@ -153,6 +158,10 @@ export default async function RunDetailPage({
   const veraPatchContentDraftReviewReadiness = assessVeraPatchContentDraftReviewReadiness(id);
   const showVeraImplementationPatchContentDraftReviewPanel =
     canShowVeraImplementationPatchContentDraftReviewPanel(run);
+  const veraApprovedPatchContentApplicationReadiness =
+    assessVeraApprovedPatchContentApplicationReadiness(id);
+  const showVeraApprovedPatchContentApplicationPanel =
+    canShowVeraApprovedPatchContentApplicationPanel(run);
 
   return (
     <div>
@@ -277,6 +286,26 @@ export default async function RunDetailPage({
             draftPath: veraPatchContentDraftReviewReadiness.draftPath,
             draftHash: veraPatchContentDraftReviewReadiness.draftHash,
             draftSummary: veraPatchContentDraftReviewReadiness.draftSummary,
+          }}
+        />
+      ) : null}
+      {showVeraApprovedPatchContentApplicationPanel ? (
+        <VeraApprovedPatchContentApplicationPanel
+          run={run}
+          taskId={task.id}
+          applicationReport={veraPatchApplicationReport}
+          readiness={{
+            safeToApplyApprovedPatchContent:
+              veraApprovedPatchContentApplicationReadiness.safeToApplyApprovedPatchContent,
+            reasonCodes: veraApprovedPatchContentApplicationReadiness.reasonCodes,
+            reasons: veraApprovedPatchContentApplicationReadiness.reasons,
+            checks: veraApprovedPatchContentApplicationReadiness.checks,
+            veraWorkOrderId: veraApprovedPatchContentApplicationReadiness.veraWorkOrderId,
+            draftPath: veraApprovedPatchContentApplicationReadiness.draftPath,
+            draftHash: veraApprovedPatchContentApplicationReadiness.draftHash,
+            entryCount: veraApprovedPatchContentApplicationReadiness.entryCount,
+            worktreePath: veraApprovedPatchContentApplicationReadiness.worktreePath,
+            targetFiles: veraApprovedPatchContentApplicationReadiness.targetFiles,
           }}
         />
       ) : null}

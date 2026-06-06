@@ -10,39 +10,50 @@ export const VERA_PATCH_APPLICATION_CONFIRMATION_PHRASE = "APPLY VERA PATCH PROP
 
 export const VERA_POST_PATCH_GATE_CONFIRMATION = "RUN VERA POST-PATCH QUALITY GATES";
 
+export const VERA_POST_PATCH_GATE_PHASE_2T = "2T";
+
 export const VERA_PATCH_APPLICATION_MAX_FILE_BYTES = 512 * 1024;
 
 export type VeraPatchApplicationFileAction = "created" | "modified";
 
-export type VeraImplementationPatchApplicationReport = {
+export type VeraPatchApplicationAppliedFile = {
+  filePath: string;
+  action: VeraPatchApplicationFileAction;
+  beforeHash?: string;
+  afterHash?: string;
+};
+
+export type VeraPatchApplicationReportSafety = {
+  noCommitCreated: true;
+  noPullRequestCreated: true;
+  noMergePerformed: true;
+  noDeploymentPerformed: true;
+  noReleasePerformed: true;
+};
+
+type VeraPatchApplicationReportBase = {
   schemaVersion: typeof VERA_PATCH_APPLICATION_SCHEMA_VERSION;
   runId: string;
   taskId: string;
   veraWorkOrderId: string;
   createdAt: string;
-  sourceProposalPath: string;
-  sourceProposalHash: string;
   worktreePath: string;
   status: "patch_applied" | "blocked";
-  appliedFiles: Array<{
-    filePath: string;
-    action: VeraPatchApplicationFileAction;
-    beforeHash?: string;
-    afterHash?: string;
-  }>;
+  appliedFiles: VeraPatchApplicationAppliedFile[];
+  skippedFiles?: string[];
   blockedReasons?: string[];
+  safety: VeraPatchApplicationReportSafety;
+};
+
+export type VeraProposalSourcedPatchApplicationReport = VeraPatchApplicationReportBase & {
+  source?: "patch_proposal";
+  sourceProposalPath: string;
+  sourceProposalHash: string;
   nextGate: {
     required: true;
     phase: "2Q";
     confirmationRequired: typeof VERA_POST_PATCH_GATE_CONFIRMATION;
     note: string;
-  };
-  safety: {
-    noCommitCreated: true;
-    noPullRequestCreated: true;
-    noMergePerformed: true;
-    noDeploymentPerformed: true;
-    noReleasePerformed: true;
   };
   provenance: {
     proposalHash: string;
@@ -50,3 +61,24 @@ export type VeraImplementationPatchApplicationReport = {
     tool: "vera-implementation-patch-application";
   };
 };
+
+export type VeraDraftSourcedPatchApplicationReport = VeraPatchApplicationReportBase & {
+  source: "patch_content_draft";
+  sourceDraftPath: string;
+  sourceDraftHash: string;
+  nextGate: {
+    required: true;
+    phase: typeof VERA_POST_PATCH_GATE_PHASE_2T;
+    confirmationRequired: typeof VERA_POST_PATCH_GATE_CONFIRMATION;
+    note: string;
+  };
+  provenance: {
+    sourceDraftHash: string;
+    appliedBy: string;
+    tool: "vera-approved-patch-content-application";
+  };
+};
+
+export type VeraImplementationPatchApplicationReport =
+  | VeraProposalSourcedPatchApplicationReport
+  | VeraDraftSourcedPatchApplicationReport;

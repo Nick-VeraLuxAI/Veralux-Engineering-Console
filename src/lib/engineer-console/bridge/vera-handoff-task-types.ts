@@ -48,6 +48,7 @@ export type VeraRunGovernanceNotes = {
   veraImplementationPatchAppliedBy?: string | null;
   veraImplementationPatchAppliedAt?: string | null;
   veraImplementationPatchAppliedFiles?: string[] | null;
+  veraImplementationPatchApplicationSource?: string | null;
   veraImplementationPatchContentDraftStatus?: string | null;
   veraImplementationPatchContentDraftPath?: string | null;
   veraImplementationPatchContentDraftHash?: string | null;
