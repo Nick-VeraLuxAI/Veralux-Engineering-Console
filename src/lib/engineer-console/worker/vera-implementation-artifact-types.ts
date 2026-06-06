@@ -2,6 +2,8 @@ export const VERA_IMPLEMENTATION_ARTIFACT_FILENAME = "implementation-worker-repo
 
 export const VERA_IMPLEMENTATION_ARTIFACT_READY_STEP = "implementation_artifact_ready";
 export const VERA_IMPLEMENTATION_ARTIFACT_BLOCKED_STEP = "implementation_artifact_blocked";
+export const VERA_IMPLEMENTATION_ARTIFACT_APPROVED_STEP = "implementation_artifact_approved";
+export const VERA_IMPLEMENTATION_ARTIFACT_REJECTED_STEP = "implementation_artifact_rejected";
 
 export type VeraImplementationWorkerStatus =
   | "artifact_created"

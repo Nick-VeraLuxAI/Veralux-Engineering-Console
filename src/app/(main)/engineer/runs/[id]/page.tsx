@@ -31,6 +31,11 @@ import {
   canShowVeraImplementationArtifactPanel,
   VeraImplementationArtifactPanel,
 } from "@/components/engineer-console/vera-implementation-artifact-panel";
+import {
+  canShowVeraImplementationArtifactReviewPanel,
+  VeraImplementationArtifactReviewPanel,
+} from "@/components/engineer-console/vera-implementation-artifact-review-panel";
+import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
 import { readVeraImplementationArtifact } from "@/lib/engineer-console/worker/vera-implementation-artifact-storage";
 
 export const dynamic = "force-dynamic";
@@ -83,6 +88,9 @@ export default async function RunDetailPage({
     run,
     veraImplementationArtifact,
   );
+  const veraArtifactReviewReadiness = assessVeraArtifactReviewReadiness(id);
+  const showVeraImplementationArtifactReviewPanel =
+    canShowVeraImplementationArtifactReviewPanel(run);
 
   return (
     <div>
@@ -124,6 +132,21 @@ export default async function RunDetailPage({
           run={run}
           taskId={task.id}
           artifact={veraImplementationArtifact}
+        />
+      ) : null}
+      {showVeraImplementationArtifactReviewPanel ? (
+        <VeraImplementationArtifactReviewPanel
+          run={run}
+          taskId={task.id}
+          artifact={veraImplementationArtifact}
+          readiness={{
+            safeToReviewArtifact: veraArtifactReviewReadiness.safeToReviewArtifact,
+            reasons: veraArtifactReviewReadiness.reasons,
+            checks: veraArtifactReviewReadiness.checks,
+            veraWorkOrderId: veraArtifactReviewReadiness.veraWorkOrderId,
+            artifactPath: veraArtifactReviewReadiness.artifactPath,
+            artifactHash: veraArtifactReviewReadiness.artifactHash,
+          }}
         />
       ) : null}
       <RunLivePanel

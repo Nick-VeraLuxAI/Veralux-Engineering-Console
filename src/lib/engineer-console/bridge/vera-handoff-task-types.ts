@@ -29,8 +29,19 @@ export type VeraRunGovernanceNotes = {
   veraImplementationArtifactHash?: string | null;
   veraImplementationWorkerStatus?: string | null;
   veraImplementationWorkerMode?: string | null;
+  veraImplementationArtifactReviewDecision?: "approved" | "rejected" | null;
+  veraImplementationArtifactReviewedBy?: string | null;
+  veraImplementationArtifactReviewedAt?: string | null;
+  veraImplementationArtifactReviewNote?: string | null;
   nonExecutionNote?: string;
 };
+
+export const VERA_IMPLEMENTATION_ARTIFACT_APPROVE_CONFIRMATION_PHRASE =
+  "APPROVE VERA IMPLEMENTATION ARTIFACT";
+export const VERA_IMPLEMENTATION_ARTIFACT_REJECT_CONFIRMATION_PHRASE =
+  "REJECT VERA IMPLEMENTATION ARTIFACT";
+
+export type VeraImplementationArtifactReviewDecision = "approved" | "rejected";
 
 export function parseVeraRunGovernanceNotes(
   governanceNotes: string | null | undefined,
@@ -67,6 +78,20 @@ export function hasVeraImplementationArtifact(
 ): boolean {
   const notes = parseVeraRunGovernanceNotes(governanceNotes);
   return Boolean(notes.veraImplementationArtifactPath?.trim());
+}
+
+export function getVeraImplementationArtifactReviewDecision(
+  governanceNotes: string | null | undefined,
+): VeraImplementationArtifactReviewDecision | null {
+  const decision = parseVeraRunGovernanceNotes(governanceNotes)
+    .veraImplementationArtifactReviewDecision;
+  return decision === "approved" || decision === "rejected" ? decision : null;
+}
+
+export function hasVeraImplementationArtifactReviewDecision(
+  governanceNotes: string | null | undefined,
+): boolean {
+  return getVeraImplementationArtifactReviewDecision(governanceNotes) !== null;
 }
 
 export function mergeVeraRunGovernanceNotes(

@@ -101,6 +101,14 @@ const RELEASE_GATED_FLAGS = {
   noReleasePerformed: true as const,
 };
 
+const ARTIFACT_REVIEW_GATED_FLAGS = {
+  noCommitCreated: true as const,
+  noPullRequestCreated: true as const,
+  noMergePerformed: true as const,
+  noDeploymentPerformed: true as const,
+  noReleasePerformed: true as const,
+};
+
 export function auditVeraExecutionStartRequested(
   taskId: string,
   runId: string,
@@ -384,6 +392,179 @@ export function auditVeraImplementationWorkerFailed(
       workerMode: detail.workerMode,
       message: detail.message,
       ...RELEASE_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationArtifactReviewRequested(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    decision: string;
+    veraWorkOrderId?: string | null;
+    artifactPath?: string | null;
+    artifactHash?: string | null;
+    reviewerNote?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_ARTIFACT_REVIEW_REQUESTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: detail.decision,
+      reviewer: detail.reviewer,
+      reviewerNote: detail.reviewerNote ?? null,
+      artifactPath: detail.artifactPath ?? null,
+      artifactHash: detail.artifactHash ?? null,
+      message: "Vera implementation artifact review requested.",
+      ...ARTIFACT_REVIEW_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationArtifactApproved(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    veraWorkOrderId?: string | null;
+    artifactPath?: string | null;
+    artifactHash?: string | null;
+    reviewerNote?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_ARTIFACT_APPROVED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: "approved",
+      reviewer: detail.reviewer,
+      reviewerNote: detail.reviewerNote ?? null,
+      artifactPath: detail.artifactPath ?? null,
+      artifactHash: detail.artifactHash ?? null,
+      message: "Vera implementation artifact approved. Patch/commit/PR/merge/deploy remain gated.",
+      ...ARTIFACT_REVIEW_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationArtifactRejected(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    veraWorkOrderId?: string | null;
+    artifactPath?: string | null;
+    artifactHash?: string | null;
+    reviewerNote?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_ARTIFACT_REJECTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: "rejected",
+      reviewer: detail.reviewer,
+      reviewerNote: detail.reviewerNote ?? null,
+      artifactPath: detail.artifactPath ?? null,
+      artifactHash: detail.artifactHash ?? null,
+      message: "Vera implementation artifact rejected. No patch/commit/PR/merge/deploy performed.",
+      ...ARTIFACT_REVIEW_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationArtifactReviewBlocked(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    decision: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    readinessReasons?: string[];
+    artifactPath?: string | null;
+    artifactHash?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_ARTIFACT_REVIEW_BLOCKED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: detail.decision,
+      reviewer: detail.reviewer,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      artifactPath: detail.artifactPath ?? null,
+      artifactHash: detail.artifactHash ?? null,
+      ...(detail.readinessReasons ? { readinessReasons: detail.readinessReasons } : {}),
+      ...ARTIFACT_REVIEW_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationArtifactReviewFailed(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    decision: string;
+    veraWorkOrderId?: string | null;
+    message: string;
+    reasonCode: string;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_ARTIFACT_REVIEW_FAILED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: detail.decision,
+      reviewer: detail.reviewer,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      ...ARTIFACT_REVIEW_GATED_FLAGS,
     },
   });
 }
