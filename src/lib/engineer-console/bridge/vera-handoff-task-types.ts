@@ -48,6 +48,12 @@ export type VeraRunGovernanceNotes = {
   veraImplementationPatchAppliedBy?: string | null;
   veraImplementationPatchAppliedAt?: string | null;
   veraImplementationPatchAppliedFiles?: string[] | null;
+  veraImplementationPatchContentDraftStatus?: string | null;
+  veraImplementationPatchContentDraftPath?: string | null;
+  veraImplementationPatchContentDraftHash?: string | null;
+  veraImplementationPatchContentDraftCreatedBy?: string | null;
+  veraImplementationPatchContentDraftCreatedAt?: string | null;
+  veraImplementationPatchContentDraftEntryCount?: number | null;
   nonExecutionNote?: string;
 };
 
@@ -141,6 +147,13 @@ export function hasVeraImplementationPatchApplication(
 ): boolean {
   const notes = parseVeraRunGovernanceNotes(governanceNotes);
   return notes.veraImplementationPatchApplicationStatus === "patch_applied";
+}
+
+export function hasVeraImplementationPatchContentDraft(
+  governanceNotes: string | null | undefined,
+): boolean {
+  const notes = parseVeraRunGovernanceNotes(governanceNotes);
+  return Boolean(notes.veraImplementationPatchContentDraftPath?.trim());
 }
 
 export function mergeVeraRunGovernanceNotes(

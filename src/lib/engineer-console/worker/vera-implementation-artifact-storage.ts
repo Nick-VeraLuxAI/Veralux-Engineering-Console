@@ -7,6 +7,8 @@ import type { VeraImplementationPatchProposal } from "./vera-implementation-patc
 import { VERA_IMPLEMENTATION_PATCH_PROPOSAL_FILENAME } from "./vera-implementation-patch-proposal-types";
 import type { VeraImplementationPatchApplicationReport } from "./vera-implementation-patch-application-types";
 import { VERA_IMPLEMENTATION_PATCH_APPLICATION_FILENAME } from "./vera-implementation-patch-application-types";
+import type { VeraImplementationPatchContentDraft } from "./vera-implementation-patch-content-draft-types";
+import { VERA_IMPLEMENTATION_PATCH_CONTENT_DRAFT_FILENAME } from "./vera-implementation-patch-content-draft-types";
 
 export function resolveRunArtifactRoot(): string {
   const dbPath =
@@ -133,6 +135,43 @@ export function readVeraImplementationPatchApplicationReport(
     return JSON.parse(
       fs.readFileSync(reportPath, "utf8"),
     ) as VeraImplementationPatchApplicationReport;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveVeraImplementationPatchContentDraftPath(runId: string): string {
+  return path.join(
+    resolveRunArtifactRoot(),
+    runId.trim(),
+    VERA_IMPLEMENTATION_PATCH_CONTENT_DRAFT_FILENAME,
+  );
+}
+
+export function writeVeraImplementationPatchContentDraft(
+  draft: VeraImplementationPatchContentDraft,
+): { draftPath: string; draftHash: string } {
+  const draftPath = resolveVeraImplementationPatchContentDraftPath(draft.runId);
+  fs.mkdirSync(path.dirname(draftPath), { recursive: true });
+  const content = JSON.stringify(draft, null, 2);
+  fs.writeFileSync(draftPath, content, "utf8");
+  return {
+    draftPath,
+    draftHash: hashArtifactContent(content),
+  };
+}
+
+export function readVeraImplementationPatchContentDraft(
+  runId: string,
+  draftPathOverride?: string | null,
+): VeraImplementationPatchContentDraft | null {
+  const draftPath =
+    draftPathOverride?.trim() || resolveVeraImplementationPatchContentDraftPath(runId);
+  if (!fs.existsSync(draftPath)) return null;
+  try {
+    return JSON.parse(
+      fs.readFileSync(draftPath, "utf8"),
+    ) as VeraImplementationPatchContentDraft;
   } catch {
     return null;
   }

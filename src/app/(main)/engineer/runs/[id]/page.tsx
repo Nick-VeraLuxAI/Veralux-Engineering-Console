@@ -47,13 +47,19 @@ import {
   canShowVeraImplementationPatchApplicationPanel,
   VeraImplementationPatchApplicationPanel,
 } from "@/components/engineer-console/vera-implementation-patch-application-panel";
+import {
+  canShowVeraImplementationPatchContentDraftPanel,
+  VeraImplementationPatchContentDraftPanel,
+} from "@/components/engineer-console/vera-implementation-patch-content-draft-panel";
 import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
 import { assessVeraPatchApplicationReadiness } from "@/lib/engineer-console/bridge/vera-patch-application-readiness";
+import { assessVeraPatchContentDraftReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-readiness";
 import { assessVeraPatchProposalApprovalReadiness } from "@/lib/engineer-console/bridge/vera-patch-proposal-approval-readiness";
 import { assessVeraPatchProposalReadiness } from "@/lib/engineer-console/bridge/vera-patch-proposal-readiness";
 import {
   readVeraImplementationArtifact,
   readVeraImplementationPatchApplicationReport,
+  readVeraImplementationPatchContentDraft,
   readVeraImplementationPatchProposal,
 } from "@/lib/engineer-console/worker/vera-implementation-artifact-storage";
 import { parseVeraRunGovernanceNotes } from "@/lib/engineer-console/bridge/vera-handoff-task-types";
@@ -132,6 +138,13 @@ export default async function RunDetailPage({
   );
   const showVeraImplementationPatchApplicationPanel =
     canShowVeraImplementationPatchApplicationPanel(run);
+  const veraPatchContentDraftReadiness = assessVeraPatchContentDraftReadiness(id);
+  const veraPatchContentDraft = readVeraImplementationPatchContentDraft(
+    id,
+    governanceNotes.veraImplementationPatchContentDraftPath,
+  );
+  const showVeraImplementationPatchContentDraftPanel =
+    canShowVeraImplementationPatchContentDraftPanel(run);
 
   return (
     <div>
@@ -219,6 +232,26 @@ export default async function RunDetailPage({
             proposalPath: veraPatchProposalApprovalReadiness.proposalPath,
             proposalHash: veraPatchProposalApprovalReadiness.proposalHash,
             proposalSummary: veraPatchProposalApprovalReadiness.proposalSummary,
+          }}
+        />
+      ) : null}
+      {showVeraImplementationPatchContentDraftPanel ? (
+        <VeraImplementationPatchContentDraftPanel
+          run={run}
+          taskId={task.id}
+          draft={veraPatchContentDraft}
+          readiness={{
+            safeToCreatePatchContentDraft:
+              veraPatchContentDraftReadiness.safeToCreatePatchContentDraft,
+            reasonCodes: veraPatchContentDraftReadiness.reasonCodes,
+            reasons: veraPatchContentDraftReadiness.reasons,
+            checks: veraPatchContentDraftReadiness.checks,
+            veraWorkOrderId: veraPatchContentDraftReadiness.veraWorkOrderId,
+            sourceProposalPath: veraPatchContentDraftReadiness.sourceProposalPath,
+            sourceProposalHash: veraPatchContentDraftReadiness.sourceProposalHash,
+            existingDraftPath: veraPatchContentDraftReadiness.existingDraftPath,
+            existingDraftHash: veraPatchContentDraftReadiness.existingDraftHash,
+            patchAlreadyApplied: veraPatchContentDraftReadiness.patchAlreadyApplied,
           }}
         />
       ) : null}
