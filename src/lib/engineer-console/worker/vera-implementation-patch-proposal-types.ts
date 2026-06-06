@@ -3,6 +3,13 @@ export const VERA_IMPLEMENTATION_PATCH_PROPOSAL_FILENAME =
 
 export const VERA_IMPLEMENTATION_PATCH_PROPOSAL_READY_STEP =
   "implementation_patch_proposal_ready";
+export const VERA_IMPLEMENTATION_PATCH_PROPOSAL_APPROVED_STEP =
+  "implementation_patch_proposal_approved";
+export const VERA_IMPLEMENTATION_PATCH_PROPOSAL_REJECTED_STEP =
+  "implementation_patch_proposal_rejected";
+
+export const VERA_PATCH_PROPOSAL_SCHEMA_VERSION =
+  "veralux.vera.implementation-patch-proposal.v1";
 
 export const VERA_PATCH_PROPOSAL_NEXT_GATE_CONFIRMATION = "APPLY VERA PATCH PROPOSAL";
 

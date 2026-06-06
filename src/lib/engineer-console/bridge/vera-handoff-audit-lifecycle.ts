@@ -719,6 +719,185 @@ export function auditVeraImplementationPatchProposalFailed(
   });
 }
 
+export function auditVeraImplementationPatchProposalReviewRequested(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    decision: string;
+    veraWorkOrderId?: string | null;
+    proposalPath?: string | null;
+    proposalHash?: string | null;
+    reviewerNote?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_PATCH_PROPOSAL_REVIEW_REQUESTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: detail.decision,
+      reviewer: detail.reviewer,
+      reviewerNote: detail.reviewerNote ?? null,
+      proposalPath: detail.proposalPath ?? null,
+      proposalHash: detail.proposalHash ?? null,
+      message: "Vera patch proposal review requested.",
+      ...PATCH_PROPOSAL_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationPatchProposalApproved(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    veraWorkOrderId?: string | null;
+    proposalPath?: string | null;
+    proposalHash?: string | null;
+    reviewerNote?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_PATCH_PROPOSAL_APPROVED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: "approved",
+      reviewer: detail.reviewer,
+      reviewerNote: detail.reviewerNote ?? null,
+      proposalPath: detail.proposalPath ?? null,
+      proposalHash: detail.proposalHash ?? null,
+      message:
+        "Vera patch proposal approved. Patch application, commit, PR, merge, deploy, and release remain gated.",
+      ...PATCH_PROPOSAL_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationPatchProposalRejected(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    veraWorkOrderId?: string | null;
+    proposalPath?: string | null;
+    proposalHash?: string | null;
+    reviewerNote?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_PATCH_PROPOSAL_REJECTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: "rejected",
+      reviewer: detail.reviewer,
+      reviewerNote: detail.reviewerNote ?? null,
+      proposalPath: detail.proposalPath ?? null,
+      proposalHash: detail.proposalHash ?? null,
+      message:
+        "Vera patch proposal rejected. No patch/commit/PR/merge/deploy/release performed.",
+      ...PATCH_PROPOSAL_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationPatchProposalReviewBlocked(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    decision: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    readinessReasons?: string[];
+    proposalPath?: string | null;
+    proposalHash?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_PATCH_PROPOSAL_REVIEW_BLOCKED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: detail.decision,
+      reviewer: detail.reviewer,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      proposalPath: detail.proposalPath ?? null,
+      proposalHash: detail.proposalHash ?? null,
+      ...(detail.readinessReasons ? { readinessReasons: detail.readinessReasons } : {}),
+      ...PATCH_PROPOSAL_GATED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraImplementationPatchProposalReviewFailed(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    decision: string;
+    veraWorkOrderId?: string | null;
+    message: string;
+    reasonCode: string;
+    proposalPath?: string | null;
+    proposalHash?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_IMPLEMENTATION_PATCH_PROPOSAL_REVIEW_FAILED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: detail.decision,
+      reviewer: detail.reviewer,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      proposalPath: detail.proposalPath ?? null,
+      proposalHash: detail.proposalHash ?? null,
+      ...PATCH_PROPOSAL_GATED_FLAGS,
+    },
+  });
+}
+
 export function auditVeraImplementationRunPrepareRejected(
   taskId: string,
   detail: {

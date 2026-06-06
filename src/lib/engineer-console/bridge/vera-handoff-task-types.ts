@@ -38,10 +38,18 @@ export type VeraRunGovernanceNotes = {
   veraImplementationPatchProposalStatus?: string | null;
   veraImplementationPatchProposalCreatedBy?: string | null;
   veraImplementationPatchProposalCreatedAt?: string | null;
+  veraImplementationPatchProposalReviewDecision?: "approved" | "rejected" | null;
+  veraImplementationPatchProposalReviewedBy?: string | null;
+  veraImplementationPatchProposalReviewedAt?: string | null;
+  veraImplementationPatchProposalReviewNote?: string | null;
   nonExecutionNote?: string;
 };
 
 export const VERA_PATCH_PROPOSAL_CONFIRMATION_PHRASE = "CREATE VERA PATCH PROPOSAL";
+export const VERA_PATCH_PROPOSAL_APPROVE_CONFIRMATION_PHRASE = "APPROVE VERA PATCH PROPOSAL";
+export const VERA_PATCH_PROPOSAL_REJECT_CONFIRMATION_PHRASE = "REJECT VERA PATCH PROPOSAL";
+
+export type VeraImplementationPatchProposalReviewDecision = "approved" | "rejected";
 
 export const VERA_IMPLEMENTATION_ARTIFACT_APPROVE_CONFIRMATION_PHRASE =
   "APPROVE VERA IMPLEMENTATION ARTIFACT";
@@ -106,6 +114,20 @@ export function hasVeraImplementationPatchProposal(
 ): boolean {
   const notes = parseVeraRunGovernanceNotes(governanceNotes);
   return Boolean(notes.veraImplementationPatchProposalPath?.trim());
+}
+
+export function getVeraImplementationPatchProposalReviewDecision(
+  governanceNotes: string | null | undefined,
+): VeraImplementationPatchProposalReviewDecision | null {
+  const decision = parseVeraRunGovernanceNotes(governanceNotes)
+    .veraImplementationPatchProposalReviewDecision;
+  return decision === "approved" || decision === "rejected" ? decision : null;
+}
+
+export function hasVeraImplementationPatchProposalReviewDecision(
+  governanceNotes: string | null | undefined,
+): boolean {
+  return getVeraImplementationPatchProposalReviewDecision(governanceNotes) !== null;
 }
 
 export function mergeVeraRunGovernanceNotes(

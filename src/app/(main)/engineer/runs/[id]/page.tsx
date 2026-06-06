@@ -39,7 +39,12 @@ import {
   canShowVeraImplementationPatchProposalPanel,
   VeraImplementationPatchProposalPanel,
 } from "@/components/engineer-console/vera-implementation-patch-proposal-panel";
+import {
+  canShowVeraImplementationPatchProposalReviewPanel,
+  VeraImplementationPatchProposalReviewPanel,
+} from "@/components/engineer-console/vera-implementation-patch-proposal-review-panel";
 import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
+import { assessVeraPatchProposalApprovalReadiness } from "@/lib/engineer-console/bridge/vera-patch-proposal-approval-readiness";
 import { assessVeraPatchProposalReadiness } from "@/lib/engineer-console/bridge/vera-patch-proposal-readiness";
 import {
   readVeraImplementationArtifact,
@@ -111,6 +116,9 @@ export default async function RunDetailPage({
   );
   const showVeraImplementationPatchProposalPanel =
     canShowVeraImplementationPatchProposalPanel(run);
+  const veraPatchProposalApprovalReadiness = assessVeraPatchProposalApprovalReadiness(id);
+  const showVeraImplementationPatchProposalReviewPanel =
+    canShowVeraImplementationPatchProposalReviewPanel(run);
 
   return (
     <div>
@@ -181,6 +189,23 @@ export default async function RunDetailPage({
             veraWorkOrderId: veraPatchProposalReadiness.veraWorkOrderId,
             sourceArtifactPath: veraPatchProposalReadiness.sourceArtifactPath,
             sourceArtifactHash: veraPatchProposalReadiness.sourceArtifactHash,
+          }}
+        />
+      ) : null}
+      {showVeraImplementationPatchProposalReviewPanel ? (
+        <VeraImplementationPatchProposalReviewPanel
+          run={run}
+          taskId={task.id}
+          proposal={veraPatchProposal}
+          readiness={{
+            safeToReviewPatchProposal:
+              veraPatchProposalApprovalReadiness.safeToReviewPatchProposal,
+            reasons: veraPatchProposalApprovalReadiness.reasons,
+            checks: veraPatchProposalApprovalReadiness.checks,
+            veraWorkOrderId: veraPatchProposalApprovalReadiness.veraWorkOrderId,
+            proposalPath: veraPatchProposalApprovalReadiness.proposalPath,
+            proposalHash: veraPatchProposalApprovalReadiness.proposalHash,
+            proposalSummary: veraPatchProposalApprovalReadiness.proposalSummary,
           }}
         />
       ) : null}
