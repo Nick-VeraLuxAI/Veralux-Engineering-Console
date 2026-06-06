@@ -20,6 +20,42 @@ export type VeraPatchProposalChangeAction =
 
 export type VeraPatchProposalRiskLevel = "low" | "medium" | "high";
 
+export type VeraApplicablePatchAction = "create_file" | "modify_file";
+
+export type VeraMetadataOnlyPatchEntry = {
+  filePath: string;
+  action: VeraPatchProposalChangeAction;
+  rationale: string;
+  riskLevel: VeraPatchProposalRiskLevel;
+  patchIncluded: false;
+};
+
+export type VeraApplicablePatchEntry = {
+  filePath: string;
+  action: VeraApplicablePatchAction;
+  rationale: string;
+  riskLevel: VeraPatchProposalRiskLevel;
+  patchIncluded: true;
+  patchContent: string;
+  patchEncoding: "utf8";
+};
+
+export type VeraPatchProposalChangeEntry =
+  | VeraMetadataOnlyPatchEntry
+  | VeraApplicablePatchEntry;
+
+export function isVeraApplicablePatchEntry(
+  entry: VeraPatchProposalChangeEntry,
+): entry is VeraApplicablePatchEntry {
+  return entry.patchIncluded === true;
+}
+
+export function extractApplicablePatchEntries(
+  proposal: Pick<VeraImplementationPatchProposal, "proposedChangeSet">,
+): VeraApplicablePatchEntry[] {
+  return proposal.proposedChangeSet.filter(isVeraApplicablePatchEntry);
+}
+
 export type VeraImplementationPatchProposal = {
   schemaVersion: "veralux.vera.implementation-patch-proposal.v1";
   runId: string;
@@ -33,13 +69,7 @@ export type VeraImplementationPatchProposal = {
   mode: "deterministic_metadata";
   status: "proposal_created";
   summary: string;
-  proposedChangeSet: Array<{
-    filePath: string;
-    action: VeraPatchProposalChangeAction;
-    rationale: string;
-    riskLevel: VeraPatchProposalRiskLevel;
-    patchIncluded: false;
-  }>;
+  proposedChangeSet: VeraPatchProposalChangeEntry[];
   nextGate: {
     required: true;
     phase: "2O";

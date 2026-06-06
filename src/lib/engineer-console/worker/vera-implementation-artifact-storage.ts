@@ -5,6 +5,8 @@ import type { VeraImplementationWorkerArtifact } from "./vera-implementation-art
 import { VERA_IMPLEMENTATION_ARTIFACT_FILENAME } from "./vera-implementation-artifact-types";
 import type { VeraImplementationPatchProposal } from "./vera-implementation-patch-proposal-types";
 import { VERA_IMPLEMENTATION_PATCH_PROPOSAL_FILENAME } from "./vera-implementation-patch-proposal-types";
+import type { VeraImplementationPatchApplicationReport } from "./vera-implementation-patch-application-types";
+import { VERA_IMPLEMENTATION_PATCH_APPLICATION_FILENAME } from "./vera-implementation-patch-application-types";
 
 export function resolveRunArtifactRoot(): string {
   const dbPath =
@@ -94,6 +96,43 @@ export function readVeraImplementationPatchProposal(
     return JSON.parse(
       fs.readFileSync(proposalPath, "utf8"),
     ) as VeraImplementationPatchProposal;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveVeraImplementationPatchApplicationPath(runId: string): string {
+  return path.join(
+    resolveRunArtifactRoot(),
+    runId.trim(),
+    VERA_IMPLEMENTATION_PATCH_APPLICATION_FILENAME,
+  );
+}
+
+export function writeVeraImplementationPatchApplicationReport(
+  report: VeraImplementationPatchApplicationReport,
+): { applicationReportPath: string; applicationReportHash: string } {
+  const applicationReportPath = resolveVeraImplementationPatchApplicationPath(report.runId);
+  fs.mkdirSync(path.dirname(applicationReportPath), { recursive: true });
+  const content = JSON.stringify(report, null, 2);
+  fs.writeFileSync(applicationReportPath, content, "utf8");
+  return {
+    applicationReportPath,
+    applicationReportHash: hashArtifactContent(content),
+  };
+}
+
+export function readVeraImplementationPatchApplicationReport(
+  runId: string,
+  reportPathOverride?: string | null,
+): VeraImplementationPatchApplicationReport | null {
+  const reportPath =
+    reportPathOverride?.trim() || resolveVeraImplementationPatchApplicationPath(runId);
+  if (!fs.existsSync(reportPath)) return null;
+  try {
+    return JSON.parse(
+      fs.readFileSync(reportPath, "utf8"),
+    ) as VeraImplementationPatchApplicationReport;
   } catch {
     return null;
   }
