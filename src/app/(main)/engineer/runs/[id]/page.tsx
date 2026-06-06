@@ -35,8 +35,17 @@ import {
   canShowVeraImplementationArtifactReviewPanel,
   VeraImplementationArtifactReviewPanel,
 } from "@/components/engineer-console/vera-implementation-artifact-review-panel";
+import {
+  canShowVeraImplementationPatchProposalPanel,
+  VeraImplementationPatchProposalPanel,
+} from "@/components/engineer-console/vera-implementation-patch-proposal-panel";
 import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
-import { readVeraImplementationArtifact } from "@/lib/engineer-console/worker/vera-implementation-artifact-storage";
+import { assessVeraPatchProposalReadiness } from "@/lib/engineer-console/bridge/vera-patch-proposal-readiness";
+import {
+  readVeraImplementationArtifact,
+  readVeraImplementationPatchProposal,
+} from "@/lib/engineer-console/worker/vera-implementation-artifact-storage";
+import { parseVeraRunGovernanceNotes } from "@/lib/engineer-console/bridge/vera-handoff-task-types";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +92,11 @@ export default async function RunDetailPage({
   const showVeraExecutionApprovalPanel = canShowVeraExecutionApprovalPanel(run);
   const showVeraExecutionStartPanel = canShowVeraExecutionStartPanel(run);
   const veraExecutionBlocked = isVeraRunExecutionBlocked(run);
-  const veraImplementationArtifact = readVeraImplementationArtifact(id);
+  const governanceNotes = parseVeraRunGovernanceNotes(run.governanceNotes);
+  const veraImplementationArtifact = readVeraImplementationArtifact(
+    id,
+    governanceNotes.veraImplementationArtifactPath,
+  );
   const showVeraImplementationArtifactPanel = canShowVeraImplementationArtifactPanel(
     run,
     veraImplementationArtifact,
@@ -91,6 +104,13 @@ export default async function RunDetailPage({
   const veraArtifactReviewReadiness = assessVeraArtifactReviewReadiness(id);
   const showVeraImplementationArtifactReviewPanel =
     canShowVeraImplementationArtifactReviewPanel(run);
+  const veraPatchProposalReadiness = assessVeraPatchProposalReadiness(id);
+  const veraPatchProposal = readVeraImplementationPatchProposal(
+    id,
+    governanceNotes.veraImplementationPatchProposalPath,
+  );
+  const showVeraImplementationPatchProposalPanel =
+    canShowVeraImplementationPatchProposalPanel(run);
 
   return (
     <div>
@@ -146,6 +166,21 @@ export default async function RunDetailPage({
             veraWorkOrderId: veraArtifactReviewReadiness.veraWorkOrderId,
             artifactPath: veraArtifactReviewReadiness.artifactPath,
             artifactHash: veraArtifactReviewReadiness.artifactHash,
+          }}
+        />
+      ) : null}
+      {showVeraImplementationPatchProposalPanel ? (
+        <VeraImplementationPatchProposalPanel
+          run={run}
+          taskId={task.id}
+          proposal={veraPatchProposal}
+          readiness={{
+            safeToCreateProposal: veraPatchProposalReadiness.safeToCreateProposal,
+            reasons: veraPatchProposalReadiness.reasons,
+            checks: veraPatchProposalReadiness.checks,
+            veraWorkOrderId: veraPatchProposalReadiness.veraWorkOrderId,
+            sourceArtifactPath: veraPatchProposalReadiness.sourceArtifactPath,
+            sourceArtifactHash: veraPatchProposalReadiness.sourceArtifactHash,
           }}
         />
       ) : null}
