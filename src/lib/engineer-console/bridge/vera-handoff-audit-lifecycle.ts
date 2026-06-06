@@ -68,6 +68,65 @@ export function auditVeraImplementationRunPrepared(
   });
 }
 
+export function auditVeraExecutionApprovalRequested(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_EXECUTION_APPROVAL_REQUESTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      message: "Vera execution approval requested. No code was executed.",
+      ...NO_EXECUTION_FLAGS,
+    },
+  });
+}
+
+export function auditVeraExecutionApprovalRequestRejected(
+  taskId: string,
+  detail: {
+    runId?: string;
+    requestedBy?: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    readinessReasons?: string[];
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_EXECUTION_APPROVAL_REQUEST_REJECTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: detail.runId ?? taskId,
+    actorType: detail.requestedBy
+      ? AUDIT_ACTOR_TYPES.HUMAN
+      : AUDIT_ACTOR_TYPES.SYSTEM,
+    ...(detail.requestedBy ? { actorLabel: detail.requestedBy } : {}),
+    taskId,
+    ...(detail.runId ? { runId: detail.runId } : {}),
+    payload: {
+      taskId,
+      runId: detail.runId ?? null,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      ...(detail.readinessReasons ? { readinessReasons: detail.readinessReasons } : {}),
+      ...NO_EXECUTION_FLAGS,
+    },
+  });
+}
+
 export function auditVeraImplementationRunPrepareRejected(
   taskId: string,
   detail: {

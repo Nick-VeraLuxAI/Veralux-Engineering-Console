@@ -89,7 +89,15 @@ function issueToneClasses(severity: RunIssue["severity"]): string {
   }
 }
 
-export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDetailPayload }) {
+export function RunLivePanel({
+  runId,
+  initial,
+  veraExecutionBlocked = false,
+}: {
+  runId: string;
+  initial: RunDetailPayload;
+  veraExecutionBlocked?: boolean;
+}) {
   const [data, setData] = useState(initial);
   const [workspaceReady, setWorkspaceReady] = useState(false);
   const [incomingPlanJson, setIncomingPlanJson] = useState<string | undefined>(undefined);
@@ -424,25 +432,38 @@ export function RunLivePanel({ runId, initial }: { runId: string; initial: RunDe
 
         <RunWorkspaceViewPanel viewId="work_plan" activeView={visibleView}>
           <div id="active-work" className="scroll-mt-28 space-y-4" tabIndex={-1}>
-            <WorkerPlanDraftPanel
-              runId={runId}
-              taskTitle={data.task.title}
-              taskDescription={data.task.description}
-              initialDraft={data.workerPlanDraft ?? null}
-              onUseDraftPlan={(json) => setIncomingPlanJson(json)}
-            />
+            {veraExecutionBlocked ? (
+              <Surface padding="md" variant="inset" className="border-amber-500/40 text-amber-100">
+                <p className="font-medium">Vera handoff execution is gated</p>
+                <p className="mt-2 text-sm">
+                  Worker plan execution and Hermes dispatch are disabled for Vera-prepared runs
+                  until a future controlled execution phase. Complete the Vera execution approval
+                  gate above first; this panel does not execute code.
+                </p>
+              </Surface>
+            ) : (
+              <>
+                <WorkerPlanDraftPanel
+                  runId={runId}
+                  taskTitle={data.task.title}
+                  taskDescription={data.task.description}
+                  initialDraft={data.workerPlanDraft ?? null}
+                  onUseDraftPlan={(json) => setIncomingPlanJson(json)}
+                />
 
-            <div id={RUN_PANEL_IDS.workerPlan} className="scroll-mt-28" tabIndex={-1}>
-              <WorkerPlanPanel
-                runId={runId}
-                taskTitle={data.task.title}
-                taskDescription={data.task.description}
-                showReadmeSmokeHelper={data.uxSummary.workerPlan.showReadmeSmokeHelper}
-                incomingPlanJson={incomingPlanJson}
-              />
-            </div>
+                <div id={RUN_PANEL_IDS.workerPlan} className="scroll-mt-28" tabIndex={-1}>
+                  <WorkerPlanPanel
+                    runId={runId}
+                    taskTitle={data.task.title}
+                    taskDescription={data.task.description}
+                    showReadmeSmokeHelper={data.uxSummary.workerPlan.showReadmeSmokeHelper}
+                    incomingPlanJson={incomingPlanJson}
+                  />
+                </div>
 
-            <HermesWorkerPanel runId={runId} />
+                <HermesWorkerPanel runId={runId} />
+              </>
+            )}
 
             <EngineeringReviewSignoffPanel runId={runId} />
 

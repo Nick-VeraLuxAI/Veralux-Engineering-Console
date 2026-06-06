@@ -5,6 +5,39 @@ export const VERA_WORK_ORDER_MODULE_PREFIX = "vera-work-order:";
 export const VERA_IMPLEMENTATION_RUN_PREPARED_STEP = "vera_implementation_prepared";
 export const VERA_IMPLEMENTATION_RUN_PREPARE_CONFIRMATION_PHRASE =
   "PREPARE VERA IMPLEMENTATION RUN";
+export const VERA_EXECUTION_APPROVAL_REQUESTED_STEP = "vera_execution_approval_requested";
+export const VERA_EXECUTION_APPROVAL_REQUEST_CONFIRMATION_PHRASE =
+  "REQUEST VERA EXECUTION APPROVAL";
+export const VERA_EXECUTION_APPROVAL_REQUESTED_NOTE =
+  "Execution approval requested only. No code was executed." as const;
+
+export type VeraRunGovernanceNotes = {
+  veraHandoff?: boolean;
+  veraWorkOrderId?: string | null;
+  preparedBy?: string;
+  preparedAt?: string;
+  veraExecutionApprovalRequested?: boolean;
+  requestedBy?: string;
+  requestedAt?: string;
+  nonExecutionNote?: string;
+};
+
+export function parseVeraRunGovernanceNotes(
+  governanceNotes: string | null | undefined,
+): VeraRunGovernanceNotes {
+  if (!governanceNotes?.trim()) return {};
+  try {
+    return JSON.parse(governanceNotes) as VeraRunGovernanceNotes;
+  } catch {
+    return {};
+  }
+}
+
+export function isVeraHandoffRunFromGovernanceNotes(
+  governanceNotes: string | null | undefined,
+): boolean {
+  return parseVeraRunGovernanceNotes(governanceNotes).veraHandoff === true;
+}
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

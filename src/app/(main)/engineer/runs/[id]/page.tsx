@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { assessVeraExecutionReadiness, isVeraRunExecutionBlocked } from "@/lib/engineer-console/bridge/vera-execution-readiness";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import {
   getApprovalReportJson,
@@ -17,6 +18,10 @@ import { getChangedFiles, getDiffSummary } from "@/lib/engineer-console/workspac
 import type { ApprovalReport } from "@/lib/engineer-console/types";
 import { buildRunWorkflowSummary } from "@/lib/engineer-console/run-ux/build-run-workflow-summary";
 import { RunLivePanel } from "@/components/engineer-console/run-live-panel";
+import {
+  canShowVeraExecutionApprovalPanel,
+  VeraExecutionApprovalPanel,
+} from "@/components/engineer-console/vera-execution-approval-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +63,9 @@ export default async function RunDetailPage({
     approvalReport,
     changedFiles,
   });
+  const veraReadiness = assessVeraExecutionReadiness(id);
+  const showVeraExecutionApprovalPanel = canShowVeraExecutionApprovalPanel(run);
+  const veraExecutionBlocked = isVeraRunExecutionBlocked(run);
 
   return (
     <div>
@@ -68,8 +76,22 @@ export default async function RunDetailPage({
         ← Task: {task.title}
       </Link>
       <h1 className="mt-4 mb-6 text-2xl font-semibold">Run {run.id.slice(0, 8)}…</h1>
+      {showVeraExecutionApprovalPanel ? (
+        <VeraExecutionApprovalPanel
+          run={run}
+          taskId={task.id}
+          readiness={{
+            safeToRequestExecutionApproval: veraReadiness.safeToRequestExecutionApproval,
+            reasons: veraReadiness.reasons,
+            checks: veraReadiness.checks,
+            veraWorkOrderId: veraReadiness.veraWorkOrderId,
+            repoPath: veraReadiness.repoPath,
+          }}
+        />
+      ) : null}
       <RunLivePanel
         runId={id}
+        veraExecutionBlocked={veraExecutionBlocked}
         initial={{
           run,
           task,
