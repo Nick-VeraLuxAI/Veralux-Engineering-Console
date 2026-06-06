@@ -7,11 +7,20 @@ export const VERA_PATCH_CONTENT_DRAFT_SCHEMA_VERSION =
 export const VERA_IMPLEMENTATION_PATCH_CONTENT_DRAFT_READY_STEP =
   "implementation_patch_content_draft_ready";
 
+export const VERA_IMPLEMENTATION_PATCH_CONTENT_DRAFT_APPROVED_STEP =
+  "implementation_patch_content_draft_approved";
+
+export const VERA_IMPLEMENTATION_PATCH_CONTENT_DRAFT_REJECTED_STEP =
+  "implementation_patch_content_draft_rejected";
+
 export const VERA_PATCH_CONTENT_DRAFT_CONFIRMATION_PHRASE =
   "CREATE VERA PATCH CONTENT DRAFT";
 
 export const VERA_PATCH_CONTENT_DRAFT_APPROVE_CONFIRMATION =
   "APPROVE VERA PATCH CONTENT DRAFT";
+
+export const VERA_PATCH_CONTENT_DRAFT_REJECT_CONFIRMATION =
+  "REJECT VERA PATCH CONTENT DRAFT";
 
 export type VeraPatchContentDraftAction = "create" | "modify";
 

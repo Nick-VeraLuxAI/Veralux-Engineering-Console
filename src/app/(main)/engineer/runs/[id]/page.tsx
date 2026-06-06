@@ -51,9 +51,14 @@ import {
   canShowVeraImplementationPatchContentDraftPanel,
   VeraImplementationPatchContentDraftPanel,
 } from "@/components/engineer-console/vera-implementation-patch-content-draft-panel";
+import {
+  canShowVeraImplementationPatchContentDraftReviewPanel,
+  VeraImplementationPatchContentDraftReviewPanel,
+} from "@/components/engineer-console/vera-implementation-patch-content-draft-review-panel";
 import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
 import { assessVeraPatchApplicationReadiness } from "@/lib/engineer-console/bridge/vera-patch-application-readiness";
 import { assessVeraPatchContentDraftReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-readiness";
+import { assessVeraPatchContentDraftReviewReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-review-readiness";
 import { assessVeraPatchProposalApprovalReadiness } from "@/lib/engineer-console/bridge/vera-patch-proposal-approval-readiness";
 import { assessVeraPatchProposalReadiness } from "@/lib/engineer-console/bridge/vera-patch-proposal-readiness";
 import {
@@ -145,6 +150,9 @@ export default async function RunDetailPage({
   );
   const showVeraImplementationPatchContentDraftPanel =
     canShowVeraImplementationPatchContentDraftPanel(run);
+  const veraPatchContentDraftReviewReadiness = assessVeraPatchContentDraftReviewReadiness(id);
+  const showVeraImplementationPatchContentDraftReviewPanel =
+    canShowVeraImplementationPatchContentDraftReviewPanel(run);
 
   return (
     <div>
@@ -252,6 +260,23 @@ export default async function RunDetailPage({
             existingDraftPath: veraPatchContentDraftReadiness.existingDraftPath,
             existingDraftHash: veraPatchContentDraftReadiness.existingDraftHash,
             patchAlreadyApplied: veraPatchContentDraftReadiness.patchAlreadyApplied,
+          }}
+        />
+      ) : null}
+      {showVeraImplementationPatchContentDraftReviewPanel ? (
+        <VeraImplementationPatchContentDraftReviewPanel
+          run={run}
+          taskId={task.id}
+          draft={veraPatchContentDraft}
+          readiness={{
+            safeToReviewPatchContentDraft:
+              veraPatchContentDraftReviewReadiness.safeToReviewPatchContentDraft,
+            reasons: veraPatchContentDraftReviewReadiness.reasons,
+            checks: veraPatchContentDraftReviewReadiness.checks,
+            veraWorkOrderId: veraPatchContentDraftReviewReadiness.veraWorkOrderId,
+            draftPath: veraPatchContentDraftReviewReadiness.draftPath,
+            draftHash: veraPatchContentDraftReviewReadiness.draftHash,
+            draftSummary: veraPatchContentDraftReviewReadiness.draftSummary,
           }}
         />
       ) : null}
