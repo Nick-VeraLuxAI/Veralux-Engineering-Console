@@ -27,6 +27,11 @@ import {
   canShowVeraExecutionStartPanel,
   VeraExecutionStartPanel,
 } from "@/components/engineer-console/vera-execution-start-panel";
+import {
+  canShowVeraImplementationArtifactPanel,
+  VeraImplementationArtifactPanel,
+} from "@/components/engineer-console/vera-implementation-artifact-panel";
+import { readVeraImplementationArtifact } from "@/lib/engineer-console/worker/vera-implementation-artifact-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +78,11 @@ export default async function RunDetailPage({
   const showVeraExecutionApprovalPanel = canShowVeraExecutionApprovalPanel(run);
   const showVeraExecutionStartPanel = canShowVeraExecutionStartPanel(run);
   const veraExecutionBlocked = isVeraRunExecutionBlocked(run);
+  const veraImplementationArtifact = readVeraImplementationArtifact(id);
+  const showVeraImplementationArtifactPanel = canShowVeraImplementationArtifactPanel(
+    run,
+    veraImplementationArtifact,
+  );
 
   return (
     <div>
@@ -107,6 +117,13 @@ export default async function RunDetailPage({
             veraWorkOrderId: veraStartReadiness.veraWorkOrderId,
             repoPath: veraStartReadiness.repoPath,
           }}
+        />
+      ) : null}
+      {showVeraImplementationArtifactPanel ? (
+        <VeraImplementationArtifactPanel
+          run={run}
+          taskId={task.id}
+          artifact={veraImplementationArtifact}
         />
       ) : null}
       <RunLivePanel

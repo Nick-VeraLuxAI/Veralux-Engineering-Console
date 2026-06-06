@@ -25,6 +25,10 @@ export type VeraRunGovernanceNotes = {
   veraExecutionStartRequested?: boolean;
   executionStartedBy?: string;
   executionStartRequestedAt?: string;
+  veraImplementationArtifactPath?: string | null;
+  veraImplementationArtifactHash?: string | null;
+  veraImplementationWorkerStatus?: string | null;
+  veraImplementationWorkerMode?: string | null;
   nonExecutionNote?: string;
 };
 
@@ -49,6 +53,40 @@ export function hasVeraExecutionStartBeenRequested(
   governanceNotes: string | null | undefined,
 ): boolean {
   return parseVeraRunGovernanceNotes(governanceNotes).veraExecutionStartRequested === true;
+}
+
+export function isVeraStartedImplementationRun(run: {
+  governanceNotes: string | null | undefined;
+}): boolean {
+  const notes = parseVeraRunGovernanceNotes(run.governanceNotes);
+  return notes.veraHandoff === true && notes.veraExecutionStartRequested === true;
+}
+
+export function hasVeraImplementationArtifact(
+  governanceNotes: string | null | undefined,
+): boolean {
+  const notes = parseVeraRunGovernanceNotes(governanceNotes);
+  return Boolean(notes.veraImplementationArtifactPath?.trim());
+}
+
+export function mergeVeraRunGovernanceNotes(
+  existingNotes: string | null | undefined,
+  patch: Partial<VeraRunGovernanceNotes> & Record<string, unknown>,
+): string {
+  const base = parseVeraRunGovernanceNotes(existingNotes);
+  let extra: Record<string, unknown> = {};
+  if (existingNotes?.trim()) {
+    try {
+      extra = JSON.parse(existingNotes) as Record<string, unknown>;
+    } catch {
+      extra = {};
+    }
+  }
+  return JSON.stringify({
+    ...extra,
+    ...base,
+    ...patch,
+  });
 }
 
 const UUID_PATTERN =

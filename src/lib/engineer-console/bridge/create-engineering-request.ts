@@ -8,6 +8,13 @@ import {
   type BridgeCreateEngineeringRequestResult,
   type VeraluxOsBridgeCreateRequestBody,
 } from "./create-engineering-request-types";
+import {
+  VERA_HANDOFF_NON_EXECUTION_NOTE,
+  VERA_WORK_ORDER_MODULE_PREFIX,
+} from "./vera-handoff-task-types";
+
+const VERA_WORK_ORDER_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class BridgeRequestValidationError extends Error {
   readonly status = 400;
@@ -99,6 +106,35 @@ export function parseVeraluxOsBridgeCreateRequestBody(
     }
   }
 
+  let veraWorkOrderId: string | undefined;
+  if (body.veraWorkOrderId !== undefined && body.veraWorkOrderId !== null) {
+    if (typeof body.veraWorkOrderId !== "string") {
+      throw new BridgeRequestValidationError("veraWorkOrderId must be a string.");
+    }
+    const trimmedWorkOrderId = body.veraWorkOrderId.trim();
+    if (!VERA_WORK_ORDER_ID_PATTERN.test(trimmedWorkOrderId)) {
+      throw new BridgeRequestValidationError("veraWorkOrderId must be a valid UUID.");
+    }
+    veraWorkOrderId = trimmedWorkOrderId;
+  }
+
+  let nonExecutionNote: string | undefined;
+  if (body.nonExecutionNote !== undefined && body.nonExecutionNote !== null) {
+    if (typeof body.nonExecutionNote !== "string") {
+      throw new BridgeRequestValidationError("nonExecutionNote must be a string.");
+    }
+    const trimmedNote = body.nonExecutionNote.trim();
+    if (!trimmedNote) {
+      throw new BridgeRequestValidationError("nonExecutionNote must be a non-empty string.");
+    }
+    if (!trimmedNote.includes(VERA_HANDOFF_NON_EXECUTION_NOTE)) {
+      throw new BridgeRequestValidationError(
+        `nonExecutionNote must include the canonical safety note: ${VERA_HANDOFF_NON_EXECUTION_NOTE}`,
+      );
+    }
+    nonExecutionNote = trimmedNote;
+  }
+
   return {
     title,
     priority: priorityRaw,
@@ -107,6 +143,8 @@ export function parseVeraluxOsBridgeCreateRequestBody(
     source: "veralux-os",
     businessContext,
     requestedBy,
+    veraWorkOrderId,
+    nonExecutionNote,
   };
 }
 
@@ -121,11 +159,32 @@ function formatTaskDescription(body: VeraluxOsBridgeCreateRequestBody): string {
     "",
     "### Instructions",
     "",
-    body.instructions,
   ];
 
-  if (body.businessContext && Object.keys(body.businessContext).length > 0) {
-    lines.push("", "### Business context", "", "```json", JSON.stringify(body.businessContext, null, 2), "```");
+  if (body.nonExecutionNote) {
+    lines.push(VERA_HANDOFF_NON_EXECUTION_NOTE, "");
+  }
+
+  lines.push(body.instructions);
+
+  if (body.veraWorkOrderId) {
+    lines.push("", `Source work order ID: ${body.veraWorkOrderId}`);
+  }
+
+  const businessContext = { ...(body.businessContext ?? {}) };
+  if (body.veraWorkOrderId) {
+    businessContext.module = `${VERA_WORK_ORDER_MODULE_PREFIX}${body.veraWorkOrderId}`;
+  }
+
+  if (Object.keys(businessContext).length > 0) {
+    lines.push(
+      "",
+      "### Business context",
+      "",
+      "```json",
+      JSON.stringify(businessContext, null, 2),
+      "```",
+    );
   }
 
   return lines.join("\n");

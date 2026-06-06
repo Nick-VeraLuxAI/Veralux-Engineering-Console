@@ -25,6 +25,8 @@ export type VeraluxOsBridgeCreateRequestBody = {
   source: BridgeRequestSource;
   businessContext?: VeraluxOsBridgeBusinessContext;
   requestedBy: string;
+  veraWorkOrderId?: string;
+  nonExecutionNote?: string;
 };
 
 export type BridgeCreateEngineeringRequestResult = {

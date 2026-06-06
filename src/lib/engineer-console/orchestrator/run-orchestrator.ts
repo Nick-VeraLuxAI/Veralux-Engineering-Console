@@ -1,4 +1,6 @@
 import { runAgentWorker } from "../agent-worker/agent-worker";
+import { isVeraStartedImplementationRun } from "../bridge/vera-handoff-task-types";
+import { runVeraImplementationPipeline } from "./vera-implementation-run-pipeline";
 import {
   auditBranchCreated,
   auditHumanApproved,
@@ -96,6 +98,17 @@ export async function executeRun(runId: string): Promise<void> {
       auditBranchCreated(runId, task.id, branchName);
     } catch {
       // Branch may already exist from a partial retry — continue if checkout works
+    }
+
+    const currentRun = getRunById(runId);
+    if (currentRun && isVeraStartedImplementationRun(currentRun)) {
+      await runVeraImplementationPipeline({
+        runId,
+        task,
+        repoPath,
+        branchName,
+      });
+      return;
     }
 
     await setRunStep(runId, "generating_patch", "generating_patch");
