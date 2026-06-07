@@ -9,6 +9,8 @@ import type { VeraImplementationPatchApplicationReport } from "./vera-implementa
 import { VERA_IMPLEMENTATION_PATCH_APPLICATION_FILENAME } from "./vera-implementation-patch-application-types";
 import type { VeraImplementationPatchContentDraft } from "./vera-implementation-patch-content-draft-types";
 import { VERA_IMPLEMENTATION_PATCH_CONTENT_DRAFT_FILENAME } from "./vera-implementation-patch-content-draft-types";
+import type { VeraPostPatchQualityReport } from "./vera-post-patch-quality-report-types";
+import { VERA_POST_PATCH_QUALITY_REPORT_FILENAME } from "./vera-post-patch-quality-report-types";
 
 export function resolveRunArtifactRoot(): string {
   const dbPath =
@@ -172,6 +174,43 @@ export function readVeraImplementationPatchContentDraft(
     return JSON.parse(
       fs.readFileSync(draftPath, "utf8"),
     ) as VeraImplementationPatchContentDraft;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveVeraPostPatchQualityReportPath(runId: string): string {
+  return path.join(
+    resolveRunArtifactRoot(),
+    runId.trim(),
+    VERA_POST_PATCH_QUALITY_REPORT_FILENAME,
+  );
+}
+
+export function writeVeraPostPatchQualityReport(
+  report: VeraPostPatchQualityReport,
+): { qualityReportPath: string; qualityReportHash: string } {
+  const qualityReportPath = resolveVeraPostPatchQualityReportPath(report.runId);
+  fs.mkdirSync(path.dirname(qualityReportPath), { recursive: true });
+  const content = JSON.stringify(report, null, 2);
+  fs.writeFileSync(qualityReportPath, content, "utf8");
+  return {
+    qualityReportPath,
+    qualityReportHash: hashArtifactContent(content),
+  };
+}
+
+export function readVeraPostPatchQualityReport(
+  runId: string,
+  reportPathOverride?: string | null,
+): VeraPostPatchQualityReport | null {
+  const reportPath =
+    reportPathOverride?.trim() || resolveVeraPostPatchQualityReportPath(runId);
+  if (!fs.existsSync(reportPath)) return null;
+  try {
+    return JSON.parse(
+      fs.readFileSync(reportPath, "utf8"),
+    ) as VeraPostPatchQualityReport;
   } catch {
     return null;
   }

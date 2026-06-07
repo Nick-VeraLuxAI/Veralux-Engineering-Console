@@ -1572,6 +1572,173 @@ export function auditVeraImplementationApprovedPatchContentApplicationFailed(
   });
 }
 
+const POST_PATCH_QUALITY_GATES_COMPLETED_FLAGS = {
+  noPatchAppliedBeyondApprovedDraft: true as const,
+  noCommitCreated: true as const,
+  noPullRequestCreated: true as const,
+  noMergePerformed: true as const,
+  noDeploymentPerformed: true as const,
+  noReleasePerformed: true as const,
+};
+
+const POST_PATCH_QUALITY_GATES_BLOCKED_FLAGS = {
+  noPatchAppliedBeyondApprovedDraft: true as const,
+  noCommitCreated: true as const,
+  noPullRequestCreated: true as const,
+  noMergePerformed: true as const,
+  noDeploymentPerformed: true as const,
+  noReleasePerformed: true as const,
+};
+
+export function auditVeraPostPatchQualityGatesRequested(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    applicationReportPath?: string | null;
+    applicationReportHash?: string | null;
+    note?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_POST_PATCH_QUALITY_GATES_REQUESTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      applicationReportPath: detail.applicationReportPath ?? null,
+      applicationReportHash: detail.applicationReportHash ?? null,
+      note: detail.note ?? null,
+      message: "Vera post-patch quality gates requested.",
+      ...POST_PATCH_QUALITY_GATES_BLOCKED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraPostPatchQualityGatesCompleted(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    applicationReportPath?: string | null;
+    applicationReportHash?: string | null;
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+    gateSummary?: string | null;
+    note?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_POST_PATCH_QUALITY_GATES_COMPLETED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      applicationReportPath: detail.applicationReportPath ?? null,
+      applicationReportHash: detail.applicationReportHash ?? null,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      gateSummary: detail.gateSummary ?? null,
+      note: detail.note ?? null,
+      message:
+        "Vera post-patch quality gates completed. Review, commit, PR, merge, deploy, and release remain gated.",
+      ...POST_PATCH_QUALITY_GATES_COMPLETED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraPostPatchQualityGatesBlocked(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    readinessReasons?: string[];
+    reasonCodes?: string[];
+    applicationReportPath?: string | null;
+    applicationReportHash?: string | null;
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_POST_PATCH_QUALITY_GATES_BLOCKED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      applicationReportPath: detail.applicationReportPath ?? null,
+      applicationReportHash: detail.applicationReportHash ?? null,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      ...(detail.readinessReasons ? { readinessReasons: detail.readinessReasons } : {}),
+      ...(detail.reasonCodes ? { reasonCodes: detail.reasonCodes } : {}),
+      ...POST_PATCH_QUALITY_GATES_BLOCKED_FLAGS,
+    },
+  });
+}
+
+export function auditVeraPostPatchQualityGatesFailed(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    applicationReportPath?: string | null;
+    applicationReportHash?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_POST_PATCH_QUALITY_GATES_FAILED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      applicationReportPath: detail.applicationReportPath ?? null,
+      applicationReportHash: detail.applicationReportHash ?? null,
+      ...POST_PATCH_QUALITY_GATES_BLOCKED_FLAGS,
+    },
+  });
+}
+
 export function auditVeraImplementationRunPrepareRejected(
   taskId: string,
   detail: {

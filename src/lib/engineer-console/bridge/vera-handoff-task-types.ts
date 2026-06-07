@@ -59,6 +59,12 @@ export type VeraRunGovernanceNotes = {
   veraImplementationPatchContentDraftReviewedBy?: string | null;
   veraImplementationPatchContentDraftReviewedAt?: string | null;
   veraImplementationPatchContentDraftReviewNote?: string | null;
+  veraPostPatchQualityStatus?: string | null;
+  veraPostPatchQualityReportPath?: string | null;
+  veraPostPatchQualityReportHash?: string | null;
+  veraPostPatchQualityRanBy?: string | null;
+  veraPostPatchQualityRanAt?: string | null;
+  veraPostPatchQualityGateSummary?: string | null;
   nonExecutionNote?: string;
 };
 
@@ -175,6 +181,16 @@ export function hasVeraImplementationPatchContentDraftReviewDecision(
   governanceNotes: string | null | undefined,
 ): boolean {
   return getVeraImplementationPatchContentDraftReviewDecision(governanceNotes) !== null;
+}
+
+export function hasVeraPostPatchQualityReport(
+  governanceNotes: string | null | undefined,
+): boolean {
+  const notes = parseVeraRunGovernanceNotes(governanceNotes);
+  return (
+    notes.veraPostPatchQualityStatus === "completed" ||
+    Boolean(notes.veraPostPatchQualityReportPath?.trim())
+  );
 }
 
 export function mergeVeraRunGovernanceNotes(

@@ -59,8 +59,13 @@ import {
   canShowVeraApprovedPatchContentApplicationPanel,
   VeraApprovedPatchContentApplicationPanel,
 } from "@/components/engineer-console/vera-approved-patch-content-application-panel";
+import {
+  canShowVeraPostPatchQualityGatesPanel,
+  VeraPostPatchQualityGatesPanel,
+} from "@/components/engineer-console/vera-post-patch-quality-gates-panel";
 import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
 import { assessVeraApprovedPatchContentApplicationReadiness } from "@/lib/engineer-console/bridge/vera-approved-patch-content-application-readiness";
+import { assessVeraPostPatchQualityGatesReadiness } from "@/lib/engineer-console/bridge/vera-post-patch-quality-gates-readiness";
 import { assessVeraPatchApplicationReadiness } from "@/lib/engineer-console/bridge/vera-patch-application-readiness";
 import { assessVeraPatchContentDraftReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-readiness";
 import { assessVeraPatchContentDraftReviewReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-review-readiness";
@@ -71,6 +76,7 @@ import {
   readVeraImplementationPatchApplicationReport,
   readVeraImplementationPatchContentDraft,
   readVeraImplementationPatchProposal,
+  readVeraPostPatchQualityReport,
 } from "@/lib/engineer-console/worker/vera-implementation-artifact-storage";
 import { parseVeraRunGovernanceNotes } from "@/lib/engineer-console/bridge/vera-handoff-task-types";
 
@@ -162,6 +168,12 @@ export default async function RunDetailPage({
     assessVeraApprovedPatchContentApplicationReadiness(id);
   const showVeraApprovedPatchContentApplicationPanel =
     canShowVeraApprovedPatchContentApplicationPanel(run);
+  const veraPostPatchQualityGatesReadiness = assessVeraPostPatchQualityGatesReadiness(id);
+  const veraPostPatchQualityReport = readVeraPostPatchQualityReport(
+    id,
+    governanceNotes.veraPostPatchQualityReportPath,
+  );
+  const showVeraPostPatchQualityGatesPanel = canShowVeraPostPatchQualityGatesPanel(run);
 
   return (
     <div>
@@ -306,6 +318,24 @@ export default async function RunDetailPage({
             entryCount: veraApprovedPatchContentApplicationReadiness.entryCount,
             worktreePath: veraApprovedPatchContentApplicationReadiness.worktreePath,
             targetFiles: veraApprovedPatchContentApplicationReadiness.targetFiles,
+          }}
+        />
+      ) : null}
+      {showVeraPostPatchQualityGatesPanel ? (
+        <VeraPostPatchQualityGatesPanel
+          run={run}
+          taskId={task.id}
+          qualityReport={veraPostPatchQualityReport}
+          readiness={{
+            safeToRunPostPatchQualityGates:
+              veraPostPatchQualityGatesReadiness.safeToRunPostPatchQualityGates,
+            reasonCodes: veraPostPatchQualityGatesReadiness.reasonCodes,
+            reasons: veraPostPatchQualityGatesReadiness.reasons,
+            checks: veraPostPatchQualityGatesReadiness.checks,
+            veraWorkOrderId: veraPostPatchQualityGatesReadiness.veraWorkOrderId,
+            applicationReportPath: veraPostPatchQualityGatesReadiness.applicationReportPath,
+            applicationReportHash: veraPostPatchQualityGatesReadiness.applicationReportHash,
+            appliedFiles: veraPostPatchQualityGatesReadiness.appliedFiles,
           }}
         />
       ) : null}
