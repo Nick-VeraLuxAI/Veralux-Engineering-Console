@@ -1,11 +1,13 @@
 import { execSync } from "child_process";
+import { randomUUID } from "crypto";
 import fs from "fs";
 import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { closeEngineerConsoleDb, resetEngineerConsoleDbForTests } from "../db/client";
+import { closeEngineerConsoleDb, getEngineerConsoleDb, resetEngineerConsoleDbForTests } from "../db/client";
 import { initializeEngineerConsoleDatabase } from "../db/init";
 import { saveApprovalReport, saveQualityGateResults, updateRun } from "../run-manager/run-manager";
+import { getTaskById } from "../task-manager/task-manager";
 import {
   createProject,
   createRequirement,
@@ -35,9 +37,16 @@ import {
   normalizeFailureText,
   validateWorkerAssignment,
 } from "./requirement-execution-policy";
+import { getWorkspaceForAttempt } from "./execution-workspace-manager";
+import {
+  createVerificationWorkspace,
+  integrateCandidate,
+  prepareIntegrationWorkspace,
+} from "./execution-workspace-manager";
 
 let tmpDb = "";
 let repoRoot = "";
+let registeredRepoId = "";
 
 function seedDb() {
   tmpDb = path.join(os.tmpdir(), `ec-requirement-exec-${Date.now()}-${Math.random()}.db`);
@@ -54,8 +63,28 @@ function seedDb() {
     path.join(repoRoot, "package.json"),
     JSON.stringify({ name: "attempt-test", scripts: { test: "node -e \"process.exit(0)\"" } }),
   );
+  fs.writeFileSync(path.join(repoRoot, "package-lock.json"), JSON.stringify({ name: "attempt-test", lockfileVersion: 3 }));
+  fs.mkdirSync(path.join(repoRoot, "node_modules"));
   execSync("git add .", { cwd: repoRoot, stdio: "ignore" });
   execSync('git commit -m "init"', { cwd: repoRoot, stdio: "ignore" });
+  registeredRepoId = randomUUID();
+  getEngineerConsoleDb()
+    .prepare(
+      `INSERT INTO engineer_registered_repos
+        (id, name, path, verification_status, default_branch, protected_branches_json,
+         workspace_root, enabled, created_at, updated_at)
+       VALUES
+        (@id, @name, @path, 'ok', 'master', '["main","master"]',
+         @workspace_root, 1, @created_at, @updated_at)`,
+    )
+    .run({
+      id: registeredRepoId,
+      name: `test-repo-${registeredRepoId}`,
+      path: repoRoot,
+      workspace_root: path.join(os.tmpdir(), `ec-workspaces-${registeredRepoId}`),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
 }
 
 function seedProject() {
@@ -63,6 +92,7 @@ function seedProject() {
     name: "Execution loop",
     description: "Run one bounded worker.",
     targetRepoPath: repoRoot,
+    registeredRepoId,
     createdBy: "test",
   });
   createSpecification({
@@ -129,6 +159,43 @@ describe("RequirementExecutionController attempts and assignments", () => {
     expect(dispatched.runId).toBeTruthy();
     expect(duplicate.runId).toBe(dispatched.runId);
   });
+
+  it("fails readiness before creating a Vera run when repository identity is invalid", async () => {
+    const { requirement } = seedProject();
+    getEngineerConsoleDb()
+      .prepare(`UPDATE engineer_registered_repos SET enabled = 0 WHERE id = ?`)
+      .run(registeredRepoId);
+    const attempt = prepareAttempt(requirement.id);
+
+    const dispatched = await dispatchAttempt(attempt.id, {
+      executeInline: false,
+      deps: { executeRunFn: async () => undefined },
+    });
+
+    expect(dispatched.runId).toBeNull();
+    expect(dispatched.status).toBe("failed");
+    expect(dispatched.failureCategory).toBe("readiness_failed");
+    const readinessRows = getEngineerConsoleDb()
+      .prepare(`SELECT status, blockers_json FROM engineer_attempt_readiness_results WHERE attempt_id = ?`)
+      .all(attempt.id) as Array<{ status: string; blockers_json: string }>;
+    expect(readinessRows[0].status).toBe("not_ready");
+    expect(readinessRows[0].blockers_json).toContain("repository_enabled");
+  });
+
+  it("keeps task repository identity anchored after workspace activation", async () => {
+    const { requirement } = seedProject();
+    const attempt = prepareAttempt(requirement.id);
+    const dispatched = await dispatchAttempt(attempt.id, {
+      executeInline: false,
+      deps: { executeRunFn: async () => undefined },
+    });
+    const workspace = getWorkspaceForAttempt(dispatched.id, "implementation")!;
+    const task = getTaskById(dispatched.taskId)!;
+
+    expect(task.registeredRepoId).toBe(registeredRepoId);
+    expect(path.resolve(task.targetRepoPath)).toBe(path.resolve(repoRoot));
+    expect(path.resolve(workspace.worktreePath)).not.toBe(path.resolve(repoRoot));
+  });
 });
 
 describe("RequirementExecutionController evaluation, verification, and retry", () => {
@@ -140,6 +207,9 @@ describe("RequirementExecutionController evaluation, verification, and retry", (
       executeInline: true,
       deps: {
         executeRunFn: async (runId) => {
+          const workspace = getWorkspaceForAttempt(attempt.id, "implementation")!;
+          fs.mkdirSync(path.join(workspace.worktreePath, "src"), { recursive: true });
+          fs.writeFileSync(path.join(workspace.worktreePath, "src/example.ts"), "export const ok = true;\n");
           updateRun(runId, {
             status: "waiting_for_approval",
             currentStep: "waiting_for_approval",
@@ -166,6 +236,9 @@ describe("RequirementExecutionController evaluation, verification, and retry", (
     });
     expect(result.failure).toBeNull();
     expect(result.attempt.status).toBe("verification");
+    await createVerificationWorkspace(result.attempt.id);
+    await prepareIntegrationWorkspace(result.attempt.id);
+    await integrateCandidate(result.attempt.id);
     const verification = verifyAttempt(result.attempt.id);
     expect(verification.decision).toBe("accepted");
     expect(getRequirementById(requirement.id)?.status).toBe("completed");
@@ -208,6 +281,30 @@ describe("RequirementExecutionController evaluation, verification, and retry", (
     expect(retry.nextAttempt?.strategy).toBe("repair_from_test_failure");
   });
 
+  it("classifies post-tool watchdog failures without a diff as bounded no-progress", async () => {
+    const { requirement } = seedProject();
+    const attempt = prepareAttempt(requirement.id);
+    const dispatched = await dispatchAttempt(attempt.id, {
+      executeInline: true,
+      deps: {
+        executeRunFn: async (runId) => {
+          updateRun(runId, {
+            status: "failed",
+            currentStep: "failed",
+            agentMessage: "Post-tool continuation watchdog expired",
+            completedAt: new Date().toISOString(),
+          });
+        },
+      },
+    });
+
+    const result = await evaluateAttempt(dispatched.id, { getChangedFilesFn: async () => [] });
+
+    expect(result.failure?.category).toBe("post_tool_continuation_stalled_no_diff");
+    expect(result.attempt.outcome).toBe("no_progress");
+    expect(result.attempt.retryable).toBe(true);
+  });
+
   it("uses approved quality baseline fingerprints to separate existing failures from new failures", async () => {
     const { project, requirement } = seedProject();
     const fingerprint = fingerprintFailure({
@@ -229,6 +326,9 @@ describe("RequirementExecutionController evaluation, verification, and retry", (
       executeInline: true,
       deps: {
         executeRunFn: async (runId) => {
+          const workspace = getWorkspaceForAttempt(attempt.id, "implementation")!;
+          fs.mkdirSync(path.join(workspace.worktreePath, "src"), { recursive: true });
+          fs.writeFileSync(path.join(workspace.worktreePath, "src/a.ts"), "export const baseline = true;\n");
           updateRun(runId, { status: "failed", currentStep: "failed" });
           saveQualityGateResults(runId, [
             {
@@ -264,22 +364,39 @@ describe("RequirementExecutionController evaluation, verification, and retry", (
     expect(listAttemptsForRequirement(requirement.id)).toHaveLength(1);
   });
 
-  it("recovers failed and indeterminate runs for deterministic evaluation", async () => {
-    for (const runStatus of ["failed", "execution_indeterminate"] as const) {
-      const { project, requirement } = seedProject();
-      const attempt = prepareAttempt(requirement.id);
-      buildWorkerAssignment(attempt.id);
-      const dispatched = await dispatchAttempt(attempt.id, {
-        executeInline: false,
-        deps: { executeRunFn: async () => undefined },
-      });
-      updateRun(dispatched.runId!, { status: runStatus, currentStep: runStatus });
+  it("recovers failed runs for deterministic evaluation", async () => {
+    const { project, requirement } = seedProject();
+    const attempt = prepareAttempt(requirement.id);
+    buildWorkerAssignment(attempt.id);
+    const dispatched = await dispatchAttempt(attempt.id, {
+      executeInline: false,
+      deps: { executeRunFn: async () => undefined },
+    });
+    updateRun(dispatched.runId!, { status: "failed", currentStep: "failed" });
 
-      const recovered = recoverInterruptedAttempts(project.id);
+    const recovered = recoverInterruptedAttempts(project.id);
 
-      expect(recovered[0].status).toBe("evaluating");
-      expect(listAttemptsForRequirement(requirement.id)).toHaveLength(1);
-    }
+    expect(recovered[0].status).toBe("evaluating");
+    expect(listAttemptsForRequirement(requirement.id)).toHaveLength(1);
+  });
+
+  it("recovers indeterminate runs for deterministic evaluation", async () => {
+    const { project, requirement } = seedProject();
+    const attempt = prepareAttempt(requirement.id);
+    buildWorkerAssignment(attempt.id);
+    const dispatched = await dispatchAttempt(attempt.id, {
+      executeInline: false,
+      deps: { executeRunFn: async () => undefined },
+    });
+    updateRun(dispatched.runId!, {
+      status: "execution_indeterminate",
+      currentStep: "execution_indeterminate",
+    });
+
+    const recovered = recoverInterruptedAttempts(project.id);
+
+    expect(recovered[0].status).toBe("evaluating");
+    expect(listAttemptsForRequirement(requirement.id)).toHaveLength(1);
   });
 });
 

@@ -28,6 +28,9 @@ export const ATTEMPT_OUTCOMES = [
   "conflict",
   "approval_required",
   "cancelled",
+  "readiness_failed",
+  "dependency_hydration_failed",
+  "context_budget_exceeded",
 ] as const;
 
 export type AttemptOutcome = (typeof ATTEMPT_OUTCOMES)[number];
@@ -51,6 +54,16 @@ export const FAILURE_CATEGORIES = [
   "repeated_failure",
   "approval_required",
   "unknown_failure",
+  "readiness_failed",
+  "dependency_hydration_failed",
+  "context_budget_exceeded",
+  "post_tool_continuation_stalled_no_diff",
+  "post_tool_continuation_stalled_with_diff",
+  "workspace_identity_mismatch",
+  "repository_identity_missing",
+  "policy_violation",
+  "transport_failure_before_side_effects",
+  "indeterminate_after_side_effects",
 ] as const;
 
 export type FailureCategory = (typeof FAILURE_CATEGORIES)[number];
@@ -148,6 +161,34 @@ export interface WorkerAssignmentContract {
     return_evidence: boolean;
   };
   self_verification_allowed: false;
+  context_package?: {
+    estimated_tokens: number;
+    max_initial_tokens: number;
+    reserved_tokens: number;
+    selected_files: Array<{ path: string; reason: string }>;
+    omitted_context: string[];
+    truncations: string[];
+  };
+}
+
+export interface AttemptReadinessResult {
+  id: string;
+  attemptId: string;
+  projectId: string;
+  requirementId: string;
+  taskId: string;
+  workspaceId: string | null;
+  repositoryId: string | null;
+  status: "ready" | "not_ready";
+  checks: Array<{ name: string; status: "passed" | "failed" | "warning"; message: string }>;
+  warnings: string[];
+  blockers: string[];
+  repositoryIdentity: Record<string, unknown>;
+  workspaceIdentity: Record<string, unknown>;
+  dependencyState: Record<string, unknown>;
+  contextEstimate: Record<string, unknown>;
+  requiredCommands: string[];
+  createdAt: string;
 }
 
 export interface WorkerAssignmentRecord {

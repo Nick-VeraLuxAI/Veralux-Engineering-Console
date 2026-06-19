@@ -815,6 +815,60 @@ CREATE TABLE IF NOT EXISTS engineer_workspace_command_events (
 CREATE INDEX IF NOT EXISTS idx_engineer_workspace_command_events_workspace
   ON engineer_workspace_command_events (workspace_id, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS engineer_attempt_readiness_results (
+  id TEXT PRIMARY KEY NOT NULL,
+  attempt_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  requirement_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  workspace_id TEXT,
+  repository_id TEXT,
+  status TEXT NOT NULL,
+  checks_json TEXT NOT NULL DEFAULT '[]',
+  warnings_json TEXT NOT NULL DEFAULT '[]',
+  blockers_json TEXT NOT NULL DEFAULT '[]',
+  repository_identity_json TEXT NOT NULL DEFAULT '{}',
+  workspace_identity_json TEXT NOT NULL DEFAULT '{}',
+  dependency_state_json TEXT NOT NULL DEFAULT '{}',
+  context_estimate_json TEXT NOT NULL DEFAULT '{}',
+  required_commands_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  FOREIGN KEY (task_id) REFERENCES engineering_tasks (id) ON DELETE CASCADE,
+  FOREIGN KEY (workspace_id) REFERENCES engineer_execution_workspaces (id) ON DELETE SET NULL,
+  FOREIGN KEY (repository_id) REFERENCES engineer_registered_repos (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_attempt_readiness_attempt
+  ON engineer_attempt_readiness_results (attempt_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS engineer_workspace_dependency_hydrations (
+  id TEXT PRIMARY KEY NOT NULL,
+  workspace_id TEXT NOT NULL,
+  attempt_id TEXT NOT NULL,
+  repository_id TEXT NOT NULL,
+  package_manager TEXT NOT NULL,
+  lockfile TEXT,
+  strategy TEXT NOT NULL,
+  command TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT NOT NULL,
+  exit_code INTEGER NOT NULL,
+  stdout_summary TEXT NOT NULL DEFAULT '',
+  stderr_summary TEXT NOT NULL DEFAULT '',
+  cache_source TEXT,
+  dependency_fingerprint TEXT NOT NULL,
+  result TEXT NOT NULL,
+  FOREIGN KEY (workspace_id) REFERENCES engineer_execution_workspaces (id) ON DELETE CASCADE,
+  FOREIGN KEY (attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE CASCADE,
+  FOREIGN KEY (repository_id) REFERENCES engineer_registered_repos (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_workspace_dependency_hydrations_workspace
+  ON engineer_workspace_dependency_hydrations (workspace_id, started_at DESC);
+
 CREATE TABLE IF NOT EXISTS engineer_candidate_integrations (
   id TEXT PRIMARY KEY NOT NULL,
   repository_id TEXT NOT NULL,

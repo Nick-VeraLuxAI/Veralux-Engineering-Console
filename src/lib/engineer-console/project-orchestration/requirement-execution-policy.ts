@@ -81,6 +81,32 @@ export function classifyRunFailure(input: {
 }): FailureClassification | null {
   const failedGate = input.qualityGates.find((gate) => gate.status === "failed");
   if (failedGate) return classifyQualityGateFailure(failedGate);
+  const normalizedMessage = normalizeFailureText(input.runMessage ?? "");
+  if (/PostToolContinuationWatchdog|post-tool continuation watchdog/i.test(normalizedMessage)) {
+    const category: FailureCategory =
+      input.changedFiles.length > 0
+        ? "post_tool_continuation_stalled_with_diff"
+        : "post_tool_continuation_stalled_no_diff";
+    return {
+      category,
+      outcome: input.changedFiles.length > 0 ? "execution_error" : "no_progress",
+      summary:
+        input.changedFiles.length > 0
+          ? "POST_TOOL_CONTINUATION_STALLED_WITH_DIFF: Vera stalled after tool completion, but the worktree has changes for reconciliation."
+          : "POST_TOOL_CONTINUATION_STALLED_NO_DIFF: Vera stalled after tool completion without producing a Git diff.",
+      details: {
+        runStatus: input.runStatus,
+        runMessage: input.runMessage,
+        changedFiles: input.changedFiles,
+      },
+      retryable: true,
+      fingerprint: fingerprintFailure({
+        category,
+        text: input.changedFiles.length > 0 ? "watchdog-with-diff" : "watchdog-no-diff",
+      }),
+      affectedFiles: input.changedFiles,
+    };
+  }
   if (["failed", "cancelled", "timeout"].includes(input.runStatus)) {
     return {
       category: "worker_execution_failure",
@@ -133,6 +159,12 @@ export function validateWorkerAssignment(assignment: WorkerAssignmentContract): 
   }
   if (assignment.forbidden_paths.some((entry) => assignment.allowed_paths.includes(entry))) {
     errors.push("forbidden path cannot also be allowed.");
+  }
+  if (
+    assignment.context_package &&
+    assignment.context_package.estimated_tokens > assignment.context_package.max_initial_tokens
+  ) {
+    errors.push("assignment context package exceeds initial token budget.");
   }
   return errors;
 }

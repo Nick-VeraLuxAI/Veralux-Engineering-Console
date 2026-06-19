@@ -60,6 +60,8 @@ beforeEach(() => {
     path.join(repoRoot, "package.json"),
     JSON.stringify({ name: "workspace-fixture", scripts: { test: "node test.js" } }, null, 2),
   );
+  fs.writeFileSync(path.join(repoRoot, "package-lock.json"), JSON.stringify({ name: "workspace-fixture", lockfileVersion: 3 }));
+  fs.mkdirSync(path.join(repoRoot, "node_modules"));
   fs.writeFileSync(
     path.join(repoRoot, "test.js"),
     "const fs=require('fs'); if(fs.existsSync('src/result.txt') && fs.readFileSync('src/result.txt','utf8').trim()!=='ok') process.exit(1);\n",

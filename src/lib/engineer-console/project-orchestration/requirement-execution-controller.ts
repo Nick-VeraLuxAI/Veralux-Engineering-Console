@@ -54,6 +54,7 @@ import {
   chooseRetryPolicy,
   classifyRunFailure,
   compareFailuresToBaseline,
+  fingerprintFailure,
   validateWorkerAssignment,
 } from "./requirement-execution-policy";
 import {
@@ -67,6 +68,12 @@ import {
   requestWorkspace,
 } from "./execution-workspace-manager";
 import type { ExecutionWorkspace } from "./execution-workspace-types";
+import {
+  assessAttemptReadiness,
+  buildContextPackage,
+  hydrateWorkspaceDependencies,
+  type DependencyHydrationResult,
+} from "./worktree-execution-readiness";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -136,7 +143,10 @@ async function ensureImplementationWorkspace(attemptId: string): Promise<Executi
     }
     return activateWorkspace(workspace.id);
   } catch (error) {
-    if (error instanceof ExecutionWorkspaceError && error.code === "REGISTERED_REPO_REQUIRED") {
+    if (
+      error instanceof ExecutionWorkspaceError &&
+      ["REGISTERED_REPO_REQUIRED", "REPOSITORY_DISABLED", "REPOSITORY_NOT_FOUND"].includes(error.code)
+    ) {
       return null;
     }
     throw error;
@@ -311,6 +321,7 @@ export function buildWorkerAssignment(attemptId: string): WorkerAssignmentContra
     },
     self_verification_allowed: false,
   };
+  assignment.context_package = buildContextPackage(assignment);
   const errors = validateWorkerAssignment(assignment);
   createWorkerAssignment({
     attemptId: attempt.id,
@@ -339,8 +350,81 @@ export async function dispatchAttempt(
   const attempt = getExecutionAttemptById(attemptId);
   if (!attempt) throw new RequirementExecutionError("ATTEMPT_NOT_FOUND", "Attempt not found.", 404);
   if (attempt.runId) return attempt;
-  await ensureImplementationWorkspace(attempt.id);
-  buildWorkerAssignment(attempt.id);
+  const workspace = await ensureImplementationWorkspace(attempt.id);
+  const hydration: DependencyHydrationResult = workspace
+    ? hydrateWorkspaceDependencies(workspace)
+    : {
+        status: "failed",
+        packageManager: "unknown",
+        lockfile: null,
+        strategy: "workspace-required",
+        command: "none",
+        exitCode: 1,
+        stdoutSummary: "",
+        stderrSummary: "Governed implementation workspace is required before Vera dispatch.",
+        cacheSource: null,
+        dependencyFingerprint: "missing-workspace",
+      };
+  const assignmentContract = buildWorkerAssignment(attempt.id);
+  const readiness = assessAttemptReadiness({
+    attemptId: attempt.id,
+    assignment: assignmentContract,
+    hydration,
+  });
+  if (readiness.status !== "ready") {
+    const summary = `READINESS_FAILED: ${readiness.blockers.join("; ")}`;
+    const contextBlocked = readiness.blockers.some((blocker) => blocker.includes("context_budget"));
+    const hydrationBlocked =
+      readiness.blockers.some((blocker) => blocker.includes("dependency_hydration")) &&
+      readiness.blockers.every((blocker) => blocker.includes("dependency_hydration"));
+    const failureCategory = contextBlocked
+      ? "context_budget_exceeded"
+      : hydrationBlocked
+        ? "dependency_hydration_failed"
+        : "readiness_failed";
+    const fingerprint = fingerprintFailure({
+      category: failureCategory,
+      text: summary,
+    });
+    createAttemptFailure({
+      attemptId: attempt.id,
+      projectId: attempt.projectId,
+      requirementId: attempt.requirementId,
+      runId: null,
+      category: failureCategory,
+      summary,
+      details: {
+        readinessResultId: readiness.id,
+        blockers: readiness.blockers,
+        warnings: readiness.warnings,
+      },
+      retryable: true,
+      fingerprint,
+      affectedFiles: [],
+    });
+    const failed = updateExecutionAttempt(attempt.id, {
+      status: "failed",
+      completedAt: nowIso(),
+      outcome: failureCategory === "context_budget_exceeded"
+        ? "context_budget_exceeded"
+        : failureCategory === "dependency_hydration_failed"
+          ? "dependency_hydration_failed"
+          : "readiness_failed",
+      failureCategory,
+      failureFingerprint: fingerprint,
+      failureSummary: summary,
+      retryable: true,
+      commandsExecutedSummary: JSON.stringify(hydration.command === "none" ? [] : [hydration.command]),
+      testSummary: JSON.stringify({ readiness }),
+      qualityGateSummary: JSON.stringify({ total: 0, passed: 0, failed: 0, skipped: 0, commands: [] }),
+    })!;
+    auditAttempt(AUDIT_EVENT_TYPES.REQUIREMENT_ATTEMPT_FAILED, failed, {
+      category: failed.failureCategory,
+      readinessResultId: readiness.id,
+      beforeVeraDispatch: true,
+    });
+    return failed;
+  }
   const assignment = getWorkerAssignmentForAttempt(attempt.id);
   if (!assignment) {
     throw new RequirementExecutionError("ASSIGNMENT_MISSING", "Worker assignment was not persisted.");
@@ -407,11 +491,13 @@ export async function evaluateAttempt(
   if (!run) throw new RequirementExecutionError("RUN_NOT_FOUND", "Attempt run not found.", 404);
   const task = getTaskById(attempt.taskId);
   if (!task) throw new RequirementExecutionError("TASK_NOT_FOUND", "Task not found.", 404);
+  const implementationWorkspace = getWorkspaceForAttempt(attempt.id, "implementation");
   const repoPath = resolveTaskTargetRepoPath(task);
+  const changedFilesPath = implementationWorkspace?.worktreePath ?? repoPath;
   const changedFiles =
     parseChangedFilesFromReport(run.id).length > 0
       ? parseChangedFilesFromReport(run.id)
-      : await (deps.getChangedFilesFn ?? getChangedFiles)(repoPath).catch(() => []);
+      : await (deps.getChangedFilesFn ?? getChangedFiles)(changedFilesPath).catch(() => []);
   const gates = getQualityGateResultsForRun(run.id);
   const failure = classifyRunFailure({
     runStatus: run.status,
@@ -501,7 +587,6 @@ export async function evaluateAttempt(
     return { attempt: updated, failure: effectiveFailure };
   }
 
-  const implementationWorkspace = getWorkspaceForAttempt(attempt.id, "implementation");
   const finalization = implementationWorkspace ? await finalizeCandidate(implementationWorkspace.id) : null;
   const evidence = await refreshRunEvidenceBundle({ runId: run.id });
   for (const criterion of listAcceptanceCriteriaForRequirement(attempt.requirementId)) {

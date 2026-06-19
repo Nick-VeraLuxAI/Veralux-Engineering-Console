@@ -10,6 +10,7 @@ import {
   createSpecification,
 } from "./project-orchestration-manager";
 import { startProject } from "./project-orchestrator";
+import { registerRepo } from "../repo-intelligence/registered-repos/register-repo";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/engineer-console/orchestrator/run-orchestrator", () => ({
@@ -30,10 +31,12 @@ function context(id: string) {
   return { params: Promise.resolve({ id }) };
 }
 
-function seedProject() {
+async function seedProject() {
+  const registered = await registerRepo({ path: process.cwd(), name: `API fixture ${Date.now()}` });
   const project = createProject({
     name: "API execution loop",
     targetRepoPath: process.cwd(),
+    registeredRepoId: registered.id,
     createdBy: "test",
   });
   createSpecification({ projectId: project.id, title: "Spec", content: "Run one attempt." });
@@ -69,7 +72,7 @@ afterEach(() => {
 
 describe("requirement execution API routes", () => {
   it("runs a bounded project loop and exposes execution status", async () => {
-    const { project } = seedProject();
+    const { project } = await seedProject();
     const { POST: runPost } = await import("@/app/api/engineer-console/projects/[id]/run/route");
     const { GET: executionGet } = await import(
       "@/app/api/engineer-console/projects/[id]/execution/route"
@@ -85,7 +88,7 @@ describe("requirement execution API routes", () => {
   });
 
   it("creates an attempt through requirement execute and supports cancel", async () => {
-    const { requirement } = seedProject();
+    const { requirement } = await seedProject();
     const { POST: executePost } = await import(
       "@/app/api/engineer-console/requirements/[id]/execute/route"
     );

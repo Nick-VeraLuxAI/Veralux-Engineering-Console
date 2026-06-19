@@ -9,8 +9,9 @@ export function initializeEngineerConsoleDatabase(): void {
   const db = getEngineerConsoleDb();
   const schemaPath = path.join(process.cwd(), "src/lib/engineer-console/db/schema.sql");
   const schema = fs.readFileSync(schemaPath, "utf8");
+  applyEngineerConsoleSchemaPatches(db, { phase: "pre-schema" });
   db.exec(schema);
-  applyEngineerConsoleSchemaPatches(db);
+  applyEngineerConsoleSchemaPatches(db, { phase: "post-schema" });
   ensureOperatorAccountsBootstrapped();
   ensureDefaultDeploymentEnvironments();
 }

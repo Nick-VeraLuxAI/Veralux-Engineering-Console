@@ -1,7 +1,11 @@
 import type Database from "better-sqlite3";
 
 /** Lightweight patches for existing SQLite files (no full migration framework). */
-export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
+export function applyEngineerConsoleSchemaPatches(
+  db: Database.Database,
+  options: { phase?: "pre-schema" | "post-schema" } = {},
+): void {
+  const phase = options.phase ?? "post-schema";
   const repoColumns = db.prepare(`PRAGMA table_info(engineer_registered_repos)`).all() as Array<{
     name: string;
   }>;
@@ -18,15 +22,18 @@ export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
         db.exec(`ALTER TABLE engineer_registered_repos ADD COLUMN ${name} ${type}`);
       }
     }
-    db.exec(
-      `CREATE INDEX IF NOT EXISTS idx_engineer_registered_repos_enabled ON engineer_registered_repos (enabled, verification_status)`,
-    );
+    if (phase === "post-schema") {
+      db.exec(
+        `CREATE INDEX IF NOT EXISTS idx_engineer_registered_repos_enabled ON engineer_registered_repos (enabled, verification_status)`,
+      );
+    }
   }
+  if (phase === "pre-schema") return;
 
   const taskColumns = db.prepare(`PRAGMA table_info(engineering_tasks)`).all() as Array<{
     name: string;
   }>;
-  if (!taskColumns.some((c) => c.name === "registered_repo_id")) {
+  if (taskColumns.length > 0 && !taskColumns.some((c) => c.name === "registered_repo_id")) {
     db.exec(`ALTER TABLE engineering_tasks ADD COLUMN registered_repo_id TEXT`);
     db.exec(
       `CREATE INDEX IF NOT EXISTS idx_engineering_tasks_registered_repo_id ON engineering_tasks (registered_repo_id)`,

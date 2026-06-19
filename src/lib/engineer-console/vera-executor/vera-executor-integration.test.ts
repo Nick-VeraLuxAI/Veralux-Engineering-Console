@@ -124,6 +124,8 @@ beforeEach(async () => {
     path.join(repoRoot, "package.json"),
     JSON.stringify({ name: "vera-fixture", scripts: { test: "node test.js" } }, null, 2),
   );
+  fs.writeFileSync(path.join(repoRoot, "package-lock.json"), JSON.stringify({ name: "vera-fixture", lockfileVersion: 3 }));
+  fs.mkdirSync(path.join(repoRoot, "node_modules"));
   fs.writeFileSync(
     path.join(repoRoot, "test.js"),
     "const fs=require('fs'); if(!fs.existsSync('src/result.txt')) process.exit(1);\n",

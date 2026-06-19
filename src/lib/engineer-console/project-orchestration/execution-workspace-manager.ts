@@ -645,7 +645,7 @@ export async function activateWorkspace(workspaceId: string): Promise<ExecutionW
   if (!workspace) throw new ExecutionWorkspaceError("WORKSPACE_NOT_FOUND", "Workspace not found.", 404);
   const task = getTaskById(workspace.taskId);
   if (!task) throw new ExecutionWorkspaceError("TASK_NOT_FOUND", "Task not found.", 404);
-  updateTask(task.id, { targetRepoPath: workspace.worktreePath, registeredRepoId: null });
+  updateTask(task.id, { registeredRepoId: workspace.repositoryId });
   const active = updateWorkspace(workspace.id, { status: "active", lastObservedAt: nowIso() });
   appendAuditEvent({
     eventType: AUDIT_EVENT_TYPES.WORKSPACE_ACTIVATED,
