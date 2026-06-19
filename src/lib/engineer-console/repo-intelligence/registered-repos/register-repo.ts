@@ -16,6 +16,10 @@ import { getRegisteredRepoByPath, getRegisteredRepoSummary } from "./get-repo";
 import { inferRepoLanguage, inferRepoName } from "./infer-repo-metadata";
 import { verifyRegisteredRepoPath } from "./verify-repo";
 import { listCodeIndexRuns } from "../code-index/code-index-manager";
+import {
+  ensureRepositoryWorkspaceMetadata,
+  getExecutionRepositoryById,
+} from "../../project-orchestration/execution-workspace-manager";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -108,6 +112,7 @@ export async function refreshRepoDetection(repoId: string): Promise<RegisteredRe
   const profile = detectAndStoreTestProfile(repoId, repo.path);
   auditTestProfileDetected(repoId, repo.name, repo.path, profile.runner, profile.confidence);
 
+  await ensureRepositoryWorkspaceMetadata(repoId).catch(() => undefined);
   return getRegisteredRepoSummary(repoId);
 }
 
@@ -126,6 +131,7 @@ export function assertRepoUsableForTask(repoId: string): RegisteredRepoSummary {
 
 export function toPublicRegisteredRepo(summary: RegisteredRepoSummary) {
   const latestCodeIndexRun = listCodeIndexRuns(summary.id, 1)[0] ?? null;
+  const execution = getExecutionRepositoryById(summary.id);
   return {
     id: summary.id,
     name: summary.name,
@@ -156,6 +162,16 @@ export function toPublicRegisteredRepo(summary: RegisteredRepoSummary) {
           confidence: summary.testProfile.confidence,
         }
       : null,
+    execution:
+      execution === null
+        ? null
+        : {
+            repositoryFingerprint: execution.repositoryFingerprint,
+            defaultBranch: execution.defaultBranch,
+            protectedBranches: execution.protectedBranches,
+            workspaceRoot: execution.workspaceRoot,
+            enabled: execution.enabled,
+          },
     createdAt: summary.createdAt,
     updatedAt: summary.updatedAt,
   };

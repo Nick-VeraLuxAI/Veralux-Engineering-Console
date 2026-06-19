@@ -160,13 +160,15 @@ function buildGovernanceSummary(
       : null);
 
   if (!g) return null;
+  const issues = Array.isArray(g.issues) ? g.issues : [];
+  const blockedFiles = Array.isArray(g.blockedFiles) ? g.blockedFiles : [];
 
   return {
     riskLevel: g.riskLevel,
     canApprove: g.canApprove,
-    issueCount: g.issues.length,
-    blockedFileCount: g.blockedFiles.length,
-    issuesPreview: g.issues.slice(0, 10).map((i) => truncateString(i, 200)),
+    issueCount: issues.length,
+    blockedFileCount: blockedFiles.length,
+    issuesPreview: issues.slice(0, 10).map((i) => truncateString(i, 200)),
   };
 }
 

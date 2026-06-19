@@ -2,6 +2,27 @@ import type Database from "better-sqlite3";
 
 /** Lightweight patches for existing SQLite files (no full migration framework). */
 export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
+  const repoColumns = db.prepare(`PRAGMA table_info(engineer_registered_repos)`).all() as Array<{
+    name: string;
+  }>;
+  if (repoColumns.length > 0) {
+    const columns = [
+      ["repository_fingerprint", "TEXT NOT NULL DEFAULT ''"],
+      ["default_branch", "TEXT NOT NULL DEFAULT 'main'"],
+      ["protected_branches_json", `TEXT NOT NULL DEFAULT '["main","master"]'`],
+      ["workspace_root", "TEXT NOT NULL DEFAULT ''"],
+      ["enabled", "INTEGER NOT NULL DEFAULT 1"],
+    ] as const;
+    for (const [name, type] of columns) {
+      if (!repoColumns.some((c) => c.name === name)) {
+        db.exec(`ALTER TABLE engineer_registered_repos ADD COLUMN ${name} ${type}`);
+      }
+    }
+    db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_engineer_registered_repos_enabled ON engineer_registered_repos (enabled, verification_status)`,
+    );
+  }
+
   const taskColumns = db.prepare(`PRAGMA table_info(engineering_tasks)`).all() as Array<{
     name: string;
   }>;

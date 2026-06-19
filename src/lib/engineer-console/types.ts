@@ -19,6 +19,7 @@ export const RUN_STATUSES = [
   "applying_patch",
   "validating_worker_plan",
   "executing_worker_plan",
+  "execution_indeterminate",
   "running_quality_gates",
   "waiting_for_approval",
   "failed",

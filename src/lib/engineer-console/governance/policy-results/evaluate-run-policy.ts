@@ -139,7 +139,7 @@ function collectSignals(runId: string): {
     runStatus: run.status,
     workerPlanValidationStatus: workerPlan?.validationStatus ?? approvalReport?.workerPlan?.validationStatus ?? null,
     governanceRiskLevel: governance?.riskLevel ?? run.riskLevel ?? null,
-    blockedFileCount: governance?.blockedFiles.length ?? 0,
+    blockedFileCount: governance?.blockedFiles?.length ?? 0,
     changedFileCount: changedFiles.length,
     qualityGatesFailed: gates.filter((g) => g.status === "failed").length,
     qualityGatesSkipped: gates.filter((g) => g.status === "skipped").length,

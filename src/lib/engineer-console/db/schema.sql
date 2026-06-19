@@ -9,6 +9,11 @@ CREATE TABLE IF NOT EXISTS engineer_registered_repos (
   language TEXT NOT NULL DEFAULT '',
   verification_status TEXT NOT NULL DEFAULT 'pending',
   verification_message TEXT NOT NULL DEFAULT '',
+  repository_fingerprint TEXT NOT NULL DEFAULT '',
+  default_branch TEXT NOT NULL DEFAULT 'main',
+  protected_branches_json TEXT NOT NULL DEFAULT '["main","master"]',
+  workspace_root TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 1,
   verified_at TEXT,
   file_count INTEGER NOT NULL DEFAULT 0,
   indexed_at TEXT,
@@ -18,6 +23,9 @@ CREATE TABLE IF NOT EXISTS engineer_registered_repos (
 
 CREATE INDEX IF NOT EXISTS idx_engineer_registered_repos_verification
   ON engineer_registered_repos (verification_status);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_registered_repos_enabled
+  ON engineer_registered_repos (enabled, verification_status);
 
 CREATE TABLE IF NOT EXISTS engineer_package_scripts (
   id TEXT PRIMARY KEY NOT NULL,
@@ -64,6 +72,150 @@ CREATE INDEX IF NOT EXISTS idx_engineering_tasks_registered_repo_id
 
 CREATE INDEX IF NOT EXISTS idx_engineering_tasks_status ON engineering_tasks (status);
 CREATE INDEX IF NOT EXISTS idx_engineering_tasks_updated_at ON engineering_tasks (updated_at);
+
+-- Phase O1: durable Vera-led project/specification/requirement orchestration state
+CREATE TABLE IF NOT EXISTS engineer_projects (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'draft',
+  orchestration_status TEXT NOT NULL DEFAULT 'idle',
+  current_requirement_id TEXT,
+  active_specification_id TEXT,
+  target_repo_path TEXT,
+  registered_repo_id TEXT,
+  created_by TEXT NOT NULL DEFAULT 'operator',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_projects_status
+  ON engineer_projects (status, updated_at);
+
+CREATE TABLE IF NOT EXISTS engineer_project_specifications (
+  id TEXT PRIMARY KEY NOT NULL,
+  project_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL,
+  supersedes_specification_id TEXT,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (supersedes_specification_id) REFERENCES engineer_project_specifications (id),
+  UNIQUE (project_id, version)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_project_specifications_project
+  ON engineer_project_specifications (project_id, version DESC);
+
+CREATE TABLE IF NOT EXISTS engineer_requirements (
+  id TEXT PRIMARY KEY NOT NULL,
+  project_id TEXT NOT NULL,
+  specification_id TEXT NOT NULL,
+  stable_key TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending',
+  priority TEXT NOT NULL DEFAULT 'normal',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  completed_at TEXT,
+  blocked_reason TEXT,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (specification_id) REFERENCES engineer_project_specifications (id) ON DELETE CASCADE,
+  UNIQUE (project_id, stable_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirements_project_status
+  ON engineer_requirements (project_id, status, priority, stable_key);
+
+CREATE TABLE IF NOT EXISTS engineer_acceptance_criteria (
+  id TEXT PRIMARY KEY NOT NULL,
+  requirement_id TEXT NOT NULL,
+  stable_key TEXT NOT NULL,
+  description TEXT NOT NULL,
+  verification_type TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  evidence_required INTEGER NOT NULL DEFAULT 1,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  UNIQUE (requirement_id, stable_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_acceptance_criteria_requirement
+  ON engineer_acceptance_criteria (requirement_id, status);
+
+CREATE TABLE IF NOT EXISTS engineer_requirement_dependencies (
+  requirement_id TEXT NOT NULL,
+  depends_on_requirement_id TEXT NOT NULL,
+  dependency_type TEXT NOT NULL DEFAULT 'blocking',
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (requirement_id, depends_on_requirement_id, dependency_type),
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  FOREIGN KEY (depends_on_requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirement_dependencies_depends_on
+  ON engineer_requirement_dependencies (depends_on_requirement_id);
+
+CREATE TABLE IF NOT EXISTS engineer_requirement_task_links (
+  id TEXT PRIMARY KEY NOT NULL,
+  requirement_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  link_type TEXT NOT NULL DEFAULT 'implementation',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  FOREIGN KEY (task_id) REFERENCES engineering_tasks (id) ON DELETE CASCADE,
+  UNIQUE (requirement_id, task_id, link_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirement_task_links_task
+  ON engineer_requirement_task_links (task_id);
+
+CREATE TABLE IF NOT EXISTS engineer_requirement_evidence_links (
+  id TEXT PRIMARY KEY NOT NULL,
+  requirement_id TEXT NOT NULL,
+  acceptance_criterion_id TEXT,
+  evidence_bundle_id TEXT,
+  run_id TEXT,
+  quality_gate_result_id TEXT,
+  evidence_type TEXT NOT NULL DEFAULT 'evidence_bundle',
+  verification_status TEXT NOT NULL DEFAULT 'pending',
+  decision TEXT,
+  reason TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL DEFAULT 'operator',
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  FOREIGN KEY (acceptance_criterion_id) REFERENCES engineer_acceptance_criteria (id) ON DELETE SET NULL,
+  FOREIGN KEY (evidence_bundle_id) REFERENCES engineer_run_evidence_bundles (id) ON DELETE SET NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE SET NULL,
+  FOREIGN KEY (quality_gate_result_id) REFERENCES quality_gate_results (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirement_evidence_links_requirement
+  ON engineer_requirement_evidence_links (requirement_id, acceptance_criterion_id);
+
+CREATE TABLE IF NOT EXISTS engineer_orchestration_decisions (
+  id TEXT PRIMARY KEY NOT NULL,
+  project_id TEXT NOT NULL,
+  requirement_id TEXT,
+  task_id TEXT,
+  decision_type TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '',
+  input_state_json TEXT NOT NULL DEFAULT '{}',
+  output_state_json TEXT NOT NULL DEFAULT '{}',
+  actor TEXT NOT NULL DEFAULT 'vera',
+  model TEXT,
+  audit_event_id TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE SET NULL,
+  FOREIGN KEY (task_id) REFERENCES engineering_tasks (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_orchestration_decisions_project
+  ON engineer_orchestration_decisions (project_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS engineering_runs (
   id TEXT PRIMARY KEY NOT NULL,
@@ -419,6 +571,284 @@ CREATE TABLE IF NOT EXISTS engineer_run_evidence_bundles (
 
 CREATE INDEX IF NOT EXISTS idx_engineer_run_evidence_bundles_task_id
   ON engineer_run_evidence_bundles (task_id);
+
+-- Phase O2: Vera single-worker requirement execution loop
+CREATE TABLE IF NOT EXISTS engineer_requirement_execution_attempts (
+  id TEXT PRIMARY KEY NOT NULL,
+  project_id TEXT NOT NULL,
+  requirement_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  run_id TEXT,
+  attempt_number INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  worker_role TEXT NOT NULL DEFAULT 'coding_worker',
+  model_provider TEXT NOT NULL DEFAULT 'mock',
+  model_name TEXT NOT NULL DEFAULT 'mock-worker-plan-v1',
+  strategy TEXT NOT NULL DEFAULT 'initial_implementation',
+  started_at TEXT,
+  completed_at TEXT,
+  outcome TEXT,
+  failure_category TEXT,
+  failure_fingerprint TEXT,
+  failure_summary TEXT,
+  retryable INTEGER NOT NULL DEFAULT 0,
+  files_changed_summary TEXT NOT NULL DEFAULT '[]',
+  commands_executed_summary TEXT NOT NULL DEFAULT '[]',
+  test_summary TEXT NOT NULL DEFAULT '{}',
+  quality_gate_summary TEXT NOT NULL DEFAULT '{}',
+  evidence_bundle_id TEXT,
+  supersedes_attempt_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  FOREIGN KEY (task_id) REFERENCES engineering_tasks (id) ON DELETE CASCADE,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE SET NULL,
+  FOREIGN KEY (evidence_bundle_id) REFERENCES engineer_run_evidence_bundles (id) ON DELETE SET NULL,
+  FOREIGN KEY (supersedes_attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE SET NULL,
+  UNIQUE (requirement_id, attempt_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirement_execution_attempts_project
+  ON engineer_requirement_execution_attempts (project_id, status, updated_at);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirement_execution_attempts_requirement
+  ON engineer_requirement_execution_attempts (requirement_id, attempt_number DESC);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirement_execution_attempts_run
+  ON engineer_requirement_execution_attempts (run_id);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirement_execution_attempts_failure
+  ON engineer_requirement_execution_attempts (failure_fingerprint, failure_category);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_engineer_requirement_execution_attempts_one_active
+  ON engineer_requirement_execution_attempts (requirement_id)
+  WHERE status IN ('pending', 'assigned', 'dispatched', 'running', 'evaluating', 'verification');
+
+CREATE TABLE IF NOT EXISTS engineer_worker_assignments (
+  id TEXT PRIMARY KEY NOT NULL,
+  attempt_id TEXT NOT NULL UNIQUE,
+  project_id TEXT NOT NULL,
+  requirement_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  assignment_json TEXT NOT NULL,
+  validation_status TEXT NOT NULL DEFAULT 'valid',
+  validation_errors_json TEXT NOT NULL DEFAULT '[]',
+  assignment_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  FOREIGN KEY (task_id) REFERENCES engineering_tasks (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_worker_assignments_requirement
+  ON engineer_worker_assignments (requirement_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS engineer_requirement_attempt_failures (
+  id TEXT PRIMARY KEY NOT NULL,
+  attempt_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  requirement_id TEXT NOT NULL,
+  run_id TEXT,
+  category TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  details_json TEXT NOT NULL DEFAULT '{}',
+  retryable INTEGER NOT NULL DEFAULT 0,
+  fingerprint TEXT NOT NULL,
+  associated_command TEXT,
+  affected_files_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirement_attempt_failures_attempt
+  ON engineer_requirement_attempt_failures (attempt_id);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirement_attempt_failures_fingerprint
+  ON engineer_requirement_attempt_failures (requirement_id, fingerprint);
+
+CREATE TABLE IF NOT EXISTS engineer_quality_baselines (
+  id TEXT PRIMARY KEY NOT NULL,
+  project_id TEXT NOT NULL,
+  repo_path TEXT,
+  registered_repo_id TEXT,
+  baseline_revision TEXT NOT NULL,
+  baseline_json TEXT NOT NULL,
+  baseline_hash TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'approved',
+  approved_by TEXT NOT NULL DEFAULT 'operator',
+  approved_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  UNIQUE (project_id, baseline_revision)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_quality_baselines_project
+  ON engineer_quality_baselines (project_id, status, approved_at DESC);
+
+CREATE TABLE IF NOT EXISTS engineer_quality_baseline_comparisons (
+  id TEXT PRIMARY KEY NOT NULL,
+  attempt_id TEXT NOT NULL,
+  baseline_id TEXT,
+  comparison_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  new_failures_json TEXT NOT NULL DEFAULT '[]',
+  worsened_failures_json TEXT NOT NULL DEFAULT '[]',
+  repaired_failures_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE CASCADE,
+  FOREIGN KEY (baseline_id) REFERENCES engineer_quality_baselines (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_quality_baseline_comparisons_attempt
+  ON engineer_quality_baseline_comparisons (attempt_id);
+
+CREATE TABLE IF NOT EXISTS engineer_requirement_verification_decisions (
+  id TEXT PRIMARY KEY NOT NULL,
+  attempt_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  requirement_id TEXT NOT NULL,
+  verifier TEXT NOT NULL DEFAULT 'vera_verifier',
+  verifier_model TEXT,
+  decision TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  evidence_summary_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_requirement_verification_decisions_requirement
+  ON engineer_requirement_verification_decisions (requirement_id, created_at DESC);
+
+-- Phase O3: isolated execution workspaces, path claims, command boundary, and integration
+CREATE TABLE IF NOT EXISTS engineer_execution_workspaces (
+  id TEXT PRIMARY KEY NOT NULL,
+  repository_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  requirement_id TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  attempt_id TEXT NOT NULL,
+  workspace_type TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'requested',
+  base_branch TEXT NOT NULL,
+  base_commit TEXT NOT NULL,
+  source_attempt_id TEXT,
+  branch_name TEXT NOT NULL,
+  worktree_path TEXT NOT NULL,
+  candidate_commit TEXT,
+  candidate_tree_hash TEXT,
+  patch_hash TEXT,
+  created_at TEXT NOT NULL,
+  ready_at TEXT,
+  last_observed_at TEXT,
+  completed_at TEXT,
+  cleanup_requested_at TEXT,
+  cleaned_at TEXT,
+  failure_reason TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  FOREIGN KEY (repository_id) REFERENCES engineer_registered_repos (id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  FOREIGN KEY (task_id) REFERENCES engineering_tasks (id) ON DELETE CASCADE,
+  FOREIGN KEY (attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE CASCADE,
+  FOREIGN KEY (source_attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE SET NULL,
+  UNIQUE (attempt_id, workspace_type),
+  UNIQUE (branch_name),
+  UNIQUE (worktree_path)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_execution_workspaces_repository_status
+  ON engineer_execution_workspaces (repository_id, status, workspace_type);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_execution_workspaces_attempt
+  ON engineer_execution_workspaces (attempt_id, workspace_type);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_execution_workspaces_cleanup
+  ON engineer_execution_workspaces (status, cleanup_requested_at);
+
+CREATE TABLE IF NOT EXISTS engineer_workspace_path_claims (
+  id TEXT PRIMARY KEY NOT NULL,
+  repository_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  requirement_id TEXT NOT NULL,
+  attempt_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  path_pattern TEXT NOT NULL,
+  claim_type TEXT NOT NULL DEFAULT 'exclusive_write',
+  status TEXT NOT NULL DEFAULT 'active',
+  acquired_at TEXT NOT NULL,
+  released_at TEXT,
+  expires_at TEXT,
+  reason TEXT NOT NULL DEFAULT '',
+  FOREIGN KEY (repository_id) REFERENCES engineer_registered_repos (id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  FOREIGN KEY (attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE CASCADE,
+  FOREIGN KEY (workspace_id) REFERENCES engineer_execution_workspaces (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_workspace_path_claims_repository
+  ON engineer_workspace_path_claims (repository_id, status, path_pattern);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_workspace_path_claims_workspace
+  ON engineer_workspace_path_claims (workspace_id, status);
+
+CREATE TABLE IF NOT EXISTS engineer_workspace_command_events (
+  id TEXT PRIMARY KEY NOT NULL,
+  workspace_id TEXT NOT NULL,
+  attempt_id TEXT NOT NULL,
+  command TEXT NOT NULL,
+  cwd TEXT NOT NULL,
+  status TEXT NOT NULL,
+  reason TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (workspace_id) REFERENCES engineer_execution_workspaces (id) ON DELETE CASCADE,
+  FOREIGN KEY (attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_workspace_command_events_workspace
+  ON engineer_workspace_command_events (workspace_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS engineer_candidate_integrations (
+  id TEXT PRIMARY KEY NOT NULL,
+  repository_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  requirement_id TEXT NOT NULL,
+  attempt_id TEXT NOT NULL,
+  candidate_workspace_id TEXT NOT NULL,
+  verification_workspace_id TEXT,
+  integration_workspace_id TEXT,
+  target_branch TEXT NOT NULL,
+  target_commit_before TEXT NOT NULL,
+  candidate_commit TEXT NOT NULL,
+  integration_commit TEXT,
+  integration_tree_hash TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  conflict_summary TEXT,
+  quality_result TEXT,
+  created_at TEXT NOT NULL,
+  completed_at TEXT,
+  approved_by TEXT,
+  FOREIGN KEY (repository_id) REFERENCES engineer_registered_repos (id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES engineer_projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (requirement_id) REFERENCES engineer_requirements (id) ON DELETE CASCADE,
+  FOREIGN KEY (attempt_id) REFERENCES engineer_requirement_execution_attempts (id) ON DELETE CASCADE,
+  FOREIGN KEY (candidate_workspace_id) REFERENCES engineer_execution_workspaces (id) ON DELETE CASCADE,
+  FOREIGN KEY (verification_workspace_id) REFERENCES engineer_execution_workspaces (id) ON DELETE SET NULL,
+  FOREIGN KEY (integration_workspace_id) REFERENCES engineer_execution_workspaces (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_candidate_integrations_attempt
+  ON engineer_candidate_integrations (attempt_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_candidate_integrations_repository
+  ON engineer_candidate_integrations (repository_id, target_branch, status);
 
 -- Phase G3: structured human decision records per approval action
 CREATE TABLE IF NOT EXISTS engineer_decision_records (

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import { listRegisteredRepos } from "@/lib/engineer-console/repo-intelligence/registered-repos/list-repos";
 import {
@@ -70,11 +71,20 @@ export default async function EngineerPage({
   });
 
   return (
-    <EngineeringConsoleCanvasHome
-      mapData={workflowMapData}
-      detailPanel={detailPanel}
-      environmentLabel={buildEnvironmentLabel()}
-    >
+    <>
+      <div className="mb-4 rounded-3xl border border-white/10 bg-black/20 p-4">
+        <Link href="/engineer/projects" className="text-sm font-medium text-white hover:underline">
+          Open governed projects
+        </Link>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Register project specifications, requirements, acceptance criteria, and Vera orchestration decisions.
+        </p>
+      </div>
+      <EngineeringConsoleCanvasHome
+        mapData={workflowMapData}
+        detailPanel={detailPanel}
+        environmentLabel={buildEnvironmentLabel()}
+      >
       {detailPanel === "setup" ? (
         <div id="dashboard-details-setup" className="space-y-6">
           <div className="flex items-end justify-between gap-4">
@@ -194,6 +204,7 @@ export default async function EngineerPage({
           </ul>
         </div>
       ) : null}
-    </EngineeringConsoleCanvasHome>
+      </EngineeringConsoleCanvasHome>
+    </>
   );
 }

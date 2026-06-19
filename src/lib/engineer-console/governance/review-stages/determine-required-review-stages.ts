@@ -100,7 +100,7 @@ export function determineRequiredReviewStages(runId: string): RequiredReviewStag
     !gates.some((g) => g.status === "passed");
   const protectedWarnings =
     (governance?.issues ?? []).some((i) => i.includes("Risky change")) ||
-    (governance?.blockedFiles.length ?? 0) > 0;
+    (governance?.blockedFiles?.length ?? 0) > 0;
 
   const compatibilityNeedsReview =
     (compatibility?.breakingCount ?? 0) > 0 ||

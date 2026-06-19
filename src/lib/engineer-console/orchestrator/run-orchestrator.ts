@@ -1,6 +1,9 @@
 import { runAgentWorker } from "../agent-worker/agent-worker";
 import { isVeraStartedImplementationRun } from "../bridge/vera-handoff-task-types";
 import { runVeraImplementationPipeline } from "./vera-implementation-run-pipeline";
+import { getWorkspaceForAttempt } from "../project-orchestration/execution-workspace-manager";
+import { getExecutionAttemptByRunId } from "../project-orchestration/requirement-execution-manager";
+import { mergeRunGovernanceNotes, runVeraExecutorForRun } from "../vera-executor/vera-executor";
 import {
   auditBranchCreated,
   auditHumanApproved,
@@ -90,14 +93,21 @@ export async function executeRun(runId: string): Promise<void> {
 
     await verifyGitRepo(repoPath);
 
-    const branchName = generateBranchName(task.id, runId);
+    const governedAttempt = getExecutionAttemptByRunId(runId);
+    const implementationWorkspace = governedAttempt
+      ? getWorkspaceForAttempt(governedAttempt.id, "implementation")
+      : null;
+    const executionRepoPath = implementationWorkspace?.worktreePath ?? repoPath;
+    const branchName = implementationWorkspace?.branchName ?? generateBranchName(task.id, runId);
     await setRunStep(runId, "creating_branch", "creating_branch", { branchName });
 
-    try {
-      await createBranch(repoPath, branchName);
-      auditBranchCreated(runId, task.id, branchName);
-    } catch {
-      // Branch may already exist from a partial retry — continue if checkout works
+    if (!implementationWorkspace) {
+      try {
+        await createBranch(repoPath, branchName);
+        auditBranchCreated(runId, task.id, branchName);
+      } catch {
+        // Branch may already exist from a partial retry — continue if checkout works
+      }
     }
 
     const currentRun = getRunById(runId);
@@ -111,30 +121,109 @@ export async function executeRun(runId: string): Promise<void> {
       return;
     }
 
-    await setRunStep(runId, "generating_patch", "generating_patch");
-    const agentResult = await runAgentWorker({
-      taskTitle: task.title,
-      taskDescription: task.description,
-      repoPath,
-      branchName,
-    });
+    await setRunStep(runId, "generating_patch", implementationWorkspace ? "vera_run_submitting" : "generating_patch");
+    const agentResult = implementationWorkspace
+      ? await runVeraExecutorForRun(runId).then(async (result) => {
+          if (result.status === "completed") {
+            return {
+              message: result.summary,
+              simulatedPatchApplied: false,
+            };
+          }
+
+          const reconciledChangedFiles = await getChangedFiles(executionRepoPath).catch(() => []);
+          if (reconciledChangedFiles.length === 0) {
+            throw new Error(result.failure?.message ?? result.summary);
+          }
+
+          updateRun(runId, {
+            status: "execution_indeterminate",
+            currentStep: "reconciliation_required",
+            agentMessage: result.failure?.message ?? result.summary,
+            governanceNotes: mergeRunGovernanceNotes(getRunById(runId)?.governanceNotes, {
+              veraReconciliation: {
+                status: "reconciliation_required",
+                trigger: result.failure?.code ?? result.status,
+                externalRunId: result.externalRunId,
+                lastEvent: result.events[result.events.length - 1]?.event ?? null,
+                toolActivityObserved: result.events.some((event) => event.event.startsWith("tool.")),
+                worktreeId: implementationWorkspace.id,
+                worktreePath: implementationWorkspace.worktreePath,
+                changedFiles: reconciledChangedFiles,
+                attemptCount: 1,
+              },
+            }),
+          });
+
+          return {
+            message: `Vera run ended indeterminately (${result.failure?.code ?? result.status}); Console reconciled assigned worktree changes.`,
+            simulatedPatchApplied: false,
+          };
+        })
+      : process.env.ENGINEER_CONSOLE_EXECUTION_BACKEND === "mock" || process.env.NODE_ENV === "test"
+        ? await runAgentWorker({
+            taskTitle: task.title,
+            taskDescription: task.description,
+            repoPath,
+            branchName,
+          })
+        : (() => {
+            throw new Error("Live Vera execution requires a governed implementation workspace.");
+          })();
 
     await setRunStep(runId, "applying_patch", "applying_patch", {
       agentMessage: agentResult.message,
     });
 
-    const changedFiles = await getChangedFiles(repoPath);
-    const diffSummary = await getDiffSummary(repoPath);
+    const changedFiles = await getChangedFiles(executionRepoPath);
+    const diffSummary = await getDiffSummary(executionRepoPath);
+    if (implementationWorkspace !== null && changedFiles.length === 0) {
+      const message = [
+        "NO_CHANGE_IMPLEMENTATION_INCOMPLETE: Vera completed without producing required source changes.",
+        "No Git changes were detected in the governed implementation worktree.",
+        "Retry feedback: inspect the specified source file, make the bounded change, run the deterministic test, and do not return another plan-only response.",
+      ].join(" ");
+      updateRun(runId, {
+        status: "failed",
+        currentStep: "no_change_implementation_incomplete",
+        agentMessage: message,
+        governanceNotes: mergeRunGovernanceNotes(getRunById(runId)?.governanceNotes, {
+          veraCompletionContract: {
+            status: "NO_CHANGE_IMPLEMENTATION_INCOMPLETE",
+            expectedChange: true,
+            changedFiles,
+            feedback: message,
+          },
+        }),
+        completedAt: nowIso(),
+      });
+      updateTask(task.id, { status: "failed" });
+      auditRunFailed(runId, task.id, {
+        via: "vera_completion_contract",
+        status: "NO_CHANGE_IMPLEMENTATION_INCOMPLETE",
+      });
+      return;
+    }
     const governance = assessChangedFiles(changedFiles);
+    const reconciliationWasUsed =
+      implementationWorkspace !== null && agentResult.message.includes("Console reconciled assigned worktree changes");
 
     await setRunStep(runId, "running_quality_gates", "running_quality_gates", {
       riskLevel: governance.riskLevel,
-      governanceNotes: JSON.stringify(governance),
+      governanceNotes: mergeRunGovernanceNotes(getRunById(runId)?.governanceNotes, {
+        governance,
+        veraReconciliationResult: reconciliationWasUsed
+          ? {
+              status: "quality_gates_started",
+              changedFiles,
+            }
+          : undefined,
+      }),
     });
 
     auditQualityGatesStarted(runId, task.id);
     const gateResults = await runQualityGates({
-      repoPath,
+      repoPath: executionRepoPath,
       registeredRepoId: task.registeredRepoId,
     });
     saveQualityGateResults(runId, gateResults);
@@ -151,7 +240,17 @@ export async function executeRun(runId: string): Promise<void> {
       branchName,
       agentMessage: agentResult.message,
       riskLevel: governance.riskLevel,
-      governanceNotes: JSON.stringify(governance),
+      governanceNotes: mergeRunGovernanceNotes(getRunById(runId)?.governanceNotes, {
+        governance,
+        veraReconciliationResult: reconciliationWasUsed
+          ? {
+              status: finalRunStatus === "waiting_for_approval" ? "validated" : "rejected",
+              changedFiles,
+              qualityGateFailures: gateResults.filter((g) => g.status === "failed").length,
+              riskLevel: governance.riskLevel,
+            }
+          : undefined,
+      }),
       completedAt,
     });
 
