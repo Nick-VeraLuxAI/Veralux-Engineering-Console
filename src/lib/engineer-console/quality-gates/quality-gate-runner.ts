@@ -67,7 +67,7 @@ export function resolveQualityGateCommands(
   return commandsFromScriptMap(readPackageScripts(repoPath));
 }
 
-async function runShellCommand(
+export async function runQualityGateCommand(
   repoPath: string,
   command: string,
   timeoutMs = 10 * 60 * 1000,
@@ -130,7 +130,7 @@ export async function runQualityGates(
 
   const results: QualityGateCommandResult[] = [];
   for (const command of commands) {
-    results.push(await runShellCommand(repoPath, command));
+    results.push(await runQualityGateCommand(repoPath, command));
   }
   return results;
 }

@@ -2,7 +2,10 @@ import { runAgentWorker } from "../agent-worker/agent-worker";
 import { isVeraStartedImplementationRun } from "../bridge/vera-handoff-task-types";
 import { runVeraImplementationPipeline } from "./vera-implementation-run-pipeline";
 import { getWorkspaceForAttempt } from "../project-orchestration/execution-workspace-manager";
-import { getExecutionAttemptByRunId } from "../project-orchestration/requirement-execution-manager";
+import {
+  createQualityBaselineComparison,
+  getExecutionAttemptByRunId,
+} from "../project-orchestration/requirement-execution-manager";
 import { mergeRunGovernanceNotes, runVeraExecutorForRun } from "../vera-executor/vera-executor";
 import {
   auditBranchCreated,
@@ -16,6 +19,10 @@ import {
   auditRunStarted,
 } from "../governance/audit-ledger/audit-lifecycle";
 import { assessChangedFiles } from "../governance/governance-engine";
+import {
+  compareCommandAgainstBaseline,
+  type GateComparisonResult,
+} from "../quality-gates/baseline-gate-comparison";
 import { runQualityGates } from "../quality-gates/quality-gate-runner";
 import {
   getApprovalReportJson,
@@ -228,7 +235,53 @@ export async function executeRun(runId: string): Promise<void> {
     });
     saveQualityGateResults(runId, gateResults);
 
-    const gatesFailed = gateResults.some((g) => g.status === "failed");
+    const failedGates = gateResults.filter((g) => g.status === "failed");
+    const focusedTestsPassed = !gateResults.some(
+      (g) => g.command.toLowerCase().includes("test") && g.status === "failed",
+    );
+    const baselineComparisons: GateComparisonResult[] = [];
+    if (implementationWorkspace && failedGates.length > 0) {
+      for (const gate of failedGates) {
+        const comparison = await compareCommandAgainstBaseline({
+          repoPath,
+          baseCommit: implementationWorkspace.baseCommit,
+          candidateCommit: "implementation-worktree",
+          candidateWorkspacePath: executionRepoPath,
+          command: gate.command,
+          touchedFiles: changedFiles,
+          policyAllowsBaselineDebt: gate.command.toLowerCase().includes("typecheck"),
+          focusedTestsPassed,
+        });
+        baselineComparisons.push(comparison);
+      }
+      createQualityBaselineComparison({
+        attemptId: implementationWorkspace.attemptId,
+        baselineId: null,
+        comparisonJson: JSON.stringify({
+          strategy: "command_level_baseline_comparison",
+          comparisons: baselineComparisons,
+          warnings: baselineComparisons.map((comparison) => comparison.warning).filter(Boolean),
+        }),
+        status: baselineComparisons.some((comparison) => comparison.verdict === "FAIL_NEW_REGRESSION")
+          ? "new_failure"
+          : baselineComparisons.some((comparison) => comparison.verdict === "FAIL_WORSENED_BASELINE")
+            ? "worsened_failure"
+            : "passed",
+        newFailures: baselineComparisons.flatMap((comparison) =>
+          comparison.newFindings.map((finding) => finding.fingerprint),
+        ),
+        worsenedFailures: baselineComparisons.flatMap((comparison) =>
+          comparison.worsenedFindings.map((finding) => finding.fingerprint),
+        ),
+        repairedFailures: baselineComparisons.flatMap((comparison) =>
+          comparison.resolvedFindings.map((finding) => finding.fingerprint),
+        ),
+      });
+    }
+    const gatesFailed = failedGates.some((gate) => {
+      const comparison = baselineComparisons.find((entry) => entry.command === gate.command);
+      return comparison?.verdict !== "PASS_WITH_BASELINE_DEBT";
+    });
     const finalRunStatus = gatesFailed || governance.riskLevel === "blocked"
       ? "failed"
       : "waiting_for_approval";
@@ -242,6 +295,23 @@ export async function executeRun(runId: string): Promise<void> {
       riskLevel: governance.riskLevel,
       governanceNotes: mergeRunGovernanceNotes(getRunById(runId)?.governanceNotes, {
         governance,
+        baselineAwareQualityGates:
+          baselineComparisons.length > 0
+            ? {
+                verdicts: baselineComparisons.map((comparison) => ({
+                  command: comparison.command,
+                  verdict: comparison.verdict,
+                  baselineExitCode: comparison.baseline.exitCode,
+                  candidateExitCode: comparison.candidate.exitCode,
+                  baselineFindingCount: comparison.baseline.normalizedFindings.length,
+                  candidateFindingCount: comparison.candidate.normalizedFindings.length,
+                  newFindingCount: comparison.newFindings.length,
+                  worsenedFindingCount: comparison.worsenedFindings.length,
+                  unchangedFindingCount: comparison.unchangedFindings.length,
+                  warning: comparison.warning,
+                })),
+              }
+            : undefined,
         veraReconciliationResult: reconciliationWasUsed
           ? {
               status: finalRunStatus === "waiting_for_approval" ? "validated" : "rejected",

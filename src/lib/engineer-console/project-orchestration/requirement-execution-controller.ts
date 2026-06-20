@@ -43,6 +43,7 @@ import {
   getActiveAttemptForRequirement,
   getExecutionAttemptById,
   getLatestApprovedQualityBaseline,
+  getQualityBaselineComparisonForAttempt,
   getWorkerAssignmentForAttempt,
   listAttemptsForProject,
   listAttemptsForRequirement,
@@ -505,12 +506,17 @@ export async function evaluateAttempt(
     qualityGates: gates,
     changedFiles,
   });
+  const existingGateComparison = getQualityBaselineComparisonForAttempt(attempt.id);
+  const baselineDebtAccepted =
+    existingGateComparison?.status === "passed" &&
+    run.status === "waiting_for_approval" &&
+    failure?.category !== "test_failure";
   const baseline = getLatestApprovedQualityBaseline(attempt.projectId);
   const baselineComparison = compareFailuresToBaseline({
     baseline,
-    currentFailures: failure ? [failure] : [],
+    currentFailures: failure && !baselineDebtAccepted ? [failure] : [],
   });
-  createQualityBaselineComparison({
+  if (!existingGateComparison) createQualityBaselineComparison({
     attemptId: attempt.id,
     baselineId: baseline?.id ?? null,
     comparisonJson: JSON.stringify(baselineComparison.comparison),
@@ -530,7 +536,7 @@ export async function evaluateAttempt(
   });
 
   if (
-    (failure && baselineComparison.status !== "passed") ||
+    (failure && !baselineDebtAccepted && baselineComparison.status !== "passed") ||
     baselineComparison.status === "new_failure" ||
     baselineComparison.status === "no_baseline"
   ) {
