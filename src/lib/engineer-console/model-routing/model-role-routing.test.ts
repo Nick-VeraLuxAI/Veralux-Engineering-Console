@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { runModelRoleBenchmark } from "./model-role-benchmark-harness";
 import {
   getModelRoleConfig,
+  listModelRoleAssignments,
   normalizeOpenAIModelsUrl,
   roleRuntimeRecordFromHealth,
+  resolveModelRole,
   selectModelRoute,
+  validateModelRoleAssignment,
   validateModelEndpoint,
   type ModelRoleFetch,
 } from "./model-role-routing";
@@ -17,6 +20,8 @@ function jsonFetch(payload: unknown, ok = true, status = ok ? 200 : 503): ModelR
   })) as unknown as ModelRoleFetch;
 }
 
+const EMPTY_ENV = {} as NodeJS.ProcessEnv;
+
 describe("Nemotron-only model role routing", () => {
   it("normalizes OpenAI-compatible models URLs", () => {
     expect(normalizeOpenAIModelsUrl("http://host:8082")).toBe("http://host:8082/v1/models");
@@ -27,9 +32,89 @@ describe("Nemotron-only model role routing", () => {
 
   it("defines only Nemotron production roles", () => {
     expect(getModelRoleConfig("vera_command").primaryModel).toBe("Nemotron-Nano-30B-A3B-NVFP4");
+    expect(getModelRoleConfig("vera_command").provider).toBe("custom");
     expect(getModelRoleConfig("console_default_worker").primaryModel).toBe("Nemotron-Nano-30B-A3B-NVFP4");
+    expect(getModelRoleConfig("console_default_worker").provider).toBe("custom");
     expect(getModelRoleConfig("console_senior_worker").primaryModel).toBe("Nemotron-Super-120B-A12B-FP8");
     expect(getModelRoleConfig("console_senior_worker").provider).toBe("airllm-cold");
+  });
+
+  it("resolves Phase 3 explicit role assignments", () => {
+    const vera = resolveModelRole("vera_command", EMPTY_ENV);
+    const worker = resolveModelRole("console_default_worker", EMPTY_ENV);
+    const senior = resolveModelRole("console_senior_worker", EMPTY_ENV);
+
+    expect(vera).toMatchObject({
+      roleId: "vera_command",
+      roleKind: "command",
+      provider: "local_openai_compatible",
+      endpoint: "http://127.0.0.1:8081/v1",
+      model: "Nemotron-Nano-30B-A3B-NVFP4",
+      status: "available",
+      repositoryWriteAllowed: false,
+      fallbackAllowed: false,
+      allowedFallbackRoles: [],
+      runtimeRequired: true,
+      healthcheckRequired: true,
+    });
+    expect(worker).toMatchObject({
+      roleId: "console_default_worker",
+      roleKind: "worker",
+      provider: "local_openai_compatible",
+      endpoint: "http://127.0.0.1:8082/v1",
+      model: "Nemotron-Nano-30B-A3B-NVFP4",
+      status: "available",
+      repositoryWriteAllowed: true,
+      fallbackAllowed: false,
+      allowedFallbackRoles: [],
+    });
+    expect(senior).toMatchObject({
+      roleId: "console_senior_worker",
+      roleKind: "senior_worker",
+      status: "blocked_unproven",
+      repositoryWriteAllowed: false,
+      fallbackAllowed: false,
+      runtimeRequired: false,
+      healthcheckRequired: false,
+    });
+    expect(senior.notes).toContain("do not start AirLLM/Super");
+  });
+
+  it("fails closed for missing roles without selecting fallback", () => {
+    const missing = resolveModelRole("fallback_worker", EMPTY_ENV);
+
+    expect(missing.status).toBe("blocked_unknown_role");
+    expect(missing.provider).toBeNull();
+    expect(missing.model).toBeNull();
+    expect(missing.fallbackAllowed).toBe(false);
+    expect(missing.allowedFallbackRoles).toEqual([]);
+  });
+
+  it("validates role assignments and blocks uncontrolled fallback policy", () => {
+    expect(validateModelRoleAssignment(resolveModelRole("vera_command", EMPTY_ENV))).toEqual([]);
+    expect(validateModelRoleAssignment(resolveModelRole("console_default_worker", EMPTY_ENV))).toEqual([]);
+    expect(validateModelRoleAssignment(resolveModelRole("console_senior_worker", EMPTY_ENV))).toEqual([]);
+
+    expect(validateModelRoleAssignment({
+      ...resolveModelRole("console_default_worker", EMPTY_ENV),
+      model: "qwen-local",
+    })).toContain("console_default_worker:QWEN_FALLBACK_FORBIDDEN");
+    expect(validateModelRoleAssignment({
+      ...resolveModelRole("vera_command", EMPTY_ENV),
+      repositoryWriteAllowed: true,
+    })).toContain("vera_command:VERA_REPOSITORY_WRITE_FORBIDDEN");
+    expect(validateModelRoleAssignment({
+      ...resolveModelRole("console_senior_worker", EMPTY_ENV),
+      status: "available",
+    })).toContain("console_senior_worker:SENIOR_ROLE_MUST_REMAIN_BLOCKED_IN_PHASE_3");
+  });
+
+  it("lists only known Phase 3 role assignments", () => {
+    expect(listModelRoleAssignments(EMPTY_ENV).map((role) => role.roleId)).toEqual([
+      "vera_command",
+      "console_default_worker",
+      "console_senior_worker",
+    ]);
   });
 
   it("blocks a primary route when the endpoint is missing", async () => {

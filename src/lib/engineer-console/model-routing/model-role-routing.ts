@@ -21,11 +21,31 @@ export type ModelRouteStatus =
   | "blocked_role_disabled"
   | "senior_model_unavailable";
 
+export type ModelRoleAssignmentStatus =
+  | "available"
+  | "blocked_unproven"
+  | "blocked_unknown_role";
+
 export interface ModelTransportPolicy {
   toolStreamingSupported: boolean;
   parallelToolCallsSupported: boolean;
   textStreamingSupported: boolean;
   nonstreamingToolTurns: boolean;
+}
+
+export interface ModelRoleAssignment {
+  roleId: ModelRoleId | string;
+  roleKind: "command" | "worker" | "senior_worker" | "unknown";
+  provider: string | null;
+  endpoint: string | null;
+  model: string | null;
+  status: ModelRoleAssignmentStatus;
+  repositoryWriteAllowed: boolean;
+  fallbackAllowed: boolean;
+  allowedFallbackRoles: ModelRoleId[];
+  runtimeRequired: boolean;
+  healthcheckRequired: boolean;
+  notes: string | null;
 }
 
 export interface ModelRoleConfig {
@@ -127,6 +147,130 @@ function benchmarkStatus(env: NodeJS.ProcessEnv, key: string, fallback: Benchmar
   return value || fallback;
 }
 
+function activeAssignment(input: {
+  roleId: ModelRoleId;
+  roleKind: ModelRoleAssignment["roleKind"];
+  provider: string;
+  endpoint: string;
+  model: string;
+  repositoryWriteAllowed: boolean;
+  notes: string;
+}): ModelRoleAssignment {
+  return {
+    roleId: input.roleId,
+    roleKind: input.roleKind,
+    provider: input.provider,
+    endpoint: input.endpoint,
+    model: input.model,
+    status: "available",
+    repositoryWriteAllowed: input.repositoryWriteAllowed,
+    fallbackAllowed: false,
+    allowedFallbackRoles: [],
+    runtimeRequired: true,
+    healthcheckRequired: true,
+    notes: input.notes,
+  };
+}
+
+export function resolveModelRole(
+  roleId: ModelRoleId | string,
+  env: NodeJS.ProcessEnv = process.env,
+): ModelRoleAssignment {
+  if (roleId === "vera_command") {
+    return activeAssignment({
+      roleId,
+      roleKind: "command",
+      provider: envValue(env, "VERA_COMMAND_MODEL_PROVIDER", "local_openai_compatible"),
+      endpoint: envValue(env, "VERA_COMMAND_MODEL_ENDPOINT", "http://127.0.0.1:8081/v1"),
+      model: envValue(env, "VERA_COMMAND_MODEL_NAME", "Nemotron-Nano-30B-A3B-NVFP4"),
+      repositoryWriteAllowed: false,
+      notes: "Vera command/orchestration role; repository writes are not allowed.",
+    });
+  }
+  if (roleId === "console_default_worker") {
+    return activeAssignment({
+      roleId,
+      roleKind: "worker",
+      provider: envValue(env, "CONSOLE_DEFAULT_WORKER_PROVIDER", "local_openai_compatible"),
+      endpoint: envValue(env, "CONSOLE_DEFAULT_WORKER_ENDPOINT", "http://127.0.0.1:8082/v1"),
+      model: envValue(env, "CONSOLE_DEFAULT_WORKER_MODEL_NAME", "Nemotron-Nano-30B-A3B-NVFP4"),
+      repositoryWriteAllowed: true,
+      notes: "Console default worker; writes are allowed only inside governed Console workspaces.",
+    });
+  }
+  if (roleId === "console_senior_worker") {
+    return {
+      roleId,
+      roleKind: "senior_worker",
+      provider: envValue(env, "CONSOLE_SENIOR_WORKER_PROVIDER", "airllm-cold"),
+      endpoint: envValue(
+        env,
+        "CONSOLE_SENIOR_WORKER_ENDPOINT",
+        "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+      ),
+      model: envValue(env, "CONSOLE_SENIOR_WORKER_MODEL_NAME", "Nemotron-Super-120B-A12B-FP8"),
+      status: "blocked_unproven",
+      repositoryWriteAllowed: false,
+      fallbackAllowed: false,
+      allowedFallbackRoles: [],
+      runtimeRequired: false,
+      healthcheckRequired: false,
+      notes: "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super.",
+    };
+  }
+  return {
+    roleId,
+    roleKind: "unknown",
+    provider: null,
+    endpoint: null,
+    model: null,
+    status: "blocked_unknown_role",
+    repositoryWriteAllowed: false,
+    fallbackAllowed: false,
+    allowedFallbackRoles: [],
+    runtimeRequired: false,
+    healthcheckRequired: false,
+    notes: "Unknown model role; fail closed without fallback.",
+  };
+}
+
+export function listModelRoleAssignments(env: NodeJS.ProcessEnv = process.env): ModelRoleAssignment[] {
+  return [
+    resolveModelRole("vera_command", env),
+    resolveModelRole("console_default_worker", env),
+    resolveModelRole("console_senior_worker", env),
+  ];
+}
+
+export function validateModelRoleAssignment(assignment: ModelRoleAssignment): string[] {
+  const diagnostics: string[] = [];
+  if (assignment.status === "available") {
+    if (!assignment.provider) diagnostics.push(`${assignment.roleId}:ACTIVE_ROLE_PROVIDER_REQUIRED`);
+    if (!assignment.model) diagnostics.push(`${assignment.roleId}:ACTIVE_ROLE_MODEL_REQUIRED`);
+    if (assignment.runtimeRequired && !assignment.endpoint) {
+      diagnostics.push(`${assignment.roleId}:ACTIVE_ROLE_ENDPOINT_REQUIRED`);
+    }
+  }
+  if (assignment.fallbackAllowed && assignment.allowedFallbackRoles.length === 0) {
+    diagnostics.push(`${assignment.roleId}:FALLBACK_ROLES_REQUIRED_WHEN_FALLBACK_ALLOWED`);
+  }
+  if (JSON.stringify(assignment).toLowerCase().includes("qwen")) {
+    diagnostics.push(`${assignment.roleId}:QWEN_FALLBACK_FORBIDDEN`);
+  }
+  if (assignment.roleId === "console_senior_worker" && assignment.status === "available") {
+    diagnostics.push(`${assignment.roleId}:SENIOR_ROLE_MUST_REMAIN_BLOCKED_IN_PHASE_3`);
+  }
+  if (assignment.roleId === "vera_command" && assignment.repositoryWriteAllowed) {
+    diagnostics.push(`${assignment.roleId}:VERA_REPOSITORY_WRITE_FORBIDDEN`);
+  }
+  return diagnostics;
+}
+
+function runtimeProviderForAssignment(assignment: ModelRoleAssignment): string {
+  if (assignment.provider === "local_openai_compatible") return "custom";
+  return assignment.provider ?? "";
+}
+
 function blockedDetails(
   config: ModelRoleConfig,
   failureReason: string,
@@ -151,16 +295,13 @@ export function getModelRoleConfig(
   if (!MODEL_ROLE_IDS.has(roleId)) {
     throw new Error(`NEMOTRON_ROLE_DISABLED:${roleId}`);
   }
+  const assignment = resolveModelRole(roleId, env);
   if (roleId === "console_senior_worker") {
     return {
       roleId,
-      primaryModel: envValue(env, "CONSOLE_SENIOR_WORKER_MODEL_NAME", "Nemotron-Super-120B-A12B-FP8"),
-      provider: envValue(env, "CONSOLE_SENIOR_WORKER_PROVIDER", "airllm-cold"),
-      endpoint: envValue(
-        env,
-        "CONSOLE_SENIOR_WORKER_ENDPOINT",
-        "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
-      ),
+      primaryModel: assignment.model ?? "",
+      provider: runtimeProviderForAssignment(assignment),
+      endpoint: assignment.endpoint ?? "",
       enabled: envBool(env.CONSOLE_SENIOR_WORKER_ENABLED, true),
       repositoryWriteAllowed: false,
       benchmarkStatus: benchmarkStatus(env, "CONSOLE_SENIOR_WORKER_BENCHMARK_STATUS", "missing_model"),
@@ -171,9 +312,9 @@ export function getModelRoleConfig(
   if (roleId === "vera_command") {
     return {
       roleId,
-      primaryModel: envValue(env, "VERA_COMMAND_MODEL_NAME", "Nemotron-Nano-30B-A3B-NVFP4"),
-      provider: envValue(env, "VERA_COMMAND_MODEL_PROVIDER", "custom"),
-      endpoint: envValue(env, "VERA_COMMAND_MODEL_ENDPOINT", "http://127.0.0.1:8081/v1"),
+      primaryModel: assignment.model ?? "",
+      provider: runtimeProviderForAssignment(assignment),
+      endpoint: assignment.endpoint ?? "",
       enabled: envBool(env.VERA_COMMAND_MODEL_ENABLED, true),
       repositoryWriteAllowed: false,
       benchmarkStatus: benchmarkStatus(env, "VERA_COMMAND_MODEL_BENCHMARK_STATUS", "available_unbenchmarked"),
@@ -183,9 +324,9 @@ export function getModelRoleConfig(
 
   return {
     roleId,
-    primaryModel: envValue(env, "CONSOLE_DEFAULT_WORKER_MODEL_NAME", "Nemotron-Nano-30B-A3B-NVFP4"),
-    provider: envValue(env, "CONSOLE_DEFAULT_WORKER_PROVIDER", "custom"),
-    endpoint: envValue(env, "CONSOLE_DEFAULT_WORKER_ENDPOINT", "http://127.0.0.1:8082/v1"),
+    primaryModel: assignment.model ?? "",
+    provider: runtimeProviderForAssignment(assignment),
+    endpoint: assignment.endpoint ?? "",
     enabled: envBool(env.CONSOLE_DEFAULT_WORKER_ENABLED, true),
     repositoryWriteAllowed: true,
     benchmarkStatus: benchmarkStatus(env, "CONSOLE_DEFAULT_WORKER_BENCHMARK_STATUS", "available_unbenchmarked"),
