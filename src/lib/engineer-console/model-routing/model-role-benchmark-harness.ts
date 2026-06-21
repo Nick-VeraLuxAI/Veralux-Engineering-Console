@@ -41,6 +41,7 @@ export async function runModelRoleBenchmark(
   const blockedMissing =
     decision.status === "blocked_missing_endpoint" ||
     decision.status === "blocked_unreachable" ||
+    decision.status === "blocked_not_openai_compatible" ||
     decision.status === "blocked_model_mismatch" ||
     decision.status === "senior_model_unavailable";
 

@@ -18,6 +18,7 @@ export type ModelRouteStatus =
   | "selected_fallback"
   | "blocked_missing_endpoint"
   | "blocked_unreachable"
+  | "blocked_not_openai_compatible"
   | "blocked_model_mismatch"
   | "blocked_unbenchmarked"
   | "senior_model_unavailable";
@@ -43,8 +44,9 @@ export interface ModelRoleConfig {
 }
 
 export interface ModelEndpointHealth {
-  status: "healthy" | "missing_endpoint" | "unreachable" | "model_mismatch";
+  status: "healthy" | "missing_endpoint" | "unreachable" | "not_openai_compatible" | "model_mismatch";
   endpoint: string;
+  modelsUrl: string | null;
   modelMatched: boolean;
   modelId: string | null;
   runtime: string | null;
@@ -74,6 +76,22 @@ export interface ModelRoutingDecision {
   status: ModelRouteStatus;
   repositoryWriteAllowed: boolean;
   health: ModelEndpointHealth;
+}
+
+export interface ModelRoleRuntimeRecord {
+  roleId: ModelRoleId;
+  configuredEndpoint: string;
+  actualEndpoint: string | null;
+  configuredModelName: string;
+  actualModelId: string | null;
+  provider: string;
+  runtime: string | null;
+  contextWindow: number | null;
+  parameterCount: number | null;
+  sizeBytes: number | null;
+  transportPolicy: ModelTransportPolicy;
+  healthTimestamp: string;
+  healthStatus: ModelEndpointHealth["status"];
 }
 
 export type ModelRoleFetch = typeof fetch;
@@ -177,6 +195,25 @@ function normalizeModel(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
+export function normalizeOpenAIModelsUrl(endpoint: string): string {
+  const raw = endpoint.trim();
+  if (!raw) return "";
+  const url = new URL(raw);
+  const path = url.pathname.replace(/\/+$/, "");
+  if (!path || path === "") {
+    url.pathname = "/v1/models";
+  } else if (path.endsWith("/v1")) {
+    url.pathname = `${path}/models`;
+  } else if (path.endsWith("/v1/models")) {
+    url.pathname = path;
+  } else {
+    url.pathname = `${path}/v1/models`;
+  }
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
 function extractModels(payload: unknown): Array<Record<string, unknown>> {
   if (!payload || typeof payload !== "object") return [];
   const body = payload as { data?: unknown; models?: unknown };
@@ -196,6 +233,7 @@ export async function validateModelEndpoint(
     return {
       status: "missing_endpoint",
       endpoint: config.endpoint,
+      modelsUrl: null,
       modelMatched: false,
       modelId: null,
       runtime: null,
@@ -210,14 +248,16 @@ export async function validateModelEndpoint(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 2_500);
   try {
-    const response = await fetchFn(`${config.endpoint.replace(/\/+$/, "")}/models`, {
+    const modelsUrl = normalizeOpenAIModelsUrl(config.endpoint);
+    const response = await fetchFn(modelsUrl, {
       method: "GET",
       signal: controller.signal,
     });
     if (!response.ok) {
       return {
-        status: "unreachable",
+        status: response.status === 404 ? "not_openai_compatible" : "unreachable",
         endpoint: config.endpoint,
+        modelsUrl,
         modelMatched: false,
         modelId: null,
         runtime: null,
@@ -225,7 +265,9 @@ export async function validateModelEndpoint(
         parameterCount: null,
         sizeBytes: null,
         checkedAt,
-        error: `NEMOTRON_ENDPOINT_UNREACHABLE:${response.status}`,
+        error: response.status === 404
+          ? "NEMOTRON_ENDPOINT_NOT_OPENAI_COMPATIBLE:404"
+          : `NEMOTRON_ENDPOINT_UNREACHABLE:${response.status}`,
       };
     }
     const payload = await response.json();
@@ -241,6 +283,7 @@ export async function validateModelEndpoint(
       return {
         status: "model_mismatch",
         endpoint: config.endpoint,
+        modelsUrl,
         modelMatched: false,
         modelId: first ? String(first.id ?? first.model ?? first.name ?? "") : null,
         runtime: first ? String(first.owned_by ?? first.runtime ?? "") || null : null,
@@ -254,6 +297,7 @@ export async function validateModelEndpoint(
     return {
       status: "healthy",
       endpoint: config.endpoint,
+      modelsUrl,
       modelMatched: true,
       modelId: String(matched.id ?? matched.model ?? matched.name ?? config.primaryModel),
       runtime: String(matched.owned_by ?? matched.runtime ?? config.provider) || null,
@@ -264,9 +308,16 @@ export async function validateModelEndpoint(
       error: null,
     };
   } catch (error) {
+    let modelsUrl: string | null = null;
+    try {
+      modelsUrl = config.endpoint.trim() ? normalizeOpenAIModelsUrl(config.endpoint) : null;
+    } catch {
+      modelsUrl = null;
+    }
     return {
       status: "unreachable",
       endpoint: config.endpoint,
+      modelsUrl,
       modelMatched: false,
       modelId: null,
       runtime: null,
@@ -284,6 +335,7 @@ export async function validateModelEndpoint(
 function fallbackReason(status: ModelEndpointHealth["status"], benchmark: BenchmarkStatus): string {
   if (status === "missing_endpoint") return "NEMOTRON_ENDPOINT_MISSING";
   if (status === "model_mismatch") return "NEMOTRON_MODEL_UNAVAILABLE";
+  if (status === "not_openai_compatible") return "NEMOTRON_ENDPOINT_NOT_OPENAI_COMPATIBLE";
   if (status === "unreachable") return "NEMOTRON_ENDPOINT_UNREACHABLE";
   if (benchmark !== "benchmark_passed") return "NEMOTRON_NOT_BENCHMARKED";
   return "NEMOTRON_ROUTE_BLOCKED";
@@ -354,6 +406,8 @@ export async function selectModelRoute(input: {
             ? "blocked_unbenchmarked"
             : health.status === "model_mismatch"
               ? "blocked_model_mismatch"
+              : health.status === "not_openai_compatible"
+                ? "blocked_not_openai_compatible"
               : health.status === "missing_endpoint"
                 ? "blocked_missing_endpoint"
                 : "blocked_unreachable",
@@ -381,5 +435,26 @@ export async function selectModelRoute(input: {
     status: "selected_primary",
     repositoryWriteAllowed: requested.repositoryWriteAllowed,
     health,
+  };
+}
+
+export function roleRuntimeRecordFromHealth(
+  config: ModelRoleConfig,
+  health: ModelEndpointHealth,
+): ModelRoleRuntimeRecord {
+  return {
+    roleId: config.roleId,
+    configuredEndpoint: config.endpoint,
+    actualEndpoint: health.status === "healthy" ? health.endpoint : null,
+    configuredModelName: config.primaryModel,
+    actualModelId: health.status === "healthy" ? health.modelId : null,
+    provider: config.provider,
+    runtime: health.runtime,
+    contextWindow: health.contextWindow,
+    parameterCount: health.parameterCount,
+    sizeBytes: health.sizeBytes,
+    transportPolicy: config.transportPolicy,
+    healthTimestamp: health.checkedAt,
+    healthStatus: health.status,
   };
 }
