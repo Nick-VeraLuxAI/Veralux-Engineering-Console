@@ -1,0 +1,307 @@
+{
+  "proof_id": "phase-9-airllm-environment-proof-2026-06-21T20-36-06-091Z",
+  "timestamp": "2026-06-21T20:36:06.091Z",
+  "senior_role_id": "console_senior_worker",
+  "senior_role_resolution": {
+    "roleId": "console_senior_worker",
+    "roleKind": "senior_worker",
+    "provider": "airllm-cold",
+    "endpoint": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model": "Nemotron-Super-120B-A12B-FP8",
+    "status": "blocked_unproven",
+    "repositoryWriteAllowed": false,
+    "fallbackAllowed": false,
+    "allowedFallbackRoles": [],
+    "runtimeRequired": false,
+    "healthcheckRequired": false,
+    "notes": "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super."
+  },
+  "configured_provider": "airllm-cold",
+  "configured_model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+  "expected_model": "Nemotron-Super-120B-A12B-FP8",
+  "proof_mode": "import_only_no_model_load",
+  "python_runtime_candidates": [
+    {
+      "id": "project_venv:.venv-airllm/bin/python",
+      "executable": ".venv-airllm/bin/python",
+      "source": "project_venv",
+      "exists": false,
+      "version": null,
+      "diagnostics": [
+        "AIRLLM_PYTHON_RUNTIME_NOT_AVAILABLE"
+      ]
+    },
+    {
+      "id": "project_venv:.venv/bin/python",
+      "executable": ".venv/bin/python",
+      "source": "project_venv",
+      "exists": false,
+      "version": null,
+      "diagnostics": [
+        "AIRLLM_PYTHON_RUNTIME_NOT_AVAILABLE"
+      ]
+    },
+    {
+      "id": "path:python3",
+      "executable": "python3",
+      "source": "path",
+      "exists": true,
+      "version": "Python 3.12.3",
+      "diagnostics": []
+    },
+    {
+      "id": "path:python",
+      "executable": "python",
+      "source": "path",
+      "exists": false,
+      "version": null,
+      "diagnostics": [
+        "AIRLLM_PYTHON_RUNTIME_NOT_AVAILABLE"
+      ]
+    }
+  ],
+  "selected_runtime_path": null,
+  "airllm_import_check": {
+    "status": "unknown",
+    "candidate": null,
+    "command": null,
+    "exit_code": null,
+    "stdout": null,
+    "stderr": null,
+    "package_found": false,
+    "import_succeeded": false,
+    "version": null,
+    "module_path": null,
+    "diagnostics": [
+      "AIRLLM_IMPORT_NOT_DISCOVERABLE_IN_CANDIDATE_RUNTIMES"
+    ]
+  },
+  "dependency_snapshot": {
+    "status": "unknown",
+    "python_executable": null,
+    "python_version": null,
+    "airllm_distribution_version": null,
+    "torch_version": null,
+    "torch_cuda_available": null,
+    "torch_cuda_version": null,
+    "nvidia_smi_summary": "NVIDIA GeForce RTX 5090, 595.71.05, 32607 MiB, 4488 MiB, 27615 MiB\nNVIDIA GeForce RTX 5090, 595.71.05, 32607 MiB, 4568 MiB, 27543 MiB",
+    "safe_environment": {
+      "AIRLLM_PYTHON": null,
+      "VIRTUAL_ENV": null,
+      "CUDA_VISIBLE_DEVICES": null,
+      "PYTHONPATH_SET": null
+    },
+    "diagnostics": [
+      "AIRLLM_DEPENDENCY_SNAPSHOT_SKIPPED_NO_RUNTIME"
+    ]
+  },
+  "model_artifact_check": {
+    "configured_uri": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "path_exists": true,
+    "readable": true,
+    "expected_model_name_consistent": true,
+    "config_files": [
+      "config.json",
+      "generation_config.json"
+    ],
+    "tokenizer_files": [
+      "tokenizer.json",
+      "tokenizer_config.json"
+    ],
+    "weight_files": [
+      "model-00001-of-00026.safetensors",
+      "model-00002-of-00026.safetensors",
+      "model-00003-of-00026.safetensors",
+      "model-00004-of-00026.safetensors",
+      "model-00005-of-00026.safetensors",
+      "model-00006-of-00026.safetensors",
+      "model-00007-of-00026.safetensors",
+      "model-00008-of-00026.safetensors",
+      "model-00009-of-00026.safetensors",
+      "model-00010-of-00026.safetensors",
+      "model-00011-of-00026.safetensors",
+      "model-00012-of-00026.safetensors",
+      "model-00013-of-00026.safetensors",
+      "model-00014-of-00026.safetensors",
+      "model-00015-of-00026.safetensors",
+      "model-00016-of-00026.safetensors",
+      "model-00017-of-00026.safetensors",
+      "model-00018-of-00026.safetensors",
+      "model-00019-of-00026.safetensors",
+      "model-00020-of-00026.safetensors",
+      "model-00021-of-00026.safetensors",
+      "model-00022-of-00026.safetensors",
+      "model-00023-of-00026.safetensors",
+      "model-00024-of-00026.safetensors",
+      "model-00025-of-00026.safetensors",
+      "model-00026-of-00026.safetensors"
+    ],
+    "index_files": [
+      "model.safetensors.index.json"
+    ],
+    "total_size_bytes": 128379663226,
+    "partial_artifact_indicators": [],
+    "diagnostics": [],
+    "status": "passed"
+  },
+  "hardware_snapshot": {
+    "status": "passed",
+    "gpu_summary": "0, NVIDIA GeForce RTX 5090, 32607, 4488, 27615, 595.71.05\n1, NVIDIA GeForce RTX 5090, 32607, 4568, 27543, 595.71.05",
+    "memory_summary": {
+      "total_bytes": 540303417344,
+      "free_bytes": 455841292288
+    },
+    "disk_summary": {
+      "path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+      "total_bytes": 4000768323584,
+      "free_bytes": 3545046495232
+    },
+    "diagnostics": []
+  },
+  "safety_gates": [
+    {
+      "name": "nano_roles_primary_and_healthy",
+      "status": "passed",
+      "required": true,
+      "message": "Nano runtime remained healthy before and after import proof."
+    },
+    {
+      "name": "senior_role_blocked_unproven",
+      "status": "passed",
+      "required": true,
+      "message": "Senior role remains blocked_unproven."
+    },
+    {
+      "name": "proof_mode_import_only",
+      "status": "passed",
+      "required": true,
+      "message": "Proof mode is import_only_no_model_load."
+    },
+    {
+      "name": "no_super_model_load",
+      "status": "passed",
+      "required": true,
+      "message": "No Super model load occurred."
+    },
+    {
+      "name": "no_senior_inference",
+      "status": "passed",
+      "required": true,
+      "message": "No senior inference occurred."
+    },
+    {
+      "name": "no_airllm_serving",
+      "status": "passed",
+      "required": true,
+      "message": "No AirLLM serving process was started."
+    },
+    {
+      "name": "qwen_not_used",
+      "status": "passed",
+      "required": true,
+      "message": "Qwen was not used."
+    },
+    {
+      "name": "fallback_not_used",
+      "status": "passed",
+      "required": true,
+      "message": "No fallback model was used."
+    },
+    {
+      "name": "no_integration",
+      "status": "passed",
+      "required": true,
+      "message": "No integration occurred."
+    },
+    {
+      "name": "boot_probe_disabled",
+      "status": "passed",
+      "required": true,
+      "message": "Boot probe remains disabled."
+    },
+    {
+      "name": "no_uncontrolled_process_operations",
+      "status": "passed",
+      "required": true,
+      "message": "No uncontrolled process operations occurred."
+    },
+    {
+      "name": "airllm_import_discovery",
+      "status": "unknown",
+      "required": true,
+      "message": "AirLLM import/package discovery is proven or clearly unknown."
+    },
+    {
+      "name": "selected_runtime_captured",
+      "status": "unknown",
+      "required": true,
+      "message": "Selected runtime path is captured when proven."
+    },
+    {
+      "name": "super_artifacts_still_present",
+      "status": "passed",
+      "required": true,
+      "message": "Super artifacts remain discoverable without loading."
+    },
+    {
+      "name": "hardware_snapshot_captured",
+      "status": "passed",
+      "required": true,
+      "message": "Hardware snapshot captured or safely degraded."
+    }
+  ],
+  "boot_probe_plan": {
+    "mode": "disabled",
+    "status": "disabled",
+    "required_guards": [
+      "--allow-super-boot-probe",
+      "--confirm-super-boot-probe",
+      "role_id:console_senior_worker",
+      "nano_preflight:healthy",
+      "no_qwen_or_fallback",
+      "evidence_path_configured"
+    ],
+    "guards_satisfied": [],
+    "blocked_reason": "SUPER_BOOT_PROBE_DISABLED_FOR_PHASE_8",
+    "command": null
+  },
+  "preflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-36-06-092Z.json",
+  "postflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-36-06-776Z.json",
+  "preflight_runtime_status": "healthy",
+  "postflight_runtime_status": "healthy",
+  "final_verdict": "unknown",
+  "blocked_reasons": [],
+  "warnings": [
+    "airllm_import_discovery:AirLLM import/package discovery is proven or clearly unknown.",
+    "selected_runtime_captured:Selected runtime path is captured when proven.",
+    "AIRLLM_IMPORT_NOT_DISCOVERABLE_IN_CANDIDATE_RUNTIMES",
+    "AIRLLM_DEPENDENCY_SNAPSHOT_SKIPPED_NO_RUNTIME"
+  ],
+  "provisioning_plan": {
+    "needed": true,
+    "missing_item": "airllm Python package/import",
+    "candidate_runtime_checked": ".venv-airllm/bin/python, .venv/bin/python, python3, python",
+    "project_local_venv_recommended": true,
+    "proposed_commands": [
+      "python3 -m venv .venv-airllm",
+      ".venv-airllm/bin/python -m pip install --upgrade pip",
+      ".venv-airllm/bin/python -m pip install airllm",
+      "AIRLLM_PYTHON=.venv-airllm/bin/python npx tsx scripts/runtime/airllm-environment-proof.ts --evidence-root evidence/airllm-environment --import-only"
+    ],
+    "risks_and_assumptions": [
+      "Commands are recommendations only and were not executed.",
+      "Package/version choice needs human approval before provisioning.",
+      "Import proof still does not load Super or run inference."
+    ],
+    "next_human_approval_required": true
+  },
+  "evidence_path": "evidence/airllm-environment/phase-9-airllm-environment-proof-2026-06-21T20-36-06-091Z.json",
+  "fallback_used": false,
+  "airllm_serving_started": false,
+  "super_used": false,
+  "qwen_used": false,
+  "super_model_load_performed": false,
+  "super_model_inference_performed": false,
+  "integration_performed": false
+}
