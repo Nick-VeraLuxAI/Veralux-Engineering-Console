@@ -1,0 +1,264 @@
+{
+  "phase_id": "phase-13-guarded-super-boot-probe",
+  "probe_id": "phase-13-guarded-super-boot-probe-2026-06-21T22-00-41-667Z",
+  "timestamp": "2026-06-21T22:00:41.667Z",
+  "repo_commit_at_start": "16e89eec5fcaae8404f2ff105cbfc01c6b021dbc",
+  "phase12_evidence_path": "evidence/airllm-environment/phase-12-airllm-promote-winning-candidate-2026-06-21T21-45-09-356Z.json",
+  "airllm_runtime_path": ".venv-airllm/bin/python",
+  "model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+  "model_artifact_summary": {
+    "configured_uri": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "path_exists": true,
+    "readable": true,
+    "expected_model_name_consistent": true,
+    "config_files": [
+      "config.json",
+      "generation_config.json"
+    ],
+    "tokenizer_files": [
+      "tokenizer.json",
+      "tokenizer_config.json"
+    ],
+    "weight_files": [
+      "model-00001-of-00026.safetensors",
+      "model-00002-of-00026.safetensors",
+      "model-00003-of-00026.safetensors",
+      "model-00004-of-00026.safetensors",
+      "model-00005-of-00026.safetensors",
+      "model-00006-of-00026.safetensors",
+      "model-00007-of-00026.safetensors",
+      "model-00008-of-00026.safetensors",
+      "model-00009-of-00026.safetensors",
+      "model-00010-of-00026.safetensors",
+      "model-00011-of-00026.safetensors",
+      "model-00012-of-00026.safetensors",
+      "model-00013-of-00026.safetensors",
+      "model-00014-of-00026.safetensors",
+      "model-00015-of-00026.safetensors",
+      "model-00016-of-00026.safetensors",
+      "model-00017-of-00026.safetensors",
+      "model-00018-of-00026.safetensors",
+      "model-00019-of-00026.safetensors",
+      "model-00020-of-00026.safetensors",
+      "model-00021-of-00026.safetensors",
+      "model-00022-of-00026.safetensors",
+      "model-00023-of-00026.safetensors",
+      "model-00024-of-00026.safetensors",
+      "model-00025-of-00026.safetensors",
+      "model-00026-of-00026.safetensors"
+    ],
+    "index_files": [
+      "model.safetensors.index.json"
+    ],
+    "total_size_bytes": 128379663226,
+    "partial_artifact_indicators": [],
+    "diagnostics": [],
+    "status": "passed"
+  },
+  "command_executed": [
+    ".venv-airllm/bin/python",
+    "-c",
+    "<guarded-super-boot-probe-script>"
+  ],
+  "timeout_seconds": 600,
+  "child_process": {
+    "launched": false,
+    "pid": null,
+    "command": [
+      ".venv-airllm/bin/python",
+      "-c",
+      "<guarded-super-boot-probe-script>"
+    ],
+    "cwd": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console",
+    "stdout_summary": null,
+    "stderr_summary": null,
+    "exit_code": null,
+    "signal": null,
+    "timed_out": false,
+    "cleanup_status": "not_launched",
+    "cleanup_signal": null,
+    "success_marker_seen": false,
+    "model_load_attempted": false,
+    "model_load_completed": false,
+    "inference_or_generation_detected": false,
+    "serving_detected": false,
+    "diagnostics": [
+      "SUPER_BOOT_PROBE_CHILD_NOT_LAUNCHED"
+    ]
+  },
+  "resource_snapshots": [
+    {
+      "timestamp": "2026-06-21T22:00:41.815Z",
+      "label": "before",
+      "system_memory": {
+        "total_bytes": 540303417344,
+        "free_bytes": 455905284096,
+        "load_average": [
+          2.57,
+          2.25,
+          2.28
+        ]
+      },
+      "process": {
+        "pid": null,
+        "rss_bytes": null,
+        "state": null
+      },
+      "gpu_summary": "0, NVIDIA GeForce RTX 5090, 32607 MiB, 4488 MiB, 27615 MiB, 0 %\n1, NVIDIA GeForce RTX 5090, 32607 MiB, 4568 MiB, 27543 MiB, 0 %",
+      "diagnostics": []
+    },
+    {
+      "timestamp": "2026-06-21T22:00:41.849Z",
+      "label": "after",
+      "system_memory": {
+        "total_bytes": 540303417344,
+        "free_bytes": 455900708864,
+        "load_average": [
+          2.57,
+          2.25,
+          2.28
+        ]
+      },
+      "process": {
+        "pid": null,
+        "rss_bytes": null,
+        "state": null
+      },
+      "gpu_summary": "0, NVIDIA GeForce RTX 5090, 32607 MiB, 4488 MiB, 27615 MiB, 0 %\n1, NVIDIA GeForce RTX 5090, 32607 MiB, 4568 MiB, 27543 MiB, 0 %",
+      "diagnostics": []
+    }
+  ],
+  "preflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T22-00-41-674Z.json",
+  "postflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T22-00-41-849Z.json",
+  "preflight_runtime_status": "healthy",
+  "postflight_runtime_status": "healthy",
+  "senior_role_resolution": {
+    "roleId": "console_senior_worker",
+    "roleKind": "senior_worker",
+    "provider": "airllm-cold",
+    "endpoint": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model": "Nemotron-Super-120B-A12B-FP8",
+    "status": "blocked_unproven",
+    "repositoryWriteAllowed": false,
+    "fallbackAllowed": false,
+    "allowedFallbackRoles": [],
+    "runtimeRequired": false,
+    "healthcheckRequired": false,
+    "notes": "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super."
+  },
+  "safety_gates": [
+    {
+      "name": "explicit_enable_flag",
+      "status": "failed",
+      "message": "Guarded boot probe requires --enable-guarded-boot-probe."
+    },
+    {
+      "name": "official_airllm_runtime_exists",
+      "status": "passed",
+      "message": ".venv-airllm/bin/python exists."
+    },
+    {
+      "name": "phase12_ready_for_guarded_boot_probe",
+      "status": "passed",
+      "message": "Phase 12 evidence is ready_for_guarded_boot_probe."
+    },
+    {
+      "name": "super_model_artifacts_pass",
+      "status": "passed",
+      "message": "Super model artifacts pass non-loading audit."
+    },
+    {
+      "name": "nano_preflight_healthy",
+      "status": "passed",
+      "message": "Nano preflight is healthy."
+    },
+    {
+      "name": "senior_role_blocked_unproven",
+      "status": "passed",
+      "message": "Senior role remains blocked_unproven."
+    },
+    {
+      "name": "child_process_isolation_enabled",
+      "status": "passed",
+      "message": "Probe runs in a child process."
+    },
+    {
+      "name": "timeout_configured",
+      "status": "passed",
+      "message": "Probe timeout is configured."
+    },
+    {
+      "name": "resource_monitor_enabled",
+      "status": "passed",
+      "message": "Resource snapshots are captured."
+    },
+    {
+      "name": "command_safety",
+      "status": "passed",
+      "message": "Command passes safety validation."
+    },
+    {
+      "name": "cleanup_policy_child_only",
+      "status": "passed",
+      "message": "Cleanup targets only the exact child process."
+    },
+    {
+      "name": "nano_postflight_healthy",
+      "status": "passed",
+      "message": "Nano postflight is healthy."
+    },
+    {
+      "name": "cleanup_succeeded",
+      "status": "passed",
+      "message": "Child cleanup succeeded or was not needed."
+    },
+    {
+      "name": "no_serving_started",
+      "status": "passed",
+      "message": "No serving process was started."
+    },
+    {
+      "name": "no_inference_or_generation",
+      "status": "passed",
+      "message": "No inference or generation occurred."
+    },
+    {
+      "name": "qwen_not_used",
+      "status": "passed",
+      "message": "Qwen was not used."
+    },
+    {
+      "name": "fallback_not_used",
+      "status": "passed",
+      "message": "No fallback was used."
+    },
+    {
+      "name": "no_integration",
+      "status": "passed",
+      "message": "No integration occurred."
+    },
+    {
+      "name": "senior_not_promoted",
+      "status": "passed",
+      "message": "Senior role was not promoted automatically."
+    }
+  ],
+  "model_load_attempted": false,
+  "model_load_completed": false,
+  "inference_or_generation_occurred": false,
+  "serving_occurred": false,
+  "qwen_used": false,
+  "fallback_used": false,
+  "integration_performed": false,
+  "senior_role_promoted": false,
+  "final_verdict": "boot_probe_unknown",
+  "recommended_next_action": "Run with --enable-guarded-boot-probe only after dry-run gates pass.",
+  "evidence_path": "evidence/super-boot-probe/phase-13-guarded-super-boot-probe-2026-06-21T22-00-41-667Z.json",
+  "blocked_reasons": [
+    "explicit_enable_flag:Guarded boot probe requires --enable-guarded-boot-probe."
+  ],
+  "warnings": [
+    "SUPER_BOOT_PROBE_CHILD_NOT_LAUNCHED"
+  ]
+}
