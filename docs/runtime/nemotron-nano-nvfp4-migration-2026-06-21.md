@@ -77,7 +77,7 @@ Required smoke body once the runtime image is fixed:
 
 ## No-Fallback Policy
 
-The local runtime remains Nemotron-only. Qwen must not be used as a runtime fallback. If a configured Nemotron role is unavailable, the Console and Vera block with structured role, endpoint, model, failure reason, and next operator action.
+The local runtime remains Nemotron-only. Legacy runtime fallbacks must not be used. If a configured Nemotron role is unavailable, the Console and Vera block with structured role, endpoint, model, failure reason, and next operator action.
 
 ## AirLLM Super Status
 
