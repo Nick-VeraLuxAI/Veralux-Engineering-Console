@@ -1,0 +1,173 @@
+{
+  "report_schema": "runtime_supervisor.phase_6.v1",
+  "generated_at": "2026-06-21T20:05:18.282Z",
+  "status": "healthy",
+  "check_only": true,
+  "recovery_enabled": false,
+  "roles_checked": [
+    "vera_command",
+    "console_default_worker",
+    "console_senior_worker"
+  ],
+  "required_roles": [
+    "vera_command",
+    "console_default_worker"
+  ],
+  "role_assignments": [
+    {
+      "roleId": "vera_command",
+      "roleKind": "command",
+      "provider": "local_openai_compatible",
+      "endpoint": "http://127.0.0.1:8081/v1",
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "status": "available",
+      "repositoryWriteAllowed": false,
+      "fallbackAllowed": false,
+      "allowedFallbackRoles": [],
+      "runtimeRequired": true,
+      "healthcheckRequired": true,
+      "notes": "Vera command/orchestration role; repository writes are not allowed."
+    },
+    {
+      "roleId": "console_default_worker",
+      "roleKind": "worker",
+      "provider": "local_openai_compatible",
+      "endpoint": "http://127.0.0.1:8082/v1",
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "status": "available",
+      "repositoryWriteAllowed": true,
+      "fallbackAllowed": false,
+      "allowedFallbackRoles": [],
+      "runtimeRequired": true,
+      "healthcheckRequired": true,
+      "notes": "Console default worker; writes are allowed only inside governed Console workspaces."
+    },
+    {
+      "roleId": "console_senior_worker",
+      "roleKind": "senior_worker",
+      "provider": "airllm-cold",
+      "endpoint": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+      "model": "Nemotron-Super-120B-A12B-FP8",
+      "status": "blocked_unproven",
+      "repositoryWriteAllowed": false,
+      "fallbackAllowed": false,
+      "allowedFallbackRoles": [],
+      "runtimeRequired": false,
+      "healthcheckRequired": false,
+      "notes": "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super."
+    }
+  ],
+  "role_health": [
+    {
+      "role_id": "vera_command",
+      "endpoint": "http://127.0.0.1:8081/v1",
+      "expected_model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "runtime_required": true,
+      "recovery_supported": true,
+      "recovery_attempted": false,
+      "recovery_result": null,
+      "diagnostics": [],
+      "evidence_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-05-18-282Z.json",
+      "status": "healthy",
+      "models_endpoint_ok": true,
+      "expected_model_present": true,
+      "smoke_check_ok": true,
+      "smoke_check": {
+        "status": "passed",
+        "expected_content": "Vera route ready",
+        "actual_content": "Vera route ready",
+        "error": null
+      },
+      "latency_ms": 107,
+      "model_names_returned": [
+        "Nemotron-Nano-30B-A3B-NVFP4"
+      ]
+    },
+    {
+      "role_id": "console_default_worker",
+      "endpoint": "http://127.0.0.1:8082/v1",
+      "expected_model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "runtime_required": true,
+      "recovery_supported": true,
+      "recovery_attempted": false,
+      "recovery_result": null,
+      "diagnostics": [],
+      "evidence_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-05-18-282Z.json",
+      "status": "healthy",
+      "models_endpoint_ok": true,
+      "expected_model_present": true,
+      "smoke_check_ok": true,
+      "smoke_check": {
+        "status": "passed",
+        "expected_content": "Console route ready",
+        "actual_content": "Console route ready",
+        "error": null
+      },
+      "latency_ms": 87,
+      "model_names_returned": [
+        "Nemotron-Nano-30B-A3B-NVFP4"
+      ]
+    },
+    {
+      "role_id": "console_senior_worker",
+      "endpoint": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+      "expected_model": "Nemotron-Super-120B-A12B-FP8",
+      "runtime_required": false,
+      "recovery_supported": false,
+      "recovery_attempted": false,
+      "recovery_result": null,
+      "diagnostics": [],
+      "evidence_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-05-18-282Z.json",
+      "status": "blocked",
+      "models_endpoint_ok": false,
+      "expected_model_present": false,
+      "smoke_check_ok": null,
+      "smoke_check": {
+        "status": "skipped",
+        "expected_content": null,
+        "actual_content": null,
+        "error": "PHASE_6_BLOCKED_ROLE_NOT_RUNTIME_REQUIRED"
+      },
+      "latency_ms": 0,
+      "model_names_returned": []
+    }
+  ],
+  "recovery_plans": [
+    {
+      "role_id": "vera_command",
+      "supported": true,
+      "target": {
+        "kind": "docker_container",
+        "name": "nemotron-nano-vera-8081"
+      },
+      "reason": null
+    },
+    {
+      "role_id": "console_default_worker",
+      "supported": true,
+      "target": {
+        "kind": "docker_container",
+        "name": "nemotron-nano-console-8082"
+      },
+      "reason": null
+    },
+    {
+      "role_id": "console_senior_worker",
+      "supported": false,
+      "target": null,
+      "reason": "PHASE_6_RECOVERY_TARGET_NOT_ALLOWLISTED"
+    }
+  ],
+  "blocked_reasons": [],
+  "safety_notes": [
+    "Phase 6 checks Nano runtime roles only.",
+    "Senior/Super remains blocked and is not runtime-required.",
+    "Recovery is limited to explicitly allowlisted Nano Docker containers.",
+    "No fallback model, Qwen route, AirLLM, Super, or integration action is selected by this supervisor."
+  ],
+  "fallback_used": false,
+  "airllm_super_used": false,
+  "qwen_used": false,
+  "integration_performed": false,
+  "evidence_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-05-18-282Z.json"
+}
