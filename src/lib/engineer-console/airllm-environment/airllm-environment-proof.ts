@@ -132,6 +132,7 @@ export interface AirLlmEnvironmentProofOptions {
   runtimePreflightOptions?: RuntimeSupervisorOptions;
   commandRunner?: SuperAuditCommandRunner;
   candidatePaths?: string[];
+  includeProjectVenvCandidates?: boolean;
   safetyOverrides?: Partial<{
     superModelLoaded: boolean;
     seniorInferencePerformed: boolean;
@@ -155,7 +156,7 @@ export async function discoverAirLlmPythonRuntimes(
   const env = options.env ?? process.env;
   const candidateSpecs = [
     env.AIRLLM_PYTHON ? { executable: env.AIRLLM_PYTHON, source: "env" as const } : null,
-    ...projectVenvCandidates().map((executable) => ({ executable, source: "project_venv" as const })),
+    ...(options.includeProjectVenvCandidates === false ? [] : projectVenvCandidates().map((executable) => ({ executable, source: "project_venv" as const }))),
     ...(options.candidatePaths ?? []).map((executable) => ({ executable, source: "env" as const })),
     { executable: "python3", source: "path" as const },
     { executable: "python", source: "path" as const },
@@ -211,7 +212,7 @@ export async function checkAirLlmImportability(input: {
       continue;
     }
     return {
-      status: "unknown",
+      status: "failed",
       candidate,
       command: `${candidate.executable} -c <airllm-import-only-check>`,
       exit_code: result.exitCode,
@@ -332,8 +333,8 @@ export function evaluateAirLlmEnvironmentGates(input: {
     gate("no_integration", safety.integrationPerformed !== true, "No integration occurred."),
     gate("boot_probe_disabled", true, "Boot probe remains disabled."),
     gate("no_uncontrolled_process_operations", safety.uncontrolledProcessOperation !== true, "No uncontrolled process operations occurred."),
-    statusGate("airllm_import_discovery", input.importCheck.status === "passed" ? "passed" : "unknown", "AirLLM import/package discovery is proven or clearly unknown."),
-    statusGate("selected_runtime_captured", input.importCheck.status === "passed" && input.importCheck.candidate?.executable ? "passed" : "unknown", "Selected runtime path is captured when proven."),
+    statusGate("airllm_import_discovery", input.importCheck.status === "passed" ? "passed" : input.importCheck.status === "failed" ? "failed" : "unknown", "AirLLM import/package discovery is proven or clearly unknown."),
+    statusGate("selected_runtime_captured", input.importCheck.status === "passed" && input.importCheck.candidate?.executable ? "passed" : input.importCheck.status === "failed" ? "failed" : "unknown", "Selected runtime path is captured when proven."),
     gate("super_artifacts_still_present", input.artifactCheck.status === "passed", "Super artifacts remain discoverable without loading."),
     gate("hardware_snapshot_captured", input.hardwareSnapshot.status !== "failed", "Hardware snapshot captured or safely degraded."),
   ];
@@ -357,7 +358,7 @@ export function evaluateAirLlmEnvironmentGates(input: {
     "no_integration",
     "no_uncontrolled_process_operations",
   ].includes(item.name) && item.status === "failed");
-  const verdict: AirLlmEnvironmentVerdict = safetyFailure || input.artifactCheck.status === "failed"
+  const verdict: AirLlmEnvironmentVerdict = safetyFailure || input.artifactCheck.status === "failed" || input.importCheck.status === "failed"
     ? "no_go"
     : input.importCheck.status === "passed"
       && input.dependencySnapshot.status === "passed"

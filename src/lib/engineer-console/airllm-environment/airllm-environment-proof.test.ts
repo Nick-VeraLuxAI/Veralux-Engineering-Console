@@ -42,6 +42,7 @@ describe("Phase 9 AirLLM environment import proof", () => {
 
   it("handles no Python candidates without crashing", async () => {
     const candidates = await discoverAirLlmPythonRuntimes({
+      includeProjectVenvCandidates: false,
       commandRunner: async () => ({ stdout: "", stderr: "missing", exitCode: 127 }),
     });
     const check = await checkAirLlmImportability({

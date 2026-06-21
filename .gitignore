@@ -39,6 +39,7 @@ yarn-error.log*
 # engineer console local data
 /data/
 /backups/
+/.venv-airllm/
 
 # typescript
 *.tsbuildinfo
