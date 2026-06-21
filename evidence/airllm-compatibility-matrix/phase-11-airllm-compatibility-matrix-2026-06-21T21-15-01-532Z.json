@@ -1,0 +1,791 @@
+{
+  "matrix_id": "phase-11-airllm-compatibility-matrix-2026-06-21T21-15-01-532Z",
+  "timestamp": "2026-06-21T21:15:01.532Z",
+  "repo_root": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console",
+  "repo_commit_at_start": "0b7d32099018ec5d2ccf2f2a9737774a006da104",
+  "candidates": [
+    {
+      "id": "a1",
+      "group": "A",
+      "kind": "install_import",
+      "python": {
+        "id": "phase10",
+        "executable": ".venv-airllm/bin/python",
+        "expected_major_minor": "3.12",
+        "exists": true,
+        "version": "Python 3.12.3",
+        "diagnostics": []
+      },
+      "venv_path": ".airllm-matrix/venv-a1",
+      "package_pin_set": {
+        "id": "a1-pins",
+        "packages": [
+          "airllm==2.11.0",
+          "optimum<2",
+          "transformers<4.49"
+        ],
+        "source_url": null,
+        "notes": []
+      },
+      "stop_on_success": true
+    },
+    {
+      "id": "a2",
+      "group": "A",
+      "kind": "install_import",
+      "python": {
+        "id": "phase10",
+        "executable": ".venv-airllm/bin/python",
+        "expected_major_minor": "3.12",
+        "exists": true,
+        "version": "Python 3.12.3",
+        "diagnostics": []
+      },
+      "venv_path": ".airllm-matrix/venv-a2",
+      "package_pin_set": {
+        "id": "a2-pins",
+        "packages": [
+          "airllm==2.11.0",
+          "optimum<2",
+          "transformers<4.49",
+          "setuptools<82",
+          "sentencepiece"
+        ],
+        "source_url": null,
+        "notes": []
+      },
+      "stop_on_success": true
+    },
+    {
+      "id": "a3",
+      "group": "A",
+      "kind": "source_install",
+      "python": {
+        "id": "phase10",
+        "executable": ".venv-airllm/bin/python",
+        "expected_major_minor": "3.12",
+        "exists": true,
+        "version": "Python 3.12.3",
+        "diagnostics": []
+      },
+      "venv_path": ".airllm-matrix/venv-a3",
+      "package_pin_set": {
+        "id": "a3-pins",
+        "packages": [
+          "git+https://github.com/lyogavin/airllm.git",
+          "optimum<2",
+          "transformers<4.49"
+        ],
+        "source_url": "https://github.com/lyogavin/airllm.git",
+        "notes": [
+          "Official AirLLM GitHub source verified from PyPI/homepage."
+        ]
+      },
+      "stop_on_success": true
+    },
+    {
+      "id": "b1",
+      "group": "B",
+      "kind": "install_import",
+      "python": {
+        "id": "python3.11",
+        "executable": "python3.11",
+        "expected_major_minor": "3.11",
+        "exists": true,
+        "version": "Python 3.11.15",
+        "diagnostics": []
+      },
+      "venv_path": ".airllm-matrix/venv-b1",
+      "package_pin_set": {
+        "id": "b1-pins",
+        "packages": [
+          "airllm==2.11.0",
+          "optimum<2",
+          "transformers<4.49"
+        ],
+        "source_url": null,
+        "notes": []
+      },
+      "stop_on_success": true
+    },
+    {
+      "id": "b2",
+      "group": "B",
+      "kind": "install_import",
+      "python": {
+        "id": "python3.11",
+        "executable": "python3.11",
+        "expected_major_minor": "3.11",
+        "exists": true,
+        "version": "Python 3.11.15",
+        "diagnostics": []
+      },
+      "venv_path": ".airllm-matrix/venv-b2",
+      "package_pin_set": {
+        "id": "b2-pins",
+        "packages": [
+          "airllm==2.11.0",
+          "optimum<2",
+          "transformers<4.49",
+          "setuptools<82",
+          "sentencepiece"
+        ],
+        "source_url": null,
+        "notes": []
+      },
+      "stop_on_success": true
+    },
+    {
+      "id": "b3",
+      "group": "B",
+      "kind": "source_install",
+      "python": {
+        "id": "python3.11",
+        "executable": "python3.11",
+        "expected_major_minor": "3.11",
+        "exists": true,
+        "version": "Python 3.11.15",
+        "diagnostics": []
+      },
+      "venv_path": ".airllm-matrix/venv-b3",
+      "package_pin_set": {
+        "id": "b3-pins",
+        "packages": [
+          "git+https://github.com/lyogavin/airllm.git",
+          "optimum<2",
+          "transformers<4.49"
+        ],
+        "source_url": "https://github.com/lyogavin/airllm.git",
+        "notes": [
+          "Official AirLLM GitHub source verified from PyPI/homepage."
+        ]
+      },
+      "stop_on_success": true
+    },
+    {
+      "id": "c1",
+      "group": "C",
+      "kind": "install_import",
+      "python": {
+        "id": "python3.10",
+        "executable": "python3.10",
+        "expected_major_minor": "3.10",
+        "exists": false,
+        "version": null,
+        "diagnostics": [
+          "AIRLLM_MATRIX_PYTHON_RUNTIME_NOT_AVAILABLE"
+        ]
+      },
+      "venv_path": ".airllm-matrix/venv-c1",
+      "package_pin_set": {
+        "id": "c1-pins",
+        "packages": [
+          "airllm==2.11.0",
+          "optimum<2",
+          "transformers<4.49"
+        ],
+        "source_url": null,
+        "notes": []
+      },
+      "stop_on_success": true
+    },
+    {
+      "id": "c2",
+      "group": "C",
+      "kind": "install_import",
+      "python": {
+        "id": "python3.10",
+        "executable": "python3.10",
+        "expected_major_minor": "3.10",
+        "exists": false,
+        "version": null,
+        "diagnostics": [
+          "AIRLLM_MATRIX_PYTHON_RUNTIME_NOT_AVAILABLE"
+        ]
+      },
+      "venv_path": ".airllm-matrix/venv-c2",
+      "package_pin_set": {
+        "id": "c2-pins",
+        "packages": [
+          "airllm==2.11.0",
+          "optimum<2",
+          "transformers<4.49",
+          "setuptools<82",
+          "sentencepiece"
+        ],
+        "source_url": null,
+        "notes": []
+      },
+      "stop_on_success": true
+    },
+    {
+      "id": "c3",
+      "group": "C",
+      "kind": "source_install",
+      "python": {
+        "id": "python3.10",
+        "executable": "python3.10",
+        "expected_major_minor": "3.10",
+        "exists": false,
+        "version": null,
+        "diagnostics": [
+          "AIRLLM_MATRIX_PYTHON_RUNTIME_NOT_AVAILABLE"
+        ]
+      },
+      "venv_path": ".airllm-matrix/venv-c3",
+      "package_pin_set": {
+        "id": "c3-pins",
+        "packages": [
+          "git+https://github.com/lyogavin/airllm.git",
+          "optimum<2",
+          "transformers<4.49"
+        ],
+        "source_url": "https://github.com/lyogavin/airllm.git",
+        "notes": [
+          "Official AirLLM GitHub source verified from PyPI/homepage."
+        ]
+      },
+      "stop_on_success": true
+    },
+    {
+      "id": "d1",
+      "group": "D",
+      "kind": "diagnostic_only",
+      "python": {
+        "id": "diagnostic",
+        "executable": "diagnostic",
+        "expected_major_minor": null,
+        "exists": false,
+        "version": null,
+        "diagnostics": [
+          "AIRLLM_MATRIX_PYTHON_RUNTIME_NOT_AVAILABLE"
+        ]
+      },
+      "venv_path": null,
+      "package_pin_set": {
+        "id": "d1-diagnostic",
+        "packages": [],
+        "source_url": null,
+        "notes": [
+          "inspect installed AirLLM metadata and source files"
+        ]
+      },
+      "stop_on_success": false
+    },
+    {
+      "id": "d2",
+      "group": "D",
+      "kind": "diagnostic_only",
+      "python": {
+        "id": "diagnostic",
+        "executable": "diagnostic",
+        "expected_major_minor": null,
+        "exists": false,
+        "version": null,
+        "diagnostics": [
+          "AIRLLM_MATRIX_PYTHON_RUNTIME_NOT_AVAILABLE"
+        ]
+      },
+      "venv_path": null,
+      "package_pin_set": {
+        "id": "d2-diagnostic",
+        "packages": [],
+        "source_url": null,
+        "notes": [
+          "inspect available Optimum versions from pip metadata"
+        ]
+      },
+      "stop_on_success": false
+    },
+    {
+      "id": "d3",
+      "group": "D",
+      "kind": "diagnostic_only",
+      "python": {
+        "id": "diagnostic",
+        "executable": "diagnostic",
+        "expected_major_minor": null,
+        "exists": false,
+        "version": null,
+        "diagnostics": [
+          "AIRLLM_MATRIX_PYTHON_RUNTIME_NOT_AVAILABLE"
+        ]
+      },
+      "venv_path": null,
+      "package_pin_set": {
+        "id": "d3-diagnostic",
+        "packages": [],
+        "source_url": null,
+        "notes": [
+          "inspect whether BetterTransformer exists in candidate Optimum installs"
+        ]
+      },
+      "stop_on_success": false
+    },
+    {
+      "id": "d4",
+      "group": "D",
+      "kind": "diagnostic_only",
+      "python": {
+        "id": "diagnostic",
+        "executable": "diagnostic",
+        "expected_major_minor": null,
+        "exists": false,
+        "version": null,
+        "diagnostics": [
+          "AIRLLM_MATRIX_PYTHON_RUNTIME_NOT_AVAILABLE"
+        ]
+      },
+      "venv_path": null,
+      "package_pin_set": {
+        "id": "d4-diagnostic",
+        "packages": [],
+        "source_url": null,
+        "notes": [
+          "generate compatibility recommendation"
+        ]
+      },
+      "stop_on_success": false
+    }
+  ],
+  "candidate_results": [
+    {
+      "candidate_id": "a1",
+      "python_runtime_target": {
+        "id": "phase10",
+        "executable": ".venv-airllm/bin/python",
+        "expected_major_minor": "3.12",
+        "exists": true,
+        "version": "Python 3.12.3",
+        "diagnostics": []
+      },
+      "venv_path": ".airllm-matrix/venv-a1",
+      "package_install_plan": [
+        "airllm==2.11.0",
+        "optimum<2",
+        "transformers<4.49"
+      ],
+      "package_versions_requested": [
+        "airllm==2.11.0",
+        "optimum<2",
+        "transformers<4.49"
+      ],
+      "package_versions_installed": {
+        "airllm": "2.11.0",
+        "optimum": "1.27.0",
+        "transformers": "4.48.3",
+        "torch": "2.12.1",
+        "accelerate": "1.14.0",
+        "safetensors": "0.8.0"
+      },
+      "commands": [
+        {
+          "name": "create_candidate_venv",
+          "command": [
+            ".venv-airllm/bin/python",
+            "-m",
+            "venv",
+            ".airllm-matrix/venv-a1"
+          ],
+          "exit_code": 0,
+          "stdout_summary": null,
+          "stderr_summary": null,
+          "diagnostics": []
+        },
+        {
+          "name": "upgrade_candidate_pip_tooling",
+          "command": [
+            ".airllm-matrix/venv-a1/bin/python",
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "pip",
+            "setuptools",
+            "wheel"
+          ],
+          "exit_code": 0,
+          "stdout_summary": "Requirement already satisfied: pip in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (26.1.2)\nRequirement already satisfied: setuptools in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (81.0.0)\nCollecting setuptools\n  Using cached setuptools-82.0.1-py3-none-any.whl.metadata (6.5 kB)\nRequirement already satisfied: wheel in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (0.47.0)\nRequirement already satisfied: packaging>=24.0 in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from wheel) (26.2)\nUsing cached setuptools-82.0.1-py3-none-any.whl (1.0 MB)\nInstalling collected packages: setuptools\n  Attempting uninstall: setuptools\n    Found existing installation: setuptools 81.0.0\n    Uninstalling setuptools-81.0.0:\n      Successfully uninstalled setuptools-81.0.0\nSuccessfully installed setuptools-82.0.1",
+          "stderr_summary": "ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\ntorch 2.12.1 requires setuptools<82, but you have setuptools 82.0.1 which is incompatible.",
+          "diagnostics": []
+        },
+        {
+          "name": "install_candidate_packages",
+          "command": [
+            ".airllm-matrix/venv-a1/bin/python",
+            "-m",
+            "pip",
+            "install",
+            "airllm==2.11.0",
+            "optimum<2",
+            "transformers<4.49"
+          ],
+          "exit_code": 0,
+          "stdout_summary": "Requirement already satisfied: airllm==2.11.0 in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (2.11.0)\nRequirement already satisfied: optimum<2 in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (1.27.0)\nRequirement already satisfied: transformers<4.49 in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (4.48.3)\nRequirement already satisfied: tqdm in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from airllm==2.11.0) (4.68.3)\nRequirement already satisfied: torch in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from airllm==2.11.0) (2.12.1)\nRequirement already satisfied: accelerate in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from airllm==2.11.0) (1.14.0)\nRequirement already satisfied: safetensors in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from airllm==2.11.0) (0.8.0)\nRequirement already satisfied: huggingface-hub in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from airllm==2.11.0) (0.36.2)\nRequirement already satisfied: scipy in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from airllm==2.11.0) (1.18.0)\nRequirement already satisfied: packaging in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from optimum<2) (26.2)\nRequirement already satisfied: numpy in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from optimum<2) (2.5.0)\nRequirement already satisfied: filelock in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from transformers<4.49) (3.29.4)\nRequirement already satisfied: pyyaml>=5.1 in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from transformers<4.49) (6.0.3)\nRequirement already satisfied: regex!=2019.12.17 in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from transformers<4.49) (2026.5.9)\nRequirement already satisfied: requests in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from transformers<4.49) (2.34.2)\nRequirement already satisfied: tokenizers<0.22,>=0.21 in ./.airllm-matrix/venv-a1/lib/python3.12/site-packages (from tr...",
+          "stderr_summary": null,
+          "diagnostics": []
+        },
+        {
+          "name": "package_freeze",
+          "command": [
+            ".airllm-matrix/venv-a1/bin/python",
+            "-m",
+            "pip",
+            "freeze"
+          ],
+          "exit_code": 0,
+          "stdout_summary": "accelerate==1.14.0\nairllm==2.11.0\ncertifi==2026.6.17\ncharset-normalizer==3.4.7\ncuda-bindings==13.3.1\ncuda-pathfinder==1.5.5\ncuda-toolkit==13.0.2\nfilelock==3.29.4\nfsspec==2026.6.0\nhf-xet==1.5.1\nhuggingface_hub==0.36.2\nidna==3.18\nJinja2==3.1.6\nMarkupSafe==3.0.3\nmpmath==1.3.0\nnetworkx==3.6.1\nnumpy==2.5.0\nnvidia-cublas==13.1.1.3\nnvidia-cuda-cupti==13.0.85\nnvidia-cuda-nvrtc==13.0.88\nnvidia-cuda-runtime==13.0.96\nnvidia-cudnn-cu13==9.20.0.48\nnvidia-cufft==12.0.0.61\nnvidia-cufile==1.15.1.6\nnvidia-curand==10.4.0.35\nnvidia-cusolver==12.0.4.66\nnvidia-cusparse==12.6.3.3\nnvidia-cusparselt-cu13==0.8.1\nnvidia-nccl-cu13==2.29.7\nnvidia-nvjitlink==13.0.88\nnvidia-nvshmem-cu13==3.4.5\nnvidia-nvtx==13.0.85\noptimum==1.27.0\npackaging==26.2\npsutil==7.2.2\nPyYAML==6.0.3\nregex==2026.5.9\nrequests==2.34.2\nsafetensors==0.8.0\nscipy==1.18.0\nsetuptools==81.0.0\nsympy==1.14.0\ntokenizers==0.21.4\ntorch==2.12.1\ntqdm==4.68.3\ntransformers==4.48.3\ntriton==3.7.1\ntyping_extensions==4.15.0\nurllib3==2.7.0\nwheel==0.47.0",
+          "stderr_summary": null,
+          "diagnostics": []
+        }
+      ],
+      "import_probe_result": {
+        "status": "failed",
+        "command": [
+          ".airllm-matrix/venv-a1/bin/python",
+          "-c",
+          "<airllm-compatibility-import-probe>"
+        ],
+        "exit_code": 1,
+        "stdout_summary": ">>>> cache_utils installed\n{\"python_executable\": \"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.airllm-matrix/venv-a1/bin/python\", \"python_version\": \"3.12.3\", \"installed_versions\": {\"airllm\": \"2.11.0\", \"optimum\": \"1.27.0\", \"transformers\": \"4.48.3\", \"torch\": \"2.12.1\", \"accelerate\": \"1.14.0\", \"safetensors\": \"0.8.0\"}, \"optimum_import_resolved\": true, \"optimum_bettertransformer_resolved\": true, \"airllm_import_resolved\": false, \"airllm_automodel_resolved\": false, \"model_path_passed\": false, \"model_instantiated\": false, \"model_load_performed\": false, \"inference_performed\": false, \"serving_started\": false, \"error_class\": \"ModuleNotFoundError\", \"error_message\": \"No module named 'sentencepiece'\", \"traceback_summary\": \"Traceback (most recent call last):\\n  File \\\"<string>\\\", line 14, in <module>\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.airllm-matrix/venv-a1/lib/python3.12/site-packages/airllm/__init__.py\\\", line 16, in <module>\\n    from .airllm_baichuan import AirLLMBaichuan\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.airllm-matrix/venv-a1/lib/python3.12/site-packages/airllm/airllm_baichuan.py\\\", line 4, in <module>\\n    from .tokenization_baichuan import BaichuanTokenizer\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.airllm-matrix/venv-a1/lib/python3.12/site-packages/airllm/tokenization_baichuan.py\\\", line 26, in <module>\\n    import sentencepiece as spm\\nModuleNotFoundError: No module named 'sentencepiece'\\n\"}",
+        "stderr_summary": null,
+        "timed_out": false,
+        "python_executable": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.airllm-matrix/venv-a1/bin/python",
+        "python_version": "3.12.3",
+        "installed_versions": {
+          "airllm": "2.11.0",
+          "optimum": "1.27.0",
+          "transformers": "4.48.3",
+          "torch": "2.12.1",
+          "accelerate": "1.14.0",
+          "safetensors": "0.8.0"
+        },
+        "optimum_import_resolved": true,
+        "optimum_bettertransformer_resolved": true,
+        "airllm_import_resolved": false,
+        "airllm_automodel_resolved": false,
+        "model_path_passed": false,
+        "model_instantiated": false,
+        "model_load_performed": false,
+        "inference_performed": false,
+        "serving_started": false,
+        "error_class": "ModuleNotFoundError",
+        "error_message": "No module named 'sentencepiece'",
+        "traceback_summary": "Traceback (most recent call last):\n  File \"<string>\", line 14, in <module>\n  File \"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.airllm-matrix/venv-a1/lib/python3.12/site-packages/airllm/__init__.py\", line 16, in <module>\n    from .airllm_baichuan import AirLLMBaichuan\n  File \"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.airllm-matrix/venv-a1/lib/python3.12/site-packages/airllm/airllm_baichuan.py\", line 4, in <module>\n    from .tokenization_baichuan import BaichuanTokenizer\n  File \"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.airllm-matrix/venv-a1/lib/python3.12/site-packages/airllm/tokenization_baichuan.py\", line 26, in <module>\n    import sentencepiece as spm\nModuleNotFoundError: No module named 'sentencepiece'\n",
+        "gpu_memory_before": "0, 32607 MiB, 4488 MiB, 27616 MiB\n1, 32607 MiB, 4568 MiB, 27543 MiB",
+        "gpu_memory_after": "0, 32607 MiB, 4488 MiB, 27616 MiB\n1, 32607 MiB, 4568 MiB, 27543 MiB",
+        "diagnostics": [
+          "AIRLLM_MATRIX_IMPORT_PROBE_FAILED:1"
+        ]
+      },
+      "optimum_bettertransformer_resolved": true,
+      "airllm_automodel_resolved": false,
+      "model_path_passed": false,
+      "serving_started": false,
+      "super_model_load_performed": false,
+      "super_model_inference_performed": false,
+      "fallback_used": false,
+      "qwen_used": false,
+      "integration_performed": false,
+      "verdict": "fail",
+      "reason": "No module named 'sentencepiece'",
+      "evidence_path": null
+    },
+    {
+      "candidate_id": "a2",
+      "python_runtime_target": {
+        "id": "phase10",
+        "executable": ".venv-airllm/bin/python",
+        "expected_major_minor": "3.12",
+        "exists": true,
+        "version": "Python 3.12.3",
+        "diagnostics": []
+      },
+      "venv_path": ".airllm-matrix/venv-a2",
+      "package_install_plan": [
+        "airllm==2.11.0",
+        "optimum<2",
+        "transformers<4.49",
+        "setuptools<82",
+        "sentencepiece"
+      ],
+      "package_versions_requested": [
+        "airllm==2.11.0",
+        "optimum<2",
+        "transformers<4.49",
+        "setuptools<82",
+        "sentencepiece"
+      ],
+      "package_versions_installed": {
+        "airllm": "2.11.0",
+        "optimum": "1.27.0",
+        "transformers": "4.48.3",
+        "torch": "2.12.1",
+        "accelerate": "1.14.0",
+        "safetensors": "0.8.0"
+      },
+      "commands": [
+        {
+          "name": "create_candidate_venv",
+          "command": [
+            ".venv-airllm/bin/python",
+            "-m",
+            "venv",
+            ".airllm-matrix/venv-a2"
+          ],
+          "exit_code": 0,
+          "stdout_summary": null,
+          "stderr_summary": null,
+          "diagnostics": []
+        },
+        {
+          "name": "upgrade_candidate_pip_tooling",
+          "command": [
+            ".airllm-matrix/venv-a2/bin/python",
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "pip",
+            "setuptools",
+            "wheel"
+          ],
+          "exit_code": 0,
+          "stdout_summary": "Requirement already satisfied: pip in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (26.1.2)\nRequirement already satisfied: setuptools in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (81.0.0)\nCollecting setuptools\n  Using cached setuptools-82.0.1-py3-none-any.whl.metadata (6.5 kB)\nRequirement already satisfied: wheel in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (0.47.0)\nRequirement already satisfied: packaging>=24.0 in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from wheel) (26.2)\nUsing cached setuptools-82.0.1-py3-none-any.whl (1.0 MB)\nInstalling collected packages: setuptools\n  Attempting uninstall: setuptools\n    Found existing installation: setuptools 81.0.0\n    Uninstalling setuptools-81.0.0:\n      Successfully uninstalled setuptools-81.0.0\nSuccessfully installed setuptools-82.0.1",
+          "stderr_summary": "ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\ntorch 2.12.1 requires setuptools<82, but you have setuptools 82.0.1 which is incompatible.",
+          "diagnostics": []
+        },
+        {
+          "name": "install_candidate_packages",
+          "command": [
+            ".airllm-matrix/venv-a2/bin/python",
+            "-m",
+            "pip",
+            "install",
+            "airllm==2.11.0",
+            "optimum<2",
+            "transformers<4.49",
+            "setuptools<82",
+            "sentencepiece"
+          ],
+          "exit_code": 0,
+          "stdout_summary": "Requirement already satisfied: airllm==2.11.0 in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (2.11.0)\nRequirement already satisfied: optimum<2 in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (1.27.0)\nRequirement already satisfied: transformers<4.49 in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (4.48.3)\nCollecting setuptools<82\n  Using cached setuptools-81.0.0-py3-none-any.whl.metadata (6.6 kB)\nCollecting sentencepiece\n  Using cached sentencepiece-0.2.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (10 kB)\nRequirement already satisfied: tqdm in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from airllm==2.11.0) (4.68.3)\nRequirement already satisfied: torch in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from airllm==2.11.0) (2.12.1)\nRequirement already satisfied: accelerate in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from airllm==2.11.0) (1.14.0)\nRequirement already satisfied: safetensors in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from airllm==2.11.0) (0.8.0)\nRequirement already satisfied: huggingface-hub in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from airllm==2.11.0) (0.36.2)\nRequirement already satisfied: scipy in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from airllm==2.11.0) (1.18.0)\nRequirement already satisfied: packaging in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from optimum<2) (26.2)\nRequirement already satisfied: numpy in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from optimum<2) (2.5.0)\nRequirement already satisfied: filelock in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from transformers<4.49) (3.29.4)\nRequirement already satisfied: pyyaml>=5.1 in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from transformers<4.49) (6.0.3)\nRequirement already satisfied: regex!=2019.12.17 in ./.airllm-matrix/venv-a2/lib/python3.12/site-packages (from transformers<4.49) (2026.5.9)\nRequirement already ...",
+          "stderr_summary": null,
+          "diagnostics": []
+        },
+        {
+          "name": "package_freeze",
+          "command": [
+            ".airllm-matrix/venv-a2/bin/python",
+            "-m",
+            "pip",
+            "freeze"
+          ],
+          "exit_code": 0,
+          "stdout_summary": "accelerate==1.14.0\nairllm==2.11.0\ncertifi==2026.6.17\ncharset-normalizer==3.4.7\ncuda-bindings==13.3.1\ncuda-pathfinder==1.5.5\ncuda-toolkit==13.0.2\nfilelock==3.29.4\nfsspec==2026.6.0\nhf-xet==1.5.1\nhuggingface_hub==0.36.2\nidna==3.18\nJinja2==3.1.6\nMarkupSafe==3.0.3\nmpmath==1.3.0\nnetworkx==3.6.1\nnumpy==2.5.0\nnvidia-cublas==13.1.1.3\nnvidia-cuda-cupti==13.0.85\nnvidia-cuda-nvrtc==13.0.88\nnvidia-cuda-runtime==13.0.96\nnvidia-cudnn-cu13==9.20.0.48\nnvidia-cufft==12.0.0.61\nnvidia-cufile==1.15.1.6\nnvidia-curand==10.4.0.35\nnvidia-cusolver==12.0.4.66\nnvidia-cusparse==12.6.3.3\nnvidia-cusparselt-cu13==0.8.1\nnvidia-nccl-cu13==2.29.7\nnvidia-nvjitlink==13.0.88\nnvidia-nvshmem-cu13==3.4.5\nnvidia-nvtx==13.0.85\noptimum==1.27.0\npackaging==26.2\npsutil==7.2.2\nPyYAML==6.0.3\nregex==2026.5.9\nrequests==2.34.2\nsafetensors==0.8.0\nscipy==1.18.0\nsentencepiece==0.2.1\nsetuptools==81.0.0\nsympy==1.14.0\ntokenizers==0.21.4\ntorch==2.12.1\ntqdm==4.68.3\ntransformers==4.48.3\ntriton==3.7.1\ntyping_extensions==4.15.0\nurllib3==2.7.0\nwheel==0.47.0",
+          "stderr_summary": null,
+          "diagnostics": []
+        }
+      ],
+      "import_probe_result": {
+        "status": "passed",
+        "command": [
+          ".airllm-matrix/venv-a2/bin/python",
+          "-c",
+          "<airllm-compatibility-import-probe>"
+        ],
+        "exit_code": 0,
+        "stdout_summary": ">>>> cache_utils installed\n{\"python_executable\": \"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.airllm-matrix/venv-a2/bin/python\", \"python_version\": \"3.12.3\", \"installed_versions\": {\"airllm\": \"2.11.0\", \"optimum\": \"1.27.0\", \"transformers\": \"4.48.3\", \"torch\": \"2.12.1\", \"accelerate\": \"1.14.0\", \"safetensors\": \"0.8.0\"}, \"optimum_import_resolved\": true, \"optimum_bettertransformer_resolved\": true, \"airllm_import_resolved\": true, \"airllm_automodel_resolved\": true, \"model_path_passed\": false, \"model_instantiated\": false, \"model_load_performed\": false, \"inference_performed\": false, \"serving_started\": false, \"error_class\": null, \"error_message\": null, \"traceback_summary\": null}",
+        "stderr_summary": null,
+        "timed_out": false,
+        "python_executable": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.airllm-matrix/venv-a2/bin/python",
+        "python_version": "3.12.3",
+        "installed_versions": {
+          "airllm": "2.11.0",
+          "optimum": "1.27.0",
+          "transformers": "4.48.3",
+          "torch": "2.12.1",
+          "accelerate": "1.14.0",
+          "safetensors": "0.8.0"
+        },
+        "optimum_import_resolved": true,
+        "optimum_bettertransformer_resolved": true,
+        "airllm_import_resolved": true,
+        "airllm_automodel_resolved": true,
+        "model_path_passed": false,
+        "model_instantiated": false,
+        "model_load_performed": false,
+        "inference_performed": false,
+        "serving_started": false,
+        "error_class": null,
+        "error_message": null,
+        "traceback_summary": null,
+        "gpu_memory_before": "0, 32607 MiB, 4488 MiB, 27616 MiB\n1, 32607 MiB, 4568 MiB, 27543 MiB",
+        "gpu_memory_after": "0, 32607 MiB, 4488 MiB, 27616 MiB\n1, 32607 MiB, 4568 MiB, 27543 MiB",
+        "diagnostics": []
+      },
+      "optimum_bettertransformer_resolved": true,
+      "airllm_automodel_resolved": true,
+      "model_path_passed": false,
+      "serving_started": false,
+      "super_model_load_performed": false,
+      "super_model_inference_performed": false,
+      "fallback_used": false,
+      "qwen_used": false,
+      "integration_performed": false,
+      "verdict": "pass",
+      "reason": "IMPORT_ONLY_PROBE_SUCCEEDED",
+      "evidence_path": null
+    }
+  ],
+  "winner_candidate_id": "a2",
+  "final_verdict": "ready_for_guarded_boot_probe",
+  "package_freeze_for_winner": [
+    "accelerate==1.14.0",
+    "airllm==2.11.0",
+    "certifi==2026.6.17",
+    "charset-normalizer==3.4.7",
+    "cuda-bindings==13.3.1",
+    "cuda-pathfinder==1.5.5",
+    "cuda-toolkit==13.0.2",
+    "filelock==3.29.4",
+    "fsspec==2026.6.0",
+    "hf-xet==1.5.1",
+    "huggingface_hub==0.36.2",
+    "idna==3.18",
+    "Jinja2==3.1.6",
+    "MarkupSafe==3.0.3",
+    "mpmath==1.3.0",
+    "networkx==3.6.1",
+    "numpy==2.5.0",
+    "nvidia-cublas==13.1.1.3",
+    "nvidia-cuda-cupti==13.0.85",
+    "nvidia-cuda-nvrtc==13.0.88",
+    "nvidia-cuda-runtime==13.0.96",
+    "nvidia-cudnn-cu13==9.20.0.48",
+    "nvidia-cufft==12.0.0.61",
+    "nvidia-cufile==1.15.1.6",
+    "nvidia-curand==10.4.0.35",
+    "nvidia-cusolver==12.0.4.66",
+    "nvidia-cusparse==12.6.3.3",
+    "nvidia-cusparselt-cu13==0.8.1",
+    "nvidia-nccl-cu13==2.29.7",
+    "nvidia-nvjitlink==13.0.88",
+    "nvidia-nvshmem-cu13==3.4.5",
+    "nvidia-nvtx==13.0.85",
+    "optimum==1.27.0",
+    "packaging==26.2",
+    "psutil==7.2.2",
+    "PyYAML==6.0.3",
+    "regex==2026.5.9",
+    "requests==2.34.2",
+    "safetensors==0.8.0",
+    "scipy==1.18.0",
+    "sentencepiece==0.2.1",
+    "setuptools==81.0.0",
+    "sympy==1.14.0",
+    "tokenizers==0.21.4",
+    "torch==2.12.1",
+    "tqdm==4.68.3",
+    "transformers==4.48.3",
+    "triton==3.7.1",
+    "typing_extensions==4.15.0",
+    "urllib3==2.7.0",
+    "wheel==0.47.0"
+  ],
+  "safety_gates": [
+    {
+      "name": "nano_roles_primary_and_healthy",
+      "status": "passed",
+      "message": "Nano runtime remained healthy before and after matrix proof."
+    },
+    {
+      "name": "senior_role_blocked_unproven",
+      "status": "passed",
+      "message": "Senior role remains blocked_unproven."
+    },
+    {
+      "name": "boot_probe_disabled",
+      "status": "passed",
+      "message": "Boot probe remains disabled."
+    },
+    {
+      "name": "matrix_root_gitignored",
+      "status": "passed",
+      "message": ".airllm-matrix is ignored by git."
+    },
+    {
+      "name": "no_model_path_passed",
+      "status": "passed",
+      "message": "Import probe did not receive a Super model path."
+    },
+    {
+      "name": "no_super_model_load",
+      "status": "passed",
+      "message": "No Super model load occurred."
+    },
+    {
+      "name": "no_senior_inference",
+      "status": "passed",
+      "message": "No senior inference occurred."
+    },
+    {
+      "name": "no_airllm_serving",
+      "status": "passed",
+      "message": "No AirLLM serving process was started."
+    },
+    {
+      "name": "qwen_not_used",
+      "status": "passed",
+      "message": "Qwen was not used."
+    },
+    {
+      "name": "fallback_not_used",
+      "status": "passed",
+      "message": "No fallback model was used."
+    },
+    {
+      "name": "no_integration",
+      "status": "passed",
+      "message": "No integration occurred."
+    },
+    {
+      "name": "no_uncontrolled_process_operations",
+      "status": "passed",
+      "message": "No uncontrolled process operations occurred."
+    }
+  ],
+  "preflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T21-15-01-533Z.json",
+  "postflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T21-15-14-192Z.json",
+  "preflight_runtime_status": "healthy",
+  "postflight_runtime_status": "healthy",
+  "senior_role_resolution": {
+    "roleId": "console_senior_worker",
+    "roleKind": "senior_worker",
+    "provider": "airllm-cold",
+    "endpoint": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model": "Nemotron-Super-120B-A12B-FP8",
+    "status": "blocked_unproven",
+    "repositoryWriteAllowed": false,
+    "fallbackAllowed": false,
+    "allowedFallbackRoles": [],
+    "runtimeRequired": false,
+    "healthcheckRequired": false,
+    "notes": "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super."
+  },
+  "boot_probe_status": "disabled",
+  "fallback_used": false,
+  "airllm_serving_started": false,
+  "super_used": false,
+  "qwen_used": false,
+  "super_model_load_performed": false,
+  "super_model_inference_performed": false,
+  "integration_performed": false,
+  "matrix_gitignored": true,
+  "evidence_path": "evidence/airllm-compatibility-matrix/phase-11-airllm-compatibility-matrix-2026-06-21T21-15-01-532Z.json",
+  "blocked_reasons": [],
+  "warnings": [
+    "AIRLLM_MATRIX_IMPORT_PROBE_FAILED:1"
+  ],
+  "recommended_next_action": "Promote a2 into a locked requirements-airllm candidate, then run a future guarded boot probe phase."
+}
