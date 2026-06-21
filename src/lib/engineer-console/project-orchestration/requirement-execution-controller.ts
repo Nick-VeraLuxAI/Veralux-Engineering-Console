@@ -273,6 +273,15 @@ function routingForAssignment(decision: ModelRoutingDecision): WorkerAssignmentC
     routing_decision_id: decision.routingDecisionId,
     route_status: decision.status,
     repository_write_allowed: decision.repositoryWriteAllowed,
+    blocked_details: decision.blockedDetails
+      ? {
+          role: decision.blockedDetails.role,
+          expected_endpoint: decision.blockedDetails.expectedEndpoint,
+          expected_model: decision.blockedDetails.expectedModel,
+          failure_reason: decision.blockedDetails.failureReason,
+          next_operator_action: decision.blockedDetails.nextOperatorAction,
+        }
+      : null,
   };
 }
 

@@ -54,6 +54,20 @@ async function startFakeVera() {
     const chunks: Buffer[] = [];
     req.on("data", (chunk) => chunks.push(chunk));
     req.on("end", () => {
+      if (req.method === "GET" && req.url === "/v1/models") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          object: "list",
+          data: [
+            {
+              id: "Nemotron-Nano-30B-A3B-NVFP4",
+              owned_by: "fake-vera-runtime",
+              max_model_len: 8192,
+            },
+          ],
+        }));
+        return;
+      }
       if (req.headers.authorization !== "Bearer test-vera-key") {
         res.writeHead(401, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: { message: "unauthorized" } }));
@@ -76,7 +90,7 @@ async function startFakeVera() {
           object: "hermes.run",
           run_id: "run_fake_vera",
           status: fakeTerminalStatus,
-          model: "Qwen/Qwen2.5-Coder-32B-Instruct-GGUF:q5_k_m",
+          model: "Nemotron-Nano-30B-A3B-NVFP4",
           output: fakeTerminalStatus === "completed" ? "Created src/result.txt and ran the requested implementation." : "",
           error: fakeTerminalStatus === "failed" ? "Connection error after tool execution." : null,
           usage: { total_tokens: 42 },
@@ -114,7 +128,7 @@ beforeEach(async () => {
   process.env.ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV = "true";
   process.env.ENGINEER_CONSOLE_WORKSPACE_ROOT = workspaceRoot;
   process.env.VERA_API_KEY = "test-vera-key";
-  process.env.VERA_DEFAULT_MODEL = "Qwen/Qwen2.5-Coder-32B-Instruct-GGUF:q5_k_m";
+  process.env.VERA_DEFAULT_MODEL = "Nemotron-Nano-30B-A3B-NVFP4";
   resetEngineerConsoleDbForTests();
   initializeEngineerConsoleDatabase();
   sh("git init", repoRoot);
@@ -136,6 +150,8 @@ beforeEach(async () => {
   sh('git commit -m "init"', repoRoot);
   await startFakeVera();
   process.env.VERA_API_BASE_URL = baseUrl;
+  process.env.CONSOLE_DEFAULT_WORKER_ENDPOINT = `${baseUrl}/v1`;
+  process.env.CONSOLE_DEFAULT_WORKER_BENCHMARK_STATUS = "benchmark_passed";
   fakeTerminalStatus = "completed";
   fakeApplyChange = true;
 });
@@ -152,6 +168,8 @@ afterEach(async () => {
   delete process.env.VERA_API_KEY;
   delete process.env.VERA_API_BASE_URL;
   delete process.env.VERA_DEFAULT_MODEL;
+  delete process.env.CONSOLE_DEFAULT_WORKER_ENDPOINT;
+  delete process.env.CONSOLE_DEFAULT_WORKER_BENCHMARK_STATUS;
 });
 
 async function seedAttempt() {
@@ -196,7 +214,7 @@ describe("governed Vera execution", () => {
     expect(fs.existsSync(path.join(repoRoot, "src", "result.txt"))).toBe(false);
     expect(run?.agentMessage).not.toBe(AGENT_PLACEHOLDER_MESSAGE);
     expect(run?.governanceNotes).toContain("run_fake_vera");
-    expect(run?.governanceNotes).toContain("Qwen/Qwen2.5-Coder-32B-Instruct-GGUF:q5_k_m");
+    expect(run?.governanceNotes).toContain("Nemotron-Nano-30B-A3B-NVFP4");
   });
 
   it("reconciles valid worktree changes after an indeterminate Vera failure", async () => {

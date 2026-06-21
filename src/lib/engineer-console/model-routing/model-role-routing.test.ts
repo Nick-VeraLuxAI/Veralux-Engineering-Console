@@ -26,9 +26,10 @@ describe("Nemotron-only model role routing", () => {
   });
 
   it("defines only Nemotron production roles", () => {
-    expect(getModelRoleConfig("vera_command").primaryModel).toBe("Nemotron-Nano-30B-A3B");
-    expect(getModelRoleConfig("console_default_worker").primaryModel).toBe("Nemotron-Nano-30B-A3B");
-    expect(getModelRoleConfig("console_senior_worker").primaryModel).toBe("Nemotron-Super-120B-A12B");
+    expect(getModelRoleConfig("vera_command").primaryModel).toBe("Nemotron-Nano-30B-A3B-NVFP4");
+    expect(getModelRoleConfig("console_default_worker").primaryModel).toBe("Nemotron-Nano-30B-A3B-NVFP4");
+    expect(getModelRoleConfig("console_senior_worker").primaryModel).toBe("Nemotron-Super-120B-A12B-FP8");
+    expect(getModelRoleConfig("console_senior_worker").provider).toBe("airllm-cold");
   });
 
   it("blocks a primary route when the endpoint is missing", async () => {
@@ -56,7 +57,7 @@ describe("Nemotron-only model role routing", () => {
           json: async () => ({
             data: [
               {
-                id: "Nemotron-Nano-30B-A3B",
+                id: "Nemotron-Nano-30B-A3B-NVFP4",
                 owned_by: "local-test",
                 meta: { n_ctx_train: 32768, n_params: 30_000_000_000, size: 10 },
               },
@@ -77,7 +78,7 @@ describe("Nemotron-only model role routing", () => {
     const health = await validateModelEndpoint(config, jsonFetch({
       data: [
         {
-          id: "Nemotron-Nano-30B-A3B",
+          id: "Nemotron-Nano-30B-A3B-NVFP4",
           runtime: "mock-openai-runtime",
           meta: { n_ctx_train: 65536, n_params: 30_000_000_000, size: 1234 },
         },
@@ -86,8 +87,8 @@ describe("Nemotron-only model role routing", () => {
     const record = roleRuntimeRecordFromHealth(config, health);
     expect(record.configuredEndpoint).toBe("http://127.0.0.1:8082/v1");
     expect(record.actualEndpoint).toBe("http://127.0.0.1:8082/v1");
-    expect(record.configuredModelName).toBe("Nemotron-Nano-30B-A3B");
-    expect(record.actualModelId).toBe("Nemotron-Nano-30B-A3B");
+    expect(record.configuredModelName).toBe("Nemotron-Nano-30B-A3B-NVFP4");
+    expect(record.actualModelId).toBe("Nemotron-Nano-30B-A3B-NVFP4");
     expect(record.runtime).toBe("mock-openai-runtime");
     expect(record.contextWindow).toBe(65536);
   });
@@ -96,10 +97,14 @@ describe("Nemotron-only model role routing", () => {
     const decision = await selectModelRoute({
       roleId: "console_default_worker",
       repositoryWriteRequested: true,
-      fetchFn: jsonFetch({ data: [{ id: "Nemotron-Nano-30B-A3B" }] }),
+      env: {
+        CONSOLE_DEFAULT_WORKER_BENCHMARK_STATUS: "available_unbenchmarked",
+      } as unknown as NodeJS.ProcessEnv,
+      fetchFn: jsonFetch({ data: [{ id: "Nemotron-Nano-30B-A3B-NVFP4" }] }),
     });
     expect(decision.status).toBe("blocked_unbenchmarked");
     expect(decision.blockedReason).toBe("NEMOTRON_DEFAULT_WORKER_UNAVAILABLE");
+    expect(decision.blockedDetails?.expectedModel).toBe("Nemotron-Nano-30B-A3B-NVFP4");
     expect(decision.fallbackUsed).toBe(false);
     expect(decision.selectedModelRoleId).toBeNull();
   });
@@ -127,15 +132,15 @@ describe("Nemotron-only model role routing", () => {
     expect(result.writesAllowed).toBe(false);
   });
 
-  it("does not select Qwen even when fallback environment variables are present", async () => {
+  it("does not select a disabled fallback even when fallback environment variables are present", async () => {
     const decision = await selectModelRoute({
       roleId: "console_default_worker",
       repositoryWriteRequested: true,
       env: {
-        CONSOLE_ALLOW_QWEN_FALLBACK: "true",
-        FALLBACK_WORKER_MODEL_NAME: "Qwen2.5-Coder-32B-Instruct",
+        CONSOLE_ALLOW_LEGACY_FALLBACK: "true",
+        FALLBACK_WORKER_MODEL_NAME: "Legacy-Fallback-Model",
         FALLBACK_WORKER_ENDPOINT: "http://127.0.0.1:8080/v1",
-        FALLBACK_WORKER_BENCHMARK_STATUS: "proven_fallback",
+        FALLBACK_WORKER_BENCHMARK_STATUS: "benchmark_passed",
       } as unknown as NodeJS.ProcessEnv,
       fetchFn: jsonFetch({ data: [{ id: "different-model" }] }),
     });
@@ -147,7 +152,7 @@ describe("Nemotron-only model role routing", () => {
     expect(decision.fallbackReason).toBeNull();
   });
 
-  it("Qwen endpoint health does not matter for Nemotron-only policy", async () => {
+  it("non-Nemotron endpoint health does not matter for Nemotron-only policy", async () => {
     const decision = await selectModelRoute({
       roleId: "vera_command",
       repositoryWriteRequested: false,
@@ -155,7 +160,7 @@ describe("Nemotron-only model role routing", () => {
         VERA_COMMAND_MODEL_ENDPOINT: "http://127.0.0.1:8081/v1",
         FALLBACK_WORKER_ENDPOINT: "http://127.0.0.1:8080/v1",
       } as unknown as NodeJS.ProcessEnv,
-      fetchFn: jsonFetch({ data: [{ id: "Qwen2.5-Coder-32B-Instruct" }] }),
+      fetchFn: jsonFetch({ data: [{ id: "Legacy-Fallback-Model" }] }),
     });
     expect(decision.status).toBe("blocked_model_mismatch");
     expect(decision.blockedReason).toBe("NEMOTRON_COMMAND_MODEL_UNAVAILABLE");
@@ -167,7 +172,7 @@ describe("Nemotron-only model role routing", () => {
     await expect(selectModelRoute({
       roleId: "fallback_worker" as never,
       repositoryWriteRequested: false,
-      fetchFn: jsonFetch({ data: [{ id: "Qwen2.5-Coder-32B-Instruct" }] }),
+      fetchFn: jsonFetch({ data: [{ id: "Legacy-Fallback-Model" }] }),
     })).rejects.toThrow("NEMOTRON_ROLE_DISABLED:fallback_worker");
   });
 
@@ -178,7 +183,7 @@ describe("Nemotron-only model role routing", () => {
       env: {
         VERA_COMMAND_MODEL_ENABLED: "false",
       } as unknown as NodeJS.ProcessEnv,
-      fetchFn: jsonFetch({ data: [{ id: "Nemotron-Nano-30B-A3B" }] }),
+      fetchFn: jsonFetch({ data: [{ id: "Nemotron-Nano-30B-A3B-NVFP4" }] }),
     });
     expect(decision.status).toBe("blocked_role_disabled");
     expect(decision.blockedReason).toBe("NEMOTRON_ROLE_DISABLED");
@@ -190,10 +195,12 @@ describe("Nemotron-only model role routing", () => {
     const decision = await selectModelRoute({
       roleId: "console_senior_worker",
       repositoryWriteRequested: false,
-      fetchFn: jsonFetch({ data: [{ id: "Nemotron-Nano-30B-A3B" }] }),
+      fetchFn: jsonFetch({ data: [{ id: "Nemotron-Nano-30B-A3B-NVFP4" }] }),
     });
     expect(decision.status).toBe("senior_model_unavailable");
     expect(decision.blockedReason).toBe("NEMOTRON_SENIOR_WORKER_UNAVAILABLE");
+    expect(decision.health.error).toBe("NEMOTRON_SUPER_AIRLLM_UNPROVEN");
+    expect(decision.blockedDetails?.nextOperatorAction).toContain("AirLLM Super");
     expect(decision.selectedModelRoleId).toBeNull();
     expect(decision.fallbackUsed).toBe(false);
   });

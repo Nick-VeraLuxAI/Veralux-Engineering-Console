@@ -157,6 +157,13 @@ export interface WorkerAssignmentContract {
     routing_decision_id: string;
     route_status: string;
     repository_write_allowed: boolean;
+    blocked_details?: {
+      role: string;
+      expected_endpoint: string;
+      expected_model: string;
+      failure_reason: string;
+      next_operator_action: string;
+    } | null;
   };
   workspace?: {
     workspace_id: string;

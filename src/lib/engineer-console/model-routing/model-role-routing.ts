@@ -73,6 +73,13 @@ export interface ModelRoutingDecision {
   status: ModelRouteStatus;
   repositoryWriteAllowed: boolean;
   health: ModelEndpointHealth;
+  blockedDetails: {
+    role: ModelRoleId;
+    expectedEndpoint: string;
+    expectedModel: string;
+    failureReason: string;
+    nextOperatorAction: string;
+  } | null;
 }
 
 export interface ModelRoleRuntimeRecord {
@@ -120,6 +127,23 @@ function benchmarkStatus(env: NodeJS.ProcessEnv, key: string, fallback: Benchmar
   return value || fallback;
 }
 
+function blockedDetails(
+  config: ModelRoleConfig,
+  failureReason: string,
+): ModelRoutingDecision["blockedDetails"] {
+  const nextOperatorAction =
+    config.roleId === "console_senior_worker"
+      ? "Run the AirLLM Super cold-escalation compatibility probe and mark the senior role benchmark-passed only after it succeeds."
+      : `Start the configured Nemotron Nano NVFP4 service and verify ${config.endpoint}/models returns ${config.primaryModel}.`;
+  return {
+    role: config.roleId,
+    expectedEndpoint: config.endpoint,
+    expectedModel: config.primaryModel,
+    failureReason,
+    nextOperatorAction,
+  };
+}
+
 export function getModelRoleConfig(
   roleId: ModelRoleId,
   env: NodeJS.ProcessEnv = process.env,
@@ -130,12 +154,16 @@ export function getModelRoleConfig(
   if (roleId === "console_senior_worker") {
     return {
       roleId,
-      primaryModel: envValue(env, "CONSOLE_SENIOR_WORKER_MODEL_NAME", "Nemotron-Super-120B-A12B"),
-      provider: envValue(env, "CONSOLE_SENIOR_WORKER_PROVIDER", "custom"),
-      endpoint: envValue(env, "CONSOLE_SENIOR_WORKER_ENDPOINT", "http://127.0.0.1:8083/v1"),
+      primaryModel: envValue(env, "CONSOLE_SENIOR_WORKER_MODEL_NAME", "Nemotron-Super-120B-A12B-FP8"),
+      provider: envValue(env, "CONSOLE_SENIOR_WORKER_PROVIDER", "airllm-cold"),
+      endpoint: envValue(
+        env,
+        "CONSOLE_SENIOR_WORKER_ENDPOINT",
+        "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+      ),
       enabled: envBool(env.CONSOLE_SENIOR_WORKER_ENABLED, true),
       repositoryWriteAllowed: false,
-      benchmarkStatus: benchmarkStatus(env, "CONSOLE_SENIOR_WORKER_BENCHMARK_STATUS", "available_unbenchmarked"),
+      benchmarkStatus: benchmarkStatus(env, "CONSOLE_SENIOR_WORKER_BENCHMARK_STATUS", "missing_model"),
       transportPolicy: NEMOTRON_TOOL_SAFE_POLICY,
     };
   }
@@ -143,7 +171,7 @@ export function getModelRoleConfig(
   if (roleId === "vera_command") {
     return {
       roleId,
-      primaryModel: envValue(env, "VERA_COMMAND_MODEL_NAME", "Nemotron-Nano-30B-A3B"),
+      primaryModel: envValue(env, "VERA_COMMAND_MODEL_NAME", "Nemotron-Nano-30B-A3B-NVFP4"),
       provider: envValue(env, "VERA_COMMAND_MODEL_PROVIDER", "custom"),
       endpoint: envValue(env, "VERA_COMMAND_MODEL_ENDPOINT", "http://127.0.0.1:8081/v1"),
       enabled: envBool(env.VERA_COMMAND_MODEL_ENABLED, true),
@@ -155,7 +183,7 @@ export function getModelRoleConfig(
 
   return {
     roleId,
-    primaryModel: envValue(env, "CONSOLE_DEFAULT_WORKER_MODEL_NAME", "Nemotron-Nano-30B-A3B"),
+    primaryModel: envValue(env, "CONSOLE_DEFAULT_WORKER_MODEL_NAME", "Nemotron-Nano-30B-A3B-NVFP4"),
     provider: envValue(env, "CONSOLE_DEFAULT_WORKER_PROVIDER", "custom"),
     endpoint: envValue(env, "CONSOLE_DEFAULT_WORKER_ENDPOINT", "http://127.0.0.1:8082/v1"),
     enabled: envBool(env.CONSOLE_DEFAULT_WORKER_ENABLED, true),
@@ -207,6 +235,21 @@ export async function validateModelEndpoint(
   fetchFn: ModelRoleFetch = fetch,
 ): Promise<ModelEndpointHealth> {
   const checkedAt = new Date().toISOString();
+  if (config.provider === "airllm-cold") {
+    return {
+      status: "missing_endpoint",
+      endpoint: config.endpoint,
+      modelsUrl: null,
+      modelMatched: false,
+      modelId: null,
+      runtime: "airllm-cold",
+      contextWindow: null,
+      parameterCount: null,
+      sizeBytes: null,
+      checkedAt,
+      error: "NEMOTRON_SUPER_AIRLLM_UNPROVEN",
+    };
+  }
   if (!config.endpoint.trim()) {
     return {
       status: "missing_endpoint",
@@ -355,6 +398,7 @@ export async function selectModelRoute(input: {
       status: "blocked_role_disabled",
       repositoryWriteAllowed: false,
       health: { ...health, error: "NEMOTRON_ROLE_DISABLED" },
+      blockedDetails: blockedDetails(requested, "NEMOTRON_ROLE_DISABLED"),
     };
   }
   const health = await validateModelEndpoint(requested, input.fetchFn ?? fetch);
@@ -397,6 +441,7 @@ export async function selectModelRoute(input: {
                 : "blocked_unreachable",
       repositoryWriteAllowed: false,
       health,
+      blockedDetails: blockedDetails(requested, health.error ?? blockedReason),
     };
   }
 
@@ -420,6 +465,7 @@ export async function selectModelRoute(input: {
     status: "selected_primary",
     repositoryWriteAllowed: requested.repositoryWriteAllowed,
     health,
+    blockedDetails: null,
   };
 }
 
