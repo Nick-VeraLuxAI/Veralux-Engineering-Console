@@ -17,6 +17,7 @@ export interface VeraExecutionContext {
   timeout_ms: number;
   origin: "engineering_console";
   preauthorized: boolean;
+  model_routing?: WorkerAssignmentContract["model_routing"];
 }
 
 export interface VeraExecutionRequest {
@@ -119,6 +120,7 @@ export interface VeraExecutionResult {
   warnings: string[];
   failure: VeraExecutionFailure | null;
   escalation: VeraEscalationResult | null;
+  modelRouting?: WorkerAssignmentContract["model_routing"] | null;
   startedAt: string;
   completedAt: string;
 }

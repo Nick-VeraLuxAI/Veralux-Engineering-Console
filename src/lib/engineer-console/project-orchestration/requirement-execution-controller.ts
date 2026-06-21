@@ -9,6 +9,12 @@ import { resolveTaskTargetRepoPath } from "../repo-intelligence/task-repo-path";
 import { refreshRunEvidenceBundle } from "../governance/evidence-bundles/evidence-bundle-manager";
 import { appendAuditEvent } from "../governance/audit-ledger/append-audit-event";
 import {
+  getModelRoleConfig,
+  selectModelRoute,
+  type ModelRoutingDecision,
+  type ModelRoleId,
+} from "../model-routing/model-role-routing";
+import {
   AUDIT_ACTOR_TYPES,
   AUDIT_ENTITY_TYPES,
   AUDIT_EVENT_TYPES,
@@ -202,9 +208,10 @@ function summarizeGates(gates: QualityGateResult[]): string {
 
 function modelInfo() {
   if (process.env.NODE_ENV !== "test" && process.env.ENGINEER_CONSOLE_EXECUTION_BACKEND !== "mock") {
+    const role = getModelRoleConfig("console_default_worker");
     return {
-      modelProvider: "vera",
-      modelName: process.env.VERA_DEFAULT_MODEL?.trim() || "vera-default",
+      modelProvider: role.provider,
+      modelName: role.primaryModel,
     };
   }
   const info = getPublicModelProviderInfo();
@@ -243,7 +250,36 @@ export function prepareAttempt(requirementId: string): RequirementExecutionAttem
   return attempt;
 }
 
-export function buildWorkerAssignment(attemptId: string): WorkerAssignmentContract {
+function roleForAttemptStrategy(strategy: string): ModelRoleId {
+  return strategy === "senior_model_review" ? "console_senior_worker" : "console_default_worker";
+}
+
+function routingForAssignment(decision: ModelRoutingDecision): WorkerAssignmentContract["model_routing"] {
+  return {
+    model_role_id: decision.requestedModelRoleId,
+    requested_model_name: decision.requestedModelName,
+    requested_provider: decision.requestedProvider,
+    requested_endpoint: decision.requestedEndpoint,
+    selected_model_role_id: decision.selectedModelRoleId,
+    selected_model_name: decision.selectedModelName,
+    selected_provider: decision.selectedProvider,
+    selected_endpoint: decision.selectedEndpoint,
+    runtime: decision.runtime,
+    context_window: decision.contextWindow,
+    transport_policy: { ...decision.transportPolicy },
+    fallback_used: decision.fallbackUsed,
+    fallback_reason: decision.fallbackReason,
+    benchmark_status: decision.benchmarkStatus,
+    routing_decision_id: decision.routingDecisionId,
+    route_status: decision.status,
+    repository_write_allowed: decision.repositoryWriteAllowed,
+  };
+}
+
+export function buildWorkerAssignment(
+  attemptId: string,
+  options: { modelRouting?: ModelRoutingDecision } = {},
+): WorkerAssignmentContract {
   const attempt = getExecutionAttemptById(attemptId);
   if (!attempt) throw new RequirementExecutionError("ATTEMPT_NOT_FOUND", "Attempt not found.", 404);
   const requirement = getRequirementById(attempt.requirementId);
@@ -312,6 +348,7 @@ export function buildWorkerAssignment(attemptId: string): WorkerAssignmentContra
         ? "coding worker must execute only inside the assigned isolated worktree; candidate integration remains human-gated"
         : "legacy no-workspace attempt; register repository to enable isolated execution",
     },
+    model_routing: options.modelRouting ? routingForAssignment(options.modelRouting) : undefined,
     ...workspaceScope,
     completion_contract: {
       return_changed_files: true,
@@ -366,7 +403,51 @@ export async function dispatchAttempt(
         cacheSource: null,
         dependencyFingerprint: "missing-workspace",
       };
-  const assignmentContract = buildWorkerAssignment(attempt.id);
+  const routeDecision = await selectModelRoute({
+    roleId: roleForAttemptStrategy(attempt.strategy),
+    repositoryWriteRequested: true,
+  });
+  if (!routeDecision.selectedModelRoleId || !routeDecision.repositoryWriteAllowed) {
+    const summary =
+      routeDecision.status === "senior_model_unavailable"
+        ? "senior_model_unavailable: Nemotron senior worker is not available; senior review was not performed."
+        : `MODEL_ROUTE_BLOCKED: ${routeDecision.status} (${routeDecision.health.error ?? routeDecision.benchmarkStatus}).`;
+    const fingerprint = fingerprintFailure({
+      category: "policy_violation",
+      text: summary,
+    });
+    createAttemptFailure({
+      attemptId: attempt.id,
+      projectId: attempt.projectId,
+      requirementId: attempt.requirementId,
+      runId: null,
+      category: "policy_violation",
+      summary,
+      details: { modelRouting: routeDecision },
+      retryable: true,
+      fingerprint,
+      affectedFiles: [],
+    });
+    const blocked = updateExecutionAttempt(attempt.id, {
+      status: "blocked",
+      completedAt: nowIso(),
+      outcome: "readiness_failed",
+      failureCategory: "policy_violation",
+      failureFingerprint: fingerprint,
+      failureSummary: summary,
+      retryable: true,
+      commandsExecutedSummary: JSON.stringify([]),
+      testSummary: JSON.stringify({ modelRouting: routeDecision }),
+      qualityGateSummary: JSON.stringify({ total: 0, passed: 0, failed: 0, skipped: 0, commands: [] }),
+    })!;
+    auditAttempt(AUDIT_EVENT_TYPES.REQUIREMENT_ATTEMPT_FAILED, blocked, {
+      category: blocked.failureCategory,
+      modelRouting: routeDecision,
+      beforeVeraDispatch: true,
+    });
+    return blocked;
+  }
+  const assignmentContract = buildWorkerAssignment(attempt.id, { modelRouting: routeDecision });
   const readiness = assessAttemptReadiness({
     attemptId: attempt.id,
     assignment: assignmentContract,

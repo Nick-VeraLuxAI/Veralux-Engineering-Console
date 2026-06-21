@@ -83,6 +83,7 @@ function buildExecutionContext(input: {
     timeout_ms: input.assignment.execution_limits.max_runtime_seconds * 1000,
     origin: "engineering_console",
     preauthorized: true,
+    model_routing: input.assignment.model_routing,
   };
 }
 
@@ -175,6 +176,7 @@ export async function runVeraExecutorForRun(
   if (!workspace) throw new Error("Vera execution requires an implementation workspace.");
   const assignment = parseAssignment(attempt.id);
   const executionContext = buildExecutionContext({ runId, assignment });
+  const selectedModel = assignment.model_routing?.selected_model_name ?? null;
   const config = getVeraExecutorConfig();
   const client = deps.client ?? new VeraExecutorClient(config);
   const { instructions, userInput } = buildPrompt({
@@ -186,7 +188,7 @@ export async function runVeraExecutorForRun(
     instructions: task.description,
     assignment,
     executionContext,
-    model: config.defaultModel,
+    model: selectedModel ?? config.defaultModel,
   });
 
   try {
@@ -198,14 +200,16 @@ export async function runVeraExecutorForRun(
         veraExecutionMode: "live",
         veraWorkspaceId: workspace.id,
         veraWorkspacePathHash: workspace.worktreePath,
+        veraModelRouting: assignment.model_routing ?? null,
       }),
     });
     const submitted = await client.submitRun({
-      model: config.defaultModel ?? undefined,
+      model: selectedModel ?? config.defaultModel ?? undefined,
       input: userInput,
       instructions,
       session_id: `engineering-console:${attempt.id}`,
       execution_context: executionContext,
+      model_role_routing: assignment.model_routing ?? null,
       max_iterations: 8,
     });
     updateRun(runId, {
@@ -249,6 +253,19 @@ export async function runVeraExecutorForRun(
       governanceNotes: mergeRunGovernanceNotes(getRunById(runId)?.governanceNotes, {
         veraProvider: VERA_PROVIDER,
         veraModel: model,
+        veraModelRouting: {
+          requestedModelRoleId: assignment.model_routing?.model_role_id ?? null,
+          selectedModelRoleId: assignment.model_routing?.selected_model_role_id ?? null,
+          requestedModelName: assignment.model_routing?.requested_model_name ?? null,
+          actualModelName: model,
+          provider: assignment.model_routing?.selected_provider ?? VERA_PROVIDER,
+          endpoint: assignment.model_routing?.selected_endpoint ?? null,
+          fallbackUsed: assignment.model_routing?.fallback_used ?? false,
+          fallbackReason: assignment.model_routing?.fallback_reason ?? null,
+          transportPolicy: assignment.model_routing?.transport_policy ?? null,
+          routingDecisionId: assignment.model_routing?.routing_decision_id ?? null,
+          benchmarkStatus: assignment.model_routing?.benchmark_status ?? null,
+        },
         veraExternalRunId: submitted.run_id,
         veraUsage: status.usage ?? {},
         veraTransport: {
@@ -288,6 +305,7 @@ export async function runVeraExecutorForRun(
           }
         : null,
       escalation: { status: "not_requested" },
+      modelRouting: assignment.model_routing ?? null,
       startedAt,
       completedAt,
     };
@@ -302,18 +320,19 @@ export async function runVeraExecutorForRun(
         veraProvider: VERA_PROVIDER,
         veraExecutionMode: "live",
         veraFailure: failure,
+        veraModelRouting: assignment.model_routing ?? null,
       }),
       completedAt,
     });
     updateExecutionAttempt(attempt.id, {
       modelProvider: VERA_PROVIDER,
-      modelName: config.defaultModel ?? "vera-default",
+      modelName: selectedModel ?? config.defaultModel ?? "vera-default",
     });
     return {
       status: failure.category === "timeout" ? "timeout" : "failed",
       summary: failure.message,
       provider: VERA_PROVIDER,
-      model: config.defaultModel ?? "vera-default",
+      model: selectedModel ?? config.defaultModel ?? "vera-default",
       externalRunId: getExternalVeraRunId(getRunById(runId)?.governanceNotes),
       attemptId: attempt.id,
       requirementId: attempt.requirementId,
@@ -325,6 +344,7 @@ export async function runVeraExecutorForRun(
       warnings: [],
       failure,
       escalation: { status: "not_requested" },
+      modelRouting: assignment.model_routing ?? null,
       startedAt,
       completedAt,
     };

@@ -139,6 +139,25 @@ export interface WorkerAssignmentContract {
     base_commit: string | null;
     working_tree_policy: string;
   };
+  model_routing?: {
+    model_role_id: string;
+    requested_model_name: string;
+    requested_provider: string;
+    requested_endpoint: string;
+    selected_model_role_id: string | null;
+    selected_model_name: string | null;
+    selected_provider: string | null;
+    selected_endpoint: string | null;
+    runtime: string | null;
+    context_window: number | null;
+    transport_policy: Record<string, unknown>;
+    fallback_used: boolean;
+    fallback_reason: string | null;
+    benchmark_status: string;
+    routing_decision_id: string;
+    route_status: string;
+    repository_write_allowed: boolean;
+  };
   workspace?: {
     workspace_id: string;
     repository_id: string;
