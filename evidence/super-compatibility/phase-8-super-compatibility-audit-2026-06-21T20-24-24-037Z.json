@@ -1,0 +1,211 @@
+{
+  "audit_id": "phase-8-super-compatibility-audit-2026-06-21T20-24-24-037Z",
+  "timestamp": "2026-06-21T20:24:24.037Z",
+  "senior_role_id": "console_senior_worker",
+  "senior_role_resolution": {
+    "roleId": "console_senior_worker",
+    "roleKind": "senior_worker",
+    "provider": "airllm-cold",
+    "endpoint": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model": "Nemotron-Super-120B-A12B-FP8",
+    "status": "blocked_unproven",
+    "repositoryWriteAllowed": false,
+    "fallbackAllowed": false,
+    "allowedFallbackRoles": [],
+    "runtimeRequired": false,
+    "healthcheckRequired": false,
+    "notes": "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super."
+  },
+  "configured_provider": "airllm-cold",
+  "configured_model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+  "expected_model": "Nemotron-Super-120B-A12B-FP8",
+  "audit_mode": "non_loading_audit",
+  "parsed_airllm_uri": {
+    "raw": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "scheme": "airllm",
+    "model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "diagnostics": []
+  },
+  "model_artifact_check": {
+    "configured_uri": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "path_exists": true,
+    "readable": true,
+    "expected_model_name_consistent": true,
+    "config_files": [
+      "config.json",
+      "generation_config.json"
+    ],
+    "tokenizer_files": [
+      "tokenizer.json",
+      "tokenizer_config.json"
+    ],
+    "weight_files": [
+      "model-00001-of-00026.safetensors",
+      "model-00002-of-00026.safetensors",
+      "model-00003-of-00026.safetensors",
+      "model-00004-of-00026.safetensors",
+      "model-00005-of-00026.safetensors",
+      "model-00006-of-00026.safetensors",
+      "model-00007-of-00026.safetensors",
+      "model-00008-of-00026.safetensors",
+      "model-00009-of-00026.safetensors",
+      "model-00010-of-00026.safetensors",
+      "model-00011-of-00026.safetensors",
+      "model-00012-of-00026.safetensors",
+      "model-00013-of-00026.safetensors",
+      "model-00014-of-00026.safetensors",
+      "model-00015-of-00026.safetensors",
+      "model-00016-of-00026.safetensors",
+      "model-00017-of-00026.safetensors",
+      "model-00018-of-00026.safetensors",
+      "model-00019-of-00026.safetensors",
+      "model-00020-of-00026.safetensors",
+      "model-00021-of-00026.safetensors",
+      "model-00022-of-00026.safetensors",
+      "model-00023-of-00026.safetensors",
+      "model-00024-of-00026.safetensors",
+      "model-00025-of-00026.safetensors",
+      "model-00026-of-00026.safetensors"
+    ],
+    "index_files": [
+      "model.safetensors.index.json"
+    ],
+    "total_size_bytes": 128379663226,
+    "partial_artifact_indicators": [],
+    "diagnostics": [],
+    "status": "passed"
+  },
+  "dependency_checks": [
+    {
+      "name": "python_available",
+      "status": "passed",
+      "command": "python3 --version",
+      "details": "Python 3.12.3",
+      "diagnostics": []
+    },
+    {
+      "name": "airllm_import_discoverable",
+      "status": "unknown",
+      "command": "python3 -c import importlib.util; raise SystemExit(0 if importlib.util.find_spec('airllm') else 2)",
+      "details": null,
+      "diagnostics": [
+        "SUPER_AUDIT_AIRLLM_IMPORT_NOT_DISCOVERABLE"
+      ]
+    },
+    {
+      "name": "nvidia_smi_available",
+      "status": "passed",
+      "command": "nvidia-smi --query-gpu=name,driver_version,memory.total,memory.free,memory.used --format=csv,noheader",
+      "details": "NVIDIA GeForce RTX 5090, 595.71.05, 32607 MiB, 4488 MiB, 27615 MiB\nNVIDIA GeForce RTX 5090, 595.71.05, 32607 MiB, 4568 MiB, 27543 MiB",
+      "diagnostics": []
+    }
+  ],
+  "hardware_snapshot": {
+    "status": "passed",
+    "gpu_summary": "0, NVIDIA GeForce RTX 5090, 32607, 4488, 27615, 595.71.05\n1, NVIDIA GeForce RTX 5090, 32607, 4568, 27543, 595.71.05",
+    "memory_summary": {
+      "total_bytes": 540303417344,
+      "free_bytes": 455162974208
+    },
+    "disk_summary": {
+      "path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+      "total_bytes": 4000768323584,
+      "free_bytes": 3545046495232
+    },
+    "diagnostics": []
+  },
+  "safety_gates": [
+    {
+      "name": "nano_roles_primary_and_healthy",
+      "status": "passed",
+      "required": true,
+      "message": "Nano runtime preflight/postflight remained healthy."
+    },
+    {
+      "name": "senior_role_blocked_unproven",
+      "status": "passed",
+      "required": true,
+      "message": "Senior role remains blocked_unproven."
+    },
+    {
+      "name": "super_not_started",
+      "status": "passed",
+      "required": true,
+      "message": "AirLLM/Super was not started."
+    },
+    {
+      "name": "qwen_not_used",
+      "status": "passed",
+      "required": true,
+      "message": "Qwen was not used."
+    },
+    {
+      "name": "fallback_not_used",
+      "status": "passed",
+      "required": true,
+      "message": "No fallback model was used."
+    },
+    {
+      "name": "no_integration",
+      "status": "passed",
+      "required": true,
+      "message": "No integration occurred."
+    },
+    {
+      "name": "no_uncontrolled_process_operations",
+      "status": "passed",
+      "required": true,
+      "message": "No uncontrolled process operations occurred."
+    },
+    {
+      "name": "model_artifacts_discoverable",
+      "status": "passed",
+      "required": true,
+      "message": "Model artifacts are discoverable without loading."
+    },
+    {
+      "name": "dependency_audit_completed",
+      "status": "passed",
+      "required": true,
+      "message": "Dependency audit completed without hard failure."
+    },
+    {
+      "name": "hardware_snapshot_captured",
+      "status": "passed",
+      "required": true,
+      "message": "Hardware/resource snapshot was captured or safely degraded."
+    }
+  ],
+  "boot_probe_plan": {
+    "mode": "disabled",
+    "status": "disabled",
+    "required_guards": [
+      "--allow-super-boot-probe",
+      "--confirm-super-boot-probe",
+      "role_id:console_senior_worker",
+      "nano_preflight:healthy",
+      "no_qwen_or_fallback",
+      "evidence_path_configured"
+    ],
+    "guards_satisfied": [],
+    "blocked_reason": "SUPER_BOOT_PROBE_DISABLED_FOR_PHASE_8",
+    "command": null
+  },
+  "preflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-24-24-037Z.json",
+  "postflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-24-24-605Z.json",
+  "preflight_runtime_status": "healthy",
+  "postflight_runtime_status": "healthy",
+  "final_verdict": "unknown",
+  "blocked_reasons": [],
+  "warnings": [
+    "airllm_import_discoverable:SUPER_AUDIT_AIRLLM_IMPORT_NOT_DISCOVERABLE"
+  ],
+  "evidence_path": "evidence/super-compatibility/phase-8-super-compatibility-audit-2026-06-21T20-24-24-037Z.json",
+  "fallback_used": false,
+  "airllm_super_used": false,
+  "qwen_used": false,
+  "super_model_load_performed": false,
+  "super_model_inference_performed": false,
+  "integration_performed": false
+}
