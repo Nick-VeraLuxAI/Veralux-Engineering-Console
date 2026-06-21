@@ -19,6 +19,8 @@ Vera remains the command and orchestration layer. For Prototype Loop v1, Hermes 
 
 Engineering Console remains the execution and governance layer. Prototype execution lives in `src/lib/engineer-console/prototype-loop/prototype-loop-v1.ts` and is callable through `scripts/prototype-loop/run-prototype-loop-v1-proof.ts`.
 
+Phase 1B adds a repeatable lifecycle harness in `src/lib/engineer-console/prototype-loop/prototype-loop-lifecycle.ts` and `scripts/prototype-loop/run-prototype-loop-v1-lifecycle.ts`. The lifecycle harness starts from the natural-language request, calls Vera intake through Hermes, runs Console, dynamically reads the generated evidence path, calls Vera evidence review through Hermes, and fails closed unless the approval question is produced with no integration.
+
 Model routing stays role-driven:
 
 - Vera role: `vera_command`, `http://127.0.0.1:8081/v1`, `Nemotron-Nano-30B-A3B-NVFP4`, no repository writes.
@@ -159,6 +161,30 @@ Preflight runtime checks passed for both Nano endpoints:
 - no active Qwen process/service/container was found
 
 The first live harness attempt failed before execution because Hermes was invoked from the Console working directory without `PYTHONPATH`. The second attempt produced ready Console evidence; Vera review was then rerun against the actual evidence path after correcting a shell-level hardcoded task ID. The implementation did not need code repair for this issue.
+
+## Phase 1B Lifecycle Result
+
+Phase 1B removes the manual evidence-path correction from the first proof and makes the end-to-end lifecycle repeatable with one command:
+
+```text
+npx tsx scripts/prototype-loop/run-prototype-loop-v1-lifecycle.ts --proof-run-root .prototype-loop/phase-1b-proof-runs
+```
+
+Result:
+
+- `lifecycle_status`: `PASS`
+- `console_status`: `ready_for_user_approval`
+- `vera_evidence_status`: `ready_for_user_approval`
+- `approval_required`: `true`
+- `integration_performed`: `false`
+- `approval_question`: `Do you want me to implement this prototype into the target repo, keep it as a prototype only, or discard it?`
+
+Phase 1B artifacts:
+
+- `.prototype-loop/phase-1b-proof-runs/prototype-loop-v1-99fce319cf42-phase-1b-handoff.json`
+- `.prototype-loop/phase-1b-proof-runs/prototype-loop-v1-99fce319cf42-phase-1b-console-result.json`
+- `.prototype-loop/phase-1b-proof-runs/prototype-loop-v1-99fce319cf42-phase-1b-vera-review.json`
+- `.prototype-loop/phase-1b-proof-runs/prototype-loop-v1-99fce319cf42-phase-1b-lifecycle-result.json`
 
 ## Known Gaps
 
