@@ -3,10 +3,14 @@ import { createHash } from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import { promisify } from "util";
+import {
+  evaluateAcceptanceThreshold,
+  type AcceptanceThresholdVerdict,
+} from "./acceptance-threshold";
 
 const execFileAsync = promisify(execFile);
 
-export type EvidenceStatus = "ready_for_user_approval" | "requires_revision" | "blocked" | "failed";
+export type EvidenceStatus = "ready_for_user_approval" | "not_ready" | "requires_revision" | "blocked" | "failed";
 
 export interface PrototypeLoopConsoleAssignment {
   assignment_type: "prototype_loop_v1_console_build";
@@ -85,6 +89,13 @@ export interface PrototypeLoopEvidence {
     console_response: string;
     new_evidence_status: EvidenceStatus;
   }>;
+  acceptance_threshold: AcceptanceThresholdVerdict;
+  readiness_verdict: AcceptanceThresholdVerdict["status"];
+  gate_results: AcceptanceThresholdVerdict["gate_results"];
+  required_gates: string[];
+  not_applicable_gates: AcceptanceThresholdVerdict["not_applicable_gates"];
+  pre_existing_unrelated_failures: AcceptanceThresholdVerdict["pre_existing_unrelated_failures"];
+  blocking_failures: string[];
 }
 
 interface PrototypeLoopOptions {
@@ -134,6 +145,16 @@ export async function runPrototypeLoopV1(
   const filesRelative = filesCreated.map((file) => path.relative(repoRoot, file));
   const secretScan = await scanCreatedFilesForSecrets(filesCreated);
   const diffScope = checkDiffScope(filesCreated, workspacePath, assignment.allowed_file_scope);
+  const lintTypecheckResults: PrototypeLoopCommandResult[] = [
+    {
+      command: "(not applicable)",
+      status: "skipped",
+      exitCode: 0,
+      stdout: "",
+      stderr: "Prototype workspace has no package-level lint/typecheck/build configuration.",
+      durationMs: 0,
+    },
+  ];
   const gates = [
     {
       name: "prototype_tests",
@@ -156,8 +177,27 @@ export async function runPrototypeLoopV1(
       message: "implementation is blocked pending explicit user approval",
     },
   ];
-  const ready = gates.every((gate) => gate.status === "passed");
   const evidencePath = path.join(evidenceRoot, `${assignment.task_id}.json`);
+  const acceptanceThreshold = evaluateAcceptanceThreshold({
+    taskId: assignment.task_id,
+    riskLevel: assignment.risk_level,
+    prototypeWorkspacePath: workspacePath,
+    requiredTestsConfigured: assignment.test_expectations.length > 0,
+    approvalRequired: assignment.approval_policy.approval_required,
+    integrationAllowed: assignment.approval_policy.integration_allowed,
+    integrationPerformed: false,
+    evidenceBundleGenerated: true,
+    filesCreatedOrChanged: filesRelative,
+    testResults,
+    lintTypecheckResults,
+    diffScopeCheck: diffScope,
+    secretScanResult: secretScan,
+    modelRoleRequirements: assignment.model_role_requirements,
+    fallbackUsed: false,
+    seniorUsed: false,
+    preExistingUnrelatedFailures: [],
+  });
+  const ready = acceptanceThreshold.ready;
   const evidence: PrototypeLoopEvidence = {
     task_id: assignment.task_id,
     timestamp: (options.now ?? new Date()).toISOString(),
@@ -170,23 +210,14 @@ export async function runPrototypeLoopV1(
     patch_diff_summary: summarizePrototypeFiles(filesCreated),
     commands_run: testResults.map((result) => result.command),
     test_results: testResults,
-    lint_typecheck_results: [
-      {
-        command: "(not applicable)",
-        status: "skipped",
-        exitCode: 0,
-        stdout: "",
-        stderr: "Prototype workspace has no package-level lint/typecheck configuration.",
-        durationMs: 0,
-      },
-    ],
+    lint_typecheck_results: lintTypecheckResults,
     secret_scan_result: secretScan,
     diff_scope_check: diffScope,
     gates,
     risk_assessment: "Low: isolated local CLI prototype, no network dependency, no production integration.",
-    unresolved_issues: ready ? [] : gates.filter((gate) => gate.status === "failed").map((gate) => gate.message),
-    final_readiness_status: ready ? "ready_for_user_approval" : "requires_revision",
-    status: ready ? "ready_for_user_approval" : "requires_revision",
+    unresolved_issues: acceptanceThreshold.unresolved_issues,
+    final_readiness_status: acceptanceThreshold.status,
+    status: acceptanceThreshold.status,
     implementation_recommendation: ready
       ? "Keep as prototype until the user explicitly approves implementation."
       : "Revise the prototype evidence before asking for implementation approval.",
@@ -198,6 +229,13 @@ export async function runPrototypeLoopV1(
     tests_passed: testsPassed,
     repair_attempts: repairAttempts,
     revision_rounds: [],
+    acceptance_threshold: acceptanceThreshold,
+    readiness_verdict: acceptanceThreshold.status,
+    gate_results: acceptanceThreshold.gate_results,
+    required_gates: acceptanceThreshold.required_gates,
+    not_applicable_gates: acceptanceThreshold.not_applicable_gates,
+    pre_existing_unrelated_failures: acceptanceThreshold.pre_existing_unrelated_failures,
+    blocking_failures: acceptanceThreshold.blocking_failures,
   };
 
   await fs.writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`, "utf8");

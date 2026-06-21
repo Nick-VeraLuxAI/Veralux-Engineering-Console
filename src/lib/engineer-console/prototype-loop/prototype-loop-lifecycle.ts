@@ -42,6 +42,7 @@ export interface PrototypeLoopLifecycleResult {
   evidence_path: string | null;
   workspace_path: string | null;
   console_status: string | null;
+  readiness_verdict: string | null;
   vera_evidence_status: string | null;
   approval_question: string | null;
   approval_required: boolean;
@@ -115,6 +116,7 @@ export async function runPrototypeLoopLifecycleV1(
     evidence_path: evidence.evidence_path,
     workspace_path: evidence.workspace_path,
     console_status: evidence.status,
+    readiness_verdict: evidence.readiness_verdict,
     vera_evidence_status: review.evidence_status ?? null,
     approval_question: approvalQuestion,
     approval_required: evidence.approval_required,
@@ -127,6 +129,8 @@ export async function runPrototypeLoopLifecycleV1(
 function consoleResultFromEvidence(evidence: PrototypeLoopEvidence): Record<string, unknown> {
   return {
     status: evidence.status,
+    readiness_verdict: evidence.readiness_verdict,
+    acceptance_summary: evidence.acceptance_threshold.summary,
     task_id: evidence.task_id,
     evidence_path: evidence.evidence_path,
     workspace_path: evidence.workspace_path,
@@ -156,6 +160,7 @@ function blockedResult(input: {
     evidence_path: null,
     workspace_path: null,
     console_status: null,
+    readiness_verdict: null,
     vera_evidence_status: null,
     approval_question: null,
     approval_required: false,

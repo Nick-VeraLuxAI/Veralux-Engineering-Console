@@ -124,6 +124,7 @@ describe("Prototype Loop Phase 1B lifecycle", () => {
     expect(result.lifecycle_status).toBe("PASS");
     expect(result.blocker_code).toBeNull();
     expect(result.evidence_path).toContain("prototype-loop-v1-lifecycle-test.json");
+    expect(result.readiness_verdict).toBe("ready_for_user_approval");
     expect(result.approval_required).toBe(true);
     expect(result.integration_performed).toBe(false);
     expect(result.approval_question).toContain("implement this prototype");

@@ -127,6 +127,12 @@ describe("Prototype Loop v1 Console runner", () => {
     expect(evidence.integration_performed).toBe(false);
     expect(evidence.secret_scan_result.status).toBe("passed");
     expect(evidence.diff_scope_check.status).toBe("passed");
+    expect(evidence.readiness_verdict).toBe("ready_for_user_approval");
+    expect(evidence.acceptance_threshold.ready).toBe(true);
+    expect(evidence.acceptance_threshold.required_gates).toContain("task_tests");
+    expect(evidence.acceptance_threshold.required_gates).toContain("role_policy");
+    expect(evidence.acceptance_threshold.skipped_gates).toContain("optional_lint_typecheck_build");
+    expect(evidence.blocking_failures).toEqual([]);
     expect(evidence.files_created_or_changed).toEqual([
       ".prototype-loop/prototype-loop-v1-test/word-count-cli.mjs",
       ".prototype-loop/prototype-loop-v1-test/word-count-cli.test.mjs",
@@ -135,6 +141,7 @@ describe("Prototype Loop v1 Console runner", () => {
 
     const saved = JSON.parse(await fs.readFile(evidence.evidence_path, "utf8")) as typeof evidence;
     expect(saved.final_readiness_status).toBe("ready_for_user_approval");
+    expect(saved.acceptance_threshold.status).toBe("ready_for_user_approval");
   });
 
   it("repairs and retries failed test gates within the configured limit", async () => {
