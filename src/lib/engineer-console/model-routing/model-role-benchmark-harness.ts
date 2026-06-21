@@ -11,7 +11,7 @@ export interface ModelRoleBenchmarkOptions {
 
 export interface ModelRoleBenchmarkResult {
   role: ModelRoleId;
-  status: "blocked_missing_model" | "blocked_unbenchmarked" | "ready_for_benchmark" | "proven_fallback";
+  status: "blocked_missing_model" | "blocked_unbenchmarked" | "ready_for_benchmark";
   mode: "dry_run" | "shadow" | "read_only" | "tool_limited";
   routingDecisionId: string;
   selectedModelRoleId: ModelRoleId | null;
@@ -28,7 +28,6 @@ export async function runModelRoleBenchmark(
   const decision = await selectModelRoute({
     roleId: options.role,
     repositoryWriteRequested: writesRequested,
-    fallbackAllowed: options.role === "fallback_worker",
     fetchFn: options.fetchFn,
   });
   const mode = options.dryRun
@@ -48,13 +47,11 @@ export async function runModelRoleBenchmark(
   return {
     role: options.role,
     status:
-      decision.benchmarkStatus === "proven_fallback"
-        ? "proven_fallback"
-        : blockedMissing
-          ? "blocked_missing_model"
-          : decision.benchmarkStatus === "benchmark_passed"
-            ? "ready_for_benchmark"
-            : "blocked_unbenchmarked",
+      blockedMissing
+        ? "blocked_missing_model"
+        : decision.benchmarkStatus === "benchmark_passed"
+          ? "ready_for_benchmark"
+          : "blocked_unbenchmarked",
     mode,
     routingDecisionId: decision.routingDecisionId,
     selectedModelRoleId: decision.selectedModelRoleId,

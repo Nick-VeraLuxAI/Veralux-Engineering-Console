@@ -1,8 +1,7 @@
 export type ModelRoleId =
   | "vera_command"
   | "console_default_worker"
-  | "console_senior_worker"
-  | "fallback_worker";
+  | "console_senior_worker";
 
 export type BenchmarkStatus =
   | "missing_model"
@@ -10,17 +9,16 @@ export type BenchmarkStatus =
   | "model_mismatch"
   | "available_unbenchmarked"
   | "benchmark_failed"
-  | "benchmark_passed"
-  | "proven_fallback";
+  | "benchmark_passed";
 
 export type ModelRouteStatus =
   | "selected_primary"
-  | "selected_fallback"
   | "blocked_missing_endpoint"
   | "blocked_unreachable"
   | "blocked_not_openai_compatible"
   | "blocked_model_mismatch"
   | "blocked_unbenchmarked"
+  | "blocked_role_disabled"
   | "senior_model_unavailable";
 
 export interface ModelTransportPolicy {
@@ -36,8 +34,6 @@ export interface ModelRoleConfig {
   provider: string;
   endpoint: string;
   enabled: boolean;
-  fallbackRoleId: ModelRoleId | null;
-  fallbackAllowed: boolean;
   repositoryWriteAllowed: boolean;
   benchmarkStatus: BenchmarkStatus;
   transportPolicy: ModelTransportPolicy;
@@ -72,6 +68,7 @@ export interface ModelRoutingDecision {
   transportPolicy: ModelTransportPolicy;
   fallbackUsed: boolean;
   fallbackReason: string | null;
+  blockedReason: string | null;
   benchmarkStatus: BenchmarkStatus;
   status: ModelRouteStatus;
   repositoryWriteAllowed: boolean;
@@ -96,14 +93,13 @@ export interface ModelRoleRuntimeRecord {
 
 export type ModelRoleFetch = typeof fetch;
 
-const NEMOTRON_TOOL_SAFE_POLICY: ModelTransportPolicy = {
-  toolStreamingSupported: false,
-  parallelToolCallsSupported: false,
-  textStreamingSupported: true,
-  nonstreamingToolTurns: true,
-};
+const MODEL_ROLE_IDS = new Set<string>([
+  "vera_command",
+  "console_default_worker",
+  "console_senior_worker",
+]);
 
-const FALLBACK_TOOL_SAFE_POLICY: ModelTransportPolicy = {
+const NEMOTRON_TOOL_SAFE_POLICY: ModelTransportPolicy = {
   toolStreamingSupported: false,
   parallelToolCallsSupported: false,
   textStreamingSupported: true,
@@ -128,21 +124,9 @@ export function getModelRoleConfig(
   roleId: ModelRoleId,
   env: NodeJS.ProcessEnv = process.env,
 ): ModelRoleConfig {
-  if (roleId === "fallback_worker") {
-    return {
-      roleId,
-      primaryModel: envValue(env, "FALLBACK_WORKER_MODEL_NAME", "Qwen2.5-Coder-32B-Instruct"),
-      provider: envValue(env, "FALLBACK_WORKER_PROVIDER", "custom"),
-      endpoint: envValue(env, "FALLBACK_WORKER_ENDPOINT", "http://127.0.0.1:8080/v1"),
-      enabled: envBool(env.FALLBACK_WORKER_ENABLED, true),
-      fallbackRoleId: null,
-      fallbackAllowed: false,
-      repositoryWriteAllowed: true,
-      benchmarkStatus: benchmarkStatus(env, "FALLBACK_WORKER_BENCHMARK_STATUS", "proven_fallback"),
-      transportPolicy: FALLBACK_TOOL_SAFE_POLICY,
-    };
+  if (!MODEL_ROLE_IDS.has(roleId)) {
+    throw new Error(`NEMOTRON_ROLE_DISABLED:${roleId}`);
   }
-
   if (roleId === "console_senior_worker") {
     return {
       roleId,
@@ -150,8 +134,6 @@ export function getModelRoleConfig(
       provider: envValue(env, "CONSOLE_SENIOR_WORKER_PROVIDER", "custom"),
       endpoint: envValue(env, "CONSOLE_SENIOR_WORKER_ENDPOINT", "http://127.0.0.1:8083/v1"),
       enabled: envBool(env.CONSOLE_SENIOR_WORKER_ENABLED, true),
-      fallbackRoleId: null,
-      fallbackAllowed: false,
       repositoryWriteAllowed: false,
       benchmarkStatus: benchmarkStatus(env, "CONSOLE_SENIOR_WORKER_BENCHMARK_STATUS", "available_unbenchmarked"),
       transportPolicy: NEMOTRON_TOOL_SAFE_POLICY,
@@ -165,8 +147,6 @@ export function getModelRoleConfig(
       provider: envValue(env, "VERA_COMMAND_MODEL_PROVIDER", "custom"),
       endpoint: envValue(env, "VERA_COMMAND_MODEL_ENDPOINT", "http://127.0.0.1:8081/v1"),
       enabled: envBool(env.VERA_COMMAND_MODEL_ENABLED, true),
-      fallbackRoleId: "fallback_worker",
-      fallbackAllowed: true,
       repositoryWriteAllowed: false,
       benchmarkStatus: benchmarkStatus(env, "VERA_COMMAND_MODEL_BENCHMARK_STATUS", "available_unbenchmarked"),
       transportPolicy: NEMOTRON_TOOL_SAFE_POLICY,
@@ -179,8 +159,6 @@ export function getModelRoleConfig(
     provider: envValue(env, "CONSOLE_DEFAULT_WORKER_PROVIDER", "custom"),
     endpoint: envValue(env, "CONSOLE_DEFAULT_WORKER_ENDPOINT", "http://127.0.0.1:8082/v1"),
     enabled: envBool(env.CONSOLE_DEFAULT_WORKER_ENABLED, true),
-    fallbackRoleId: "fallback_worker",
-    fallbackAllowed: envBool(env.CONSOLE_ALLOW_QWEN_FALLBACK, false),
     repositoryWriteAllowed: true,
     benchmarkStatus: benchmarkStatus(env, "CONSOLE_DEFAULT_WORKER_BENCHMARK_STATUS", "available_unbenchmarked"),
     transportPolicy: NEMOTRON_TOOL_SAFE_POLICY,
@@ -341,48 +319,22 @@ function fallbackReason(status: ModelEndpointHealth["status"], benchmark: Benchm
   return "NEMOTRON_ROUTE_BLOCKED";
 }
 
+function roleUnavailableReason(roleId: ModelRoleId): string {
+  if (roleId === "vera_command") return "NEMOTRON_COMMAND_MODEL_UNAVAILABLE";
+  if (roleId === "console_senior_worker") return "NEMOTRON_SENIOR_WORKER_UNAVAILABLE";
+  return "NEMOTRON_DEFAULT_WORKER_UNAVAILABLE";
+}
+
 export async function selectModelRoute(input: {
   roleId: ModelRoleId;
   repositoryWriteRequested: boolean;
-  fallbackAllowed?: boolean;
   env?: NodeJS.ProcessEnv;
   fetchFn?: ModelRoleFetch;
 }): Promise<ModelRoutingDecision> {
   const env = input.env ?? process.env;
   const requested = getModelRoleConfig(input.roleId, env);
-  const health = await validateModelEndpoint(requested, input.fetchFn ?? fetch);
-  const fallback = requested.fallbackRoleId ? getModelRoleConfig(requested.fallbackRoleId, env) : null;
-  const allowFallback = Boolean(input.fallbackAllowed ?? requested.fallbackAllowed);
-  const blockedReason =
-    health.status !== "healthy"
-      ? fallbackReason(health.status, requested.benchmarkStatus)
-      : input.repositoryWriteRequested && requested.benchmarkStatus !== "benchmark_passed"
-        ? "NEMOTRON_NOT_BENCHMARKED"
-        : null;
-
-  if (blockedReason) {
-    if (fallback && allowFallback && fallback.benchmarkStatus === "proven_fallback") {
-      return {
-        routingDecisionId: routeId(),
-        requestedModelRoleId: requested.roleId,
-        selectedModelRoleId: fallback.roleId,
-        requestedModelName: requested.primaryModel,
-        requestedProvider: requested.provider,
-        requestedEndpoint: requested.endpoint,
-        selectedModelName: fallback.primaryModel,
-        selectedProvider: fallback.provider,
-        selectedEndpoint: fallback.endpoint,
-        runtime: "fallback",
-        contextWindow: null,
-        transportPolicy: fallback.transportPolicy,
-        fallbackUsed: true,
-        fallbackReason: blockedReason,
-        benchmarkStatus: fallback.benchmarkStatus,
-        status: "selected_fallback",
-        repositoryWriteAllowed: fallback.repositoryWriteAllowed,
-        health,
-      };
-    }
+  if (!requested.enabled) {
+    const health = await validateModelEndpoint(requested, input.fetchFn ?? fetch);
     return {
       routingDecisionId: routeId(),
       requestedModelRoleId: requested.roleId,
@@ -398,6 +350,38 @@ export async function selectModelRoute(input: {
       transportPolicy: requested.transportPolicy,
       fallbackUsed: false,
       fallbackReason: null,
+      blockedReason: "NEMOTRON_ROLE_DISABLED",
+      benchmarkStatus: requested.benchmarkStatus,
+      status: "blocked_role_disabled",
+      repositoryWriteAllowed: false,
+      health: { ...health, error: "NEMOTRON_ROLE_DISABLED" },
+    };
+  }
+  const health = await validateModelEndpoint(requested, input.fetchFn ?? fetch);
+  const blockedReason =
+    health.status !== "healthy"
+      ? fallbackReason(health.status, requested.benchmarkStatus)
+      : input.repositoryWriteRequested && requested.benchmarkStatus !== "benchmark_passed"
+        ? "NEMOTRON_NOT_BENCHMARKED"
+        : null;
+
+  if (blockedReason) {
+    return {
+      routingDecisionId: routeId(),
+      requestedModelRoleId: requested.roleId,
+      selectedModelRoleId: null,
+      requestedModelName: requested.primaryModel,
+      requestedProvider: requested.provider,
+      requestedEndpoint: requested.endpoint,
+      selectedModelName: null,
+      selectedProvider: null,
+      selectedEndpoint: null,
+      runtime: health.runtime,
+      contextWindow: health.contextWindow,
+      transportPolicy: requested.transportPolicy,
+      fallbackUsed: false,
+      fallbackReason: null,
+      blockedReason: roleUnavailableReason(requested.roleId),
       benchmarkStatus: requested.benchmarkStatus,
       status:
         requested.roleId === "console_senior_worker"
@@ -431,6 +415,7 @@ export async function selectModelRoute(input: {
     transportPolicy: requested.transportPolicy,
     fallbackUsed: false,
     fallbackReason: null,
+    blockedReason: null,
     benchmarkStatus: requested.benchmarkStatus,
     status: "selected_primary",
     repositoryWriteAllowed: requested.repositoryWriteAllowed,

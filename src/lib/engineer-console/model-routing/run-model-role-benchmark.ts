@@ -6,7 +6,6 @@ const VALID_ROLES = new Set<ModelRoleId>([
   "vera_command",
   "console_default_worker",
   "console_senior_worker",
-  "fallback_worker",
 ]);
 
 function valueAfter(flag: string, args: string[]): string | null {

@@ -410,8 +410,8 @@ export async function dispatchAttempt(
   if (!routeDecision.selectedModelRoleId || !routeDecision.repositoryWriteAllowed) {
     const summary =
       routeDecision.status === "senior_model_unavailable"
-        ? "senior_model_unavailable: Nemotron senior worker is not available; senior review was not performed."
-        : `MODEL_ROUTE_BLOCKED: ${routeDecision.status} (${routeDecision.health.error ?? routeDecision.benchmarkStatus}).`;
+        ? `${routeDecision.blockedReason ?? "NEMOTRON_SENIOR_WORKER_UNAVAILABLE"}: Nemotron senior worker is not available; senior review was not performed.`
+        : `MODEL_ROUTE_BLOCKED: ${routeDecision.blockedReason ?? routeDecision.status} (${routeDecision.health.error ?? routeDecision.benchmarkStatus}).`;
     const fingerprint = fingerprintFailure({
       category: "policy_violation",
       text: summary,

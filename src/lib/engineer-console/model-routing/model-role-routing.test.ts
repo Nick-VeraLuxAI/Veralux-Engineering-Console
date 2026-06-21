@@ -17,7 +17,7 @@ function jsonFetch(payload: unknown, ok = true, status = ok ? 200 : 503): ModelR
   })) as unknown as ModelRoleFetch;
 }
 
-describe("Nemotron-first model role routing", () => {
+describe("Nemotron-only model role routing", () => {
   it("normalizes OpenAI-compatible models URLs", () => {
     expect(normalizeOpenAIModelsUrl("http://host:8082")).toBe("http://host:8082/v1/models");
     expect(normalizeOpenAIModelsUrl("http://host:8082/")).toBe("http://host:8082/v1/models");
@@ -25,12 +25,10 @@ describe("Nemotron-first model role routing", () => {
     expect(normalizeOpenAIModelsUrl("http://host:8082/v1/")).toBe("http://host:8082/v1/models");
   });
 
-  it("defines Nemotron primary roles and Qwen fallback", () => {
+  it("defines only Nemotron production roles", () => {
     expect(getModelRoleConfig("vera_command").primaryModel).toBe("Nemotron-Nano-30B-A3B");
     expect(getModelRoleConfig("console_default_worker").primaryModel).toBe("Nemotron-Nano-30B-A3B");
     expect(getModelRoleConfig("console_senior_worker").primaryModel).toBe("Nemotron-Super-120B-A12B");
-    expect(getModelRoleConfig("fallback_worker").primaryModel).toBe("Qwen2.5-Coder-32B-Instruct");
-    expect(getModelRoleConfig("fallback_worker").benchmarkStatus).toBe("proven_fallback");
   });
 
   it("blocks a primary route when the endpoint is missing", async () => {
@@ -98,10 +96,10 @@ describe("Nemotron-first model role routing", () => {
     const decision = await selectModelRoute({
       roleId: "console_default_worker",
       repositoryWriteRequested: true,
-      fallbackAllowed: false,
       fetchFn: jsonFetch({ data: [{ id: "Nemotron-Nano-30B-A3B" }] }),
     });
     expect(decision.status).toBe("blocked_unbenchmarked");
+    expect(decision.blockedReason).toBe("NEMOTRON_DEFAULT_WORKER_UNAVAILABLE");
     expect(decision.fallbackUsed).toBe(false);
     expect(decision.selectedModelRoleId).toBeNull();
   });
@@ -110,7 +108,6 @@ describe("Nemotron-first model role routing", () => {
     const decision = await selectModelRoute({
       roleId: "console_default_worker",
       repositoryWriteRequested: true,
-      fallbackAllowed: false,
       fetchFn: jsonFetch({ error: "not found" }, false, 404),
     });
     expect(decision.status).toBe("blocked_not_openai_compatible");
@@ -130,17 +127,63 @@ describe("Nemotron-first model role routing", () => {
     expect(result.writesAllowed).toBe(false);
   });
 
-  it("persists fallback reason when fallback policy allows Qwen", async () => {
+  it("does not select Qwen even when fallback environment variables are present", async () => {
     const decision = await selectModelRoute({
       roleId: "console_default_worker",
       repositoryWriteRequested: true,
-      fallbackAllowed: true,
+      env: {
+        CONSOLE_ALLOW_QWEN_FALLBACK: "true",
+        FALLBACK_WORKER_MODEL_NAME: "Qwen2.5-Coder-32B-Instruct",
+        FALLBACK_WORKER_ENDPOINT: "http://127.0.0.1:8080/v1",
+        FALLBACK_WORKER_BENCHMARK_STATUS: "proven_fallback",
+      } as unknown as NodeJS.ProcessEnv,
       fetchFn: jsonFetch({ data: [{ id: "different-model" }] }),
     });
-    expect(decision.status).toBe("selected_fallback");
-    expect(decision.selectedModelRoleId).toBe("fallback_worker");
-    expect(decision.fallbackUsed).toBe(true);
-    expect(decision.fallbackReason).toBe("NEMOTRON_MODEL_UNAVAILABLE");
+    expect(decision.status).toBe("blocked_model_mismatch");
+    expect(decision.blockedReason).toBe("NEMOTRON_DEFAULT_WORKER_UNAVAILABLE");
+    expect(decision.selectedModelRoleId).toBeNull();
+    expect(decision.selectedModelName).toBeNull();
+    expect(decision.fallbackUsed).toBe(false);
+    expect(decision.fallbackReason).toBeNull();
+  });
+
+  it("Qwen endpoint health does not matter for Nemotron-only policy", async () => {
+    const decision = await selectModelRoute({
+      roleId: "vera_command",
+      repositoryWriteRequested: false,
+      env: {
+        VERA_COMMAND_MODEL_ENDPOINT: "http://127.0.0.1:8081/v1",
+        FALLBACK_WORKER_ENDPOINT: "http://127.0.0.1:8080/v1",
+      } as unknown as NodeJS.ProcessEnv,
+      fetchFn: jsonFetch({ data: [{ id: "Qwen2.5-Coder-32B-Instruct" }] }),
+    });
+    expect(decision.status).toBe("blocked_model_mismatch");
+    expect(decision.blockedReason).toBe("NEMOTRON_COMMAND_MODEL_UNAVAILABLE");
+    expect(decision.selectedModelRoleId).toBeNull();
+    expect(decision.fallbackUsed).toBe(false);
+  });
+
+  it("fallback_worker cannot be selected", async () => {
+    await expect(selectModelRoute({
+      roleId: "fallback_worker" as never,
+      repositoryWriteRequested: false,
+      fetchFn: jsonFetch({ data: [{ id: "Qwen2.5-Coder-32B-Instruct" }] }),
+    })).rejects.toThrow("NEMOTRON_ROLE_DISABLED:fallback_worker");
+  });
+
+  it("blocks disabled Nemotron roles with NEMOTRON_ROLE_DISABLED", async () => {
+    const decision = await selectModelRoute({
+      roleId: "vera_command",
+      repositoryWriteRequested: false,
+      env: {
+        VERA_COMMAND_MODEL_ENABLED: "false",
+      } as unknown as NodeJS.ProcessEnv,
+      fetchFn: jsonFetch({ data: [{ id: "Nemotron-Nano-30B-A3B" }] }),
+    });
+    expect(decision.status).toBe("blocked_role_disabled");
+    expect(decision.blockedReason).toBe("NEMOTRON_ROLE_DISABLED");
+    expect(decision.health.error).toBe("NEMOTRON_ROLE_DISABLED");
+    expect(decision.selectedModelRoleId).toBeNull();
   });
 
   it("does not claim senior review when Super is unavailable", async () => {
@@ -150,6 +193,7 @@ describe("Nemotron-first model role routing", () => {
       fetchFn: jsonFetch({ data: [{ id: "Nemotron-Nano-30B-A3B" }] }),
     });
     expect(decision.status).toBe("senior_model_unavailable");
+    expect(decision.blockedReason).toBe("NEMOTRON_SENIOR_WORKER_UNAVAILABLE");
     expect(decision.selectedModelRoleId).toBeNull();
     expect(decision.fallbackUsed).toBe(false);
   });
