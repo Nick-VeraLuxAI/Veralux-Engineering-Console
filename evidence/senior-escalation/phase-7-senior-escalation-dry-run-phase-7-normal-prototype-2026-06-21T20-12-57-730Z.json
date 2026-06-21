@@ -1,0 +1,33 @@
+{
+  "lifecycle_id": "phase-7-senior-escalation-dry-run-phase-7-normal-prototype-2026-06-21T20-12-57-730Z",
+  "timestamp": "2026-06-21T20:12:57.730Z",
+  "status": "not_required",
+  "senior_review_required": false,
+  "escalation_reasons": [],
+  "senior_package": null,
+  "senior_result": {
+    "status": "not_required",
+    "senior_role_id": "console_senior_worker",
+    "senior_role_status": "blocked_unproven",
+    "senior_provider": "airllm-cold",
+    "senior_expected_model": "Nemotron-Super-120B-A12B-FP8",
+    "airllm_super_started": false,
+    "qwen_used": false,
+    "fallback_used": false,
+    "integration_performed": false,
+    "senior_model_inference_performed": false,
+    "package_path": null,
+    "evidence_path": "evidence/senior-escalation/phase-7-senior-escalation-dry-run-phase-7-normal-prototype-2026-06-21T20-12-57-730Z.json",
+    "blocked_reason": null,
+    "next_required_human_action": "No senior review is needed for this deterministic Phase 7 case."
+  },
+  "preflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-12-57-730Z.json",
+  "postflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-12-57-933Z.json",
+  "preflight_runtime_status": "healthy",
+  "postflight_runtime_status": "healthy",
+  "evidence_path": "evidence/senior-escalation/phase-7-senior-escalation-dry-run-phase-7-normal-prototype-2026-06-21T20-12-57-730Z.json",
+  "fallback_used": false,
+  "airllm_super_used": false,
+  "qwen_used": false,
+  "integration_performed": false
+}

@@ -1,0 +1,86 @@
+{
+  "escalation_id": "senior-escalation-phase-7-high-risk-runtime-refactor-2026-06-21T20-12-58-103Z",
+  "timestamp": "2026-06-21T20:12:58.103Z",
+  "task_id": "phase-7-high-risk-runtime-refactor",
+  "original_request": "Vera, review a runtime-sensitive architecture refactor and package senior review before any implementation.",
+  "structured_spec": {
+    "task_type": "review",
+    "prototype_scope": "dry_run_only",
+    "approval_required": true,
+    "senior_review_requested": true
+  },
+  "escalation_reasons": [
+    "architecture_risk",
+    "security_risk",
+    "large_refactor",
+    "user_requested_senior_review",
+    "complexity_above_threshold",
+    "runtime_sensitive_change",
+    "integration_sensitive_change"
+  ],
+  "risk_classification": "architecture security",
+  "acceptance_criteria": [
+    "Senior escalation package is generated.",
+    "Senior role remains dry-run blocked.",
+    "No AirLLM/Super/Qwen/fallback is used.",
+    "Nano runtime remains healthy before and after."
+  ],
+  "acceptance_threshold_summary": null,
+  "revision_loop_summary": null,
+  "runtime_supervisor_summary": {
+    "status": "healthy",
+    "evidence_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T20-12-58-103Z.json",
+    "required_roles": [
+      "vera_command",
+      "console_default_worker"
+    ],
+    "role_health": [
+      {
+        "role_id": "vera_command",
+        "status": "healthy",
+        "runtime_required": true,
+        "recovery_attempted": false
+      },
+      {
+        "role_id": "console_default_worker",
+        "status": "healthy",
+        "runtime_required": true,
+        "recovery_attempted": false
+      },
+      {
+        "role_id": "console_senior_worker",
+        "status": "blocked",
+        "runtime_required": false,
+        "recovery_attempted": false
+      }
+    ]
+  },
+  "relevant_evidence_paths": [],
+  "files_changed": [],
+  "commands_run": [],
+  "blocking_failures": [],
+  "proposed_senior_review_prompt": "Dry-run senior review package only. Do not execute model inference.\nTask: phase-7-high-risk-runtime-refactor\nReasons: architecture_risk, security_risk, large_refactor, user_requested_senior_review, complexity_above_threshold, runtime_sensitive_change, integration_sensitive_change\nRequest: Vera, review a runtime-sensitive architecture refactor and package senior review before any implementation.\nRisk: architecture security\nReview acceptance threshold, revision history, runtime status, changed files, and blocking failures before recommending a future approved senior review path.",
+  "senior_role_id": "console_senior_worker",
+  "senior_role_resolution": {
+    "roleId": "console_senior_worker",
+    "roleKind": "senior_worker",
+    "provider": "airllm-cold",
+    "endpoint": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model": "Nemotron-Super-120B-A12B-FP8",
+    "status": "blocked_unproven",
+    "repositoryWriteAllowed": false,
+    "fallbackAllowed": false,
+    "allowedFallbackRoles": [],
+    "runtimeRequired": false,
+    "healthcheckRequired": false,
+    "notes": "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super."
+  },
+  "senior_execution_mode": "dry_run_blocked",
+  "safety": {
+    "airllm_super_used": false,
+    "qwen_used": false,
+    "fallback_used": false,
+    "integration_performed": false,
+    "senior_model_inference_performed": false
+  }
+}
