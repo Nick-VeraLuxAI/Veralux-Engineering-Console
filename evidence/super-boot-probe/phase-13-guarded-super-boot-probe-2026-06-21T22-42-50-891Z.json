@@ -1,0 +1,278 @@
+{
+  "phase_id": "phase-13-guarded-super-boot-probe",
+  "probe_id": "phase-13-guarded-super-boot-probe-2026-06-21T22-42-50-891Z",
+  "timestamp": "2026-06-21T22:42:50.891Z",
+  "repo_commit_at_start": "72f43b9345007ebffe127dd92b92fc826722385c",
+  "phase12_evidence_path": "evidence/airllm-environment/phase-12-airllm-promote-winning-candidate-2026-06-21T21-45-09-356Z.json",
+  "airllm_runtime_path": ".venv-airllm/bin/python",
+  "model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+  "model_artifact_summary": {
+    "configured_uri": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "path_exists": true,
+    "readable": true,
+    "expected_model_name_consistent": true,
+    "config_files": [
+      "config.json",
+      "generation_config.json"
+    ],
+    "tokenizer_files": [
+      "tokenizer.json",
+      "tokenizer_config.json"
+    ],
+    "weight_files": [
+      "model-00001-of-00026.safetensors",
+      "model-00002-of-00026.safetensors",
+      "model-00003-of-00026.safetensors",
+      "model-00004-of-00026.safetensors",
+      "model-00005-of-00026.safetensors",
+      "model-00006-of-00026.safetensors",
+      "model-00007-of-00026.safetensors",
+      "model-00008-of-00026.safetensors",
+      "model-00009-of-00026.safetensors",
+      "model-00010-of-00026.safetensors",
+      "model-00011-of-00026.safetensors",
+      "model-00012-of-00026.safetensors",
+      "model-00013-of-00026.safetensors",
+      "model-00014-of-00026.safetensors",
+      "model-00015-of-00026.safetensors",
+      "model-00016-of-00026.safetensors",
+      "model-00017-of-00026.safetensors",
+      "model-00018-of-00026.safetensors",
+      "model-00019-of-00026.safetensors",
+      "model-00020-of-00026.safetensors",
+      "model-00021-of-00026.safetensors",
+      "model-00022-of-00026.safetensors",
+      "model-00023-of-00026.safetensors",
+      "model-00024-of-00026.safetensors",
+      "model-00025-of-00026.safetensors",
+      "model-00026-of-00026.safetensors"
+    ],
+    "index_files": [
+      "model.safetensors.index.json"
+    ],
+    "total_size_bytes": 128379778035,
+    "partial_artifact_indicators": [],
+    "diagnostics": [],
+    "status": "passed"
+  },
+  "command_executed": [
+    ".venv-airllm/bin/python",
+    "-c",
+    "<guarded-super-boot-probe-script>"
+  ],
+  "timeout_seconds": 600,
+  "child_process": {
+    "launched": true,
+    "pid": 1891021,
+    "command": [
+      ".venv-airllm/bin/python",
+      "-c",
+      "<guarded-super-boot-probe-script>"
+    ],
+    "cwd": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console",
+    "stdout_summary": "{\"event\": \"probe_start\", \"python_executable\": \"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/bin/python\", \"python_version\": \"3.12.3\", \"packages\": {\"airllm\": \"2.11.0\", \"torch\": \"2.12.1\", \"transformers\": \"4.48.3\", \"optimum\": \"1.27.0\", \"accelerate\": \"1.14.0\", \"safetensors\": \"0.8.0\", \"sentencepiece\": \"0.2.1\"}, \"model_path\": \"/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8\"}\n{\"event\": \"model_load_attempt_start\"}\n>>>> cache_utils installed\nunknown artichitecture: NemotronHForCausalLM, try to use Llama2...\nfound index file...\n{\"event\": \"model_load_failed\", \"error_class\": \"IndexError\", \"error_message\": \"list index out of range\", \"traceback\": \"Traceback (most recent call last):\\n  File \\\"<string>\\\", line 21, in <module>\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/auto_model.py\\\", line 56, in from_pretrained\\n    return class_(pretrained_model_name_or_path, *inputs, ** kwargs)\\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/airllm.py\\\", line 9, in __init__\\n    super(AirLLMLlama2, self).__init__(*args, **kwargs)\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/airllm_base.py\\\", line 108, in __init__\\n    self.model_local_path, self.checkpoint_path = find_or_create_local_splitted_path(model_local_path_or_repo_id,\\n                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/utils.py\\\", line 370, in find_or_create_local_splitted_path\\n    return Path(model_local_path_or_repo_id), split_and_save_layers(model_local_path_or_repo_id, layer_shards_saving_path,\\n                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/utils.py\\\", line 302, in split_and_save_layers\\n    single_modelfile = shards[0]\\n                       ~~~~~~^^^\\nIndexError: list index out of range\\n\"}",
+    "stderr_summary": "0%|          | 0/3 [00:00<?, ?it/s]\r  0%|          | 0/3 [00:00<?, ?it/s]",
+    "exit_code": 1,
+    "signal": null,
+    "timed_out": false,
+    "cleanup_status": "not_needed",
+    "cleanup_signal": null,
+    "success_marker_seen": false,
+    "model_load_attempted": true,
+    "model_load_completed": false,
+    "inference_or_generation_detected": false,
+    "serving_detected": false,
+    "diagnostics": []
+  },
+  "resource_snapshots": [
+    {
+      "timestamp": "2026-06-21T22:42:51.041Z",
+      "label": "before",
+      "system_memory": {
+        "total_bytes": 540303417344,
+        "free_bytes": 455898148864,
+        "load_average": [
+          3.91,
+          2.59,
+          1.92
+        ]
+      },
+      "process": {
+        "pid": null,
+        "rss_bytes": null,
+        "state": null
+      },
+      "gpu_summary": "0, NVIDIA GeForce RTX 5090, 32607 MiB, 4488 MiB, 27615 MiB, 0 %\n1, NVIDIA GeForce RTX 5090, 32607 MiB, 4568 MiB, 27543 MiB, 0 %",
+      "diagnostics": []
+    },
+    {
+      "timestamp": "2026-06-21T22:42:51.121Z",
+      "label": "during",
+      "system_memory": {
+        "total_bytes": 540303417344,
+        "free_bytes": 455830740992,
+        "load_average": [
+          3.91,
+          2.59,
+          1.92
+        ]
+      },
+      "process": {
+        "pid": 1891021,
+        "rss_bytes": 17268736,
+        "state": "R (running)"
+      },
+      "gpu_summary": "0, NVIDIA GeForce RTX 5090, 32607 MiB, 4488 MiB, 27615 MiB, 0 %\n1, NVIDIA GeForce RTX 5090, 32607 MiB, 4568 MiB, 27543 MiB, 0 %",
+      "diagnostics": []
+    },
+    {
+      "timestamp": "2026-06-21T22:42:53.397Z",
+      "label": "after",
+      "system_memory": {
+        "total_bytes": 540303417344,
+        "free_bytes": 455746990080,
+        "load_average": [
+          3.91,
+          2.59,
+          1.92
+        ]
+      },
+      "process": {
+        "pid": 1891021,
+        "rss_bytes": null,
+        "state": null
+      },
+      "gpu_summary": "0, NVIDIA GeForce RTX 5090, 32607 MiB, 4488 MiB, 27615 MiB, 0 %\n1, NVIDIA GeForce RTX 5090, 32607 MiB, 4568 MiB, 27543 MiB, 0 %",
+      "diagnostics": []
+    }
+  ],
+  "preflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T22-42-50-898Z.json",
+  "postflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T22-42-53-397Z.json",
+  "preflight_runtime_status": "healthy",
+  "postflight_runtime_status": "healthy",
+  "senior_role_resolution": {
+    "roleId": "console_senior_worker",
+    "roleKind": "senior_worker",
+    "provider": "airllm-cold",
+    "endpoint": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model": "Nemotron-Super-120B-A12B-FP8",
+    "status": "blocked_unproven",
+    "repositoryWriteAllowed": false,
+    "fallbackAllowed": false,
+    "allowedFallbackRoles": [],
+    "runtimeRequired": false,
+    "healthcheckRequired": false,
+    "notes": "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super."
+  },
+  "safety_gates": [
+    {
+      "name": "explicit_enable_flag",
+      "status": "passed",
+      "message": "Guarded boot probe requires --enable-guarded-boot-probe."
+    },
+    {
+      "name": "official_airllm_runtime_exists",
+      "status": "passed",
+      "message": ".venv-airllm/bin/python exists."
+    },
+    {
+      "name": "phase12_ready_for_guarded_boot_probe",
+      "status": "passed",
+      "message": "Phase 12 evidence is ready_for_guarded_boot_probe."
+    },
+    {
+      "name": "super_model_artifacts_pass",
+      "status": "passed",
+      "message": "Super model artifacts pass non-loading audit."
+    },
+    {
+      "name": "nano_preflight_healthy",
+      "status": "passed",
+      "message": "Nano preflight is healthy."
+    },
+    {
+      "name": "senior_role_blocked_unproven",
+      "status": "passed",
+      "message": "Senior role remains blocked_unproven."
+    },
+    {
+      "name": "child_process_isolation_enabled",
+      "status": "passed",
+      "message": "Probe runs in a child process."
+    },
+    {
+      "name": "timeout_configured",
+      "status": "passed",
+      "message": "Probe timeout is configured."
+    },
+    {
+      "name": "resource_monitor_enabled",
+      "status": "passed",
+      "message": "Resource snapshots are captured."
+    },
+    {
+      "name": "command_safety",
+      "status": "passed",
+      "message": "Command passes safety validation."
+    },
+    {
+      "name": "cleanup_policy_child_only",
+      "status": "passed",
+      "message": "Cleanup targets only the exact child process."
+    },
+    {
+      "name": "nano_postflight_healthy",
+      "status": "passed",
+      "message": "Nano postflight is healthy."
+    },
+    {
+      "name": "cleanup_succeeded",
+      "status": "passed",
+      "message": "Child cleanup succeeded or was not needed."
+    },
+    {
+      "name": "no_serving_started",
+      "status": "passed",
+      "message": "No serving process was started."
+    },
+    {
+      "name": "no_inference_or_generation",
+      "status": "passed",
+      "message": "No inference or generation occurred."
+    },
+    {
+      "name": "qwen_not_used",
+      "status": "passed",
+      "message": "Qwen was not used."
+    },
+    {
+      "name": "fallback_not_used",
+      "status": "passed",
+      "message": "No fallback was used."
+    },
+    {
+      "name": "no_integration",
+      "status": "passed",
+      "message": "No integration occurred."
+    },
+    {
+      "name": "senior_not_promoted",
+      "status": "passed",
+      "message": "Senior role was not promoted automatically."
+    }
+  ],
+  "model_load_attempted": true,
+  "model_load_completed": false,
+  "inference_or_generation_occurred": false,
+  "serving_occurred": false,
+  "qwen_used": false,
+  "fallback_used": false,
+  "integration_performed": false,
+  "senior_role_promoted": false,
+  "final_verdict": "boot_probe_failed",
+  "recommended_next_action": "Review child stderr/stdout for AirLLM/model-load failure before any retry.",
+  "evidence_path": "evidence/super-boot-probe/phase-13-guarded-super-boot-probe-2026-06-21T22-42-50-891Z.json",
+  "blocked_reasons": [],
+  "warnings": []
+}
