@@ -165,7 +165,7 @@ export type AirLlmCompatibilityCommandRunner = (
 
 const MATRIX_ROOT = ".airllm-matrix";
 const OFFICIAL_AIRLLM_SOURCE_URL = "https://github.com/lyogavin/airllm.git";
-const PACKAGE_NAMES = ["airllm", "optimum", "transformers", "torch", "accelerate", "safetensors"];
+const PACKAGE_NAMES = ["airllm", "optimum", "transformers", "setuptools", "sentencepiece", "torch", "accelerate", "safetensors"];
 
 export async function discoverAirLlmMatrixPythonRuntimes(
   options: Pick<AirLlmCompatibilityMatrixOptions, "runner" | "env"> = {},
@@ -224,8 +224,10 @@ export function validateAirLlmMatrixCommand(command: string[]): string[] {
     && command[2] === "venv"
     && command[3]?.startsWith(`${MATRIX_ROOT}/venv-`);
   const isMatrixPython = command[0]?.startsWith(`${MATRIX_ROOT}/venv-`) && command[0].endsWith("/bin/python");
-  const isMatrixPip = isMatrixPython && command[1] === "-m" && command[2] === "pip";
-  const isMatrixProbe = isMatrixPython && command[1] === "-c";
+  const isOfficialAirLlmPython = command[0] === ".venv-airllm/bin/python";
+  const isAllowedPython = isMatrixPython || isOfficialAirLlmPython;
+  const isMatrixPip = isAllowedPython && command[1] === "-m" && command[2] === "pip";
+  const isMatrixProbe = isAllowedPython && command[1] === "-c";
   const isNvidiaSmi = command[0] === "nvidia-smi";
   const isGitRevParse = command[0] === "git" && command[1] === "rev-parse";
   if (!isVenvCreate && !isMatrixPip && !isMatrixProbe && !isNvidiaSmi && !isGitRevParse) {

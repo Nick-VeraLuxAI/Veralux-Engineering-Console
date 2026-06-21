@@ -578,6 +578,16 @@ function parseJson(value: string): Record<string, unknown> | null {
     const parsed = JSON.parse(value.trim());
     return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
   } catch {
+    for (const line of value.split(/\r?\n/).reverse()) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) continue;
+      try {
+        const parsed = JSON.parse(trimmed);
+        return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+      } catch {
+        continue;
+      }
+    }
     return null;
   }
 }

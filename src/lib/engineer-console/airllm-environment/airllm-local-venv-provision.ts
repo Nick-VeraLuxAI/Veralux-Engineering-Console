@@ -150,6 +150,10 @@ export async function runAirLlmLocalVenvProvision(
   const runner = options.runner ?? defaultProvisionRunner;
   const venvPython = path.join(config.targetVenvPath, "bin", "python");
   const steps: AirLlmProvisionStep[] = [];
+  const requirementsPath = "requirements-airllm.txt";
+  const installCommand = await pathExists(path.join(repoRoot, requirementsPath))
+    ? [venvPython, "-m", "pip", "install", "-r", requirementsPath]
+    : planned[2];
 
   const createStep = await runProvisionStep({
     name: await pathExists(path.join(repoRoot, venvPython)) ? "reuse_local_venv" : "create_local_venv",
@@ -172,10 +176,10 @@ export async function runAirLlmLocalVenvProvision(
   }
 
   const installStep = steps.some((step) => step.status === "failed")
-    ? skippedStep("install_airllm", planned[2], "AIRLLM_INSTALL_SKIPPED_DUE_TO_PRIOR_FAILURE")
+    ? skippedStep("install_airllm", installCommand, "AIRLLM_INSTALL_SKIPPED_DUE_TO_PRIOR_FAILURE")
     : await runProvisionStep({
       name: "install_airllm",
-      command: planned[2],
+      command: installCommand,
       cwd: repoRoot,
       runner,
       timeoutMs: 600_000,

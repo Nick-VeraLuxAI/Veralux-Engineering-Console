@@ -1,0 +1,591 @@
+{
+  "promotion_id": "phase-12-airllm-promote-winning-candidate-2026-06-21T21-45-09-356Z",
+  "timestamp": "2026-06-21T21:45:09.356Z",
+  "source_phase11_evidence_path": "evidence/airllm-compatibility-matrix/phase-11-airllm-compatibility-matrix-2026-06-21T21-15-01-532Z.json",
+  "winning_candidate_id": "a2",
+  "winning_package_stack": [
+    "airllm==2.11.0",
+    "optimum==1.27.0",
+    "transformers==4.48.3",
+    "setuptools==81.0.0",
+    "sentencepiece==0.2.1"
+  ],
+  "target_venv_path": ".venv-airllm",
+  "base_python_executable": "python3",
+  "commands_planned": [
+    [
+      "python3",
+      "-m",
+      "venv",
+      ".venv-airllm"
+    ],
+    [
+      ".venv-airllm/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "--upgrade",
+      "pip",
+      "wheel"
+    ],
+    [
+      ".venv-airllm/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "setuptools==81.0.0"
+    ],
+    [
+      ".venv-airllm/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "-r",
+      "requirements-airllm.txt"
+    ]
+  ],
+  "commands_executed": [
+    {
+      "name": "remove_existing_official_venv",
+      "status": "passed",
+      "command": [
+        "rm",
+        "-rf",
+        ".venv-airllm"
+      ],
+      "exit_code": 0,
+      "stdout_summary": null,
+      "stderr_summary": null,
+      "diagnostics": [
+        "AIRLLM_OFFICIAL_VENV_REBUILT_FOR_PHASE_12"
+      ]
+    },
+    {
+      "name": "create_official_venv",
+      "status": "passed",
+      "command": [
+        "python3",
+        "-m",
+        "venv",
+        ".venv-airllm"
+      ],
+      "exit_code": 0,
+      "stdout_summary": null,
+      "stderr_summary": null,
+      "diagnostics": []
+    },
+    {
+      "name": "upgrade_official_pip_tooling",
+      "status": "passed",
+      "command": [
+        ".venv-airllm/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "--upgrade",
+        "pip",
+        "wheel"
+      ],
+      "exit_code": 0,
+      "stdout_summary": "Requirement already satisfied: pip in ./.venv-airllm/lib/python3.12/site-packages (24.0)\nCollecting pip\n  Using cached pip-26.1.2-py3-none-any.whl.metadata (4.6 kB)\nCollecting wheel\n  Using cached wheel-0.47.0-py3-none-any.whl.metadata (2.3 kB)\nCollecting packaging>=24.0 (from wheel)\n  Using cached packaging-26.2-py3-none-any.whl.metadata (3.5 kB)\nUsing cached pip-26.1.2-py3-none-any.whl (1.8 MB)\nUsing cached wheel-0.47.0-py3-none-any.whl (32 kB)\nUsing cached packaging-26.2-py3-none-any.whl (100 kB)\nInstalling collected packages: pip, packaging, wheel\n  Attempting uninstall: pip\n    Found existing installation: pip 24.0\n    Uninstalling pip-24.0:\n      Successfully uninstalled pip-24.0\nSuccessfully installed packaging-26.2 pip-26.1.2 wheel-0.47.0",
+      "stderr_summary": null,
+      "diagnostics": []
+    },
+    {
+      "name": "pin_official_setuptools",
+      "status": "passed",
+      "command": [
+        ".venv-airllm/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "setuptools==81.0.0"
+      ],
+      "exit_code": 0,
+      "stdout_summary": "Collecting setuptools==81.0.0\n  Using cached setuptools-81.0.0-py3-none-any.whl.metadata (6.6 kB)\nUsing cached setuptools-81.0.0-py3-none-any.whl (1.1 MB)\nInstalling collected packages: setuptools\nSuccessfully installed setuptools-81.0.0",
+      "stderr_summary": null,
+      "diagnostics": []
+    },
+    {
+      "name": "install_official_airllm_requirements",
+      "status": "passed",
+      "command": [
+        ".venv-airllm/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        "requirements-airllm.txt"
+      ],
+      "exit_code": 0,
+      "stdout_summary": "Collecting airllm==2.11.0 (from -r requirements-airllm.txt (line 4))\n  Using cached airllm-2.11.0-py3-none-any.whl.metadata (12 kB)\nCollecting optimum==1.27.0 (from -r requirements-airllm.txt (line 5))\n  Using cached optimum-1.27.0-py3-none-any.whl.metadata (16 kB)\nCollecting transformers==4.48.3 (from -r requirements-airllm.txt (line 6))\n  Using cached transformers-4.48.3-py3-none-any.whl.metadata (44 kB)\nRequirement already satisfied: setuptools==81.0.0 in ./.venv-airllm/lib/python3.12/site-packages (from -r requirements-airllm.txt (line 7)) (81.0.0)\nCollecting sentencepiece==0.2.1 (from -r requirements-airllm.txt (line 8))\n  Using cached sentencepiece-0.2.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (10 kB)\nCollecting tqdm (from airllm==2.11.0->-r requirements-airllm.txt (line 4))\n  Using cached tqdm-4.68.3-py3-none-any.whl.metadata (57 kB)\nCollecting torch (from airllm==2.11.0->-r requirements-airllm.txt (line 4))\n  Using cached torch-2.12.1-cp312-cp312-manylinux_2_28_x86_64.whl.metadata (31 kB)\nCollecting accelerate (from airllm==2.11.0->-r requirements-airllm.txt (line 4))\n  Using cached accelerate-1.14.0-py3-none-any.whl.metadata (19 kB)\nCollecting safetensors (from airllm==2.11.0->-r requirements-airllm.txt (line 4))\n  Using cached safetensors-0.8.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.2 kB)\nCollecting huggingface-hub (from airllm==2.11.0->-r requirements-airllm.txt (line 4))\n  Using cached huggingface_hub-1.20.1-py3-none-any.whl.metadata (14 kB)\nCollecting scipy (from airllm==2.11.0->-r requirements-airllm.txt (line 4))\n  Using cached scipy-1.18.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)\nRequirement already satisfied: packaging in ./.venv-airllm/lib/python3.12/site-packages (from optimum==1.27.0->-r requirements-airllm.txt (line 5)) (26.2)\nCollecting numpy (from optimum==1.27.0->-r requirements-airllm.txt (line 5))\n  Using cached numpy-2.5.0-cp312-cp312-manylinux_...",
+      "stderr_summary": null,
+      "diagnostics": []
+    }
+  ],
+  "generated_requirements_path": "requirements-airllm.txt",
+  "generated_lock_path": "docs/runtime/phase-12-airllm-freeze-a2.txt",
+  "installed_package_versions": {
+    "airllm": "2.11.0",
+    "optimum": "1.27.0",
+    "transformers": "4.48.3",
+    "setuptools": "81.0.0",
+    "sentencepiece": "0.2.1",
+    "torch": "2.12.1",
+    "accelerate": "1.14.0",
+    "safetensors": "0.8.0"
+  },
+  "import_probe_result": {
+    "status": "passed",
+    "command": [
+      ".venv-airllm/bin/python",
+      "-c",
+      "<airllm-compatibility-import-probe>"
+    ],
+    "exit_code": 0,
+    "stdout_summary": ">>>> cache_utils installed\n{\"python_executable\": \"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/bin/python\", \"python_version\": \"3.12.3\", \"installed_versions\": {\"airllm\": \"2.11.0\", \"optimum\": \"1.27.0\", \"transformers\": \"4.48.3\", \"setuptools\": \"81.0.0\", \"sentencepiece\": \"0.2.1\", \"torch\": \"2.12.1\", \"accelerate\": \"1.14.0\", \"safetensors\": \"0.8.0\"}, \"optimum_import_resolved\": true, \"optimum_bettertransformer_resolved\": true, \"airllm_import_resolved\": true, \"airllm_automodel_resolved\": true, \"model_path_passed\": false, \"model_instantiated\": false, \"model_load_performed\": false, \"inference_performed\": false, \"serving_started\": false, \"error_class\": null, \"error_message\": null, \"traceback_summary\": null}",
+    "stderr_summary": null,
+    "timed_out": false,
+    "python_executable": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/bin/python",
+    "python_version": "3.12.3",
+    "installed_versions": {
+      "airllm": "2.11.0",
+      "optimum": "1.27.0",
+      "transformers": "4.48.3",
+      "setuptools": "81.0.0",
+      "sentencepiece": "0.2.1",
+      "torch": "2.12.1",
+      "accelerate": "1.14.0",
+      "safetensors": "0.8.0"
+    },
+    "optimum_import_resolved": true,
+    "optimum_bettertransformer_resolved": true,
+    "airllm_import_resolved": true,
+    "airllm_automodel_resolved": true,
+    "model_path_passed": false,
+    "model_instantiated": false,
+    "model_load_performed": false,
+    "inference_performed": false,
+    "serving_started": false,
+    "error_class": null,
+    "error_message": null,
+    "traceback_summary": null,
+    "gpu_memory_before": "0, 32607 MiB, 4488 MiB, 27615 MiB\n1, 32607 MiB, 4568 MiB, 27543 MiB",
+    "gpu_memory_after": "0, 32607 MiB, 4488 MiB, 27615 MiB\n1, 32607 MiB, 4568 MiB, 27543 MiB",
+    "diagnostics": []
+  },
+  "import_proof_result": {
+    "proof_id": "phase-9-airllm-environment-proof-2026-06-21T21-45-51-143Z",
+    "timestamp": "2026-06-21T21:45:51.143Z",
+    "senior_role_id": "console_senior_worker",
+    "senior_role_resolution": {
+      "roleId": "console_senior_worker",
+      "roleKind": "senior_worker",
+      "provider": "airllm-cold",
+      "endpoint": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+      "model": "Nemotron-Super-120B-A12B-FP8",
+      "status": "blocked_unproven",
+      "repositoryWriteAllowed": false,
+      "fallbackAllowed": false,
+      "allowedFallbackRoles": [],
+      "runtimeRequired": false,
+      "healthcheckRequired": false,
+      "notes": "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super."
+    },
+    "configured_provider": "airllm-cold",
+    "configured_model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "expected_model": "Nemotron-Super-120B-A12B-FP8",
+    "proof_mode": "import_only_no_model_load",
+    "python_runtime_candidates": [
+      {
+        "id": "env:.venv-airllm/bin/python",
+        "executable": ".venv-airllm/bin/python",
+        "source": "env",
+        "exists": true,
+        "version": "Python 3.12.3",
+        "diagnostics": []
+      },
+      {
+        "id": "project_venv:.venv/bin/python",
+        "executable": ".venv/bin/python",
+        "source": "project_venv",
+        "exists": false,
+        "version": null,
+        "diagnostics": [
+          "AIRLLM_PYTHON_RUNTIME_NOT_AVAILABLE"
+        ]
+      },
+      {
+        "id": "path:python3",
+        "executable": "python3",
+        "source": "path",
+        "exists": true,
+        "version": "Python 3.12.3",
+        "diagnostics": []
+      },
+      {
+        "id": "path:python",
+        "executable": "python",
+        "source": "path",
+        "exists": false,
+        "version": null,
+        "diagnostics": [
+          "AIRLLM_PYTHON_RUNTIME_NOT_AVAILABLE"
+        ]
+      }
+    ],
+    "selected_runtime_path": ".venv-airllm/bin/python",
+    "airllm_import_check": {
+      "status": "passed",
+      "candidate": {
+        "id": "env:.venv-airllm/bin/python",
+        "executable": ".venv-airllm/bin/python",
+        "source": "env",
+        "exists": true,
+        "version": "Python 3.12.3",
+        "diagnostics": []
+      },
+      "command": ".venv-airllm/bin/python -c <airllm-import-only-check>",
+      "exit_code": 0,
+      "stdout": ">>>> cache_utils installed\n{\"package_found\": true, \"import_succeeded\": true, \"version\": \"2.11.0\", \"module_path\": \"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/__init__.py\"}",
+      "stderr": null,
+      "package_found": true,
+      "import_succeeded": true,
+      "version": "2.11.0",
+      "module_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/__init__.py",
+      "diagnostics": []
+    },
+    "dependency_snapshot": {
+      "status": "passed",
+      "python_executable": ".venv-airllm/bin/python",
+      "python_version": "3.12.3",
+      "airllm_distribution_version": "2.11.0",
+      "torch_version": "2.12.1+cu130",
+      "torch_cuda_available": true,
+      "torch_cuda_version": "13.0",
+      "nvidia_smi_summary": "NVIDIA GeForce RTX 5090, 595.71.05, 32607 MiB, 4488 MiB, 27615 MiB\nNVIDIA GeForce RTX 5090, 595.71.05, 32607 MiB, 4568 MiB, 27543 MiB",
+      "safe_environment": {
+        "AIRLLM_PYTHON": ".venv-airllm/bin/python",
+        "VIRTUAL_ENV": null,
+        "CUDA_VISIBLE_DEVICES": null,
+        "PYTHONPATH_SET": null
+      },
+      "diagnostics": []
+    },
+    "model_artifact_check": {
+      "configured_uri": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+      "model_path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+      "path_exists": true,
+      "readable": true,
+      "expected_model_name_consistent": true,
+      "config_files": [
+        "config.json",
+        "generation_config.json"
+      ],
+      "tokenizer_files": [
+        "tokenizer.json",
+        "tokenizer_config.json"
+      ],
+      "weight_files": [
+        "model-00001-of-00026.safetensors",
+        "model-00002-of-00026.safetensors",
+        "model-00003-of-00026.safetensors",
+        "model-00004-of-00026.safetensors",
+        "model-00005-of-00026.safetensors",
+        "model-00006-of-00026.safetensors",
+        "model-00007-of-00026.safetensors",
+        "model-00008-of-00026.safetensors",
+        "model-00009-of-00026.safetensors",
+        "model-00010-of-00026.safetensors",
+        "model-00011-of-00026.safetensors",
+        "model-00012-of-00026.safetensors",
+        "model-00013-of-00026.safetensors",
+        "model-00014-of-00026.safetensors",
+        "model-00015-of-00026.safetensors",
+        "model-00016-of-00026.safetensors",
+        "model-00017-of-00026.safetensors",
+        "model-00018-of-00026.safetensors",
+        "model-00019-of-00026.safetensors",
+        "model-00020-of-00026.safetensors",
+        "model-00021-of-00026.safetensors",
+        "model-00022-of-00026.safetensors",
+        "model-00023-of-00026.safetensors",
+        "model-00024-of-00026.safetensors",
+        "model-00025-of-00026.safetensors",
+        "model-00026-of-00026.safetensors"
+      ],
+      "index_files": [
+        "model.safetensors.index.json"
+      ],
+      "total_size_bytes": 128379663226,
+      "partial_artifact_indicators": [],
+      "diagnostics": [],
+      "status": "passed"
+    },
+    "hardware_snapshot": {
+      "status": "passed",
+      "gpu_summary": "0, NVIDIA GeForce RTX 5090, 32607, 4488, 27615, 595.71.05\n1, NVIDIA GeForce RTX 5090, 32607, 4568, 27543, 595.71.05",
+      "memory_summary": {
+        "total_bytes": 540303417344,
+        "free_bytes": 455614320640
+      },
+      "disk_summary": {
+        "path": "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+        "total_bytes": 4000768323584,
+        "free_bytes": 3545046495232
+      },
+      "diagnostics": []
+    },
+    "safety_gates": [
+      {
+        "name": "nano_roles_primary_and_healthy",
+        "status": "passed",
+        "required": true,
+        "message": "Nano runtime remained healthy before and after import proof."
+      },
+      {
+        "name": "senior_role_blocked_unproven",
+        "status": "passed",
+        "required": true,
+        "message": "Senior role remains blocked_unproven."
+      },
+      {
+        "name": "proof_mode_import_only",
+        "status": "passed",
+        "required": true,
+        "message": "Proof mode is import_only_no_model_load."
+      },
+      {
+        "name": "no_super_model_load",
+        "status": "passed",
+        "required": true,
+        "message": "No Super model load occurred."
+      },
+      {
+        "name": "no_senior_inference",
+        "status": "passed",
+        "required": true,
+        "message": "No senior inference occurred."
+      },
+      {
+        "name": "no_airllm_serving",
+        "status": "passed",
+        "required": true,
+        "message": "No AirLLM serving process was started."
+      },
+      {
+        "name": "qwen_not_used",
+        "status": "passed",
+        "required": true,
+        "message": "Qwen was not used."
+      },
+      {
+        "name": "fallback_not_used",
+        "status": "passed",
+        "required": true,
+        "message": "No fallback model was used."
+      },
+      {
+        "name": "no_integration",
+        "status": "passed",
+        "required": true,
+        "message": "No integration occurred."
+      },
+      {
+        "name": "boot_probe_disabled",
+        "status": "passed",
+        "required": true,
+        "message": "Boot probe remains disabled."
+      },
+      {
+        "name": "no_uncontrolled_process_operations",
+        "status": "passed",
+        "required": true,
+        "message": "No uncontrolled process operations occurred."
+      },
+      {
+        "name": "airllm_import_discovery",
+        "status": "passed",
+        "required": true,
+        "message": "AirLLM import/package discovery is proven or clearly unknown."
+      },
+      {
+        "name": "selected_runtime_captured",
+        "status": "passed",
+        "required": true,
+        "message": "Selected runtime path is captured when proven."
+      },
+      {
+        "name": "super_artifacts_still_present",
+        "status": "passed",
+        "required": true,
+        "message": "Super artifacts remain discoverable without loading."
+      },
+      {
+        "name": "hardware_snapshot_captured",
+        "status": "passed",
+        "required": true,
+        "message": "Hardware snapshot captured or safely degraded."
+      }
+    ],
+    "boot_probe_plan": {
+      "mode": "disabled",
+      "status": "disabled",
+      "required_guards": [
+        "--allow-super-boot-probe",
+        "--confirm-super-boot-probe",
+        "role_id:console_senior_worker",
+        "nano_preflight:healthy",
+        "no_qwen_or_fallback",
+        "evidence_path_configured"
+      ],
+      "guards_satisfied": [],
+      "blocked_reason": "SUPER_BOOT_PROBE_DISABLED_FOR_PHASE_8",
+      "command": null
+    },
+    "preflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T21-45-51-143Z.json",
+    "postflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T21-45-55-309Z.json",
+    "preflight_runtime_status": "healthy",
+    "postflight_runtime_status": "healthy",
+    "final_verdict": "ready_for_guarded_boot_probe",
+    "blocked_reasons": [],
+    "warnings": [],
+    "provisioning_plan": {
+      "needed": false,
+      "missing_item": null,
+      "candidate_runtime_checked": ".venv-airllm/bin/python",
+      "project_local_venv_recommended": false,
+      "proposed_commands": [],
+      "risks_and_assumptions": [],
+      "next_human_approval_required": false
+    },
+    "evidence_path": "evidence/airllm-environment/phase-9-airllm-environment-proof-2026-06-21T21-45-51-143Z.json",
+    "fallback_used": false,
+    "airllm_serving_started": false,
+    "super_used": false,
+    "qwen_used": false,
+    "super_model_load_performed": false,
+    "super_model_inference_performed": false,
+    "integration_performed": false
+  },
+  "compatibility_matrix_result": null,
+  "selected_runtime_path": ".venv-airllm/bin/python",
+  "senior_role_resolution": {
+    "roleId": "console_senior_worker",
+    "roleKind": "senior_worker",
+    "provider": "airllm-cold",
+    "endpoint": "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+    "model": "Nemotron-Super-120B-A12B-FP8",
+    "status": "blocked_unproven",
+    "repositoryWriteAllowed": false,
+    "fallbackAllowed": false,
+    "allowedFallbackRoles": [],
+    "runtimeRequired": false,
+    "healthcheckRequired": false,
+    "notes": "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super."
+  },
+  "preflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T21-45-09-357Z.json",
+  "postflight_runtime_report_path": "evidence/runtime-supervisor/runtime-supervisor-2026-06-21T21-45-55-380Z.json",
+  "preflight_runtime_status": "healthy",
+  "postflight_runtime_status": "healthy",
+  "safety_gates": [
+    {
+      "name": "nano_roles_primary_and_healthy",
+      "status": "passed",
+      "message": "Nano runtime remained healthy before and after promotion."
+    },
+    {
+      "name": "senior_role_blocked_unproven",
+      "status": "passed",
+      "message": "Senior role remains blocked_unproven."
+    },
+    {
+      "name": "official_venv_gitignored",
+      "status": "passed",
+      "message": ".venv-airllm is ignored by git."
+    },
+    {
+      "name": "matrix_venv_gitignored",
+      "status": "passed",
+      "message": ".airllm-matrix is ignored by git."
+    },
+    {
+      "name": "pins_match_phase11_winner",
+      "status": "passed",
+      "message": "Package pins exactly match Phase 11 winner a2."
+    },
+    {
+      "name": "official_import_probe_passed",
+      "status": "passed",
+      "message": "Official .venv-airllm import probe passed."
+    },
+    {
+      "name": "automodel_import_resolved",
+      "status": "passed",
+      "message": "from airllm import AutoModel resolved."
+    },
+    {
+      "name": "phase9_import_proof_ready",
+      "status": "passed",
+      "message": "Phase 9 import-only proof is ready_for_guarded_boot_probe."
+    },
+    {
+      "name": "boot_probe_disabled",
+      "status": "passed",
+      "message": "Boot probe remains disabled."
+    },
+    {
+      "name": "no_model_path_passed",
+      "status": "passed",
+      "message": "Import verification did not receive a model path."
+    },
+    {
+      "name": "no_super_model_load",
+      "status": "passed",
+      "message": "No Super model load occurred."
+    },
+    {
+      "name": "no_senior_inference",
+      "status": "passed",
+      "message": "No senior inference occurred."
+    },
+    {
+      "name": "no_airllm_serving",
+      "status": "passed",
+      "message": "No AirLLM serving process was started."
+    },
+    {
+      "name": "qwen_not_used",
+      "status": "passed",
+      "message": "Qwen was not used."
+    },
+    {
+      "name": "fallback_not_used",
+      "status": "passed",
+      "message": "No fallback model was used."
+    },
+    {
+      "name": "no_integration",
+      "status": "passed",
+      "message": "No integration occurred."
+    },
+    {
+      "name": "no_uncontrolled_process_operations",
+      "status": "passed",
+      "message": "No uncontrolled process operations occurred."
+    }
+  ],
+  "final_verdict": "ready_for_guarded_boot_probe",
+  "evidence_path": "evidence/airllm-environment/phase-12-airllm-promote-winning-candidate-2026-06-21T21-45-09-356Z.json",
+  "fallback_used": false,
+  "airllm_serving_started": false,
+  "super_used": false,
+  "qwen_used": false,
+  "super_model_load_performed": false,
+  "super_model_inference_performed": false,
+  "integration_performed": false,
+  "blocked_reasons": [],
+  "warnings": [
+    "AIRLLM_OFFICIAL_VENV_REBUILT_FOR_PHASE_12"
+  ]
+}
