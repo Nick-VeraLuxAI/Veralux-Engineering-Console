@@ -83,7 +83,7 @@ describe("Nemotron-only model role routing", () => {
       roleId: "console_cold_senior_reviewer",
       roleKind: "senior_worker",
       provider: "airllm-cold",
-      endpoint: "airllm:///mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
+      endpoint: "airllm:///mnt/model-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
       model: "mistralai/Mixtral-8x22B-Instruct-v0.1",
       status: "candidate_unproven",
       repositoryWriteAllowed: false,

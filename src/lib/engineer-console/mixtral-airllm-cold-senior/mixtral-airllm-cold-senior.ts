@@ -116,7 +116,7 @@ export interface Phase17Outcome {
 }
 
 export const MIXTRAL_REPO_ID = "mistralai/Mixtral-8x22B-Instruct-v0.1";
-export const MIXTRAL_LOCAL_PATH = "/mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1";
+export const MIXTRAL_LOCAL_PATH = "/mnt/model-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1";
 export const NEMOTRON_LOCAL_PATH = "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8";
 export const AIRLLM_PYTHON = ".venv-airllm/bin/python";
 

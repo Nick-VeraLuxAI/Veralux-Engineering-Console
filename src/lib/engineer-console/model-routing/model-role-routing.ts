@@ -232,7 +232,7 @@ export function resolveModelRole(
       endpoint: envValue(
         env,
         "CONSOLE_COLD_SENIOR_REVIEWER_ENDPOINT",
-        "airllm:///mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
+        "airllm:///mnt/model-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
       ),
       model: envValue(env, "CONSOLE_COLD_SENIOR_REVIEWER_MODEL_NAME", "mistralai/Mixtral-8x22B-Instruct-v0.1"),
       status: "candidate_unproven",
