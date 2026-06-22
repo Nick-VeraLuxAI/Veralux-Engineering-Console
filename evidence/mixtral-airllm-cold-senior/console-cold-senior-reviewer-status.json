@@ -3,7 +3,7 @@
   "provider": "airllm-cold",
   "model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
   "local_path": "/mnt/model-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
-  "status": "mixtral_candidate_bounded_inference_runtime_proven_bypass_required",
+  "status": "mixtral_candidate_parked_experimental_runtime_proven_requires_adapter",
   "mode": "offline_review_job",
   "writes": "none",
   "fallback": "none",
@@ -45,5 +45,15 @@
     "qwen_used": false,
     "senior_promoted_to_routing": false,
     "verdict": "bounded_runtime_proven_but_adapter_or_fork_required_before_product_use"
+  },
+  "phase19_decision": {
+    "timestamp": "2026-06-22T23:05:21.738385+00:00",
+    "decision": "park_mixtral_as_experimental_offline_reviewer",
+    "runtime_status": "bounded_runtime_proven",
+    "product_status": "not_product_ready",
+    "reason": "runtime requires repaired split bypass and proof latency was too high for normal Console flow",
+    "senior_routing": "blocked",
+    "mainline_dependency": false,
+    "next_active_path": "continue Nano-based Vera and Engineering Console runtime path"
   }
 }
