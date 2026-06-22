@@ -1,0 +1,211 @@
+{
+  "phase": "phase-17-mixtral-airllm-boot-bounded-review",
+  "timestamp": "2026-06-22T01:06:35.205Z",
+  "git_head_before": "124cf1f0ebfbef75bfeea11d41922305b3fa7dce",
+  "branch": "work/autonomous-phase-proof",
+  "model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+  "local_path": "/mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
+  "airllm_venv_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm",
+  "phase_16_status_file": "evidence/mixtral-airllm-cold-senior/console-cold-senior-reviewer-status.json",
+  "phase_16_status": {
+    "role": "console_cold_senior_reviewer",
+    "provider": "airllm-cold",
+    "model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+    "local_path": "/mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
+    "status": "candidate_proven_import_only",
+    "mode": "offline_review_job",
+    "writes": "none",
+    "fallback": "none",
+    "required_for_mainline": false,
+    "senior_promoted_to_routing": false
+  },
+  "disk_before": {
+    "stdout": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/nvme1n1p2  3.7T  556G  3.1T  15% /mnt/large-storage\n",
+    "stderr": "",
+    "exitCode": 0
+  },
+  "model_dir_size_before": {
+    "stdout": "261G\t/mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1\n",
+    "stderr": "",
+    "exitCode": 0
+  },
+  "ram_before": {
+    "stdout": "               total        used        free      shared  buff/cache   available\nMem:           503Gi        78Gi       7.9Gi       816Mi       421Gi       425Gi\nSwap:          8.0Gi       2.2Mi       8.0Gi\n",
+    "stderr": "",
+    "exitCode": 0
+  },
+  "gpu_before": {
+    "stdout": "Sun Jun 21 18:06:35 2026       \n+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 595.71.05              Driver Version: 595.71.05      CUDA Version: 13.2     |\n+-----------------------------------------+------------------------+----------------------+\n| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n|                                         |                        |               MIG M. |\n|=========================================+========================+======================|\n|   0  NVIDIA GeForce RTX 5090        On  |   00000000:41:00.0 Off |                  N/A |\n|  0%   44C    P8              9W /  480W |   27615MiB /  32607MiB |      0%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n|   1  NVIDIA GeForce RTX 5090        On  |   00000000:42:00.0 Off |                  N/A |\n|  0%   42C    P8              3W /  480W |   27543MiB /  32607MiB |      0%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n\n+-----------------------------------------------------------------------------------------+\n| Processes:                                                                              |\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n|        ID   ID                                                               Usage      |\n|=========================================================================================|\n|    0   N/A  N/A          461831      C   VLLM::EngineCore                      27520MiB |\n|    0   N/A  N/A         2943655      G   /usr/lib/xorg/Xorg                       43MiB |\n|    0   N/A  N/A         2944153      G   /usr/bin/gnome-shell                     15MiB |\n|    1   N/A  N/A          496936      C   VLLM::EngineCore                      27520MiB |\n|    1   N/A  N/A         2943655      G   /usr/lib/xorg/Xorg                        4MiB |\n+-----------------------------------------------------------------------------------------+\n",
+    "stderr": "",
+    "exitCode": 0
+  },
+  "process_sample_before": {
+    "stdout": "   2373       1 12-01:31:36 Ssl   0.0  0.0 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal\n   3049       1 12-01:31:28 Ssl   0.0  0.0 /home/ndesantis/.hermes/hermes-agent/venv/bin/python3 /home/ndesantis/.hermes/hermes-agent/venv/bin/hermes dashboard --host 127.0.0.1 --port 9119 --no-open\n   4954    4628 12-01:31:26 Ssl   0.0  0.0 npm exec tsx --tsconfig tsconfig.json src/worker/roundtable-worker.ts\n   6551    4954 12-01:31:23 S     0.0  0.0 sh -c tsx --tsconfig tsconfig.json src/worker/roundtable-worker.ts\n   6553    6551 12-01:31:23 Sl    0.0  0.0 node /app/node_modules/.bin/tsx --tsconfig tsconfig.json src/worker/roundtable-worker.ts\n   6584    6553 12-01:31:23 Sl    0.2  0.0 /usr/local/bin/node --require /app/node_modules/tsx/dist/preflight.cjs --import file:///app/node_modules/tsx/dist/loader.mjs src/worker/roundtable-worker.ts\n 460237  460213    09:37:34 Ssl   0.1  0.2 /usr/bin/python /usr/local/bin/vllm serve /models/nano-30b-a3b-nvfp4 --served-model-name Nemotron-Nano-30B-A3B-NVFP4 --host 0.0.0.0 --port 8081 --trust-remote-code --kv-cache-dtype fp8 --tensor-parallel-size 1 --max-model-len 8192 --max-num-seqs 1 --max-num-batched-tokens 2048 --gpu-memory-utilization 0.82\n 461830  460237    09:37:22 S     0.0  0.0 /usr/bin/python -c from multiprocessing.resource_tracker import main;main(42)\n 495466  495442    09:26:06 Ssl   0.1  0.2 /usr/bin/python /usr/local/bin/vllm serve /models/nano-30b-a3b-nvfp4 --served-model-name Nemotron-Nano-30B-A3B-NVFP4 --host 0.0.0.0 --port 8082 --trust-remote-code --kv-cache-dtype fp8 --tensor-parallel-size 1 --max-model-len 8192 --max-num-seqs 1 --max-num-batched-tokens 2048 --gpu-memory-utilization 0.82\n 496935  495466    09:25:50 S     0.0  0.0 /usr/bin/python -c from multiprocessing.resource_tracker import main;main(42)\n1958819 1958795    02:02:14 Ss    0.0  0.0 /usr/local/bin/python3.12 /usr/local/bin/celery -A src.core.celery_app beat --loglevel=info\n1994843 1994112  6-02:17:42 S     0.0  0.0 /home/ndesantis/.cursor/extensions/ms-python.python-2025.6.1-linux-x64/python-env-tools/bin/pet server\n1997995 1997454  6-02:17:39 Sl    0.0  0.0 /home/ndesantis/.cache/uv/archive-v0/haXgeVwgkgADmM4P/bin/python /home/ndesantis/.cache/uv/archive-v0/haXgeVwgkgADmM4P/bin/awslabs.aurora-dsql-mcp-server\n2005733       1  8-21:01:26 Ssl   0.1  0.0 /opt/Lead-Scraper/.venv/bin/python /opt/Lead-Scraper/.venv/bin/uvicorn src.api:app --host 0.0.0.0 --port 8088\n2141256 2140627    23:20:16 Sl    0.0  0.0 /home/ndesantis/.cache/uv/archive-v0/QIBuF2B6bpoOuxtX/bin/python /home/ndesantis/.cache/uv/archive-v0/QIBuF2B6bpoOuxtX/bin/awslabs.aurora-dsql-mcp-server\n2148984 2137887    23:17:34 S     0.0  0.0 /home/ndesantis/.cursor/extensions/ms-python.python-2025.6.1-linux-x64/python-env-tools/bin/pet server\n2232061 2949913  4-16:17:31 SNl   0.0  0.0 /usr/bin/python3 /usr/bin/update-manager --no-update --no-focus-on-map\n2316104 3344837       00:00 Ss    0.0  0.0 /bin/bash -O extglob -c snap=$(command cat <&3) && builtin shopt -s extglob && builtin eval -- \"$snap\" && { builtin set +u 2>/dev/null || true; builtin eval \"${__CURSOR_SANDBOX_ENV_RESTORE:-}\" 2>/dev/null; builtin export PWD=\"$(builtin pwd)\"; builtin shopt -s expand_aliases 2>/dev/null; builtin eval \"$1\"; }; COMMAND_EXIT_CODE=$?; dump_bash_state >&4; builtin exit $COMMAND_EXIT_CODE -- npx tsx scripts/runtime/mixtral-airllm-boot-probe.ts --enable-boot-mixtral --enable-inference-mixtral --model-path /mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1 --evidence-root evidence/mixtral-airllm-cold-senior --timeout-seconds 1800 --max-new-tokens 128\n2316118 2316104       00:00 Sl   34.5  0.0 npm exec tsx scripts/runtime/mixtral-airllm-boot-probe.ts --enable-boot-mixtral --enable-inference-mixtral --model-path /mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1 --evidence-root evidence/mixtral-airllm-cold-senior --timeout-seconds 1800 --max-new-tokens 128\n2316129 2316118       00:00 S     0.0  0.0 sh -c tsx scripts/runtime/mixtral-airllm-boot-probe.ts --enable-boot-mixtral --enable-inference-mixtral --model-path /mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1 --evidence-root evidence/mixtral-airllm-cold-senior --timeout-seconds 1800 --max-new-tokens 128\n2316130 2316129       00:00 Sl   12.8  0.0 node /home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/node_modules/.bin/tsx scripts/runtime/mixtral-airllm-boot-probe.ts --enable-boot-mixtral --enable-inference-mixtral --model-path /mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1 --evidence-root evidence/mixtral-airllm-cold-senior --timeout-seconds 1800 --max-new-tokens 128\n2316141 2316130       00:00 Sl   62.8  0.0 /usr/share/cursor/resources/app/resources/helpers/node --require /home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/node_modules/tsx/dist/preflight.cjs --import file:///home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/node_modules/tsx/dist/loader.mjs scripts/runtime/mixtral-airllm-boot-probe.ts --enable-boot-mixtral --enable-inference-mixtral --model-path /mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1 --evidence-root evidence/mixtral-airllm-cold-senior --timeout-seconds 1800 --max-new-tokens 128\n2316201 2316141       00:00 S     0.0  0.0 bash -lc ps -eo pid,ppid,etime,stat,pcpu,pmem,cmd | rg 'python|tsx|airllm|huggingface|mixtral' || true\n2316206 2316201       00:00 S     0.0  0.0 rg python|tsx|airllm|huggingface|mixtral\n2453870 2453759  2-19:34:16 Ssl   0.0  0.0 /usr/bin/python3 /usr/local/bin/gunicorn kokoro_server:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:7001 --workers 1 --timeout 120 --graceful-timeout 30\n2454489 2453870  2-19:34:15 Sl    0.1  0.0 /usr/bin/python3 /usr/local/bin/gunicorn kokoro_server:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:7001 --workers 1 --timeout 120 --graceful-timeout 30\n3025590       1    18:40:48 Ssl   0.0  0.0 /home/ndesantis/.hermes/hermes-agent/venv/bin/python3 /home/ndesantis/.hermes/hermes-agent/venv/bin/hermes gateway\n3213631 3211961 11-00:02:58 S     0.0  0.0 /home/ndesantis/.cursor/extensions/ms-python.python-2025.6.1-linux-x64/python-env-tools/bin/pet server\n3218525 3218070 11-00:02:52 Sl    0.0  0.0 /home/ndesantis/.cache/uv/archive-v0/wy7wMCKv4q0T2BYW/bin/python /home/ndesantis/.cache/uv/archive-v0/wy7wMCKv4q0T2BYW/bin/awslabs.aurora-dsql-mcp-server\n3225049 3223670 11-00:02:16 S     0.0  0.0 /home/ndesantis/.cursor/extensions/ms-python.python-2025.6.1-linux-x64/python-env-tools/bin/pet server\n3226539 3226013 11-00:02:14 Sl    0.0  0.0 /home/ndesantis/.cache/uv/archive-v0/YMpOYd-_EMN8qCSx/bin/python /home/ndesantis/.cache/uv/archive-v0/YMpOYd-_EMN8qCSx/bin/awslabs.aurora-dsql-mcp-server\n3242788 3242618 10-23:59:58 Sl    0.0  0.0 /home/ndesantis/.cache/uv/archive-v0/YMpOYd-_EMN8qCSx/bin/python /home/ndesantis/.cache/uv/archive-v0/YMpOYd-_EMN8qCSx/bin/awslabs.aurora-dsql-mcp-server\n3348708 3348515 10-23:44:25 Sl    0.0  0.0 /home/ndesantis/.cache/uv/archive-v0/YMpOYd-_EMN8qCSx/bin/python /home/ndesantis/.cache/uv/archive-v0/YMpOYd-_EMN8qCSx/bin/awslabs.aurora-dsql-mcp-server\n3769560 3344770 10-22:57:15 S     0.0  0.0 /home/ndesantis/.cursor/extensions/ms-python.python-2025.6.1-linux-x64/python-env-tools/bin/pet server\n",
+    "stderr": "",
+    "exitCode": 0
+  },
+  "artifact_verification_status": "passed",
+  "artifact_verification": {
+    "local_path": "/mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
+    "exists": true,
+    "config_exists": true,
+    "tokenizer_files": [
+      "special_tokens_map.json",
+      "tokenizer.json",
+      "tokenizer.model",
+      "tokenizer.model.v3",
+      "tokenizer_config.json"
+    ],
+    "safetensors_files": [
+      "model-00001-of-00059.safetensors",
+      "model-00002-of-00059.safetensors",
+      "model-00003-of-00059.safetensors",
+      "model-00004-of-00059.safetensors",
+      "model-00005-of-00059.safetensors",
+      "model-00006-of-00059.safetensors",
+      "model-00007-of-00059.safetensors",
+      "model-00008-of-00059.safetensors",
+      "model-00009-of-00059.safetensors",
+      "model-00010-of-00059.safetensors",
+      "model-00011-of-00059.safetensors",
+      "model-00012-of-00059.safetensors",
+      "model-00013-of-00059.safetensors",
+      "model-00014-of-00059.safetensors",
+      "model-00015-of-00059.safetensors",
+      "model-00016-of-00059.safetensors",
+      "model-00017-of-00059.safetensors",
+      "model-00018-of-00059.safetensors",
+      "model-00019-of-00059.safetensors",
+      "model-00020-of-00059.safetensors",
+      "model-00021-of-00059.safetensors",
+      "model-00022-of-00059.safetensors",
+      "model-00023-of-00059.safetensors",
+      "model-00024-of-00059.safetensors",
+      "model-00025-of-00059.safetensors",
+      "model-00026-of-00059.safetensors",
+      "model-00027-of-00059.safetensors",
+      "model-00028-of-00059.safetensors",
+      "model-00029-of-00059.safetensors",
+      "model-00030-of-00059.safetensors",
+      "model-00031-of-00059.safetensors",
+      "model-00032-of-00059.safetensors",
+      "model-00033-of-00059.safetensors",
+      "model-00034-of-00059.safetensors",
+      "model-00035-of-00059.safetensors",
+      "model-00036-of-00059.safetensors",
+      "model-00037-of-00059.safetensors",
+      "model-00038-of-00059.safetensors",
+      "model-00039-of-00059.safetensors",
+      "model-00040-of-00059.safetensors",
+      "model-00041-of-00059.safetensors",
+      "model-00042-of-00059.safetensors",
+      "model-00043-of-00059.safetensors",
+      "model-00044-of-00059.safetensors",
+      "model-00045-of-00059.safetensors",
+      "model-00046-of-00059.safetensors",
+      "model-00047-of-00059.safetensors",
+      "model-00048-of-00059.safetensors",
+      "model-00049-of-00059.safetensors",
+      "model-00050-of-00059.safetensors",
+      "model-00051-of-00059.safetensors",
+      "model-00052-of-00059.safetensors",
+      "model-00053-of-00059.safetensors",
+      "model-00054-of-00059.safetensors",
+      "model-00055-of-00059.safetensors",
+      "model-00056-of-00059.safetensors",
+      "model-00057-of-00059.safetensors",
+      "model-00058-of-00059.safetensors",
+      "model-00059-of-00059.safetensors"
+    ],
+    "index_files": [
+      "model.safetensors.index.json"
+    ],
+    "architecture": "MixtralForCausalLM",
+    "model_type": "mixtral",
+    "shard_count": 59,
+    "apparent_size": "261G\t/mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
+    "qwen_files_added": false,
+    "status": "passed",
+    "diagnostics": []
+  },
+  "old_nemotron_exists": false,
+  "airllm_import_status": "passed",
+  "route_status": "airllm_mixtral_route_passed",
+  "route_proof": {
+    "architecture": "MixtralForCausalLM",
+    "expected_class": "AirLLMMixtral",
+    "fallback_to_llama2": false,
+    "status": "passed",
+    "diagnostics": []
+  },
+  "git_head_after": "124cf1f0ebfbef75bfeea11d41922305b3fa7dce",
+  "boot_attempted": true,
+  "boot_status": "failed",
+  "boot_elapsed_seconds": 2.665,
+  "boot_timed_out": false,
+  "boot_exit_code": 1,
+  "boot_stdout_tail": "{\"event\": \"boot_start\", \"model_path\": \"/mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1\", \"python\": \"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/bin/python\"}\n>>>> cache_utils installed\nfound index file...\nLoading shard 1/59\n{\"event\": \"boot_failed\", \"error_class\": \"SafetensorError\", \"error_message\": \"Error while deserializing header: header too large\", \"traceback_tail\": \"Traceback (most recent call last):\\n  File \\\"<string>\\\", line 6, in <module>\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/auto_model.py\\\", line 56, in from_pretrained\\n    return class_(pretrained_model_name_or_path, *inputs, ** kwargs)\\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/airllm_mixtral.py\\\", line 14, in __init__\\n    super(AirLLMMixtral, self).__init__(*args, **kwargs)\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/airllm_base.py\\\", line 108, in __init__\\n    self.model_local_path, self.checkpoint_path = find_or_create_local_splitted_path(model_local_path_or_repo_id,\\n                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/utils.py\\\", line 370, in find_or_create_local_splitted_path\\n    return Path(model_local_path_or_repo_id), split_and_save_layers(model_local_path_or_repo_id, layer_shards_saving_path,\\n                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/airllm/utils.py\\\", line 298, in split_and_save_layers\\n    state_dict.update(load_file(to_load, device='cpu'))\\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.venv-airllm/lib/python3.12/site-packages/safetensors/torch.py\\\", line 359, in load_file\\n    with safe_open(filename, framework=\\\"pt\\\", device=device, backend=backend) as f:\\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\nsafetensors._safetensors_rust.SafetensorError: Error while deserializing header: header too large\\n\"}\n",
+  "boot_stderr_tail": "\r  0%|          | 0/59 [00:00<?, ?it/s]\r  0%|          | 0/59 [00:00<?, ?it/s]\n",
+  "split_or_cache_behavior_observed": true,
+  "split_or_cache_paths_observed": [
+    "splitted_model/"
+  ],
+  "model_dir_changes_observed": [
+    "splitted_model/"
+  ],
+  "inference_attempted": false,
+  "inference_status": "skipped_boot_not_run",
+  "inference_elapsed_seconds": 0,
+  "inference_timed_out": false,
+  "inference_exit_code": null,
+  "inference_stdout_tail": "",
+  "inference_stderr_tail": "",
+  "inference_output_text": "",
+  "inference_json_parse_status": "invalid",
+  "inference_parsed_json": null,
+  "inference_parse_diagnostics": [
+    "INFERENCE_NOT_COMPLETED"
+  ],
+  "senior_candidate_status": "mixtral_candidate_failed",
+  "senior_role_status": {
+    "role": "console_cold_senior_reviewer",
+    "provider": "airllm-cold",
+    "model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+    "local_path": "/mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
+    "status": "mixtral_candidate_failed",
+    "mode": "offline_review_job",
+    "writes": "none",
+    "fallback": "none",
+    "required_for_mainline": false,
+    "senior_promoted_to_routing": false,
+    "qwen_used": false,
+    "fallback_used": false,
+    "integration_performed": false
+  },
+  "disk_after": {
+    "stdout": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/nvme1n1p2  3.7T  556G  3.1T  15% /mnt/large-storage\n",
+    "stderr": "",
+    "exitCode": 0
+  },
+  "model_dir_size_after": {
+    "stdout": "261G\t/mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1\n",
+    "stderr": "",
+    "exitCode": 0
+  },
+  "ram_after": {
+    "stdout": "               total        used        free      shared  buff/cache   available\nMem:           503Gi        78Gi       7.8Gi       816Mi       421Gi       424Gi\nSwap:          8.0Gi       2.2Mi       8.0Gi\n",
+    "stderr": "",
+    "exitCode": 0
+  },
+  "gpu_after": {
+    "stdout": "Sun Jun 21 18:06:40 2026       \n+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 595.71.05              Driver Version: 595.71.05      CUDA Version: 13.2     |\n+-----------------------------------------+------------------------+----------------------+\n| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n|                                         |                        |               MIG M. |\n|=========================================+========================+======================|\n|   0  NVIDIA GeForce RTX 5090        On  |   00000000:41:00.0 Off |                  N/A |\n|  0%   44C    P8              9W /  480W |   27615MiB /  32607MiB |      0%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n|   1  NVIDIA GeForce RTX 5090        On  |   00000000:42:00.0 Off |                  N/A |\n|  0%   42C    P8              3W /  480W |   27543MiB /  32607MiB |      0%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n\n+-----------------------------------------------------------------------------------------+\n| Processes:                                                                              |\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n|        ID   ID                                                               Usage      |\n|=========================================================================================|\n|    0   N/A  N/A          461831      C   VLLM::EngineCore                      27520MiB |\n|    0   N/A  N/A         2943655      G   /usr/lib/xorg/Xorg                       43MiB |\n|    0   N/A  N/A         2944153      G   /usr/bin/gnome-shell                     15MiB |\n|    1   N/A  N/A          496936      C   VLLM::EngineCore                      27520MiB |\n|    1   N/A  N/A         2943655      G   /usr/lib/xorg/Xorg                        4MiB |\n+-----------------------------------------------------------------------------------------+\n",
+    "stderr": "",
+    "exitCode": 0
+  },
+  "fallback_used": false,
+  "qwen_used": false,
+  "site_packages_modified": false,
+  "senior_promoted_to_routing": false,
+  "integration_performed": false,
+  "final_verdict": "mixtral_candidate_failed"
+}

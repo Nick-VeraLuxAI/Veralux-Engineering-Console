@@ -5,6 +5,12 @@ import path from "path";
 import { promisify } from "util";
 
 export type MixtralSeniorCandidateStatus =
+  | "mixtral_candidate_import_only"
+  | "mixtral_candidate_boot_only"
+  | "mixtral_candidate_proven_bounded_review"
+  | "mixtral_candidate_needs_tuning"
+  | "mixtral_candidate_needs_prompt_tuning"
+  | "mixtral_candidate_failed"
   | "candidate_unproven"
   | "candidate_proven_import_only"
   | "candidate_proven_boot"
@@ -12,6 +18,8 @@ export type MixtralSeniorCandidateStatus =
   | "candidate_failed"
   | "candidate_failed_route_test"
   | "candidate_failed_runtime_test"
+  | "candidate_failed_boot"
+  | "candidate_needs_prompt_tuning"
   | "candidate_needs_tuning";
 
 export type MixtralPhase16Verdict =
@@ -70,6 +78,41 @@ export interface ColdSeniorRoleStatus {
   fallback: "none";
   required_for_mainline: false;
   senior_promoted_to_routing: false;
+  qwen_used?: false;
+  fallback_used?: false;
+  integration_performed?: false;
+}
+
+export interface Phase17GuardOptions {
+  enableBootMixtral: boolean;
+  enableInferenceMixtral: boolean;
+  bootPassed?: boolean;
+  forbiddenArgs?: string[];
+}
+
+export interface Phase17GuardResult {
+  boot_allowed: boolean;
+  inference_allowed: boolean;
+  diagnostics: string[];
+}
+
+export interface Phase17OutcomeInput {
+  bootAttempted: boolean;
+  bootStatus: "skipped_not_enabled" | "passed" | "failed" | "timed_out";
+  inferenceEnabled: boolean;
+  inferenceStatus: "skipped_boot_not_run" | "passed" | "failed" | "timed_out";
+  inferenceJsonParseStatus: "valid" | "invalid";
+}
+
+export interface Phase17Outcome {
+  senior_candidate_status: MixtralSeniorCandidateStatus;
+  final_verdict:
+    | "mixtral_candidate_proven_bounded_review"
+    | "mixtral_candidate_boot_only"
+    | "mixtral_candidate_boot_timeout"
+    | "mixtral_candidate_inference_timeout"
+    | "mixtral_candidate_needs_prompt_tuning"
+    | "mixtral_candidate_failed";
 }
 
 export const MIXTRAL_REPO_ID = "mistralai/Mixtral-8x22B-Instruct-v0.1";
@@ -213,6 +256,98 @@ export function buildColdSeniorRoleStatus(status: MixtralSeniorCandidateStatus, 
     fallback: "none",
     required_for_mainline: false,
     senior_promoted_to_routing: false,
+    qwen_used: false,
+    fallback_used: false,
+    integration_performed: false,
+  };
+}
+
+export function evaluatePhase17Guards(options: Phase17GuardOptions): Phase17GuardResult {
+  const diagnostics: string[] = [];
+  const forbiddenArgs = options.forbiddenArgs ?? [];
+  if (forbiddenArgs.some((arg) => ["--download", "--delete", "--qwen", "--fallback", "--promote-senior", "--serve"].includes(arg))) {
+    diagnostics.push("PHASE_17_FORBIDDEN_OPERATION_REQUESTED");
+  }
+  const bootAllowed = options.enableBootMixtral && diagnostics.length === 0;
+  if (!options.enableBootMixtral) diagnostics.push("BOOT_REQUIRES_ENABLE_BOOT_MIXTRAL");
+  const inferenceAllowed = options.enableInferenceMixtral && bootAllowed && options.bootPassed === true && diagnostics.length === (options.enableBootMixtral ? 0 : diagnostics.length);
+  if (!options.enableInferenceMixtral) diagnostics.push("INFERENCE_REQUIRES_ENABLE_INFERENCE_MIXTRAL");
+  if (options.enableInferenceMixtral && !options.bootPassed) diagnostics.push("INFERENCE_REQUIRES_SUCCESSFUL_BOOT");
+  return {
+    boot_allowed: bootAllowed,
+    inference_allowed: inferenceAllowed,
+    diagnostics,
+  };
+}
+
+export function parseSeniorReviewJson(outputText: string): { status: "valid" | "invalid"; parsed: Record<string, unknown> | null; diagnostics: string[] } {
+  const trimmed = outputText.trim();
+  const candidates = [
+    trimmed,
+    trimmed.slice(trimmed.indexOf("{"), trimmed.lastIndexOf("}") + 1),
+  ].filter((candidate) => candidate.startsWith("{") && candidate.endsWith("}"));
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as Record<string, unknown>;
+      const hasRequiredKeys = ["risk", "missing_test", "readiness_verdict"].every((key) => typeof parsed[key] === "string");
+      const verdictOk = parsed.readiness_verdict === "ready" || parsed.readiness_verdict === "revise";
+      if (hasRequiredKeys && verdictOk) {
+        return { status: "valid", parsed, diagnostics: [] };
+      }
+      return { status: "invalid", parsed, diagnostics: ["SENIOR_REVIEW_JSON_SHAPE_INVALID"] };
+    } catch {
+      // Try the next candidate.
+    }
+  }
+  return { status: "invalid", parsed: null, diagnostics: ["SENIOR_REVIEW_JSON_PARSE_FAILED"] };
+}
+
+export function evaluatePhase17Outcome(input: Phase17OutcomeInput): Phase17Outcome {
+  if (!input.bootAttempted) {
+    return {
+      senior_candidate_status: "mixtral_candidate_import_only",
+      final_verdict: "mixtral_candidate_boot_only",
+    };
+  }
+  if (input.bootStatus === "timed_out") {
+    return {
+      senior_candidate_status: "mixtral_candidate_needs_tuning",
+      final_verdict: "mixtral_candidate_boot_timeout",
+    };
+  }
+  if (input.bootStatus === "failed") {
+    return {
+      senior_candidate_status: "mixtral_candidate_failed",
+      final_verdict: "mixtral_candidate_failed",
+    };
+  }
+  if (!input.inferenceEnabled) {
+    return {
+      senior_candidate_status: "mixtral_candidate_boot_only",
+      final_verdict: "mixtral_candidate_boot_only",
+    };
+  }
+  if (input.inferenceStatus === "timed_out") {
+    return {
+      senior_candidate_status: "mixtral_candidate_needs_tuning",
+      final_verdict: "mixtral_candidate_inference_timeout",
+    };
+  }
+  if (input.inferenceStatus === "failed") {
+    return {
+      senior_candidate_status: "mixtral_candidate_failed",
+      final_verdict: "mixtral_candidate_failed",
+    };
+  }
+  if (input.inferenceJsonParseStatus !== "valid") {
+    return {
+      senior_candidate_status: "mixtral_candidate_needs_prompt_tuning",
+      final_verdict: "mixtral_candidate_needs_prompt_tuning",
+    };
+  }
+  return {
+    senior_candidate_status: "mixtral_candidate_proven_bounded_review",
+    final_verdict: "mixtral_candidate_proven_bounded_review",
   };
 }
 

@@ -3,10 +3,13 @@
   "provider": "airllm-cold",
   "model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
   "local_path": "/mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
-  "status": "candidate_proven_import_only",
+  "status": "mixtral_candidate_failed",
   "mode": "offline_review_job",
   "writes": "none",
   "fallback": "none",
   "required_for_mainline": false,
-  "senior_promoted_to_routing": false
+  "senior_promoted_to_routing": false,
+  "qwen_used": false,
+  "fallback_used": false,
+  "integration_performed": false
 }
