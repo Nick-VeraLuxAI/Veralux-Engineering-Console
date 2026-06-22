@@ -1,7 +1,8 @@
 export type ModelRoleId =
   | "vera_command"
   | "console_default_worker"
-  | "console_senior_worker";
+  | "console_senior_worker"
+  | "console_cold_senior_reviewer";
 
 export type BenchmarkStatus =
   | "missing_model"
@@ -23,6 +24,11 @@ export type ModelRouteStatus =
 
 export type ModelRoleAssignmentStatus =
   | "available"
+  | "candidate_unproven"
+  | "candidate_proven_import_only"
+  | "candidate_proven_boot"
+  | "candidate_proven_bounded_review"
+  | "candidate_failed"
   | "blocked_unproven"
   | "blocked_unknown_role";
 
@@ -216,6 +222,26 @@ export function resolveModelRole(
       runtimeRequired: false,
       healthcheckRequired: false,
       notes: "Senior role is intentionally blocked in Phase 3; do not start AirLLM/Super.",
+    };
+  }
+  if (roleId === "console_cold_senior_reviewer") {
+    return {
+      roleId,
+      roleKind: "senior_worker",
+      provider: "airllm-cold",
+      endpoint: envValue(
+        env,
+        "CONSOLE_COLD_SENIOR_REVIEWER_ENDPOINT",
+        "airllm:///mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
+      ),
+      model: envValue(env, "CONSOLE_COLD_SENIOR_REVIEWER_MODEL_NAME", "mistralai/Mixtral-8x22B-Instruct-v0.1"),
+      status: "candidate_unproven",
+      repositoryWriteAllowed: false,
+      fallbackAllowed: false,
+      allowedFallbackRoles: [],
+      runtimeRequired: false,
+      healthcheckRequired: false,
+      notes: "Phase 16 cold senior reviewer candidate; offline review job only, no routing promotion.",
     };
   }
   return {

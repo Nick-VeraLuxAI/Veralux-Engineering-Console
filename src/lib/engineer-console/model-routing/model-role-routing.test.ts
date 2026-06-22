@@ -43,6 +43,7 @@ describe("Nemotron-only model role routing", () => {
     const vera = resolveModelRole("vera_command", EMPTY_ENV);
     const worker = resolveModelRole("console_default_worker", EMPTY_ENV);
     const senior = resolveModelRole("console_senior_worker", EMPTY_ENV);
+    const coldSenior = resolveModelRole("console_cold_senior_reviewer", EMPTY_ENV);
 
     expect(vera).toMatchObject({
       roleId: "vera_command",
@@ -78,6 +79,19 @@ describe("Nemotron-only model role routing", () => {
       healthcheckRequired: false,
     });
     expect(senior.notes).toContain("do not start AirLLM/Super");
+    expect(coldSenior).toMatchObject({
+      roleId: "console_cold_senior_reviewer",
+      roleKind: "senior_worker",
+      provider: "airllm-cold",
+      endpoint: "airllm:///mnt/large-storage/models/mistralai_Mixtral-8x22B-Instruct-v0.1",
+      model: "mistralai/Mixtral-8x22B-Instruct-v0.1",
+      status: "candidate_unproven",
+      repositoryWriteAllowed: false,
+      fallbackAllowed: false,
+      runtimeRequired: false,
+      healthcheckRequired: false,
+    });
+    expect(coldSenior.notes).toContain("no routing promotion");
   });
 
   it("fails closed for missing roles without selecting fallback", () => {
@@ -94,6 +108,7 @@ describe("Nemotron-only model role routing", () => {
     expect(validateModelRoleAssignment(resolveModelRole("vera_command", EMPTY_ENV))).toEqual([]);
     expect(validateModelRoleAssignment(resolveModelRole("console_default_worker", EMPTY_ENV))).toEqual([]);
     expect(validateModelRoleAssignment(resolveModelRole("console_senior_worker", EMPTY_ENV))).toEqual([]);
+    expect(validateModelRoleAssignment(resolveModelRole("console_cold_senior_reviewer", EMPTY_ENV))).toEqual([]);
 
     expect(validateModelRoleAssignment({
       ...resolveModelRole("console_default_worker", EMPTY_ENV),
@@ -109,12 +124,13 @@ describe("Nemotron-only model role routing", () => {
     })).toContain("console_senior_worker:SENIOR_ROLE_MUST_REMAIN_BLOCKED_IN_PHASE_3");
   });
 
-  it("lists only known Phase 3 role assignments", () => {
+  it("lists only normal mainline Phase 3 role assignments", () => {
     expect(listModelRoleAssignments(EMPTY_ENV).map((role) => role.roleId)).toEqual([
       "vera_command",
       "console_default_worker",
       "console_senior_worker",
     ]);
+    expect(listModelRoleAssignments(EMPTY_ENV).map((role) => role.roleId)).not.toContain("console_cold_senior_reviewer");
   });
 
   it("blocks a primary route when the endpoint is missing", async () => {
