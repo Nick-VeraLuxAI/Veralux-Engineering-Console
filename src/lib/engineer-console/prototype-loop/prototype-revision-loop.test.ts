@@ -168,7 +168,7 @@ describe("Prototype revision loop", () => {
     expect(result.rounds[0].status).toBe("revision_requested");
     expect(result.rounds[0].revision_request?.failed_gates).toContain("task_tests");
     expect(result.rounds[1].status).toBe("ready_for_user_approval");
-    expect(result.final_readiness_verdict).toBe("ready_for_user_approval");
+    expect(result.final_readiness_verdict).toBe("passed_with_skips");
 
     const finalEvidence = JSON.parse(await fs.readFile(result.final_evidence_path ?? "", "utf8")) as {
       revision_loop?: { round_count: number; round_history: Array<{ status: string }> };

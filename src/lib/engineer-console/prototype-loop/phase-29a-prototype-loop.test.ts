@@ -82,7 +82,7 @@ describe("Phase 29A Prototype Loop v1", () => {
     const run = getRunById(result.console_tracking.run_id);
     const gates = getQualityGateResultsForRun(result.console_tracking.run_id);
 
-    expect(result.status).toBe("ready_for_user_approval");
+    expect(result.status).toBe("passed_with_skips");
     expect(task?.status).toBe("waiting_for_approval");
     expect(run?.status).toBe("waiting_for_approval");
     expect(gates.map((gate) => gate.command)).toContain("node --test word-count-cli.test.mjs");
@@ -95,7 +95,15 @@ describe("Phase 29A Prototype Loop v1", () => {
     ]);
     expect(result.evidence.diff_scope_check.status).toBe("passed");
     expect(result.evidence.integration_performed).toBe(false);
+    expect(result.evidence.integration_allowed).toBe(false);
     expect(result.evidence.approval_required).toBe(true);
+    expect(result.evidence.acceptance_threshold.readiness_status).toBe("passed_with_skips");
+    expect(result.evidence.acceptance_threshold.approval_allowed).toBe(true);
+    expect(result.evidence.threshold_engine_input.evidence_generated).toBe(true);
+    expect(result.evidence.threshold_engine_gates.map((gate) => gate.id)).toContain("approval_required");
+    expect(result.evidence.threshold_engine_output.blocking_reasons).toEqual([]);
+    expect(result.evidence.passed_gates).toContain("task_tests");
+    expect(result.evidence.skipped_gates).toContain("optional_lint_typecheck_build");
     expect(result.evidence.console_tracking).toEqual(result.console_tracking);
     expect(result.evidence.structured_build_spec.task_type).toBe("build_prototype");
     expect(result.evidence.acceptance_criteria_status.every((criterion) => criterion.status === "passed")).toBe(true);

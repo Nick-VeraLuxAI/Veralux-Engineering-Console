@@ -5,12 +5,14 @@ import path from "path";
 import { promisify } from "util";
 import {
   evaluateAcceptanceThreshold,
+  type AcceptanceCriterionStatus,
+  type AcceptanceThresholdGate,
   type AcceptanceThresholdVerdict,
 } from "./acceptance-threshold";
 
 const execFileAsync = promisify(execFile);
 
-export type EvidenceStatus = "ready_for_user_approval" | "not_ready" | "requires_revision" | "blocked" | "failed";
+export type EvidenceStatus = "ready_for_user_approval" | "passed_with_skips" | "requires_revision" | "blocked" | "failed";
 
 export interface PrototypeLoopConsoleAssignment {
   assignment_type: "prototype_loop_v1_console_build";
@@ -75,8 +77,10 @@ export interface PrototypeLoopEvidence {
   unresolved_issues: string[];
   final_readiness_status: EvidenceStatus;
   status: EvidenceStatus;
+  readiness_status: AcceptanceThresholdVerdict["readiness_status"];
   implementation_recommendation: string;
   approval_required: boolean;
+  integration_allowed: boolean;
   integration_performed: boolean;
   workspace_path: string;
   evidence_path: string;
@@ -90,12 +94,19 @@ export interface PrototypeLoopEvidence {
     new_evidence_status: EvidenceStatus;
   }>;
   acceptance_threshold: AcceptanceThresholdVerdict;
+  threshold_engine_input: AcceptanceThresholdVerdict["threshold_input"];
+  threshold_engine_gates: AcceptanceThresholdGate[];
+  threshold_engine_output: AcceptanceThresholdVerdict;
   readiness_verdict: AcceptanceThresholdVerdict["status"];
   gate_results: AcceptanceThresholdVerdict["gate_results"];
   required_gates: string[];
+  passed_gates: string[];
+  failed_gates: string[];
+  skipped_gates: string[];
   not_applicable_gates: AcceptanceThresholdVerdict["not_applicable_gates"];
   pre_existing_unrelated_failures: AcceptanceThresholdVerdict["pre_existing_unrelated_failures"];
   blocking_failures: string[];
+  blocking_reasons: string[];
 }
 
 interface PrototypeLoopOptions {
@@ -178,9 +189,12 @@ export async function runPrototypeLoopV1(
     },
   ];
   const evidencePath = path.join(evidenceRoot, `${assignment.task_id}.json`);
+  const acceptanceCriteriaStatuses = buildAcceptanceCriteriaStatuses(assignment, testsPassed);
   const acceptanceThreshold = evaluateAcceptanceThreshold({
     taskId: assignment.task_id,
     riskLevel: assignment.risk_level,
+    riskNotes: ["Isolated local CLI prototype; no production integration performed."],
+    acceptanceCriteriaStatuses,
     prototypeWorkspacePath: workspacePath,
     requiredTestsConfigured: assignment.test_expectations.length > 0,
     approvalRequired: assignment.approval_policy.approval_required,
@@ -197,7 +211,7 @@ export async function runPrototypeLoopV1(
     seniorUsed: false,
     preExistingUnrelatedFailures: [],
   });
-  const ready = acceptanceThreshold.ready;
+  const approvalAllowed = acceptanceThreshold.approval_allowed;
   const evidence: PrototypeLoopEvidence = {
     task_id: assignment.task_id,
     timestamp: (options.now ?? new Date()).toISOString(),
@@ -218,10 +232,12 @@ export async function runPrototypeLoopV1(
     unresolved_issues: acceptanceThreshold.unresolved_issues,
     final_readiness_status: acceptanceThreshold.status,
     status: acceptanceThreshold.status,
-    implementation_recommendation: ready
+    readiness_status: acceptanceThreshold.readiness_status,
+    implementation_recommendation: approvalAllowed
       ? "Keep as prototype until the user explicitly approves implementation."
       : "Revise the prototype evidence before asking for implementation approval.",
     approval_required: assignment.approval_policy.approval_required,
+    integration_allowed: assignment.approval_policy.integration_allowed,
     integration_performed: false,
     workspace_path: workspacePath,
     evidence_path: evidencePath,
@@ -230,16 +246,36 @@ export async function runPrototypeLoopV1(
     repair_attempts: repairAttempts,
     revision_rounds: [],
     acceptance_threshold: acceptanceThreshold,
+    threshold_engine_input: acceptanceThreshold.threshold_input,
+    threshold_engine_gates: acceptanceThreshold.normalized_gates,
+    threshold_engine_output: acceptanceThreshold,
     readiness_verdict: acceptanceThreshold.status,
     gate_results: acceptanceThreshold.gate_results,
     required_gates: acceptanceThreshold.required_gates,
+    passed_gates: acceptanceThreshold.passed_gates,
+    failed_gates: acceptanceThreshold.failed_gates,
+    skipped_gates: acceptanceThreshold.skipped_gates,
     not_applicable_gates: acceptanceThreshold.not_applicable_gates,
     pre_existing_unrelated_failures: acceptanceThreshold.pre_existing_unrelated_failures,
     blocking_failures: acceptanceThreshold.blocking_failures,
+    blocking_reasons: acceptanceThreshold.blocking_reasons,
   };
 
   await fs.writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`, "utf8");
   return evidence;
+}
+
+function buildAcceptanceCriteriaStatuses(
+  assignment: PrototypeLoopConsoleAssignment,
+  testsPassed: boolean,
+): AcceptanceCriterionStatus[] {
+  return assignment.acceptance_criteria.map((criterion) => ({
+    criterion,
+    status: testsPassed ? "passed" : "failed",
+    evidence: testsPassed
+      ? "Satisfied by isolated prototype files, command results, safety checks, generated evidence, and approval policy."
+      : "Prototype tests did not pass; see command and gate results.",
+  }));
 }
 
 export function validateConsoleAssignment(assignment: PrototypeLoopConsoleAssignment): void {

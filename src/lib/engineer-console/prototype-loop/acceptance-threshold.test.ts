@@ -25,9 +25,9 @@ function baseConfig(overrides: Partial<AcceptanceThresholdConfig> = {}): Accepta
       exitCode: 0,
     }],
     lintTypecheckResults: [{
-      command: "(not applicable)",
-      status: "skipped",
-      stderr: "Prototype workspace has no package-level lint/typecheck/build configuration.",
+      command: "npm run typecheck",
+      status: "passed",
+      stderr: "",
     }],
     diffScopeCheck: {
       status: "passed",
@@ -67,19 +67,28 @@ describe("Acceptance Threshold Engine", () => {
     const verdict = evaluateAcceptanceThreshold(baseConfig());
 
     expect(verdict.status).toBe("ready_for_user_approval");
+    expect(verdict.readiness_status).toBe("ready_for_user_approval");
     expect(verdict.ready).toBe(true);
+    expect(verdict.approval_allowed).toBe(true);
     expect(verdict.failed_gates).toEqual([]);
     expect(verdict.blocked_gates).toEqual([]);
-    expect(verdict.skipped_gates).toContain("optional_lint_typecheck_build");
+    expect(verdict.skipped_gates).toEqual([]);
+    expect(verdict.normalized_gates[0]).toMatchObject({
+      id: "task_tests",
+      label: "Task-specific tests",
+      required: true,
+      status: "passed",
+    });
   });
 
-  it("returns not_ready when task-specific tests fail", () => {
+  it("returns failed when a required task-specific test fails", () => {
     const verdict = evaluateAcceptanceThreshold(baseConfig({
       testResults: [{ command: "node --test", status: "failed", exitCode: 1 }],
     }));
 
-    expect(verdict.status).toBe("not_ready");
+    expect(verdict.status).toBe("failed");
     expect(verdict.failed_gates).toContain("task_tests");
+    expect(verdict.approval_allowed).toBe(false);
   });
 
   it("blocks when scope check fails", () => {
@@ -98,6 +107,7 @@ describe("Acceptance Threshold Engine", () => {
 
     expect(verdict.status).toBe("blocked");
     expect(verdict.blocked_gates).toContain("secret_scan");
+    expect(verdict.blocking_reasons.join("\n")).toContain("Secret-like patterns");
   });
 
   it("blocks when integration occurred before approval", () => {
@@ -121,6 +131,15 @@ describe("Acceptance Threshold Engine", () => {
 
     expect(verdict.status).toBe("blocked");
     expect(verdict.blocked_gates).toContain("approval_required");
+    expect(verdict.approval_required).toBe(false);
+    expect(verdict.approval_allowed).toBe(false);
+  });
+
+  it("keeps integration allowed false for prototype work", () => {
+    const verdict = evaluateAcceptanceThreshold(baseConfig());
+
+    expect(verdict.integration_allowed).toBe(false);
+    expect(verdict.approval_required).toBe(true);
   });
 
   it("blocks when role policy is violated", () => {
@@ -152,14 +171,39 @@ describe("Acceptance Threshold Engine", () => {
     expect(verdict.blocked_gates).toContain("senior_super_not_used");
   });
 
-  it("records not-applicable optional gates with reasons", () => {
-    const verdict = evaluateAcceptanceThreshold(baseConfig());
+  it("blocks when a required check is skipped without reason", () => {
+    const verdict = evaluateAcceptanceThreshold(baseConfig({
+      skippedChecks: [{
+        id: "required_external_check",
+        label: "Required external check",
+        required: true,
+      }],
+    }));
 
+    expect(verdict.status).toBe("blocked");
+    expect(verdict.skipped_gates).toContain("required_external_check");
+    expect(verdict.blocking_reasons.join("\n")).toContain("skipped without a reason");
+  });
+
+  it("returns passed_with_skips when optional checks are skipped with reasons", () => {
+    const verdict = evaluateAcceptanceThreshold(baseConfig({
+      lintTypecheckResults: [{
+        command: "(not applicable)",
+        status: "skipped",
+        stderr: "Prototype workspace has no package-level lint/typecheck/build configuration.",
+      }],
+    }));
+
+    expect(verdict.status).toBe("passed_with_skips");
+    expect(verdict.ready).toBe(true);
+    expect(verdict.approval_allowed).toBe(true);
+    expect(verdict.skipped_gates).toContain("optional_lint_typecheck_build");
     expect(verdict.not_applicable_gates).toEqual([
       expect.objectContaining({
         name: "optional_lint_typecheck_build",
         status: "not_applicable",
         required: false,
+        reason: "Prototype workspace has no package-level lint/typecheck/build configuration.",
       }),
     ]);
   });

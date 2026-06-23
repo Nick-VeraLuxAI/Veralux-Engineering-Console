@@ -33,7 +33,7 @@ export interface Phase29ABuildSpec {
 
 export interface Phase29APrototypeLoopResult {
   phase: "29A";
-  status: "ready_for_user_approval" | "blocked" | "failed" | "requires_revision" | "not_ready";
+  status: "ready_for_user_approval" | "passed_with_skips" | "blocked" | "failed" | "requires_revision";
   structured_build_spec: Phase29ABuildSpec;
   console_tracking: {
     task_id: string;
@@ -68,6 +68,9 @@ interface Phase29AEvidenceAddendum {
   }>;
   risks_limitations: string[];
   readiness_status: PrototypeLoopEvidence["status"];
+  threshold_engine_input: PrototypeLoopEvidence["threshold_engine_input"];
+  threshold_engine_gates: PrototypeLoopEvidence["threshold_engine_gates"];
+  threshold_engine_output: PrototypeLoopEvidence["threshold_engine_output"];
   vera_summary: Phase29AVeraSummary;
   approval_options: Phase29ABuildSpec["approval_policy"]["final_options"];
 }
@@ -121,8 +124,9 @@ export async function runPhase29APrototypeLoop(
     ...evidence.lint_typecheck_results,
   ]);
 
-  const taskStatus = evidence.status === "ready_for_user_approval" ? "waiting_for_approval" : "failed";
-  const runStatus = evidence.status === "ready_for_user_approval" ? "waiting_for_approval" : "failed";
+  const approvalAllowed = evidence.acceptance_threshold.approval_allowed;
+  const taskStatus = approvalAllowed ? "waiting_for_approval" : "failed";
+  const runStatus = approvalAllowed ? "waiting_for_approval" : "failed";
   updateTask(task.id, { status: taskStatus });
   updateRun(run.id, {
     status: runStatus,
@@ -153,7 +157,7 @@ export async function runPhase29APrototypeLoop(
     qualityGateResults: [],
     diffSummary: enrichedEvidence.patch_diff_summary,
     recommendedNextAction: PHASE_29A_APPROVAL_QUESTION,
-    canApprove: enrichedEvidence.status === "ready_for_user_approval",
+    canApprove: enrichedEvidence.acceptance_threshold.approval_allowed,
   }));
 
   return {
@@ -321,11 +325,11 @@ function buildAcceptanceStatus(
   spec: Phase29ABuildSpec,
   evidence: PrototypeLoopEvidence,
 ): Phase29AEvidenceAddendum["acceptance_criteria_status"] {
-  const passed = evidence.status === "ready_for_user_approval";
+  const thresholdPassed = evidence.acceptance_threshold.approval_allowed;
   return spec.acceptance_criteria.map((criterion) => ({
     criterion,
-    status: passed ? "passed" : "failed",
-    evidence: passed
+    status: thresholdPassed ? "passed" : "failed",
+    evidence: thresholdPassed
       ? "Satisfied by isolated prototype files, command results, generated evidence, and approval gate."
       : "See failing command results or gate results in this evidence bundle.",
   }));
@@ -347,6 +351,9 @@ async function writePhase29AEvidenceAddendum(
     acceptance_criteria_status: buildAcceptanceStatus(input.spec, evidence),
     risks_limitations: input.veraSummary.risks_or_limitations,
     readiness_status: evidence.status,
+    threshold_engine_input: evidence.threshold_engine_input,
+    threshold_engine_gates: evidence.threshold_engine_gates,
+    threshold_engine_output: evidence.threshold_engine_output,
     vera_summary: input.veraSummary,
     approval_options: input.spec.approval_policy.final_options,
   };

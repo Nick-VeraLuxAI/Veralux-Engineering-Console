@@ -211,7 +211,7 @@ function roundStatusFromEvidence(
   if (
     evidence.acceptance_threshold.ready
     && review.ready_for_approval === true
-    && review.evidence_status === "ready_for_user_approval"
+    && (review.evidence_status === "ready_for_user_approval" || review.evidence_status === "passed_with_skips")
   ) {
     return "ready_for_user_approval";
   }

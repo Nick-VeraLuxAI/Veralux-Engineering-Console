@@ -96,11 +96,10 @@ export async function runPrototypeLoopLifecycleV1(
 
   const approvalQuestion = review.user_facing_summary?.approval_question ?? null;
   const passed =
-    evidence.status === "ready_for_user_approval"
+    evidence.acceptance_threshold.approval_allowed
     && evidence.approval_required
     && !evidence.integration_performed
     && review.ready_for_approval === true
-    && review.evidence_status === "ready_for_user_approval"
     && typeof approvalQuestion === "string"
     && approvalQuestion.includes("implement this prototype");
 

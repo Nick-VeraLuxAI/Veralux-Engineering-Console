@@ -121,14 +121,24 @@ describe("Prototype Loop v1 Console runner", () => {
     const repoRoot = await tempRepo();
     const evidence = await runPrototypeLoopV1(assignment(), { repoRoot, now: new Date("2026-06-21T16:00:00.000Z") });
 
-    expect(evidence.status).toBe("ready_for_user_approval");
+    expect(evidence.status).toBe("passed_with_skips");
+    expect(evidence.readiness_status).toBe("passed_with_skips");
     expect(evidence.tests_passed).toBe(true);
     expect(evidence.approval_required).toBe(true);
+    expect(evidence.integration_allowed).toBe(false);
     expect(evidence.integration_performed).toBe(false);
     expect(evidence.secret_scan_result.status).toBe("passed");
     expect(evidence.diff_scope_check.status).toBe("passed");
-    expect(evidence.readiness_verdict).toBe("ready_for_user_approval");
+    expect(evidence.readiness_verdict).toBe("passed_with_skips");
     expect(evidence.acceptance_threshold.ready).toBe(true);
+    expect(evidence.acceptance_threshold.approval_allowed).toBe(true);
+    expect(evidence.threshold_engine_output.readiness_status).toBe("passed_with_skips");
+    expect(evidence.threshold_engine_input.approval_policy).toMatchObject({
+      approval_required: true,
+      integration_allowed: false,
+      integration_performed: false,
+    });
+    expect(evidence.threshold_engine_gates.map((gate) => gate.id)).toContain("task_tests");
     expect(evidence.acceptance_threshold.required_gates).toContain("task_tests");
     expect(evidence.acceptance_threshold.required_gates).toContain("role_policy");
     expect(evidence.acceptance_threshold.skipped_gates).toContain("optional_lint_typecheck_build");
@@ -140,8 +150,9 @@ describe("Prototype Loop v1 Console runner", () => {
     ]);
 
     const saved = JSON.parse(await fs.readFile(evidence.evidence_path, "utf8")) as typeof evidence;
-    expect(saved.final_readiness_status).toBe("ready_for_user_approval");
-    expect(saved.acceptance_threshold.status).toBe("ready_for_user_approval");
+    expect(saved.final_readiness_status).toBe("passed_with_skips");
+    expect(saved.acceptance_threshold.status).toBe("passed_with_skips");
+    expect(saved.threshold_engine_output.approval_allowed).toBe(true);
   });
 
   it("repairs and retries failed test gates within the configured limit", async () => {
@@ -165,6 +176,7 @@ describe("Prototype Loop v1 Console runner", () => {
     expect(evidence.tests_passed).toBe(true);
     expect(evidence.repair_attempts).toBe(1);
     expect(evidence.test_results).toHaveLength(2);
-    expect(evidence.status).toBe("ready_for_user_approval");
+    expect(evidence.status).toBe("passed_with_skips");
+    expect(evidence.acceptance_threshold.approval_allowed).toBe(true);
   });
 });
