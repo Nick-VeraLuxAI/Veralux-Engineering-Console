@@ -3,16 +3,24 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Surface } from "@/components/ui/surface";
+import type { MainlineGovernedChangeDemo } from "@/lib/engineer-console/mainline-runtime/mainline-governed-change-demo";
 import type { MainlineSafeTaskExecutionDemo } from "@/lib/engineer-console/mainline-runtime/mainline-safe-task-execution-demo";
 import type { MainlineTaskRunProof } from "@/lib/engineer-console/mainline-runtime/mainline-task-run-proof";
 
 export const SAFE_MAINLINE_DEMO_ENDPOINT = "/api/engineer-console/mainline-runtime/safe-task-demo";
+export const GOVERNED_CHANGE_DEMO_ENDPOINT = "/api/engineer-console/mainline-runtime/governed-change-demo";
 
 export type SafeMainlineDemoActionState = "idle" | "running" | "success" | "error";
+export type GovernedChangeDemoActionState = "idle" | "running" | "success" | "error";
 
 export interface SafeMainlineDemoApiResponse {
   status: string;
   proof: MainlineSafeTaskExecutionDemo;
+}
+
+export interface GovernedChangeDemoApiResponse {
+  status: string;
+  proof: MainlineGovernedChangeDemo;
 }
 
 function StatusLine({ label, value }: { label: string; value: string | boolean }) {
@@ -37,6 +45,23 @@ export async function triggerSafeMainlineDemo(
   }
   return {
     status: body.status ?? "safe_mainline_task_demo_api_trigger_passed_awaiting_user_approval",
+    proof: body.proof,
+  };
+}
+
+export async function triggerGovernedChangeDemo(
+  fetchFn: typeof fetch = fetch,
+): Promise<GovernedChangeDemoApiResponse> {
+  const response = await fetchFn(GOVERNED_CHANGE_DEMO_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  const body = await response.json() as Partial<GovernedChangeDemoApiResponse> & { error?: string };
+  if (!response.ok || !body.proof) {
+    throw new Error(body.error ?? `Governed change demo failed with status ${response.status}`);
+  }
+  return {
+    status: body.status ?? "governed_code_change_api_ui_trigger_passed_awaiting_user_approval",
     proof: body.proof,
   };
 }
@@ -101,10 +126,80 @@ export function MainlineRuntimeProofPanelStatus({
   );
 }
 
+export function MainlineRuntimeGovernedChangePanelStatus({
+  actionState,
+  demoProof,
+  errorMessage,
+}: {
+  actionState: GovernedChangeDemoActionState;
+  demoProof: MainlineGovernedChangeDemo | null;
+  errorMessage: string | null;
+}) {
+  if (actionState === "running") {
+    return (
+      <div
+        className="mt-4 rounded-2xl border border-sky-500/30 bg-sky-500/10 p-4 text-sm text-sky-100"
+        data-governed-demo-state="running"
+      >
+        Running governed change demo. The action is documentation-only and cannot integrate changes.
+      </div>
+    );
+  }
+  if (actionState === "error") {
+    return (
+      <div
+        className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-100"
+        data-governed-demo-state="error"
+      >
+        <p className="font-medium">Governed change demo did not complete.</p>
+        <p className="mt-1">{errorMessage ?? "Unknown error"}</p>
+        <p className="mt-2 text-red-100/80">
+          No fallback, senior escalation, retry escalation, PR, merge, or integration was triggered.
+        </p>
+      </div>
+    );
+  }
+  if (actionState === "success" && demoProof) {
+    return (
+      <div
+        className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100"
+        data-governed-demo-state="success"
+      >
+        <p className="font-medium">
+          Governed change demo completed safely; documentation/evidence was prepared and checks were recorded.
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <StatusLine label="Final state" value={demoProof.finalState} />
+          <StatusLine label="Changed files" value={demoProof.changedFiles.join(", ")} />
+          <StatusLine label="Evidence path" value={demoProof.evidencePackage.path} />
+          <StatusLine label="Checks recorded" value={demoProof.checks.map((check) => check.command).join(" | ")} />
+          <StatusLine label="Approval required" value={demoProof.safetyInvariants.approvalRequired} />
+          <StatusLine label="Integration performed" value={demoProof.safetyInvariants.integrationPerformed} />
+          <StatusLine label="PR created" value={demoProof.safetyInvariants.prCreated} />
+          <StatusLine label="Merge performed" value={demoProof.safetyInvariants.mergePerformed} />
+          <StatusLine label="Fallback used" value={demoProof.safetyInvariants.fallbackUsed} />
+          <StatusLine label="Qwen used" value={demoProof.safetyInvariants.qwenUsed} />
+          <StatusLine label="Super required" value={demoProof.safetyInvariants.superRequired} />
+          <StatusLine label="Mixtral required" value={demoProof.safetyInvariants.mixtralRequired} />
+          <StatusLine label="AirLLM used" value={demoProof.safetyInvariants.airllmUsed} />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <p className="mt-4 text-sm text-[var(--muted)]" data-governed-demo-state="idle">
+      This action prepares only the approved Phase 26 documentation/evidence paths and stops before integration.
+    </p>
+  );
+}
+
 export function MainlineRuntimeProofPanel({ proof }: { proof: MainlineTaskRunProof }) {
   const [actionState, setActionState] = React.useState<SafeMainlineDemoActionState>("idle");
   const [demoProof, setDemoProof] = React.useState<MainlineSafeTaskExecutionDemo | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [governedActionState, setGovernedActionState] = React.useState<GovernedChangeDemoActionState>("idle");
+  const [governedDemoProof, setGovernedDemoProof] = React.useState<MainlineGovernedChangeDemo | null>(null);
+  const [governedErrorMessage, setGovernedErrorMessage] = React.useState<string | null>(null);
   const vera = proof.runtimeContract.activeRoles.find((role) => role.roleId === "vera_command");
   const consoleWorker = proof.runtimeContract.activeRoles.find((role) => role.roleId === "console_default_worker");
   const senior = proof.runtimeContract.parkedRoles.find((role) => role.roleId === "console_senior_worker");
@@ -121,6 +216,20 @@ export function MainlineRuntimeProofPanel({ proof }: { proof: MainlineTaskRunPro
       setDemoProof(null);
       setErrorMessage(error instanceof Error ? error.message : "Safe demo failed.");
       setActionState("error");
+    }
+  }
+
+  async function runGovernedChangeDemo() {
+    setGovernedActionState("running");
+    setGovernedErrorMessage(null);
+    try {
+      const result = await triggerGovernedChangeDemo();
+      setGovernedDemoProof(result.proof);
+      setGovernedActionState("success");
+    } catch (error) {
+      setGovernedDemoProof(null);
+      setGovernedErrorMessage(error instanceof Error ? error.message : "Governed change demo failed.");
+      setGovernedActionState("error");
     }
   }
 
@@ -168,6 +277,30 @@ export function MainlineRuntimeProofPanel({ proof }: { proof: MainlineTaskRunPro
         actionState={actionState}
         demoProof={demoProof}
         errorMessage={errorMessage}
+      />
+
+      <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-white">Run the governed documentation-change demo</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Calls the governed API trigger, prepares only approved docs/evidence paths, and stops at approval.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={runGovernedChangeDemo}
+          disabled={governedActionState === "running"}
+          data-governed-demo-trigger="true"
+        >
+          {governedActionState === "running" ? "Running..." : "Run Governed Change Demo"}
+        </button>
+      </div>
+
+      <MainlineRuntimeGovernedChangePanelStatus
+        actionState={governedActionState}
+        demoProof={governedDemoProof}
+        errorMessage={governedErrorMessage}
       />
 
       <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
