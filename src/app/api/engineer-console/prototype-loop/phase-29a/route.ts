@@ -8,6 +8,9 @@ export const runtime = "nodejs";
 interface Phase29ARequestBody {
   request?: string;
   repoRoot?: string;
+  phase35_smoke_fixture?: {
+    force_initial_test_failure?: boolean;
+  };
 }
 
 export async function POST(request: Request) {
@@ -19,6 +22,9 @@ export async function POST(request: Request) {
   const result = await runPhase29APrototypeLoop({
     request: stringField(body, "request"),
     repoRoot: stringField(body, "repoRoot"),
+    phase35SmokeFixture: {
+      forceInitialTestFailure: body.phase35_smoke_fixture?.force_initial_test_failure === true,
+    },
   });
 
   return NextResponse.json(

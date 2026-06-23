@@ -16,6 +16,7 @@ import {
 
 const tempRoots: string[] = [];
 const originalDbPath = process.env.ENGINEER_CONSOLE_DB_PATH;
+const originalSmokeFixture = process.env.ENGINEER_CONSOLE_ENABLE_PHASE35_SMOKE_FIXTURE;
 
 beforeEach(async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "phase-29a-"));
@@ -32,6 +33,11 @@ afterEach(async () => {
     delete process.env.ENGINEER_CONSOLE_DB_PATH;
   } else {
     process.env.ENGINEER_CONSOLE_DB_PATH = originalDbPath;
+  }
+  if (originalSmokeFixture === undefined) {
+    delete process.env.ENGINEER_CONSOLE_ENABLE_PHASE35_SMOKE_FIXTURE;
+  } else {
+    process.env.ENGINEER_CONSOLE_ENABLE_PHASE35_SMOKE_FIXTURE = originalSmokeFixture;
   }
   await Promise.all(tempRoots.map((root) => fs.rm(root, { recursive: true, force: true })));
   tempRoots.length = 0;
@@ -145,5 +151,22 @@ describe("Phase 29A Prototype Loop v1", () => {
     expect(evidence.vera_summary.what_passed.join("\n")).toContain("prototype_tests");
     expect(evidence.vera_summary.risks_or_limitations.join("\n")).toContain("not been integrated");
     expect(evidence.vera_summary.approval_question).toBe(PHASE_29A_APPROVAL_QUESTION);
+  });
+
+  it("supports a guarded Phase 35 smoke fixture for a revisable initial failure", async () => {
+    process.env.ENGINEER_CONSOLE_ENABLE_PHASE35_SMOKE_FIXTURE = "true";
+    const repoRoot = await tempRepo();
+    const result = await runPhase29APrototypeLoop({
+      repoRoot,
+      phase35SmokeFixture: { forceInitialTestFailure: true },
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.evidence.tests_passed).toBe(false);
+    expect(result.evidence.failed_gates).toContain("task_tests");
+    expect(result.evidence.blocking_failures).toEqual([]);
+    expect(result.evidence.integration_allowed).toBe(false);
+    expect(result.evidence.approval_required).toBe(true);
+    expect(result.evidence.test_results[0]?.stderr).toContain("Phase 35 smoke fixture");
   });
 });

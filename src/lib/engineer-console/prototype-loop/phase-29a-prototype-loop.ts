@@ -5,6 +5,7 @@ import { createTask, updateTask } from "../task-manager/task-manager";
 import {
   runPrototypeLoopV1,
   type PrototypeLoopConsoleAssignment,
+  type PrototypeLoopCommandResult,
   type PrototypeLoopEvidence,
 } from "./prototype-loop-v1";
 
@@ -81,6 +82,9 @@ export interface RunPhase29APrototypeLoopOptions {
   workspaceRoot?: string;
   evidenceRoot?: string;
   now?: Date;
+  phase35SmokeFixture?: {
+    forceInitialTestFailure?: boolean;
+  };
 }
 
 export async function runPhase29APrototypeLoop(
@@ -117,6 +121,9 @@ export async function runPhase29APrototypeLoop(
     workspaceRoot: options.workspaceRoot,
     evidenceRoot: options.evidenceRoot,
     now: options.now,
+    commandRunner: phase35SmokeFixtureEnabled(options.phase35SmokeFixture)
+      ? runPhase35SmokeFailureCommand
+      : undefined,
   });
 
   saveQualityGateResults(run.id, [
@@ -170,6 +177,25 @@ export async function runPhase29APrototypeLoop(
     evidence: enrichedEvidence,
     vera_summary: veraSummary,
     approval_options: spec.approval_policy.final_options,
+  };
+}
+
+function phase35SmokeFixtureEnabled(fixture: RunPhase29APrototypeLoopOptions["phase35SmokeFixture"]): boolean {
+  if (fixture?.forceInitialTestFailure !== true) return false;
+  return process.env.NODE_ENV === "test" || process.env.ENGINEER_CONSOLE_ENABLE_PHASE35_SMOKE_FIXTURE === "true";
+}
+
+async function runPhase35SmokeFailureCommand(cwd: string, command: string): Promise<PrototypeLoopCommandResult> {
+  if (command !== "node --test word-count-cli.test.mjs") {
+    throw new Error(`PHASE35_SMOKE_UNEXPECTED_COMMAND:${command}:${cwd}`);
+  }
+  return {
+    command,
+    status: "failed",
+    exitCode: 1,
+    stdout: "",
+    stderr: "Phase 35 smoke fixture forced the initial prototype test gate to fail.",
+    durationMs: 0,
   };
 }
 

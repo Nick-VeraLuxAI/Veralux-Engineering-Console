@@ -15,6 +15,7 @@ vi.mock("@/lib/engineer-console/security/route-guards", () => ({
 
 const tempRoots: string[] = [];
 const originalDbPath = process.env.ENGINEER_CONSOLE_DB_PATH;
+const originalSmokeFixture = process.env.ENGINEER_CONSOLE_ENABLE_PHASE35_SMOKE_FIXTURE;
 
 beforeEach(async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "phase-29a-api-"));
@@ -32,6 +33,11 @@ afterEach(async () => {
     delete process.env.ENGINEER_CONSOLE_DB_PATH;
   } else {
     process.env.ENGINEER_CONSOLE_DB_PATH = originalDbPath;
+  }
+  if (originalSmokeFixture === undefined) {
+    delete process.env.ENGINEER_CONSOLE_ENABLE_PHASE35_SMOKE_FIXTURE;
+  } else {
+    process.env.ENGINEER_CONSOLE_ENABLE_PHASE35_SMOKE_FIXTURE = originalSmokeFixture;
   }
   await Promise.all(tempRoots.map((root) => fs.rm(root, { recursive: true, force: true })));
   tempRoots.length = 0;
@@ -74,5 +80,25 @@ describe("Phase 29A Prototype Loop API trigger", () => {
       "Do you want to approve implementation, request a revision, or discard this prototype?",
     );
     await expect(fs.stat(body.result.evidence_path)).resolves.toBeTruthy();
+  });
+
+  it("accepts the guarded Phase 35 smoke fixture for a revisable initial failure", async () => {
+    process.env.ENGINEER_CONSOLE_ENABLE_PHASE35_SMOKE_FIXTURE = "true";
+    const repoRoot = await tempRepo();
+    const { POST } = await import("@/app/api/engineer-console/prototype-loop/phase-29a/route");
+
+    const response = await POST(request({
+      repoRoot,
+      request: "Build a tiny CLI tool that reads a text file and returns word count, character count, and top 5 repeated words.",
+      phase35_smoke_fixture: { force_initial_test_failure: true },
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.result.status).toBe("failed");
+    expect(body.result.evidence.failed_gates).toContain("task_tests");
+    expect(body.result.evidence.blocking_failures).toEqual([]);
+    expect(body.result.evidence.approval_required).toBe(true);
+    expect(body.result.evidence.integration_allowed).toBe(false);
   });
 });
