@@ -14,9 +14,11 @@ import { resolveOperatorQueuePresetId } from "@/lib/engineer-console/run-ux/oper
 import { buildEngineeringWorkflowMapData } from "@/lib/engineer-console/dashboard/workflow-map";
 import { EngineeringConsoleCanvasHome } from "@/components/engineer-console/engineering-console-canvas-home";
 import { EngineerTaskList } from "@/components/engineer-console/engineer-task-list";
+import { MainlineRuntimeProofPanel } from "@/components/engineer-console/mainline-runtime-proof-panel";
 import { OperatorQueuePanel } from "@/components/engineer-console/operator-queue-panel";
 import { SetupReadinessPanel } from "@/components/engineer-console/setup-readiness-panel";
 import { StagingSmokeWorkflowHelper } from "@/components/engineer-console/staging-smoke-workflow-helper";
+import { buildMainlineTaskRunProof } from "@/lib/engineer-console/mainline-runtime/mainline-task-run-proof";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +65,7 @@ export default async function EngineerPage({
   const initialPreset = resolveOperatorQueuePresetId(resolvedSearchParams.queue);
   const hasQueueQueryParam = resolvedSearchParams.queue !== undefined;
   const detailPanel = resolveDetailsPanel(resolvedSearchParams.details, resolvedSearchParams.tab);
+  const mainlineProof = buildMainlineTaskRunProof();
   const workflowMapData = buildEngineeringWorkflowMapData({
     tasks,
     repos,
@@ -80,6 +83,7 @@ export default async function EngineerPage({
           Register project specifications, requirements, acceptance criteria, and Vera orchestration decisions.
         </p>
       </div>
+      <MainlineRuntimeProofPanel proof={mainlineProof} />
       <EngineeringConsoleCanvasHome
         mapData={workflowMapData}
         detailPanel={detailPanel}
