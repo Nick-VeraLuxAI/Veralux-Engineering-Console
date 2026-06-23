@@ -41,6 +41,7 @@ yarn-error.log*
 /backups/
 /.venv-airllm/
 /.airllm-matrix/
+/.prototype-loop/
 
 # typescript
 *.tsbuildinfo
