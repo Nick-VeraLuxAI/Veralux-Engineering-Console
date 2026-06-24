@@ -43,6 +43,7 @@ yarn-error.log*
 /.airllm-matrix/
 /.prototype-loop/
 /.controlled-apply/
+/.integration-candidates/
 
 # typescript
 *.tsbuildinfo
