@@ -4,6 +4,14 @@ import {
   VERA_CONSOLE_HANDOFF_V1_SCHEMA_VERSION,
   validateVeraConsoleHandoffV1,
 } from "./vera-console-handoff-v1";
+import {
+  canonicalVeraConsoleHandoffV1Fixture,
+  malformedEvidenceVeraConsoleHandoffV1Fixture,
+  malformedRuntimePolicyVeraConsoleHandoffV1Fixture,
+  missingRequiredVeraConsoleHandoffV1Fixture,
+  unsafeApprovalVeraConsoleHandoffV1Fixture,
+  unsupportedVersionVeraConsoleHandoffV1Fixture,
+} from "./vera-console-handoff-v1.fixtures";
 
 function validHandoff(overrides: Record<string, unknown> = {}) {
   return {
@@ -171,5 +179,48 @@ describe("vera_console_handoff_v1", () => {
     expect(result.ok).toBe(true);
     expect(result.authorizes_execution).toBe(false);
     expect(result.authorizes_main_tree_mutation).toBe(false);
+  });
+});
+
+describe("vera_console_handoff_v1 canonical fixtures", () => {
+  it("accepts the canonical cross-repo fixture without authorizing execution", () => {
+    const result = validateVeraConsoleHandoffV1(canonicalVeraConsoleHandoffV1Fixture);
+
+    expect(result.ok).toBe(true);
+    expect(result.evidence_claims_verified).toBe(false);
+    expect(result.runtime_policy_metadata_verified).toBe(false);
+    expect(result.authorizes_execution).toBe(false);
+    expect(result.authorizes_main_tree_mutation).toBe(false);
+    if (result.ok) {
+      expect(result.handoff.evidence_refs[0]?.verification_state).toBe("claim_unverified");
+      expect(result.handoff.requested_role).toBe("vera_build_router");
+    }
+  });
+
+  it("rejects canonical invalid fixtures", () => {
+    expect(invalidFields(missingRequiredVeraConsoleHandoffV1Fixture)).toContain("request_id");
+    expect(invalidFields(unsupportedVersionVeraConsoleHandoffV1Fixture)).toContain("schema_version");
+    expect(invalidFields(malformedEvidenceVeraConsoleHandoffV1Fixture)).toEqual(
+      expect.arrayContaining([
+        "evidence_refs.0.hash_algorithm",
+        "evidence_refs.0.verification_state",
+      ]),
+    );
+    expect(invalidFields(malformedRuntimePolicyVeraConsoleHandoffV1Fixture)).toEqual(
+      expect.arrayContaining([
+        "runtime_policy_requirements.requested_role",
+        "runtime_policy_requirements.policy_version",
+        "runtime_policy_requirements.enforcement_mode",
+        "runtime_policy_requirements.risk_level",
+        "runtime_policy_requirements.privacy_level",
+        "runtime_policy_requirements.fallback_allowed",
+      ]),
+    );
+    expect(invalidFields(unsafeApprovalVeraConsoleHandoffV1Fixture)).toEqual(
+      expect.arrayContaining([
+        "approval_policy.apply_requires_approval",
+        "approval_policy.main_tree_mutation_allowed",
+      ]),
+    );
   });
 });
