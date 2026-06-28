@@ -26,7 +26,8 @@
     "backup:db:alert": "node scripts/engineer-console/backup-alert-wrapper.mjs",
     "audit:ui": "node scripts/audit-ui-consistency.mjs",
     "verify:db-backup": "node scripts/verify-engineer-console-db-backup.mjs",
-    "verify:ci": "node scripts/verify-engineer-console-ci.mjs"
+    "verify:ci": "node scripts/verify-engineer-console-ci.mjs",
+    "check:final-integration:smoke-mirror": "vitest run src/lib/engineer-console/vera-final-integration-workflow-smoke-mirror-contract.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
