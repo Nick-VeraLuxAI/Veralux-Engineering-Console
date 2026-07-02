@@ -151,7 +151,7 @@ export const FORMAT_BUILDER_LOOP_DECISION_LABEL_TASK = {
   taskId: "format_builder_loop_decision_label_v1",
   promptSummary: "Implement formatBuilderLoopDecisionLabel utility with node:test coverage in an isolated workspace.",
   systemPrompt:
-    "You generate code for VeraLux Engineering Console isolated coding proofs. Output only JSON with shape {\"files\":[{\"relativePath\":\"...\",\"content\":\"...\"}]}. No markdown outside JSON. Use Node.js ESM and node:test only. Do not include shell commands.",
+    "You generate code for VeraLux Engineering Console isolated coding proofs. Output only JSON with shape {\"files\":[{\"relativePath\":\"...\",\"content\":\"...\"}]}. No markdown outside JSON. Use Node.js ESM, node:test, and node:assert/strict only. Do not import assert from node:test. Do not include shell commands.",
   userPrompt: `Create exactly two files for a disposable Node.js ESM workspace:
 
 1. src/formatBuilderLoopDecisionLabel.js
@@ -162,8 +162,66 @@ export const FORMAT_BUILDER_LOOP_DECISION_LABEL_TASK = {
    - unknown -> Unknown decision
 
 2. src/formatBuilderLoopDecisionLabel.test.js
-   - import test and assert from node:test and node:assert
-   - test all four cases above
+   - import test from "node:test";
+   - import assert from "node:assert/strict";
+   - Do NOT import assert from node:test.
+   - test all four cases above with assert.equal
 
 Return JSON only: {"files":[{"relativePath":"src/formatBuilderLoopDecisionLabel.js","content":"..."},{"relativePath":"src/formatBuilderLoopDecisionLabel.test.js","content":"..."}]}`,
 } as const;
+
+export type LocalModelCodingRepairContext = {
+  taskId: string;
+  attemptNumber: number;
+  testCommand: string;
+  testStdout: string;
+  testStderr: string;
+  currentFiles: Array<{ relativePath: string; content: string }>;
+};
+
+export function buildCodingRepairRequest(context: LocalModelCodingRepairContext): LocalModelCodingGenerationRequest {
+  const fileSummaries = context.currentFiles
+    .map((file) => `--- ${file.relativePath} ---\n${file.content}`)
+    .join("\n\n");
+  const promptSummary =
+    `Repair isolated coding proof files after test failure (attempt ${context.attemptNumber}).`;
+  return {
+    taskId: context.taskId,
+    promptSummary,
+    systemPrompt:
+      "You repair code for VeraLux Engineering Console isolated coding proofs. Output only JSON with shape {\"files\":[{\"relativePath\":\"...\",\"content\":\"...\"}]}. No markdown outside JSON. Return complete corrected file contents for every file you change. Use Node.js ESM, node:test, and node:assert/strict only. Do not import assert from node:test. Do not include shell commands.",
+    userPrompt: `The isolated coding proof failed tests. Fix the generated files and return corrected complete contents.
+
+Task id: ${context.taskId}
+Repair attempt: ${context.attemptNumber}
+Test command: ${context.testCommand}
+
+Test stdout:
+${context.testStdout || "(empty)"}
+
+Test stderr:
+${context.testStderr || "(empty)"}
+
+Current files:
+${fileSummaries}
+
+Requirements:
+- Only return allowed files under src/formatBuilderLoopDecisionLabel.js and src/formatBuilderLoopDecisionLabel.test.js
+- Tests must use:
+  import test from "node:test";
+  import assert from "node:assert/strict";
+- Do NOT import assert from node:test.
+- Keep the utility deterministic.
+
+Return JSON only: {"files":[{"relativePath":"src/formatBuilderLoopDecisionLabel.js","content":"..."},{"relativePath":"src/formatBuilderLoopDecisionLabel.test.js","content":"..."}]}`,
+  };
+}
+
+export async function generateCodingRepairWithLocalModel(
+  context: LocalModelCodingRepairContext,
+  config: LocalModelCodingConfig,
+  fetchFn: FetchFn = fetch,
+): Promise<LocalModelCodingGenerationResult> {
+  const request = buildCodingRepairRequest(context);
+  return generateCodingFilesWithLocalModel(request, config, fetchFn);
+}

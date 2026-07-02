@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   parseGeneratedCodingFiles,
 } from "./local-openai-compatible-coding-client";
@@ -108,6 +108,31 @@ test("maps unknown", () => {
   ],
 };
 
+const mockBadAssertGeneratedFiles = {
+  files: [
+    mockGeneratedFiles.files[0],
+    {
+      relativePath: "src/formatBuilderLoopDecisionLabel.test.js",
+      content: `import { test, assert } from "node:test";
+import { formatBuilderLoopDecisionLabel } from "./formatBuilderLoopDecisionLabel.js";
+
+test("maps approve", () => {
+  assert.strictEqual(formatBuilderLoopDecisionLabel("approve"), "Approved");
+});
+test("maps reject", () => {
+  assert.strictEqual(formatBuilderLoopDecisionLabel("reject"), "Rejected");
+});
+test("maps request_changes", () => {
+  assert.strictEqual(formatBuilderLoopDecisionLabel("request_changes"), "Changes requested");
+});
+test("maps unknown", () => {
+  assert.strictEqual(formatBuilderLoopDecisionLabel("other"), "Unknown decision");
+});
+`,
+    },
+  ],
+};
+
 async function mockGenerateCode() {
   return {
     modelUsed: "mock-local-model-v1",
@@ -116,6 +141,39 @@ async function mockGenerateCode() {
     rawContent: JSON.stringify(mockGeneratedFiles),
     files: mockGeneratedFiles.files,
     promptSummary: "Injected test provider response for formatBuilderLoopDecisionLabel.",
+  };
+}
+
+async function mockGenerateBadAssertCode() {
+  return {
+    modelUsed: "mock-local-model-v1",
+    endpoint: "test://injected-local-model",
+    modelGenerationReal: false as const,
+    rawContent: JSON.stringify(mockBadAssertGeneratedFiles),
+    files: mockBadAssertGeneratedFiles.files,
+    promptSummary: "Injected bad assert import for repair testing.",
+  };
+}
+
+async function mockGenerateRepair() {
+  return {
+    modelUsed: "mock-local-model-v1",
+    endpoint: "test://injected-local-model-repair",
+    modelGenerationReal: false as const,
+    rawContent: JSON.stringify(mockGeneratedFiles),
+    files: mockGeneratedFiles.files,
+    promptSummary: "Repair isolated coding proof files after test failure (attempt 1).",
+  };
+}
+
+async function mockGenerateRepairStillBad() {
+  return {
+    modelUsed: "mock-local-model-v1",
+    endpoint: "test://injected-local-model-repair",
+    modelGenerationReal: false as const,
+    rawContent: JSON.stringify(mockBadAssertGeneratedFiles),
+    files: mockBadAssertGeneratedFiles.files,
+    promptSummary: "Repair attempt still failing.",
   };
 }
 
@@ -160,6 +218,9 @@ describe("Vera local model coding proof", () => {
     ]);
     expect(result.patch?.unified_diff).toContain("formatBuilderLoopDecisionLabel");
     expect(result.tests?.passed).toBe(true);
+    expect(result.repair_loop?.repair_attempts_count).toBe(0);
+    expect(result.repair_loop?.repair_required).toBe(false);
+    expect(result.repair_loop?.final_status).toBe("passed");
     expect(result.tests?.command_executable).toBe("node");
     expect(result.evidence?.workspace_retention).toBe("cleaned_up");
     expect(result.evidence?.workspace_exists_after_cleanup).toBe(false);
@@ -197,5 +258,82 @@ describe("Vera local model coding proof", () => {
 
     const escapedNewlines = `{"files":[{"relativePath":"src/a.js","content":"line1\\\\nline2"}]}`;
     expect(parseGeneratedCodingFiles(escapedNewlines)[0]?.content).toBe("line1\nline2");
+  });
+
+  it("does not invoke repair when initial tests pass", async () => {
+    const generateRepair = vi.fn(async () => mockGenerateRepair());
+    const result = await runVeraLocalModelCodingProof(handoff(), {
+      tempRoot,
+      workspaceId: () => "coding-proof-pass",
+      generateCode: mockGenerateCode,
+      generateRepair,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.repair_loop?.repair_attempts_count).toBe(0);
+    expect(result.repair_loop?.total_attempts).toBe(1);
+    expect(generateRepair).not.toHaveBeenCalled();
+  });
+
+  it("invokes bounded repair when initial tests fail and can pass after repair", async () => {
+    const generateRepair = vi.fn(async () => mockGenerateRepair());
+    const result = await runVeraLocalModelCodingProof(handoff(), {
+      tempRoot,
+      workspaceId: () => "coding-proof-repair",
+      generateCode: mockGenerateBadAssertCode,
+      generateRepair,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe("local_model_coding_proof_passed");
+    expect(result.repair_loop?.initial_status).toBe("failed");
+    expect(result.repair_loop?.final_status).toBe("passed");
+    expect(result.repair_loop?.repair_required).toBe(true);
+    expect(result.repair_loop?.repair_attempts_count).toBe(1);
+    expect(result.repair_loop?.total_attempts).toBe(2);
+    expect(result.model?.repair_prompt_summary).toContain("Repair isolated coding proof");
+    expect(generateRepair).toHaveBeenCalledTimes(1);
+    expect(result.tests?.passed).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes("Repair was required"))).toBe(true);
+  });
+
+  it("returns failure evidence when bounded repair cannot fix tests", async () => {
+    const result = await runVeraLocalModelCodingProof(handoff(), {
+      tempRoot,
+      workspaceId: () => "coding-proof-repair-fail",
+      maxRepairAttempts: 2,
+      generateCode: mockGenerateBadAssertCode,
+      generateRepair: mockGenerateRepairStillBad,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("failed");
+    expect(result.repair_loop?.repair_attempts_count).toBe(2);
+    expect(result.repair_loop?.total_attempts).toBe(3);
+    expect(result.repair_loop?.final_status).toBe("failed");
+    expect(result.tests?.passed).toBe(false);
+    expect(result.evidence?.summary).toContain("bounded repair");
+  });
+
+  it("keeps repair writes inside the isolated workspace and blocks repo mutation", async () => {
+    const result = await runVeraLocalModelCodingProof(handoff(), {
+      tempRoot,
+      workspaceId: () => "coding-proof-contained",
+      cleanup: false,
+      generateCode: mockGenerateBadAssertCode,
+      generateRepair: mockGenerateRepair,
+    });
+
+    const workspaceDir = fs.readdirSync(tempRoot).find((entry) => entry.startsWith("vera-builder-loop-coding-"));
+    expect(workspaceDir).toBeTruthy();
+    const workspacePath = path.join(tempRoot, workspaceDir!);
+    expect(fs.existsSync(path.join(workspacePath, "src/formatBuilderLoopDecisionLabel.test.js"))).toBe(true);
+    expect(result.boundary_flags.repo_mutation_authorized).toBe(false);
+    expect(result.boundary_flags.branch_creation_authorized).toBe(false);
+    expect(result.boundary_flags.commit_creation_authorized).toBe(false);
+    expect(result.boundary_flags.pr_creation_authorized).toBe(false);
+    expect(result.boundary_flags.deploy_authorized).toBe(false);
+    expect(result.boundary_flags.merge_authorized).toBe(false);
+    expect(result.boundary_flags.final_integration_authorized).toBe(false);
   });
 });
