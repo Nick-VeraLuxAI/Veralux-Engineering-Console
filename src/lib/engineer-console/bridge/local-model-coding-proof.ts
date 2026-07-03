@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { runBoundedCommand } from "@/lib/engineer-console/hermes-worker/hermes-bounded-command-runner";
-import { getLocalModelCodingConfig } from "./local-model-coding-config";
+import { getLocalModelCodingConfig, type LocalModelCodingConfig } from "./local-model-coding-config";
 import {
   resolveCodingTaskSpec,
   type ResolvedCodingTaskSpec,
@@ -32,6 +32,54 @@ import {
 
 export const VERA_LOCAL_MODEL_CODING_WORKSPACE_PREFIX = "vera-builder-loop-coding-" as const;
 export const DEFAULT_MAX_REPAIR_ATTEMPTS = 2 as const;
+
+export type LocalModelCodingProofLane =
+  | "local_model_coding_proof"
+  | "senior_model_scaffold_retry";
+
+export type LocalModelCodingProofResultStatus =
+  | "local_model_coding_proof_passed"
+  | "local_model_not_configured"
+  | "local_model_unavailable"
+  | "senior_model_coding_proof_passed"
+  | "senior_model_coding_proof_failed"
+  | "senior_model_unavailable"
+  | "senior_model_not_configured"
+  | "rejected"
+  | "failed";
+
+type ProofLaneRuntime = {
+  lane: LocalModelCodingProofLane;
+  executionMode: LocalModelCodingProofLane;
+  passedStatus: LocalModelCodingProofResultStatus;
+  notConfiguredStatus: LocalModelCodingProofResultStatus;
+  unavailableStatus: LocalModelCodingProofResultStatus;
+  failedStatus: LocalModelCodingProofResultStatus;
+  evidenceIdPrefix: string;
+};
+
+function resolveProofLaneRuntime(lane: LocalModelCodingProofLane): ProofLaneRuntime {
+  if (lane === "senior_model_scaffold_retry") {
+    return {
+      lane,
+      executionMode: "senior_model_scaffold_retry",
+      passedStatus: "senior_model_coding_proof_passed",
+      notConfiguredStatus: "senior_model_not_configured",
+      unavailableStatus: "senior_model_unavailable",
+      failedStatus: "senior_model_coding_proof_failed",
+      evidenceIdPrefix: "senior-model-coding-proof",
+    };
+  }
+  return {
+    lane: "local_model_coding_proof",
+    executionMode: "local_model_coding_proof",
+    passedStatus: "local_model_coding_proof_passed",
+    notConfiguredStatus: "local_model_not_configured",
+    unavailableStatus: "local_model_unavailable",
+    failedStatus: "failed",
+    evidenceIdPrefix: "local-model-coding-proof",
+  };
+}
 
 type BoundaryFlags = {
   local_model_coding_proof: true;
@@ -87,12 +135,7 @@ export type LocalModelCodingProofRepairLoop = {
 
 export type VeraLocalModelCodingProofResult = {
   ok: boolean;
-  status:
-    | "local_model_coding_proof_passed"
-    | "local_model_not_configured"
-    | "local_model_unavailable"
-    | "rejected"
-    | "failed";
+  status: LocalModelCodingProofResultStatus;
   schema_version: typeof VERA_LOCAL_MODEL_CODING_PROOF_SCHEMA_VERSION;
   placeholder_schema_version: typeof VERA_PLACEHOLDER_MODULE_CARD_SCHEMA_VERSION;
   coding_task_id: string;
@@ -132,7 +175,7 @@ export type VeraLocalModelCodingProofResult = {
     boundary_flags: BoundaryFlags;
   };
   boundary_flags: BoundaryFlags;
-  execution_mode: "local_model_coding_proof";
+  execution_mode: LocalModelCodingProofLane;
   integration_mode: typeof VERA_PLACEHOLDER_MODULE_CARD_INTEGRATION_MODE;
   final_integration_authorized: false;
   repo_mutation_authorized: false;
@@ -168,6 +211,7 @@ function boundaryFlags(modelGenerationReal: boolean): BoundaryFlags {
 function baseResult(
   input: Partial<VeraLocalModelCodingProofResult> & Pick<VeraLocalModelCodingProofResult, "ok" | "status">,
   modelGenerationReal = false,
+  executionMode: LocalModelCodingProofLane = "local_model_coding_proof",
 ): VeraLocalModelCodingProofResult {
   const flags = boundaryFlags(modelGenerationReal);
   return {
@@ -186,7 +230,7 @@ function baseResult(
     ...(input.output_validation ? { output_validation: input.output_validation } : {}),
     ...(input.evidence ? { evidence: input.evidence } : {}),
     boundary_flags: flags,
-    execution_mode: "local_model_coding_proof",
+    execution_mode: executionMode,
     integration_mode: VERA_PLACEHOLDER_MODULE_CARD_INTEGRATION_MODE,
     final_integration_authorized: false,
     repo_mutation_authorized: false,
@@ -332,12 +376,18 @@ function writeGeneratedFiles(
   return written;
 }
 
-function resolveMaxRepairAttempts(deps: LocalModelCodingProofDeps): number {
+function resolveMaxRepairAttempts(
+  deps: LocalModelCodingProofDeps,
+  laneRuntime: ProofLaneRuntime,
+): number {
   if (typeof deps.maxRepairAttempts === "number" && Number.isFinite(deps.maxRepairAttempts)) {
     return Math.max(0, Math.floor(deps.maxRepairAttempts));
   }
-  const envValue = deps.env?.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MAX_REPAIR_ATTEMPTS
-    ?? process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MAX_REPAIR_ATTEMPTS;
+  const envKey = deps.maxRepairAttemptsEnvKey
+    ?? (laneRuntime.lane === "senior_model_scaffold_retry"
+      ? "ENGINEER_CONSOLE_SENIOR_MODEL_CODING_MAX_REPAIR_ATTEMPTS"
+      : "ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MAX_REPAIR_ATTEMPTS");
+  const envValue = deps.env?.[envKey] ?? process.env[envKey];
   if (typeof envValue === "string" && envValue.trim().length > 0) {
     const parsed = Number.parseInt(envValue, 10);
     if (Number.isFinite(parsed)) return Math.max(0, parsed);
@@ -366,8 +416,11 @@ export type LocalModelCodingProofDeps = {
   workspaceId?: () => string;
   cleanup?: boolean;
   maxRepairAttempts?: number;
+  maxRepairAttemptsEnvKey?: string;
   env?: NodeJS.ProcessEnv;
   fetchFn?: typeof fetch;
+  config?: LocalModelCodingConfig;
+  lane?: LocalModelCodingProofLane;
   generateCode?: (
     taskId: string,
   ) => Promise<LocalModelCodingGenerationResult>;
@@ -380,6 +433,7 @@ export async function runVeraLocalModelCodingProof(
   raw: unknown,
   deps: LocalModelCodingProofDeps = {},
 ): Promise<VeraLocalModelCodingProofResult> {
+  const laneRuntime = resolveProofLaneRuntime(deps.lane ?? "local_model_coding_proof");
   const validation = validateVeraLocalModelCodingProofHandoff(raw);
   if (!validation.ok || !validation.handoff) {
     return baseResult({
@@ -387,7 +441,7 @@ export async function runVeraLocalModelCodingProof(
       status: "rejected",
       errors: validation.errors,
       warnings: validation.warnings,
-    });
+    }, false, laneRuntime.executionMode);
   }
 
   const handoff = validation.handoff;
@@ -397,30 +451,39 @@ export async function runVeraLocalModelCodingProof(
     ...(handoff.builder_loop_mode ? { builder_loop_mode: handoff.builder_loop_mode } : {}),
   };
 
-  const config = getLocalModelCodingConfig(deps.env);
+  const config = deps.config ?? getLocalModelCodingConfig(deps.env);
+  const notConfiguredMessage = laneRuntime.lane === "senior_model_scaffold_retry"
+    ? "Senior model coding proof requires ENGINEER_CONSOLE_SENIOR_MODEL_CODING_ENABLED=true and a configured senior model id."
+    : "Local model coding proof requires ENGINEER_CONSOLE_LOCAL_MODEL_CODING_ENABLED=true and a configured model id.";
   if (!deps.generateCode && !config.enabled) {
     return baseResult({
       ok: false,
-      status: "local_model_not_configured",
-      errors: ["Local model coding proof requires ENGINEER_CONSOLE_LOCAL_MODEL_CODING_ENABLED=true and a configured model id."],
+      status: laneRuntime.notConfiguredStatus,
+      errors: [notConfiguredMessage],
       warnings: [
         "This proof does not use deterministic templates.",
-        "Configure ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL and ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MODEL to run a real local model coding proof.",
+        laneRuntime.lane === "senior_model_scaffold_retry"
+          ? "Configure ENGINEER_CONSOLE_SENIOR_MODEL_CODING_BASE_URL and ENGINEER_CONSOLE_SENIOR_MODEL_CODING_MODEL to run a senior scaffold retry proof."
+          : "Configure ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL and ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MODEL to run a real local model coding proof.",
       ],
       ...resultContext,
-    });
+    }, false, laneRuntime.executionMode);
   }
   if (!deps.generateCode && !config.model) {
     return baseResult({
       ok: false,
-      status: "local_model_not_configured",
-      errors: ["Local model id is not configured."],
-      warnings: ["Set ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MODEL or VERALUX_MODEL_TIER_FAST_MODEL."],
+      status: laneRuntime.notConfiguredStatus,
+      errors: ["Model id is not configured."],
+      warnings: [
+        laneRuntime.lane === "senior_model_scaffold_retry"
+          ? "Set ENGINEER_CONSOLE_SENIOR_MODEL_CODING_MODEL."
+          : "Set ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MODEL or VERALUX_MODEL_TIER_FAST_MODEL.",
+      ],
       ...resultContext,
-    });
+    }, false, laneRuntime.executionMode);
   }
 
-  const maxRepairAttempts = resolveMaxRepairAttempts(deps);
+  const maxRepairAttempts = resolveMaxRepairAttempts(deps, laneRuntime);
   const workspaceId = (deps.workspaceId?.() ?? sha256(`${Date.now()}-${Math.random()}`).slice(0, 12))
     .replace(/[^a-zA-Z0-9_-]/g, "");
   const workspacePath = fs.mkdtempSync(
@@ -447,11 +510,11 @@ export async function runVeraLocalModelCodingProof(
     } catch (error) {
       return baseResult({
         ok: false,
-        status: deps.generateCode ? "failed" : "local_model_unavailable",
+        status: deps.generateCode ? laneRuntime.failedStatus : laneRuntime.unavailableStatus,
         errors: [error instanceof Error ? error.message : String(error)],
-        warnings: ["Local model generation failed before any repo mutation could occur."],
+        warnings: ["Model generation failed before any repo mutation could occur."],
         ...resultContext,
-      });
+      }, false, laneRuntime.executionMode);
     }
 
     let currentFiles: GeneratedFileRecord[] = [];
@@ -530,7 +593,7 @@ export async function runVeraLocalModelCodingProof(
           latestOutputValidation.repair_attempted = true;
           return baseResult({
             ok: false,
-            status: deps.generateRepair ? "failed" : "local_model_unavailable",
+            status: deps.generateRepair ? laneRuntime.failedStatus : laneRuntime.unavailableStatus,
             errors: [error instanceof Error ? error.message : String(error)],
             warnings: ["Repair generation failed before any repo mutation could occur."],
             output_validation: latestOutputValidation,
@@ -545,7 +608,7 @@ export async function runVeraLocalModelCodingProof(
               attempts,
             },
             ...resultContext,
-          }, latestGeneration.modelGenerationReal);
+          }, latestGeneration.modelGenerationReal, laneRuntime.executionMode);
         }
 
         latestRepairPromptSummary = latestGeneration.promptSummary;
@@ -616,7 +679,7 @@ export async function runVeraLocalModelCodingProof(
         latestOutputValidation.repair_attempted = outputValidationRepairAttempted || repairAttemptsCount > 0;
         return baseResult({
           ok: false,
-          status: deps.generateRepair ? "failed" : "local_model_unavailable",
+          status: deps.generateRepair ? laneRuntime.failedStatus : laneRuntime.unavailableStatus,
           errors: [error instanceof Error ? error.message : String(error)],
           warnings: ["Repair generation failed before any repo mutation could occur."],
           output_validation: latestOutputValidation,
@@ -631,7 +694,7 @@ export async function runVeraLocalModelCodingProof(
             attempts,
           },
           ...resultContext,
-        }, latestGeneration.modelGenerationReal);
+        }, latestGeneration.modelGenerationReal, laneRuntime.executionMode);
       }
 
       latestRepairPromptSummary = latestGeneration.promptSummary;
@@ -727,13 +790,15 @@ export async function runVeraLocalModelCodingProof(
         ...checks.filter((check) => check.status === "failed").map((check) => check.summary),
       ].filter((value, index, array) => array.indexOf(value) === index);
 
+    const modelLabel = laneRuntime.lane === "senior_model_scaffold_retry" ? "Senior model" : "Local model";
+
     return baseResult({
       ok: passed,
       status: passed
-        ? "local_model_coding_proof_passed"
+        ? laneRuntime.passedStatus
         : latestOutputValidation.final_paths_valid
-          ? "failed"
-          : "local_model_unavailable",
+          ? laneRuntime.failedStatus
+          : laneRuntime.unavailableStatus,
       errors: failureErrors,
       warnings,
       model: {
@@ -760,16 +825,16 @@ export async function runVeraLocalModelCodingProof(
       output_validation: latestOutputValidation,
       ...resultContext,
       evidence: {
-        evidence_id: `local-model-coding-proof-${previewIdSeed}`,
+        evidence_id: `${laneRuntime.evidenceIdPrefix}-${previewIdSeed}`,
         summary: passed
           ? repairRequired
-            ? "Local model generated code in an isolated workspace, bounded repair corrected failing tests, and a reviewable patch was returned."
-            : "Local model generated code in an isolated workspace, tests passed, and a reviewable patch was returned."
+            ? `${modelLabel} generated code in an isolated workspace, bounded repair corrected failing tests, and a reviewable patch was returned.`
+            : `${modelLabel} generated code in an isolated workspace, tests passed, and a reviewable patch was returned.`
           : latestOutputValidation.final_paths_valid
             ? repairAttemptsCount > 0
-              ? "Local model coding proof failed after bounded repair attempts and before any integration boundary was crossed."
-              : "Local model coding proof failed before any integration boundary was crossed."
-            : "Local model coding proof rejected invalid model output paths/format before any integration boundary was crossed.",
+              ? `${modelLabel} coding proof failed after bounded repair attempts and before any integration boundary was crossed.`
+              : `${modelLabel} coding proof failed before any integration boundary was crossed.`
+            : `${modelLabel} coding proof rejected invalid model output paths/format before any integration boundary was crossed.`,
         workspace_type: "system_created_temp_workspace",
         workspace_id: workspaceId,
         workspace_retention: cleanup ? "cleaned_up" : "contained_for_test",
@@ -777,14 +842,14 @@ export async function runVeraLocalModelCodingProof(
         checks_run: checks,
         boundary_flags: boundaryFlags(latestGeneration.modelGenerationReal),
       },
-    }, latestGeneration.modelGenerationReal);
+    }, latestGeneration.modelGenerationReal, laneRuntime.executionMode);
   } catch (error) {
     fs.rmSync(workspacePath, { recursive: true, force: true });
     return baseResult({
       ok: false,
-      status: "failed",
+      status: laneRuntime.failedStatus,
       errors: [error instanceof Error ? error.message : String(error)],
       ...resultContext,
-    });
+    }, false, laneRuntime.executionMode);
   }
 }
