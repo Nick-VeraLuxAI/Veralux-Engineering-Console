@@ -1,0 +1,14 @@
+[project]
+name = "airllm-nemotronh"
+version = "0.1.0+s1-skeleton"
+description = "VeraLux fork: NemotronH dispatch and layer map for AirLLM (S1 skeleton)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

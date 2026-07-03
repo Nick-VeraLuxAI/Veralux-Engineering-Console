@@ -1,0 +1,7 @@
+{
+  "architectures": ["NemotronHForCausalLM"],
+  "model_type": "nemotron_h",
+  "num_hidden_layers": 3,
+  "hidden_size": 16,
+  "vocab_size": 128
+}

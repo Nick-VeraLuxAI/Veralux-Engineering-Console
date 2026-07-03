@@ -1,0 +1,13 @@
+{
+  "metadata": {
+    "total_size": 4096
+  },
+  "weight_map": {
+    "backbone.embeddings.weight": "model-00001-of-00003.safetensors",
+    "backbone.layers.0.mixer.in_proj.weight": "model-00001-of-00003.safetensors",
+    "backbone.layers.1.mixer.in_proj.weight": "model-00002-of-00003.safetensors",
+    "backbone.layers.2.mixer.in_proj.weight": "model-00003-of-00003.safetensors",
+    "backbone.norm_f.weight": "model-00003-of-00003.safetensors",
+    "lm_head.weight": "model-00003-of-00003.safetensors"
+  }
+}

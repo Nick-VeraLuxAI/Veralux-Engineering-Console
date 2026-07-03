@@ -43,3 +43,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# super airllm fork local test venv (S1)
+vendor/airllm-nemotronh/.venv-test/
+vendor/airllm-nemotronh/.pytest_cache/
+vendor/airllm-nemotronh/**/__pycache__/

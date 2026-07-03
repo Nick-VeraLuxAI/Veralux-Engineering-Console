@@ -313,6 +313,8 @@ Wire into npm script only if desired: `"test:super-airllm-fork": "bash scripts/r
 3. Run `pytest vendor/airllm-nemotronh/tests` — all pass without weights
 4. Run existing `npx vitest run src/lib/engineer-console/experimental/super-airllm` — no regressions
 
+**Status:** ✅ completed in S1 Commit 1
+
 ### Step 3 — Artifact acquisition (operator-approved only)
 
 1. Confirm ext4 strategy (NTFS risk acknowledged)
@@ -390,10 +392,52 @@ evidence captured. No boot or serving.
 | Canonical path | ❌ missing |
 | ext4 for splits (L4+) | ⚠️ NTFS today — plan migration/symlink |
 | Explicit download approval | ❌ not given |
-| Fork skeleton | ❌ pending implementation |
+| Fork skeleton | ✅ S1 Commit 1 |
 
 ---
 
 ## Next phase after S1
 
 **S2 — Fork runtime integration:** extend `AirLLMNemotronH` to subclass `AirLLMBaseModel`, NemotronH-aware `init_model`, split materialize on **ext4**, guarded boot spike (L5–L8 go/no-go). Still no Builder Loop until L12.
+
+---
+
+## S1 Commit 1 — Fork skeleton landed
+
+**Commit message:** `feat(vendor): add airllm-nemotronh S1 fork skeleton` (see `git log -1` for hash)
+
+### What landed
+
+- Vendored fork skeleton at `vendor/airllm-nemotronh/` with NemotronH dispatch (`NemotronHForCausalLM` → `AirLLMNemotronH`), layer-map helpers (88 layers → 91 prefixes), and fixture-based pytest (9 tests).
+- Test runner script: `scripts/runtime/super-airllm/run-fork-unit-tests.sh`
+
+### Tests run (Commit 1)
+
+```bash
+# Fork unit tests (local .venv-test created if pytest missing on pyenv 3.10.11)
+bash scripts/runtime/super-airllm/run-fork-unit-tests.sh
+# or: PYENV_VERSION=3.10.11 python -m pytest vendor/airllm-nemotronh/tests
+
+# S0 harness regression (unchanged)
+npx vitest run src/lib/engineer-console/experimental/super-airllm
+```
+
+**Results:** fork pytest **9/9 passed**; S0 vitest **42/42 passed**.
+
+If `pytest` is not installed on `PYENV_VERSION=3.10.11`, the runner creates `vendor/airllm-nemotronh/.venv-test` locally (gitignored pattern: do not commit).
+
+### Safety confirmation (Commit 1)
+
+| Boundary | Status |
+|----------|--------|
+| Super model download | ❌ not performed |
+| Super model load | ❌ not performed |
+| GPU use | ❌ not performed |
+| AirLLM boot | ❌ not performed |
+| HTTP server | ❌ not started |
+| Builder Loop wiring | ❌ not wired |
+| Canonical Super artifact path | ❌ still **MISSING** |
+
+### Next step
+
+**Operator-approved model download** → run L0 artifact gate (`s0-artifact-gate.ts`) → Phase 14 remediation (S1 Commit 2). Confirm ext4 strategy before L4 split materialize (NTFS risk on `/mnt/large-storage`).
