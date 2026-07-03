@@ -540,3 +540,5 @@ npx tsx scripts/runtime/super-airllm/super-artifact-remediation.ts \
 
 **S2 — Fork runtime integration:** extend `AirLLMNemotronH` to subclass `AirLLMBaseModel`, plan **ext4** split/cache path, guarded boot spike (L5–L8). Still no Builder Loop until L12.
 
+See [19-super-airllm-repair-s2-runtime-integration-v1.md](./19-super-airllm-repair-s2-runtime-integration-v1.md).
+

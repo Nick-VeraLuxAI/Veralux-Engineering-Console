@@ -23,3 +23,22 @@ export const SUPER_BLOCKED_MISSING_ARTIFACT = "blocked_missing_artifact" as cons
 
 /** S0 repair phase: static/audit proofs only; no model load, GPU, or HTTP serving. */
 export const SUPER_AIRLLM_REPAIR_PHASE_S0 = "super_airllm_repair_s0" as const;
+
+/** Env var for ext4 AirLLM split/cache output (S2+). Raw weights may remain on NTFS canonical path. */
+export const SUPER_AIRLLM_SPLIT_CACHE_ENV_VAR = "ENGINEER_CONSOLE_SUPER_AIRLLM_SPLIT_CACHE_DIR" as const;
+
+/** Recommended ext4 split/cache path when env var is unset. */
+export const SUPER_AIRLLM_DEFAULT_SPLIT_CACHE_DIR =
+  "/home/ndesantis/vera-workspace/super-airllm-splits" as const;
+
+/** Blocked filesystem types for AirLLM split materialization. */
+export const SUPER_AIRLLM_BLOCKED_SPLIT_FS_TYPES = [
+  "ntfs",
+  "ntfs3",
+  "fuseblk",
+  "exfat",
+  "vfat",
+  "msdos",
+  "cifs",
+  "smb3",
+] as const;

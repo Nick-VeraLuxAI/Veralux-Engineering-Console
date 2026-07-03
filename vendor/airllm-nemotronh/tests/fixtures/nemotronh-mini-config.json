@@ -3,5 +3,9 @@
   "model_type": "nemotron_h",
   "num_hidden_layers": 3,
   "hidden_size": 16,
-  "vocab_size": 128
+  "vocab_size": 128,
+  "auto_map": {
+    "AutoConfig": "configuration_nemotron_h.NemotronHConfig",
+    "AutoModelForCausalLM": "modeling_nemotron_h.NemotronHForCausalLM"
+  }
 }
