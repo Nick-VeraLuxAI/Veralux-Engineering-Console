@@ -181,12 +181,21 @@ const OFFICIAL_SMALL_ARTIFACTS = [
 ] as const;
 
 const EXPECTED_PHASE14_PREFIXES = [
-  "src/lib/engineer-console/super-artifact-remediation/",
-  "scripts/runtime/super-artifact-remediation.ts",
-  "docs/runtime/phase-14-super-artifact-remediation-2026-06-21.md",
+  "src/lib/engineer-console/experimental/super-airllm/",
+  "scripts/runtime/super-airllm/",
+  "vendor/airllm-nemotronh/",
+  "docs/source-of-truth/implementation-audit/",
+  "evidence/",
   "evidence/super-artifact-remediation/",
   "evidence/super-boot-probe/",
   "evidence/runtime-supervisor/",
+  ".download-logs/",
+  ".venv-airllm/",
+  ".airllm-matrix/",
+  ".controlled-apply/",
+  ".integration-candidates/",
+  ".prototype-loop/",
+  ".local-model-coding-proof-result.json",
 ];
 
 export async function loadPhase13FailureEvidence(filePath: string): Promise<{ found: boolean; reason: string | null; diagnostics: string[] }> {

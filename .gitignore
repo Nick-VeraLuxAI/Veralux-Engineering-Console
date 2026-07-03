@@ -48,3 +48,6 @@ next-env.d.ts
 vendor/airllm-nemotronh/.venv-test/
 vendor/airllm-nemotronh/.pytest_cache/
 vendor/airllm-nemotronh/**/__pycache__/
+
+# super download logs (S1 Commit 2, not committed)
+.download-logs/

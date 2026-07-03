@@ -323,6 +323,8 @@ Wire into npm script only if desired: `"test:super-airllm-fork": "bash scripts/r
 4. Port/run Phase 14 remediation CLI (small files only)
 5. Record evidence JSON under `evidence/super-artifact-remediation/` (gitignored)
 
+**Status:** ✅ completed in S1 Commit 2
+
 ### Step 4 — Post-S1 gates
 
 | Gate | Expected |
@@ -389,10 +391,10 @@ evidence captured. No boot or serving.
 | S0 harness on `main` | ✅ `305dd1b` |
 | Disk free ≥160 GB | ✅ ~1.29 TB |
 | HF auth | ✅ `ca-nickd` via `PYENV_VERSION=3.10.11 hf` |
-| Canonical path | ❌ missing |
+| Canonical path | ✅ present (S1 Commit 2) |
 | ext4 for splits (L4+) | ⚠️ NTFS today — plan migration/symlink |
-| Explicit download approval | ❌ not given |
-| Fork skeleton | ✅ S1 Commit 1 |
+| Explicit download approval | ✅ authorized in S1 Commit 2 task |
+| Fork skeleton | ✅ S1 Commit 1 (`559b45b`) |
 
 ---
 
@@ -441,3 +443,100 @@ If `pytest` is not installed on `PYENV_VERSION=3.10.11`, the runner creates `ven
 ### Next step
 
 **Operator-approved model download** → run L0 artifact gate (`s0-artifact-gate.ts`) → Phase 14 remediation (S1 Commit 2). Confirm ext4 strategy before L4 split materialize (NTFS risk on `/mnt/large-storage`).
+
+---
+
+## S1 Commit 2 — Artifact acquisition and verification
+
+**Commit message:** `docs(console): record Super artifact acquisition verification` (see `git log -1` for hash)
+
+### Phase 1 preflight (2026-07-03)
+
+| Check | Result |
+|-------|--------|
+| Repo | `Veralux-Engineering-Console` on `main`, ahead of `origin/main` |
+| S0 harness commit | ✅ `305dd1b912b94d46e954cd3265c42eb0b741835d` |
+| S1 prep doc commit | ✅ `ac658deeb42d89c4827a2120c7b0844fb7e8a77e` |
+| S1 fork skeleton commit | ✅ `559b45b35eab208d8053bb556bd88a4fc18ce62e` |
+| HF auth | ✅ `user=ca-nickd` (`PYENV_VERSION=3.10.11 hf auth whoami`) |
+| `/mnt/large-storage` free | ✅ ~1.3 TB available (21% used) |
+| FS type | **NTFS3** (`ntfs3`) — OK for raw download/L0; **not** for L4 split materialize |
+| Canonical path before download | ❌ missing |
+
+### Download (authorized)
+
+```bash
+export PYENV_VERSION=3.10.11
+mkdir -p /mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8
+hf download nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-FP8 \
+  --local-dir /mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8
+```
+
+Note: current `hf` CLI no longer accepts `--local-dir-use-symlinks`; files materialize under `--local-dir` directly.
+
+**Download result:** ~**109 GiB** on disk; **26/26** `model-*-of-*.safetensors` shards; `config.json` reports `NemotronHForCausalLM`, `num_hidden_layers=88`.
+
+### L0 artifact gate
+
+```bash
+npx tsx scripts/runtime/super-airllm/s0-artifact-gate.ts
+```
+
+| Field | Value |
+|-------|-------|
+| `verdict` | **`artifact_present`** (exit 0) |
+| `artifact.status` | `passed` |
+| `total_size_bytes` | ~128,379,948,583 |
+| Weight shards | 26 |
+| `model_load_allowed` | `false` |
+| `gpu_use_allowed` | `false` |
+
+### Phase 14 artifact / remote-code verification
+
+Ported CLI: `scripts/runtime/super-airllm/super-artifact-remediation.ts`
+
+```bash
+# Dry-run plan (no writes)
+npx tsx scripts/runtime/super-airllm/super-artifact-remediation.ts \
+  --phase13-evidence evidence/super-boot-probe/s1-preflight-boot-probe-failed.json
+
+# Manual config-only check (no weight load)
+.venv-airllm/bin/python -c "from transformers import AutoConfig; ..."
+```
+
+| Check | Result |
+|-------|--------|
+| Official manifest missing files | **none** — HF download included remote-code + tokenizer + index |
+| `py_compile` remote-code | ✅ `configuration_nemotron_h.py`, `modeling_nemotron_h.py`, `super_v3_reasoning_parser.py` |
+| Config-only `AutoConfig` (`trust_remote_code=True`) | ✅ `model_type=nemotron_h`, `architectures=['NemotronHForCausalLM']`, no weight load |
+| Phase 14 harness `final_verdict` (dry-run) | `remediation_blocked` — **`nano_preflight_healthy`** (runtime supervisor `blocked`; Nano containers not started — intentional, no GPU/service start in S1) |
+| Remediation writes required | **none** (all boot-required small artifacts already present) |
+| Evidence JSON | written under `evidence/super-artifact-remediation/` (**gitignored**) |
+
+**L3 interpretation:** artifact and remote-code checks **passed on disk**; harness verdict remains blocked until Nano runtime preflight is healthy (expected deferral to S2 boot-prep, still without Super load in S1).
+
+### Post-S1 gate status
+
+| Gate | Expected | Actual |
+|------|----------|--------|
+| L0 | `artifact_present` | ✅ |
+| L1 | Fork pytest pass | ✅ 9/9 |
+| L2 | S0 vitest pass | ✅ 42/42 |
+| L3 | `remediation_verified` | ⚠️ harness blocked on nano preflight; **on-disk artifacts verified** |
+
+### Safety confirmation (Commit 2)
+
+| Boundary | Status |
+|----------|--------|
+| Super weights downloaded to canonical path | ✅ authorized and completed |
+| Super model load (weights into GPU/RAM) | ❌ not performed |
+| GPU inference / one-token generation | ❌ not performed |
+| AirLLM boot | ❌ not performed |
+| AirLLM split materialization | ❌ not performed |
+| HTTP server | ❌ not started |
+| Builder Loop wiring | ❌ not wired |
+
+### Next step
+
+**S2 — Fork runtime integration:** extend `AirLLMNemotronH` to subclass `AirLLMBaseModel`, plan **ext4** split/cache path, guarded boot spike (L5–L8). Still no Builder Loop until L12.
+
