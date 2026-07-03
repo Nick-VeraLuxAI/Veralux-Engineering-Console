@@ -5,17 +5,20 @@ import path from "node:path";
 import { runBoundedCommand } from "@/lib/engineer-console/hermes-worker/hermes-bounded-command-runner";
 import { getLocalModelCodingConfig } from "./local-model-coding-config";
 import {
-  FORMAT_BUILDER_LOOP_DECISION_LABEL_TASK,
-  generateCodingFilesWithLocalModel,
-  generateCodingRepairWithLocalModel,
-  type LocalModelCodingGenerationResult,
-  type LocalModelCodingRepairContext,
-} from "./local-openai-compatible-coding-client";
+  resolveCodingTaskSpec,
+  assertAllowedGeneratedFilePath,
+  type ResolvedCodingTaskSpec,
+} from "./local-model-coding-task";
 import {
   validateVeraLocalModelCodingProofHandoff,
   VERA_LOCAL_MODEL_CODING_PROOF_SCHEMA_VERSION,
-  VERA_LOCAL_MODEL_CODING_TASK_ID,
+  type VeraLocalModelCodingProofHandoff,
 } from "./local-model-coding-proof-contract";
+import {
+  generateCodingFilesWithLocalModel,
+  type LocalModelCodingGenerationResult,
+  type LocalModelCodingRepairContext,
+} from "./local-openai-compatible-coding-client";
 import {
   VERA_PLACEHOLDER_MODULE_CARD_INTEGRATION_MODE,
   VERA_PLACEHOLDER_MODULE_CARD_SCHEMA_VERSION,
@@ -23,12 +26,6 @@ import {
 
 export const VERA_LOCAL_MODEL_CODING_WORKSPACE_PREFIX = "vera-builder-loop-coding-" as const;
 export const DEFAULT_MAX_REPAIR_ATTEMPTS = 2 as const;
-const TEST_ARGS = ["--test", "src/formatBuilderLoopDecisionLabel.test.js"] as const;
-const ALLOWED_RELATIVE_PATHS = new Set([
-  "package.json",
-  "src/formatBuilderLoopDecisionLabel.js",
-  "src/formatBuilderLoopDecisionLabel.test.js",
-]);
 
 type BoundaryFlags = {
   local_model_coding_proof: true;
@@ -80,7 +77,8 @@ export type VeraLocalModelCodingProofResult = {
     | "failed";
   schema_version: typeof VERA_LOCAL_MODEL_CODING_PROOF_SCHEMA_VERSION;
   placeholder_schema_version: typeof VERA_PLACEHOLDER_MODULE_CARD_SCHEMA_VERSION;
-  coding_task_id: typeof VERA_LOCAL_MODEL_CODING_TASK_ID;
+  coding_task_id: string;
+  builder_loop_mode?: "preview_only" | "code_in_sandbox";
   errors: string[];
   warnings: string[];
   model?: {
@@ -96,7 +94,7 @@ export type VeraLocalModelCodingProofResult = {
     files_created_or_changed: string[];
   };
   tests?: {
-    command_executable: "node";
+    command_executable: string;
     command_args: string[];
     exit_code: number;
     passed: boolean;
@@ -158,7 +156,8 @@ function baseResult(
     status: input.status,
     schema_version: VERA_LOCAL_MODEL_CODING_PROOF_SCHEMA_VERSION,
     placeholder_schema_version: VERA_PLACEHOLDER_MODULE_CARD_SCHEMA_VERSION,
-    coding_task_id: VERA_LOCAL_MODEL_CODING_TASK_ID,
+    coding_task_id: input.coding_task_id ?? "unknown",
+    ...(input.builder_loop_mode ? { builder_loop_mode: input.builder_loop_mode } : {}),
     errors: input.errors ?? [],
     warnings: input.warnings ?? [],
     ...(input.model ? { model: input.model } : {}),
@@ -201,18 +200,43 @@ function buildUnifiedDiff(files: Array<{ relativePath: string; content: string }
     .join("\n");
 }
 
-function writeWorkspaceFixture(workspacePath: string): void {
+function writeWorkspaceFixture(workspacePath: string, handoff?: VeraLocalModelCodingProofHandoff): void {
   fs.mkdirSync(path.join(workspacePath, "src"), { recursive: true });
   fs.writeFileSync(
     path.join(workspacePath, "package.json"),
     `${JSON.stringify({ name: "vera-local-model-coding-proof", private: true, type: "module" }, null, 2)}\n`,
     "utf8",
   );
+  if (handoff?.coding_task) {
+    fs.mkdirSync(path.join(workspacePath, "src/services/vera"), { recursive: true });
+    fs.writeFileSync(
+      path.join(workspacePath, "tsconfig.json"),
+      `${JSON.stringify({
+        compilerOptions: {
+          target: "ES2022",
+          module: "ESNext",
+          moduleResolution: "bundler",
+          strict: true,
+          skipLibCheck: true,
+          noEmit: true,
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+  }
 }
 
-function assertAllowedGeneratedFiles(files: Array<{ relativePath: string; content: string }>): void {
+function assertAllowedGeneratedFiles(
+  files: Array<{ relativePath: string; content: string }>,
+  taskSpec: ResolvedCodingTaskSpec,
+  handoff: VeraLocalModelCodingProofHandoff,
+): void {
   for (const file of files) {
-    if (!ALLOWED_RELATIVE_PATHS.has(file.relativePath)) {
+    if (handoff.coding_task) {
+      assertAllowedGeneratedFilePath(file.relativePath, handoff.coding_task);
+      continue;
+    }
+    if (!taskSpec.allowedRelativePaths.has(file.relativePath)) {
       throw new Error(`Generated file path is not allowed: ${file.relativePath}`);
     }
   }
@@ -249,12 +273,15 @@ function resolveMaxRepairAttempts(deps: LocalModelCodingProofDeps): number {
   return DEFAULT_MAX_REPAIR_ATTEMPTS;
 }
 
-async function runIsolatedTests(workspacePath: string) {
+async function runIsolatedTests(
+  workspacePath: string,
+  taskSpec: ResolvedCodingTaskSpec,
+) {
   return runBoundedCommand({
     cwd: workspacePath,
-    executable: process.execPath,
-    args: [...TEST_ARGS],
-    timeoutMs: 30_000,
+    executable: taskSpec.testCommand.executable,
+    args: taskSpec.testCommand.args,
+    timeoutMs: 60_000,
   });
 }
 
@@ -270,7 +297,7 @@ export type LocalModelCodingProofDeps = {
   env?: NodeJS.ProcessEnv;
   fetchFn?: typeof fetch;
   generateCode?: (
-    taskId: typeof VERA_LOCAL_MODEL_CODING_TASK_ID,
+    taskId: string,
   ) => Promise<LocalModelCodingGenerationResult>;
   generateRepair?: (
     context: LocalModelCodingRepairContext,
@@ -291,6 +318,13 @@ export async function runVeraLocalModelCodingProof(
     });
   }
 
+  const handoff = validation.handoff;
+  const taskSpec = resolveCodingTaskSpec(handoff);
+  const resultContext = {
+    coding_task_id: handoff.coding_task_id,
+    ...(handoff.builder_loop_mode ? { builder_loop_mode: handoff.builder_loop_mode } : {}),
+  };
+
   const config = getLocalModelCodingConfig(deps.env);
   if (!deps.generateCode && !config.enabled) {
     return baseResult({
@@ -301,6 +335,7 @@ export async function runVeraLocalModelCodingProof(
         "This proof does not use deterministic templates.",
         "Configure ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL and ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MODEL to run a real local model coding proof.",
       ],
+      ...resultContext,
     });
   }
   if (!deps.generateCode && !config.model) {
@@ -309,6 +344,7 @@ export async function runVeraLocalModelCodingProof(
       status: "local_model_not_configured",
       errors: ["Local model id is not configured."],
       warnings: ["Set ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MODEL or VERALUX_MODEL_TIER_FAST_MODEL."],
+      ...resultContext,
     });
   }
 
@@ -319,38 +355,30 @@ export async function runVeraLocalModelCodingProof(
     path.join(deps.tempRoot ?? os.tmpdir(), `${VERA_LOCAL_MODEL_CODING_WORKSPACE_PREFIX}${workspaceId}-`),
   );
   const cleanup = deps.cleanup !== false;
-  const testCommand = `node ${TEST_ARGS.join(" ")}`;
+  const testCommand = taskSpec.testCommand.label;
 
   try {
-    writeWorkspaceFixture(workspacePath);
+    writeWorkspaceFixture(workspacePath, handoff);
 
     let generation: LocalModelCodingGenerationResult;
     try {
       generation = deps.generateCode
-        ? await deps.generateCode(VERA_LOCAL_MODEL_CODING_TASK_ID)
-        : await generateCodingFilesWithLocalModel(
-          {
-            taskId: FORMAT_BUILDER_LOOP_DECISION_LABEL_TASK.taskId,
-            promptSummary: FORMAT_BUILDER_LOOP_DECISION_LABEL_TASK.promptSummary,
-            systemPrompt: FORMAT_BUILDER_LOOP_DECISION_LABEL_TASK.systemPrompt,
-            userPrompt: FORMAT_BUILDER_LOOP_DECISION_LABEL_TASK.userPrompt,
-          },
-          config,
-          deps.fetchFn,
-        );
+        ? await deps.generateCode(taskSpec.taskId)
+        : await generateCodingFilesWithLocalModel(taskSpec.buildGenerationRequest(), config, deps.fetchFn);
     } catch (error) {
       return baseResult({
         ok: false,
         status: deps.generateCode ? "failed" : "local_model_unavailable",
         errors: [error instanceof Error ? error.message : String(error)],
         warnings: ["Local model generation failed before any repo mutation could occur."],
+        ...resultContext,
       });
     }
 
-    assertAllowedGeneratedFiles(generation.files);
+    assertAllowedGeneratedFiles(generation.files, taskSpec, handoff);
     let currentFiles = generation.files;
     let filesChanged = writeGeneratedFiles(workspacePath, currentFiles);
-    let testResult = await runIsolatedTests(workspacePath);
+    let testResult = await runIsolatedTests(workspacePath, taskSpec);
     const attempts: LocalModelCodingProofAttemptRecord[] = [{
       attempt_number: 1,
       generation_kind: "initial",
@@ -370,7 +398,7 @@ export async function runVeraLocalModelCodingProof(
     while (testResult.exitCode !== 0 && repairAttemptsCount < maxRepairAttempts) {
       repairAttemptsCount += 1;
       const repairContext: LocalModelCodingRepairContext = {
-        taskId: VERA_LOCAL_MODEL_CODING_TASK_ID,
+        taskId: taskSpec.taskId,
         attemptNumber: repairAttemptsCount,
         testCommand,
         testStdout: testResult.stdout,
@@ -382,7 +410,11 @@ export async function runVeraLocalModelCodingProof(
       try {
         repairGeneration = deps.generateRepair
           ? await deps.generateRepair(repairContext)
-          : await generateCodingRepairWithLocalModel(repairContext, config, deps.fetchFn);
+          : await generateCodingFilesWithLocalModel(
+            taskSpec.buildRepairRequest(repairContext),
+            config,
+            deps.fetchFn,
+          );
       } catch (error) {
         attempts.push({
           attempt_number: attempts.length + 1,
@@ -410,15 +442,16 @@ export async function runVeraLocalModelCodingProof(
             repair_prompt_summary: latestRepairPromptSummary,
             attempts,
           },
+          ...resultContext,
         }, latestGeneration.modelGenerationReal);
       }
 
-      assertAllowedGeneratedFiles(repairGeneration.files);
+      assertAllowedGeneratedFiles(repairGeneration.files, taskSpec, handoff);
       latestRepairPromptSummary = repairGeneration.promptSummary;
       latestGeneration = repairGeneration;
       currentFiles = repairGeneration.files;
       filesChanged = writeGeneratedFiles(workspacePath, currentFiles);
-      testResult = await runIsolatedTests(workspacePath);
+      testResult = await runIsolatedTests(workspacePath, taskSpec);
       attempts.push({
         attempt_number: attempts.length + 1,
         generation_kind: "repair",
@@ -454,7 +487,7 @@ export async function runVeraLocalModelCodingProof(
       },
       {
         name: "patch_returned",
-        status: unifiedDiff.includes("formatBuilderLoopDecisionLabel") ? "passed" as const : "failed" as const,
+        status: unifiedDiff.trim().length > 0 && filesChanged.length > 0 ? "passed" as const : "failed" as const,
         summary: "Unified diff was generated for operator review.",
       },
       {
@@ -462,9 +495,9 @@ export async function runVeraLocalModelCodingProof(
         status: testResult.exitCode === 0 ? "passed" as const : "failed" as const,
         summary: testResult.exitCode === 0
           ? repairRequired
-            ? "node --test passed inside the isolated workspace after bounded repair."
-            : "node --test passed inside the isolated workspace."
-          : `node --test failed with exit code ${testResult.exitCode}.`,
+            ? `${testCommand} passed inside the isolated workspace after bounded repair.`
+            : `${testCommand} passed inside the isolated workspace.`
+          : `${testCommand} failed with exit code ${testResult.exitCode}.`,
       },
     ];
     const passed = checks.every((check) => check.status === "passed");
@@ -502,14 +535,15 @@ export async function runVeraLocalModelCodingProof(
         files_created_or_changed: filesChanged,
       },
       tests: {
-        command_executable: "node",
-        command_args: [...TEST_ARGS],
+        command_executable: path.basename(taskSpec.testCommand.executable),
+        command_args: taskSpec.testCommand.args,
         exit_code: testResult.exitCode,
         passed: testResult.exitCode === 0,
         stdout: testResult.stdout,
         stderr: testResult.stderr,
       },
       repair_loop: repairLoop,
+      ...resultContext,
       evidence: {
         evidence_id: `local-model-coding-proof-${previewIdSeed}`,
         summary: passed
@@ -533,6 +567,7 @@ export async function runVeraLocalModelCodingProof(
       ok: false,
       status: "failed",
       errors: [error instanceof Error ? error.message : String(error)],
+      ...resultContext,
     });
   }
 }

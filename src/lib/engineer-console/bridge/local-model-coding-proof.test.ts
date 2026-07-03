@@ -258,6 +258,18 @@ describe("Vera local model coding proof", () => {
 
     const escapedNewlines = `{"files":[{"relativePath":"src/a.js","content":"line1\\\\nline2"}]}`;
     expect(parseGeneratedCodingFiles(escapedNewlines)[0]?.content).toBe("line1\nline2");
+
+    const markdownFence = `\`\`\`ts
+// src/services/vera/vera-builder-loop-run-history.ts
+export function listBuilderLoopRunHistory() { return []; }
+\`\`\`
+\`\`\`ts
+// src/services/vera/vera-builder-loop-run-history.test.ts
+import { describe, expect, it } from "vitest";
+\`\`\``;
+    const fenceParsed = parseGeneratedCodingFiles(markdownFence);
+    expect(fenceParsed).toHaveLength(2);
+    expect(fenceParsed[0]?.relativePath).toBe("src/services/vera/vera-builder-loop-run-history.ts");
   });
 
   it("does not invoke repair when initial tests pass", async () => {

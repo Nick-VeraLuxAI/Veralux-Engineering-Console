@@ -59,6 +59,44 @@ export function extractJsonObject(content: string): unknown {
   return JSON.parse(trimmed);
 }
 
+function inferRelativePathFromCodeBlock(block: string): string | null {
+  const lines = block.split("\n");
+  for (const line of lines.slice(0, 5)) {
+    const trimmed = line.trim();
+    const commentPath = trimmed.match(/^\/\/\s*(src\/[\w./-]+\.(?:ts|js|tsx|jsx))\s*$/);
+    if (commentPath?.[1]) return commentPath[1];
+    const barePath = trimmed.match(/^(src\/[\w./-]+\.(?:ts|js|tsx|jsx))\s*$/);
+    if (barePath?.[1]) return barePath[1];
+  }
+  return null;
+}
+
+function parseMarkdownCodeFenceFiles(content: string): Array<{ relativePath: string; content: string }> {
+  const pattern = /```(?:typescript|ts|javascript|js|json)?\s*\n([\s\S]*?)(?:```|$)/gi;
+  const files: Array<{ relativePath: string; content: string }> = [];
+  let match: RegExpExecArray | null = pattern.exec(content);
+  while (match) {
+    const block = match[1]?.trim() ?? "";
+    if (block.startsWith("{") && block.includes('"files"')) {
+      const parsed = JSON.parse(block) as { files?: unknown };
+      if (Array.isArray(parsed.files)) {
+        for (const item of parsed.files) {
+          if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+          const record = item as Record<string, unknown>;
+          const relativePath = typeof record.relativePath === "string" ? record.relativePath.trim() : "";
+          const fileContent = typeof record.content === "string" ? record.content : "";
+          if (relativePath && fileContent) files.push({ relativePath, content: fileContent });
+        }
+      }
+    } else {
+      const relativePath = inferRelativePathFromCodeBlock(block);
+      if (relativePath) files.push({ relativePath, content: block });
+    }
+    match = pattern.exec(content);
+  }
+  return files;
+}
+
 function normalizeGeneratedFileContent(content: string): string {
   if (content.includes("\n")) return content;
   if (content.includes("\\n") || content.includes("\\t")) {
@@ -68,8 +106,22 @@ function normalizeGeneratedFileContent(content: string): string {
 }
 
 export function parseGeneratedCodingFiles(rawContent: string): Array<{ relativePath: string; content: string }> {
-  const parsed = extractJsonObject(rawContent) as { files?: unknown };
+  let parsed: { files?: unknown } | null = null;
+  try {
+    parsed = extractJsonObject(rawContent) as { files?: unknown };
+  } catch {
+    const fencedFiles = parseMarkdownCodeFenceFiles(rawContent);
+    if (fencedFiles.length > 0) {
+      return normalizeGeneratedFiles(fencedFiles);
+    }
+    throw new Error("Model output was not valid JSON and did not include parseable code fences.");
+  }
+
   if (!parsed || !Array.isArray(parsed.files)) {
+    const fencedFiles = parseMarkdownCodeFenceFiles(rawContent);
+    if (fencedFiles.length > 0) {
+      return normalizeGeneratedFiles(fencedFiles);
+    }
     throw new Error("Model output did not include a files array.");
   }
   const files: Array<{ relativePath: string; content: string }> = [];
@@ -88,6 +140,23 @@ export function parseGeneratedCodingFiles(rawContent: string): Array<{ relativeP
   }
   if (files.length === 0) throw new Error("Model output did not include any valid files.");
   return files;
+}
+
+function normalizeGeneratedFiles(
+  files: Array<{ relativePath: string; content: string }>,
+): Array<{ relativePath: string; content: string }> {
+  const normalized: Array<{ relativePath: string; content: string }> = [];
+  for (const file of files) {
+    const relativePath = file.relativePath.trim();
+    const content = normalizeGeneratedFileContent(file.content);
+    if (!relativePath || !content) continue;
+    if (relativePath.includes("..") || pathIsAbsolute(relativePath)) {
+      throw new Error(`Unsafe generated path: ${relativePath}`);
+    }
+    normalized.push({ relativePath, content });
+  }
+  if (normalized.length === 0) throw new Error("Model output did not include any valid files.");
+  return normalized;
 }
 
 function pathIsAbsolute(value: string): boolean {
