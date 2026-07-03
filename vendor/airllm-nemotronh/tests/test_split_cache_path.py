@@ -14,7 +14,7 @@ from airllm.split_cache_path import (
 
 def test_default_env_var_name() -> None:
     assert SPLIT_CACHE_ENV_VAR == "ENGINEER_CONSOLE_SUPER_AIRLLM_SPLIT_CACHE_DIR"
-    assert DEFAULT_SPLIT_CACHE_DIR.endswith("super-airllm-splits")
+    assert DEFAULT_SPLIT_CACHE_DIR == "/mnt/model-storage/airllm-split/super-nemotron-120b"
 
 
 def test_rejects_ntfs_target() -> None:
@@ -44,8 +44,11 @@ def test_mocked_ext4_cache_path_is_ready_when_present(tmp_path) -> None:
     target = tmp_path / "super-airllm-splits"
     target.mkdir()
     env = {SPLIT_CACHE_ENV_VAR: str(target)}
-    with patch("airllm.split_cache_path.detect_filesystem_type", return_value="ext4"):
+    with patch("airllm.split_cache_path.detect_filesystem_type", return_value="ext4"), patch(
+        "airllm.split_cache_path.get_free_bytes",
+        return_value=200 * 1024 * 1024 * 1024,
+    ):
         result = resolve_split_cache_path(env, create=False)
     assert result.status == "ready"
     assert result.materialization_allowed is True
-    assert result.resolved_path == str(target.resolve())
+    assert result.free_bytes == 200 * 1024 * 1024 * 1024

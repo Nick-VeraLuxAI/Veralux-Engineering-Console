@@ -36,8 +36,6 @@ async function main(): Promise<void> {
     split_materialization_performed: false,
     dry_run: !process.argv.includes("--allow-split-materialize"),
   };
-
-  console.log(JSON.stringify(result, null, 2));
   process.exit(passed ? 0 : 2);
 }
 

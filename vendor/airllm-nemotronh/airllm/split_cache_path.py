@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 SPLIT_CACHE_ENV_VAR = "ENGINEER_CONSOLE_SUPER_AIRLLM_SPLIT_CACHE_DIR"
-DEFAULT_SPLIT_CACHE_DIR = "/home/ndesantis/vera-workspace/super-airllm-splits"
+LEGACY_SPLIT_CACHE_DIR = "/home/ndesantis/vera-workspace/super-airllm-splits"
+DEFAULT_SPLIT_CACHE_DIR = "/mnt/model-storage/airllm-split/super-nemotron-120b"
 SPLIT_CACHE_SUBDIR = "splitted_model"
+MIN_SPLIT_FREE_GIB = 160
+MIN_SPLIT_FREE_BYTES = MIN_SPLIT_FREE_GIB * 1024 * 1024 * 1024
+CANONICAL_SUPER_MODEL_PATH = "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8"
 BLOCKED_SPLIT_FS_TYPES = frozenset({"ntfs", "ntfs3", "fuseblk", "exfat", "vfat", "msdos", "cifs", "smb3"})
 
 
@@ -17,6 +22,7 @@ class SplitCachePathResult:
     requested_path: str
     resolved_path: str | None
     filesystem_type: str | None
+    free_bytes: int | None
     materialization_allowed: bool
     blocked_reasons: list[str]
     diagnostics: list[str]
@@ -56,6 +62,13 @@ def detect_filesystem_type(path: str) -> str | None:
     return None
 
 
+def get_free_bytes(path: str) -> int | None:
+    try:
+        return shutil.disk_usage(path).free
+    except OSError:
+        return None
+
+
 def validate_split_cache_filesystem(path: str) -> tuple[bool, str | None, list[str]]:
     fs_type = detect_filesystem_type(path)
     diagnostics: list[str] = []
@@ -91,6 +104,7 @@ def resolve_split_cache_path(
                 requested_path=requested,
                 resolved_path=None,
                 filesystem_type=None,
+                free_bytes=None,
                 materialization_allowed=False,
                 blocked_reasons=blocked_reasons,
                 diagnostics=diagnostics,
@@ -104,6 +118,7 @@ def resolve_split_cache_path(
             requested_path=requested,
             resolved_path=None,
             filesystem_type=None,
+            free_bytes=None,
             materialization_allowed=False,
             blocked_reasons=blocked_reasons,
             diagnostics=diagnostics,
@@ -118,6 +133,37 @@ def resolve_split_cache_path(
             requested_path=requested,
             resolved_path=resolved,
             filesystem_type=fs_type,
+            free_bytes=get_free_bytes(resolved),
+            materialization_allowed=False,
+            blocked_reasons=blocked_reasons,
+            diagnostics=diagnostics,
+        )
+
+    free_bytes = get_free_bytes(resolved)
+    if free_bytes is None:
+        blocked_reasons.append("SPLIT_CACHE_FREE_SPACE_UNKNOWN")
+        diagnostics.append("SPLIT_CACHE_FREE_SPACE_UNKNOWN")
+        return SplitCachePathResult(
+            status="blocked",
+            requested_path=requested,
+            resolved_path=resolved,
+            filesystem_type=fs_type,
+            free_bytes=None,
+            materialization_allowed=False,
+            blocked_reasons=blocked_reasons,
+            diagnostics=diagnostics,
+        )
+
+    diagnostics.append(f"SPLIT_CACHE_FREE_BYTES:{free_bytes}")
+    if free_bytes < MIN_SPLIT_FREE_BYTES:
+        blocked_reasons.append("SPLIT_CACHE_FREE_SPACE_INSUFFICIENT")
+        diagnostics.append(f"SPLIT_CACHE_MIN_FREE_BYTES:{MIN_SPLIT_FREE_BYTES}")
+        return SplitCachePathResult(
+            status="blocked",
+            requested_path=requested,
+            resolved_path=resolved,
+            filesystem_type=fs_type,
+            free_bytes=free_bytes,
             materialization_allowed=False,
             blocked_reasons=blocked_reasons,
             diagnostics=diagnostics,
@@ -128,6 +174,7 @@ def resolve_split_cache_path(
         requested_path=requested,
         resolved_path=resolved,
         filesystem_type=fs_type,
+        free_bytes=free_bytes,
         materialization_allowed=True,
         blocked_reasons=[],
         diagnostics=diagnostics,
@@ -148,6 +195,7 @@ def resolve_airllm_split_output_path(
         requested_path=base.requested_path,
         resolved_path=output,
         filesystem_type=base.filesystem_type,
+        free_bytes=base.free_bytes,
         materialization_allowed=base.materialization_allowed,
         blocked_reasons=list(base.blocked_reasons),
         diagnostics=[*base.diagnostics, f"SPLIT_CACHE_OUTPUT_PATH:{output}"],

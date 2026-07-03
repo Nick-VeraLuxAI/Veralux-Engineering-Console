@@ -27,9 +27,16 @@ export const SUPER_AIRLLM_REPAIR_PHASE_S0 = "super_airllm_repair_s0" as const;
 /** Env var for ext4 AirLLM split/cache output (S2+). Raw weights may remain on NTFS canonical path. */
 export const SUPER_AIRLLM_SPLIT_CACHE_ENV_VAR = "ENGINEER_CONSOLE_SUPER_AIRLLM_SPLIT_CACHE_DIR" as const;
 
-/** Recommended ext4 split/cache path when env var is unset. */
-export const SUPER_AIRLLM_DEFAULT_SPLIT_CACHE_DIR =
+/** Legacy S2 default (ext4 via /home but insufficient free space for Super splits). */
+export const SUPER_AIRLLM_LEGACY_SPLIT_CACHE_DIR =
   "/home/ndesantis/vera-workspace/super-airllm-splits" as const;
+
+/** Recommended ext4 split/cache path when env var is unset (S3+). */
+export const SUPER_AIRLLM_DEFAULT_SPLIT_CACHE_DIR =
+  "/mnt/model-storage/airllm-split/super-nemotron-120b" as const;
+
+/** Minimum comfortable free GiB before L4 split materialization. */
+export const SUPER_AIRLLM_MIN_SPLIT_FREE_GIB = 160 as const;
 
 /** Blocked filesystem types for AirLLM split materialization. */
 export const SUPER_AIRLLM_BLOCKED_SPLIT_FS_TYPES = [
