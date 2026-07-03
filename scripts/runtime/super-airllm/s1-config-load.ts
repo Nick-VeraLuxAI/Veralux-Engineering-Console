@@ -1,8 +1,5 @@
 import { analyzeNemotronConfig } from "../../../src/lib/engineer-console/experimental/super-airllm/airllm-nemotron-compatibility/airllm-nemotron-compatibility";
-import {
-  NEMOTRONH_ARCHITECTURE,
-  SUPER_CANONICAL_MODEL_PATH,
-} from "../../../src/lib/engineer-console/experimental/super-airllm/constants";
+import { readSuperModelPathFromEnv, NEMOTRONH_ARCHITECTURE } from "../../../src/lib/engineer-console/experimental/super-airllm/constants";
 
 function readArg(flag: string): string | undefined {
   const index = process.argv.indexOf(flag);
@@ -10,7 +7,7 @@ function readArg(flag: string): string | undefined {
 }
 
 async function main(): Promise<void> {
-  const modelPath = readArg("--model-path") ?? SUPER_CANONICAL_MODEL_PATH;
+  const modelPath = readArg("--model-path") ?? readSuperModelPathFromEnv();
   const config = await analyzeNemotronConfig(modelPath);
   const passed = config.architecture === NEMOTRONH_ARCHITECTURE && config.diagnostics.length === 0;
 

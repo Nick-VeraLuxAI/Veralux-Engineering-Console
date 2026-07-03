@@ -15,11 +15,12 @@ from airllm.split_cache_path import CANONICAL_SUPER_MODEL_PATH, MIN_SPLIT_FREE_B
 def test_storage_audit_includes_ntfs_canonical_and_ext4_candidate() -> None:
     rows = audit_storage_candidates()
     roles = {row["role"] for row in rows}
-    assert "canonical_raw_ntfs" in roles
+    assert "legacy_ntfs_mount" in roles
+    assert "airllm_runtime_ext4" in roles
     assert "s3_recommended" in roles
-    canonical = next(row for row in rows if row["role"] == "canonical_raw_ntfs")
-    assert canonical["filesystem_type"] in {"ntfs3", "ntfs"}
-    assert canonical["split_output_safe"] is False
+    legacy = next(row for row in rows if row["role"] == "legacy_ntfs_mount")
+    assert legacy["filesystem_type"] in {"ntfs3", "ntfs"}
+    assert legacy["split_output_safe"] is False
 
 
 def test_split_materialize_preflight_dry_run_does_not_import_airllm() -> None:

@@ -9,12 +9,12 @@ from airllm.split_materialize import (
     run_split_materialize,
     run_split_materialize_preflight,
 )
-from airllm.split_cache_path import CANONICAL_SUPER_MODEL_PATH
+from airllm.split_cache_path import CANONICAL_SUPER_MODEL_PATH, read_super_model_path_from_env
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Guarded Nemotron Super AirLLM split materialization (S3)")
-    parser.add_argument("--model-path", default=CANONICAL_SUPER_MODEL_PATH)
+    parser.add_argument("--model-path", default=read_super_model_path_from_env())
     parser.add_argument("--storage-audit", action="store_true")
     parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--create-cache-dir", action="store_true")

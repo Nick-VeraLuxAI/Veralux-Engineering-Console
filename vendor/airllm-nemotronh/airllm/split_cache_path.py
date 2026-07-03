@@ -12,8 +12,16 @@ DEFAULT_SPLIT_CACHE_DIR = "/mnt/model-storage/airllm-split/super-nemotron-120b"
 SPLIT_CACHE_SUBDIR = "splitted_model"
 MIN_SPLIT_FREE_GIB = 160
 MIN_SPLIT_FREE_BYTES = MIN_SPLIT_FREE_GIB * 1024 * 1024 * 1024
-CANONICAL_SUPER_MODEL_PATH = "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8"
+SUPER_MODEL_PATH_ENV_VAR = "ENGINEER_CONSOLE_SUPER_MODEL_PATH"
+LEGACY_NTFS_SUPER_MODEL_PATH = "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8"
+DEFAULT_RUNTIME_SUPER_MODEL_PATH = "/mnt/model-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8"
+CANONICAL_SUPER_MODEL_PATH = DEFAULT_RUNTIME_SUPER_MODEL_PATH
 BLOCKED_SPLIT_FS_TYPES = frozenset({"ntfs", "ntfs3", "fuseblk", "exfat", "vfat", "msdos", "cifs", "smb3"})
+
+
+def read_super_model_path_from_env(env: os._Environ[str] | None = None) -> str:
+    env_map = env if env is not None else os.environ
+    return env_map.get(SUPER_MODEL_PATH_ENV_VAR, DEFAULT_RUNTIME_SUPER_MODEL_PATH).strip() or DEFAULT_RUNTIME_SUPER_MODEL_PATH
 
 
 @dataclass(frozen=True)

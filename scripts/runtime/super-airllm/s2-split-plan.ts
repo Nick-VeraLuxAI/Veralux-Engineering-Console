@@ -5,7 +5,7 @@ import {
 } from "../../../src/lib/engineer-console/experimental/super-airllm/airllm-nemotron-compatibility/airllm-nemotron-compatibility";
 import {
   NEMOTRONH_LAYER_PREFIXES,
-  SUPER_CANONICAL_MODEL_PATH,
+  readSuperModelPathFromEnv,
 } from "../../../src/lib/engineer-console/experimental/super-airllm/constants";
 
 function readArg(flag: string): string | undefined {
@@ -14,7 +14,7 @@ function readArg(flag: string): string | undefined {
 }
 
 async function main(): Promise<void> {
-  const modelPath = readArg("--model-path") ?? SUPER_CANONICAL_MODEL_PATH;
+  const modelPath = readArg("--model-path") ?? readSuperModelPathFromEnv();
   const config = await analyzeNemotronConfig(modelPath);
   const weights = await analyzeNemotronWeights(modelPath);
   const split = simulateNemotronSplit({ modelPath, weightPrefixAnalysis: weights });

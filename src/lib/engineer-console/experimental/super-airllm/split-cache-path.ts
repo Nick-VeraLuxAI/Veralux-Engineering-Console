@@ -7,6 +7,8 @@ import {
   SUPER_AIRLLM_DEFAULT_SPLIT_CACHE_DIR,
   SUPER_AIRLLM_MIN_SPLIT_FREE_GIB,
   SUPER_AIRLLM_SPLIT_CACHE_ENV_VAR,
+  SUPER_LEGACY_NTFS_MODEL_PATH,
+  readSuperModelPathFromEnv,
 } from "./constants";
 
 const execFileAsync = promisify(execFile);
@@ -196,7 +198,9 @@ export async function auditStorageCandidates(): Promise<StorageCandidateAudit[]>
     { path: "/home", role: "home" },
     { path: "/home/ndesantis/vera-workspace/super-airllm-splits", role: "legacy_s2_default" },
     { path: SUPER_AIRLLM_DEFAULT_SPLIT_CACHE_DIR, role: "s3_recommended" },
-    { path: "/mnt/large-storage", role: "canonical_raw_ntfs" },
+    { path: readSuperModelPathFromEnv(), role: "airllm_runtime_ext4" },
+    { path: SUPER_LEGACY_NTFS_MODEL_PATH, role: "legacy_ntfs_download" },
+    { path: "/mnt/large-storage", role: "legacy_ntfs_mount" },
   ];
 
   return Promise.all(candidates.map(async (candidate) => {

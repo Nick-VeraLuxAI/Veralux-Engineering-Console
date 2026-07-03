@@ -1,6 +1,6 @@
 import path from "path";
 import { runSuperArtifactRemediation } from "../../../src/lib/engineer-console/experimental/super-airllm/super-artifact-remediation/super-artifact-remediation";
-import { SUPER_CANONICAL_MODEL_PATH } from "../../../src/lib/engineer-console/experimental/super-airllm/constants";
+import { readSuperModelPathFromEnv } from "../../../src/lib/engineer-console/experimental/super-airllm/constants";
 
 function readArg(flag: string): string | undefined {
   const index = process.argv.indexOf(flag);
@@ -15,7 +15,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const modelPath = readArg("--model-path") ?? SUPER_CANONICAL_MODEL_PATH;
+  const modelPath = readArg("--model-path") ?? readSuperModelPathFromEnv();
   const enabled = process.argv.includes("--enabled");
 
   const result = await runSuperArtifactRemediation({

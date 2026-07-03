@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from airllm.safetensors_shard_audit import audit_safetensors_shards
+from airllm.split_cache_path import CANONICAL_SUPER_MODEL_PATH
 
 
 def _write_valid_shard(path: Path) -> None:
@@ -59,10 +60,10 @@ def test_audit_safetensors_shards_blocks_invalid_headers(tmp_path: Path) -> None
 
 
 @pytest.mark.skipif(
-    not Path("/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8").is_dir(),
+    not __import__("pathlib").Path(CANONICAL_SUPER_MODEL_PATH).is_dir(),
     reason="Super artifacts not present locally",
 )
 def test_canonical_super_shards_are_audited() -> None:
-    result = audit_safetensors_shards("/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8")
+    result = audit_safetensors_shards(CANONICAL_SUPER_MODEL_PATH)
     assert result.shard_count == 26
     assert result.valid_shard_count <= result.shard_count

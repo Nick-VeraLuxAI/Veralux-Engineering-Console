@@ -207,4 +207,6 @@ All scripts default to dry-run; `--allow-split-materialize` is documented but **
 
 ## Next phase
 
-**S3 — Guarded split materialization:** confirm ext4 volume with ≥120 GiB free, run `layer_shards_saving_path` materialization with explicit operator flag, then Nemotron-safe `init_model` spike (still no generation until L8 go/no-go).
+**S3 closeout:** [20-super-airllm-repair-s3-split-materialization-v1.md](./20-super-airllm-repair-s3-split-materialization-v1.md) — ext4 mirror, 91-layer materialized splits.
+
+**S4 prep:** [21-super-airllm-repair-s4-init-model-spike-v1.md](./21-super-airllm-repair-s4-init-model-spike-v1.md) — guarded init_model spike preflight (execution disabled).

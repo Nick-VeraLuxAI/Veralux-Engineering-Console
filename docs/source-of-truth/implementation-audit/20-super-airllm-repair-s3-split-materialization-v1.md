@@ -1,8 +1,8 @@
-# Super AirLLM Repair — Phase S3 Split Materialization
+# Super AirLLM Repair — Phase S3 Split Materialization (Closeout)
 
 ## Purpose
 
-Phase S3 prepares guarded Nemotron Super AirLLM **split materialization** on an ext4-safe cache path. Raw Super weights remain on the NTFS canonical path; split output is written only to ext4.
+Phase S3 completes guarded Nemotron Super AirLLM **split materialization** on ext4-safe storage. S3 closeout records successful materialization and establishes the **ext4 runtime artifact mirror** as the default AirLLM model source.
 
 **Prerequisites:**
 
@@ -12,119 +12,104 @@ Phase S3 prepares guarded Nemotron Super AirLLM **split materialization** on an 
 | S1 Commit 1 | `559b45b35eab208d8053bb556bd88a4fc18ce62e` |
 | S1 Commit 2 | `b04e847ffc842c944a4c591fcb4b290b6db7b7bd` |
 | S2 | `ca41f516ee5a7cfd70b7b38207c655901b20f2f9` |
+| S3 guardrails | `e230c51` |
 
 Related: [19-super-airllm-repair-s2-runtime-integration-v1.md](./19-super-airllm-repair-s2-runtime-integration-v1.md)
 
 ---
 
-## Phase 1 — Storage preflight
+## Runtime paths (S3 closeout)
 
-### Candidate paths (2026-07-03)
+| Role | Path | FS | AirLLM use |
+|------|------|-----|------------|
+| **Runtime artifact mirror** | `/mnt/model-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8` | ext4 | **yes** (default) |
+| Split cache base | `/mnt/model-storage/airllm-split/super-nemotron-120b` | ext4 | yes |
+| Split output | `.../splitted_model/` | ext4 | yes (materialized) |
+| Legacy NTFS download | `/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8` | NTFS3 | **no** (corrupt writes) |
 
-| Path | FS | Free | Split output safe | Materialize OK |
-|------|-----|------|-------------------|----------------|
-| `/` / `/home` | ext4 | ~17 GiB | yes | **no** (<160 GiB min) |
-| `/home/ndesantis/vera-workspace/super-airllm-splits` | ext4 | ~17 GiB | yes | **no** |
-| `/mnt/model-storage/airllm-split/super-nemotron-120b` | **ext4** | **~832 GiB** | yes | **yes** |
-| `/mnt/large-storage` (canonical raw) | **NTFS3** | ~1.2 TiB | **no** | **no** (read-only OK) |
-
-Commands:
+Env vars:
 
 ```bash
-df -h / /home /mnt/model-storage /mnt/large-storage
-findmnt -no FSTYPE /home /mnt/large-storage /mnt/model-storage
-npx tsx scripts/runtime/super-airllm/s3-storage-preflight.ts --create-cache-dir
+export ENGINEER_CONSOLE_SUPER_MODEL_PATH=/mnt/model-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8
+export ENGINEER_CONSOLE_SUPER_AIRLLM_SPLIT_CACHE_DIR=/mnt/model-storage/airllm-split/super-nemotron-120b
 ```
 
-### Recommended split/cache layout
-
-| Role | Path |
-|------|------|
-| Raw artifacts (NTFS OK) | `/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8` |
-| Split cache base (ext4) | `/mnt/model-storage/airllm-split/super-nemotron-120b` |
-| AirLLM split output | `.../splitted_model/` (91 layer files) |
-
-Env var: `ENGINEER_CONSOLE_SUPER_AIRLLM_SPLIT_CACHE_DIR`
-
-Default when unset: `/mnt/model-storage/airllm-split/super-nemotron-120b`
-
-Minimum free space gate: **160 GiB**
+Console constant: `SUPER_AIRLLM_DEFAULT_MODEL_PATH` (alias `SUPER_CANONICAL_MODEL_PATH` for runtime scripts).
 
 ---
 
-## Phase 2 — Guarded split materialization
+## NTFS shard corruption and ext4 repair
 
-### Artifact shard integrity (2026-07-03)
+Initial materialize against NTFS failed: **25/26** safetensors headers corrupt (`header too large`).
 
-Preflight now audits safetensors header validity for every shard referenced by `model.safetensors.index.json`.
+| Step | Result |
+|------|--------|
+| Re-download shards 1–25 to ext4 staging | 25/25 valid headers |
+| Copy staging → NTFS canonical | **Failed** — MD5 mismatch; headers stayed corrupt |
+| Build ext4 runtime mirror | **26/26** valid headers |
+| Split materialize from ext4 mirror | **materialized** |
 
-| Check | Result |
-|-------|--------|
-| Shards referenced | 26 |
-| Valid headers | **1** (`model-00026-of-00026.safetensors`) |
-| Invalid headers | **25** (`model-00001` … `model-00025`) |
-| Verdict | **`SAFETENSORS_SHARD_INTEGRITY_FAILED`** — split materialization blocked |
+**Operator rule:** do not use the NTFS path for AirLLM shard reads, repair copies, or split materialize.
 
-Symptom during first operator-approved materialize attempt:
-
-```text
-safetensors._safetensors_rust.SafetensorError: Error while deserializing header: header too large
-```
-
-Root cause: corrupted safetensors headers on 25/26 shards at the canonical NTFS path (invalid header length / non-JSON prefix). This is an **artifact remediation** blocker, not an ext4 split-cache issue.
-
-**Operator action before retry:** re-download corrupted shards to the canonical path (or replace the full artifact tree), then re-run shard integrity preflight.
-
-### Dry-run / preflight
-
-```bash
-bash scripts/runtime/super-airllm/run-split-materialize.sh --preflight-only --create-cache-dir
-npx tsx scripts/runtime/super-airllm/s2-split-plan.ts
-npx tsx scripts/runtime/super-airllm/s3-split-cache-preflight.ts --create-cache-dir
-```
-
-### Operator-approved materialize (explicit flags required)
-
-```bash
-bash scripts/runtime/super-airllm/run-split-materialize.sh \
-  --allow-split-materialize \
-  --confirm-split-materialize
-```
-
-Implementation:
-
-- Reads safetensor shards from NTFS canonical path (`map_location='cpu'`)
-- Uses NemotronH `layer_names_dict` via stock `airllm.utils.split_and_save_layers`
-- Writes layer files under ext4 `splitted_model/`
-- **No** `delete_original`
-- **No** GPU
-- **No** model boot / generation / HTTP / Builder Loop
+Staging dir (optional cleanup after closeout commit):  
+`/mnt/model-storage/airllm-split/super-nemotron-120b/.shard-repair-staging` (~117 GiB)
 
 ---
 
-## Phase 3 — L3–L8 ladder status (post-S3 code)
+## Split materialization result (2026-07-03)
+
+| Metric | Value |
+|--------|-------|
+| Source | ext4 runtime mirror |
+| Output | `/mnt/model-storage/airllm-split/super-nemotron-120b/splitted_model/` |
+| Layer safetensors | **91** |
+| Done markers | 91 |
+| Total size | ~115 GiB |
+| Verdict | **materialized** |
+
+---
+
+## Validation commands
+
+```bash
+export ENGINEER_CONSOLE_SUPER_MODEL_PATH=/mnt/model-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8
+export ENGINEER_CONSOLE_SUPER_AIRLLM_SPLIT_CACHE_DIR=/mnt/model-storage/airllm-split/super-nemotron-120b
+
+bash scripts/runtime/super-airllm/run-split-materialize.sh --preflight-only
+npx tsx scripts/runtime/super-airllm/s3-storage-preflight.ts
+bash scripts/runtime/super-airllm/run-fork-unit-tests.sh
+npx vitest run src/lib/engineer-console/experimental/super-airllm
+```
+
+Expected preflight: `split_preflight_ready`, `valid_shard_count: 26`, `split_materialized: true`, `materialized_layer_files: 91`.
+
+---
+
+## L3–L8 ladder status (S3 closeout)
 
 | Gate | Status |
 |------|--------|
-| L0 artifact_present | ✅ S1 |
+| L0 artifact_present | ✅ ext4 mirror |
 | L1 fork pytest | ✅ |
 | L2 Console vitest | ✅ |
 | L3 config load | ✅ |
 | L4 split plan (91/88) | ✅ |
-| L4 split cache preflight (ext4 + space) | ✅ on `/mnt/model-storage` |
-| L4 shard integrity preflight | ❌ **25/26 shards invalid** |
-| L4 split materialize | ❌ blocked by shard integrity; first attempt failed on shard 1 |
-| L5–L8 boot / one-token | ❌ not attempted |
+| L4 split cache preflight | ✅ ext4 + space |
+| L4 shard integrity | ✅ 26/26 on ext4 mirror |
+| L4 split materialize | ✅ **materialized** |
+| L5 init_model spike | S4 prep (dry-run only) |
+| L6–L8 boot / one-token | ❌ not attempted |
 | L12 Builder Loop | ❌ not wired |
 
 ---
 
-## Safety confirmation (S3)
+## Safety confirmation (S3 closeout)
 
 | Boundary | Status |
 |----------|--------|
-| Split to NTFS | ❌ blocked by resolver |
-| GPU use | ❌ not used (CPU shard read/write only) |
+| NTFS model path for AirLLM | ❌ blocked (`MODEL_PATH_NTFS_BLOCKED`) |
+| Split to NTFS | ❌ blocked |
+| GPU use | ❌ not used during split |
 | Model boot | ❌ not performed |
 | Generation | ❌ not performed |
 | HTTP server | ❌ not started |
@@ -135,4 +120,6 @@ Implementation:
 
 ## Next phase
 
-**S4 — Nemotron-safe init_model spike:** guarded empty-weights config init using `AirLLMNemotronHBaseModel` against materialized splits (still no generation until L8 go/no-go).
+**S4 — Nemotron-safe init_model spike:** [21-super-airllm-repair-s4-init-model-spike-v1.md](./21-super-airllm-repair-s4-init-model-spike-v1.md)
+
+Guarded preflight against materialized splits; `init_model` execution remains disabled until explicit S4 operator approval.

@@ -1,8 +1,5 @@
 import { auditStorageCandidates, resolveSplitCachePath } from "../../../src/lib/engineer-console/experimental/super-airllm/split-cache-path";
-import {
-  SUPER_AIRLLM_DEFAULT_SPLIT_CACHE_DIR,
-  SUPER_CANONICAL_MODEL_PATH,
-} from "../../../src/lib/engineer-console/experimental/super-airllm/constants";
+import { readSuperModelPathFromEnv, SUPER_AIRLLM_DEFAULT_SPLIT_CACHE_DIR } from "../../../src/lib/engineer-console/experimental/super-airllm/constants";
 
 async function main(): Promise<void> {
   const create = process.argv.includes("--create-cache-dir");
@@ -19,7 +16,7 @@ async function main(): Promise<void> {
   const result = {
     phase: "super_airllm_repair_s3_storage_preflight",
     verdict: recommendedCheck.materialization_allowed ? "storage_ready" : "storage_blocked",
-    canonical_model_path: SUPER_CANONICAL_MODEL_PATH,
+    canonical_model_path: readSuperModelPathFromEnv(),
     recommended_split_cache_path: SUPER_AIRLLM_DEFAULT_SPLIT_CACHE_DIR,
     recommended_split_cache_check: recommendedCheck,
     storage_candidates: candidates,

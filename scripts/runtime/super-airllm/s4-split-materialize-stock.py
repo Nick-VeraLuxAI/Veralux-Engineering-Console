@@ -7,7 +7,10 @@ import os
 import sys
 from pathlib import Path
 
-CANONICAL_SUPER_MODEL_PATH = "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8"
+from airllm.split_cache_path import DEFAULT_RUNTIME_SUPER_MODEL_PATH, read_super_model_path_from_env
+
+DEFAULT_SUPER_MODEL_PATH = DEFAULT_RUNTIME_SUPER_MODEL_PATH
+LEGACY_NTFS_SUPER_MODEL_PATH = "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8"
 DEFAULT_SPLIT_CACHE_DIR = "/mnt/model-storage/airllm-split/super-nemotron-120b"
 NEMOTRONH_LAYER_NAMES = {
     "embed": "backbone.embeddings",
@@ -42,7 +45,7 @@ def count_layer_files(output_path: Path) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model-path", default=CANONICAL_SUPER_MODEL_PATH)
+    parser.add_argument("--model-path", default=os.environ.get("ENGINEER_CONSOLE_SUPER_MODEL_PATH", DEFAULT_SUPER_MODEL_PATH))
     parser.add_argument(
         "--split-cache-dir",
         default=os.environ.get("ENGINEER_CONSOLE_SUPER_AIRLLM_SPLIT_CACHE_DIR", DEFAULT_SPLIT_CACHE_DIR),

@@ -1,6 +1,16 @@
-/** Canonical operator path for Nemotron Super weights (Phase 14/15 historical proofs). */
-export const SUPER_CANONICAL_MODEL_PATH =
+/** Historical NTFS download path — do not use for AirLLM shard reads or split materialize. */
+export const SUPER_LEGACY_NTFS_MODEL_PATH =
   "/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8" as const;
+
+/** Ext4 runtime artifact mirror for AirLLM work (S3 closeout default). */
+export const SUPER_AIRLLM_DEFAULT_MODEL_PATH =
+  "/mnt/model-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8" as const;
+
+/** Env var override for Super model path used by AirLLM runtime scripts. */
+export const SUPER_AIRLLM_MODEL_PATH_ENV_VAR = "ENGINEER_CONSOLE_SUPER_MODEL_PATH" as const;
+
+/** Default model path for AirLLM runtime scripts (ext4 mirror). */
+export const SUPER_CANONICAL_MODEL_PATH = SUPER_AIRLLM_DEFAULT_MODEL_PATH;
 
 export const SUPER_EXPECTED_MODEL_NAME = "Nemotron-Super-120B-A12B-FP8" as const;
 
@@ -24,8 +34,12 @@ export const SUPER_BLOCKED_MISSING_ARTIFACT = "blocked_missing_artifact" as cons
 /** S0 repair phase: static/audit proofs only; no model load, GPU, or HTTP serving. */
 export const SUPER_AIRLLM_REPAIR_PHASE_S0 = "super_airllm_repair_s0" as const;
 
-/** Env var for ext4 AirLLM split/cache output (S2+). Raw weights may remain on NTFS canonical path. */
+/** Env var for ext4 AirLLM split/cache output (S2+). */
 export const SUPER_AIRLLM_SPLIT_CACHE_ENV_VAR = "ENGINEER_CONSOLE_SUPER_AIRLLM_SPLIT_CACHE_DIR" as const;
+
+export function readSuperModelPathFromEnv(env: NodeJS.ProcessEnv = process.env): string {
+  return env[SUPER_AIRLLM_MODEL_PATH_ENV_VAR]?.trim() || SUPER_AIRLLM_DEFAULT_MODEL_PATH;
+}
 
 /** Legacy S2 default (ext4 via /home but insufficient free space for Super splits). */
 export const SUPER_AIRLLM_LEGACY_SPLIT_CACHE_DIR =

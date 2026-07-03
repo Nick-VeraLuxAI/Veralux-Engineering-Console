@@ -15,8 +15,13 @@ from airllm.nemotronh_layer_map import (
 )
 from airllm.safetensors_shard_audit import audit_safetensors_shards
 from airllm.split_cache_path import (
+    BLOCKED_SPLIT_FS_TYPES,
     CANONICAL_SUPER_MODEL_PATH,
+    DEFAULT_RUNTIME_SUPER_MODEL_PATH,
+    LEGACY_NTFS_SUPER_MODEL_PATH,
     SPLIT_CACHE_SUBDIR,
+    detect_filesystem_type,
+    read_super_model_path_from_env,
     resolve_airllm_split_output_path,
     resolve_split_cache_path,
 )
@@ -35,6 +40,8 @@ class SplitMaterializePreflight:
     shard_count: int
     valid_shard_count: int
     expected_layer_files: int
+    materialized_layer_files: int
+    split_materialized: bool
     blocked_reasons: list[str]
     diagnostics: list[str]
     dry_run: bool
@@ -72,9 +79,17 @@ def _import_stock_split_and_save_layers():
         raise ImportError("AIRLLM_STOCK_SITE_PACKAGES not configured for stock AirLLM utils import")
 
     vendor_root = str(Path(__file__).resolve().parents[1])
+    resolved_vendor = str(Path(vendor_root).resolve())
     original_path = sys.path[:]
     try:
-        sys.path = [stock_site, *[entry for entry in original_path if entry != vendor_root]]
+        filtered_path = [
+            entry
+            for entry in original_path
+            if not entry or str(Path(entry).resolve()) != resolved_vendor
+        ]
+        sys.path = [stock_site, *filtered_path]
+        for module_name in [name for name in list(sys.modules) if name == "airllm" or name.startswith("airllm.")]:
+            del sys.modules[module_name]
         module = importlib.import_module("airllm.utils")
         return module.split_and_save_layers
     finally:
@@ -96,15 +111,26 @@ def _load_num_hidden_layers(model_path: str) -> int:
     return layers
 
 
+def _count_materialized_layer_files(output_path: str | None) -> int:
+    if output_path is None:
+        return 0
+    target = Path(output_path)
+    if not target.is_dir():
+        return 0
+    return sum(1 for entry in target.iterdir() if entry.is_file() and entry.name.endswith(".safetensors"))
+
+
 def run_split_materialize_preflight(
     *,
-    model_path: str = CANONICAL_SUPER_MODEL_PATH,
+    model_path: str | None = None,
     env: os._Environ[str] | None = None,
     create_cache_dir: bool = False,
     dry_run: bool = True,
 ) -> SplitMaterializePreflight:
     blocked: list[str] = []
     diagnostics: list[str] = []
+    if model_path is None:
+        model_path = read_super_model_path_from_env(env)
 
     if not Path(model_path).is_dir():
         blocked.append("MODEL_PATH_MISSING")
@@ -118,10 +144,17 @@ def run_split_materialize_preflight(
             shard_count=0,
             valid_shard_count=0,
             expected_layer_files=EXPECTED_PREFIX_COUNT,
+            materialized_layer_files=0,
+            split_materialized=False,
             blocked_reasons=blocked,
             diagnostics=[f"MODEL_PATH_NOT_FOUND:{model_path}"],
             dry_run=dry_run,
         )
+
+    model_fs = detect_filesystem_type(model_path)
+    if model_fs in BLOCKED_SPLIT_FS_TYPES:
+        blocked.append("MODEL_PATH_NTFS_BLOCKED")
+        diagnostics.append(f"MODEL_PATH_FSTYPE_BLOCKED:{model_fs}")
 
     shard_audit = audit_safetensors_shards(model_path)
     diagnostics.extend(shard_audit.diagnostics)
@@ -137,6 +170,13 @@ def run_split_materialize_preflight(
     weight_map = _load_weight_map(model_path)
     num_hidden_layers = _load_num_hidden_layers(model_path)
     split_plan = simulate_split_plan_from_index(weight_map, num_hidden_layers)
+    expected_layer_files = len(split_plan.proposed_layer_names)
+    materialized_layer_files = _count_materialized_layer_files(output.resolved_path)
+    split_materialized = materialized_layer_files >= expected_layer_files
+    diagnostics.append(f"MATERIALIZED_LAYER_FILES:{materialized_layer_files}")
+    if split_materialized:
+        diagnostics.append("SPLIT_MATERIALIZED:yes")
+
     if not split_plan.passed:
         blocked.append("SPLIT_PLAN_FAILED")
         blocked.extend(split_plan.missing_prefixes)
@@ -151,7 +191,9 @@ def run_split_materialize_preflight(
             shard_integrity_status=shard_audit.status,
             shard_count=shard_audit.shard_count,
             valid_shard_count=shard_audit.valid_shard_count,
-            expected_layer_files=len(split_plan.proposed_layer_names),
+            expected_layer_files=expected_layer_files,
+            materialized_layer_files=materialized_layer_files,
+            split_materialized=split_materialized,
             blocked_reasons=blocked,
             diagnostics=diagnostics,
             dry_run=dry_run,
@@ -166,7 +208,9 @@ def run_split_materialize_preflight(
         shard_integrity_status=shard_audit.status,
         shard_count=shard_audit.shard_count,
         valid_shard_count=shard_audit.valid_shard_count,
-        expected_layer_files=len(split_plan.proposed_layer_names),
+        expected_layer_files=expected_layer_files,
+        materialized_layer_files=materialized_layer_files,
+        split_materialized=split_materialized,
         blocked_reasons=[],
         diagnostics=diagnostics,
         dry_run=dry_run,
@@ -182,12 +226,14 @@ def _count_layer_markers(output_path: str) -> int:
 
 def run_split_materialize(
     *,
-    model_path: str = CANONICAL_SUPER_MODEL_PATH,
+    model_path: str | None = None,
     env: os._Environ[str] | None = None,
     allow_split_materialize: bool = False,
     confirm_split_materialize: bool = False,
     create_cache_dir: bool = True,
 ) -> SplitMaterializeResult:
+    if model_path is None:
+        model_path = read_super_model_path_from_env(env)
     dry_run = not (allow_split_materialize and confirm_split_materialize)
     preflight = run_split_materialize_preflight(
         model_path=model_path,
@@ -278,7 +324,9 @@ def audit_storage_candidates() -> list[dict[str, object]]:
         {"path": "/home", "role": "home"},
         {"path": "/home/ndesantis/vera-workspace/super-airllm-splits", "role": "legacy_s2_default"},
         {"path": "/mnt/model-storage/airllm-split/super-nemotron-120b", "role": "s3_recommended"},
-        {"path": "/mnt/large-storage", "role": "canonical_raw_ntfs"},
+        {"path": DEFAULT_RUNTIME_SUPER_MODEL_PATH, "role": "airllm_runtime_ext4"},
+        {"path": LEGACY_NTFS_SUPER_MODEL_PATH, "role": "legacy_ntfs_download"},
+        {"path": "/mnt/large-storage", "role": "legacy_ntfs_mount"},
     ]
     rows: list[dict[str, object]] = []
     for candidate in candidates:

@@ -213,7 +213,7 @@ export function resolveModelRole(
       endpoint: envValue(
         env,
         "CONSOLE_SENIOR_WORKER_ENDPOINT",
-        "airllm:///mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
+        "airllm:///mnt/model-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8",
       ),
       model: envValue(env, "CONSOLE_SENIOR_WORKER_MODEL_NAME", "Nemotron-Super-120B-A12B-FP8"),
       status: "blocked_unproven",

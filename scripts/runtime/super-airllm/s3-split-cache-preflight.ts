@@ -3,7 +3,7 @@ import { resolveSplitCachePath } from "../../../src/lib/engineer-console/experim
 import {
   SUPER_AIRLLM_DEFAULT_SPLIT_CACHE_DIR,
   SUPER_AIRLLM_SPLIT_CACHE_ENV_VAR,
-  SUPER_CANONICAL_MODEL_PATH,
+  readSuperModelPathFromEnv,
 } from "../../../src/lib/engineer-console/experimental/super-airllm/constants";
 
 function readArg(flag: string): string | undefined {
@@ -13,7 +13,7 @@ function readArg(flag: string): string | undefined {
 
 async function main(): Promise<void> {
   const create = process.argv.includes("--create-cache-dir");
-  const modelPath = readArg("--model-path") ?? SUPER_CANONICAL_MODEL_PATH;
+  const modelPath = readArg("--model-path") ?? readSuperModelPathFromEnv();
   const cache = await resolveSplitCachePath({ create });
 
   let modelPathExists = false;

@@ -11,8 +11,8 @@ from airllm.nemotronh_config import LLAMA_SELF_ATTN_PROBE_PATH
 from airllm.nemotronh_layer_map import EXPECTED_LAYER_COUNT, EXPECTED_PREFIX_COUNT
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
-SUPER_INDEX = Path("/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8/model.safetensors.index.json")
-SUPER_CONFIG = Path("/mnt/large-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8/config.json")
+SUPER_INDEX = Path("/mnt/model-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8/model.safetensors.index.json")
+SUPER_CONFIG = Path("/mnt/model-storage/models/nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8/config.json")
 
 
 def test_runtime_class_exposes_layer_names_and_hooks() -> None:
