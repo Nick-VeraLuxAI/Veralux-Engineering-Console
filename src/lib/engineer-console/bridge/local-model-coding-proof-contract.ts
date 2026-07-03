@@ -13,6 +13,9 @@ export const VERA_LOCAL_MODEL_CODING_PROOF_SCHEMA_VERSION =
 export const VERA_LOCAL_MODEL_CODING_TASK_ID =
   "format_builder_loop_decision_label_v1" as const;
 
+export const VERA_BUILDER_LOOP_RUN_HISTORY_TASK_ID =
+  "builder_loop_run_history_v1" as const;
+
 export type VeraLocalModelCodingProofHandoff = VeraPlaceholderModuleCardHandoff & {
   coding_task_id: string;
   builder_loop_mode?: "preview_only" | "code_in_sandbox";

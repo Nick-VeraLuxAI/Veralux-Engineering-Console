@@ -39,6 +39,37 @@ function pathIsUnsafe(relativePath: string): boolean {
   return false;
 }
 
+function contentIsPlaceholder(content: string): boolean {
+  const trimmed = content.trim();
+  if (!trimmed) return true;
+  if (trimmed === "...") return true;
+  if (/^\.{3,}$/.test(trimmed)) return true;
+  if (/^<[^>]+>$/.test(trimmed)) return true;
+  if (/^<complete-/i.test(trimmed)) return true;
+  return false;
+}
+
+const FORBIDDEN_CONTENT_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
+  { pattern: /\blog\.(warn|info|error|debug)\b/, message: "Do not use log.*; return warnings instead." },
+  { pattern: /\bfrom\s+["']@\/[^"']+["']/, message: "Do not use @/ path aliases." },
+  { pattern: /\bbetter-sqlite3\b/, message: "Do not import SQLite." },
+  { pattern: /\bfrom\s+["']next\//, message: "Do not import Next.js modules." },
+  { pattern: /\bfrom\s+["']react["']/, message: "Do not import React." },
+  { pattern: /\bvera-work-order-runner\b/, message: "Do not import Vera work-order services." },
+];
+
+function validateFileContent(relativePath: string, content: string): string | null {
+  if (contentIsPlaceholder(content)) {
+    return `Generated file content is placeholder or empty: ${relativePath}`;
+  }
+  for (const rule of FORBIDDEN_CONTENT_PATTERNS) {
+    if (rule.pattern.test(content)) {
+      return `${relativePath}: ${rule.message}`;
+    }
+  }
+  return null;
+}
+
 export function listAllowedPathsForTask(
   handoff: VeraLocalModelCodingProofHandoff,
   taskSpec: ResolvedCodingTaskSpec,
@@ -123,6 +154,13 @@ export function validateGeneratedFilesForTask(
 
     if (!file.content.trim()) {
       errors.push(`Generated file content is empty: ${relativePath}`);
+      rejected_paths.push(relativePath);
+      continue;
+    }
+
+    const contentError = validateFileContent(relativePath, file.content);
+    if (contentError) {
+      errors.push(contentError);
       rejected_paths.push(relativePath);
       continue;
     }

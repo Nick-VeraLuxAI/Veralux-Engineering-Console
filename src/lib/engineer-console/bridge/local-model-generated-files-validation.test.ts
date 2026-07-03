@@ -114,6 +114,23 @@ describe("generated file validation", () => {
     }
   });
 
+  it("rejects placeholder file content and forbidden imports", () => {
+    const taskSpec = resolveCodingTaskSpec(runHistoryHandoff);
+    for (const content of ["...", "<complete-typescript>", "export const x = log.warn('bad');"]) {
+      const result = validateGeneratedFilesForTask([
+        {
+          relativePath: "src/services/vera/vera-builder-loop-run-history.ts",
+          content,
+        },
+        {
+          relativePath: "src/services/vera/vera-builder-loop-run-history.test.ts",
+          content: "import { describe, expect, it } from \"vitest\";",
+        },
+      ], taskSpec, runHistoryHandoff);
+      expect(result.ok).toBe(false);
+    }
+  });
+
   it("lists allowed paths for legacy canary task", () => {
     const handoff = {
       ...runHistoryHandoff,
