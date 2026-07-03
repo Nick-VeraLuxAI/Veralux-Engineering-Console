@@ -1,0 +1,8 @@
+# Generated from Phase 11 AirLLM compatibility winner a2.
+# Used only for project-local .venv-airllm promotion/import proof.
+# Import-only proven; not a Super boot proof and not for global Python.
+airllm==2.11.0
+optimum==1.27.0
+transformers==4.48.3
+setuptools==81.0.0
+sentencepiece==0.2.1
