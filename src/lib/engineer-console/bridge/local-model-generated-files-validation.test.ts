@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   listAllowedPathsForTask,
+  listEvidencePathsForTask,
   validateGeneratedFilesForTask,
 } from "./local-model-generated-files-validation";
 import { resolveCodingTaskSpec } from "./local-model-coding-task";
@@ -26,6 +27,10 @@ const runHistoryHandoff = {
   console_metadata_authoritative: false,
   builder_loop_mode: "code_in_sandbox" as const,
   coding_task_id: "builder_loop_run_history_v1",
+  orchestration_mode: "scaffold_first" as const,
+  model_editable_files: [
+    "src/services/vera/vera-builder-loop-run-history.ts",
+  ],
   coding_task: {
     task_kind: "custom_bounded_code_task_v1" as const,
     coding_task_id: "builder_loop_run_history_v1",
@@ -33,6 +38,10 @@ const runHistoryHandoff = {
     requested_change: "Build run history",
     target_area: "src/services/vera/vera-builder-loop-run-history",
     acceptance_criteria: ["Lists prior requests"],
+    orchestration_mode: "scaffold_first" as const,
+    model_editable_files: [
+      "src/services/vera/vera-builder-loop-run-history.ts",
+    ],
     expected_files: [
       "src/services/vera/vera-builder-loop-run-history.ts",
       "src/services/vera/vera-builder-loop-run-history.test.ts",
@@ -61,23 +70,21 @@ const runHistoryHandoff = {
 };
 
 describe("generated file validation", () => {
-  it("accepts exact allowed Run History paths", () => {
+  it("accepts the model-editable Run History service path", () => {
     const taskSpec = resolveCodingTaskSpec(runHistoryHandoff);
     const result = validateGeneratedFilesForTask([
       {
         relativePath: "src/services/vera/vera-builder-loop-run-history.ts",
-        content: "export function listBuilderLoopRunHistory() { return []; }",
-      },
-      {
-        relativePath: "src/services/vera/vera-builder-loop-run-history.test.ts",
-        content: "import { describe, expect, it } from \"vitest\";",
+        content: "export async function loadBuilderLoopRunHistory() { return { items: [], warnings: [], total_records: 0 }; }",
       },
     ], taskSpec, runHistoryHandoff);
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.files).toHaveLength(2);
-      expect(result.allowed_paths).toEqual(runHistoryHandoff.coding_task.expected_files);
+      expect(result.files).toHaveLength(1);
+      expect(result.allowed_paths).toEqual([
+        "src/services/vera/vera-builder-loop-run-history.ts",
+      ]);
     }
   });
 
@@ -122,13 +129,38 @@ describe("generated file validation", () => {
           relativePath: "src/services/vera/vera-builder-loop-run-history.ts",
           content,
         },
-        {
-          relativePath: "src/services/vera/vera-builder-loop-run-history.test.ts",
-          content: "import { describe, expect, it } from \"vitest\";",
-        },
       ], taskSpec, runHistoryHandoff);
       expect(result.ok).toBe(false);
     }
+  });
+
+  it("rejects model attempts to rewrite preset scaffold files", () => {
+    const taskSpec = resolveCodingTaskSpec(runHistoryHandoff);
+    const result = validateGeneratedFilesForTask([
+      {
+        relativePath: "src/services/vera/vera-builder-loop-run-history.ts",
+        content: "export async function loadBuilderLoopRunHistory() { return { items: [], warnings: [], total_records: 0 }; }",
+      },
+      {
+        relativePath: "src/services/vera/vera-builder-loop-run-history.test.ts",
+        content: "import { describe, expect, it } from \"vitest\";",
+      },
+    ], taskSpec, runHistoryHandoff);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.some((error) => error.includes("Preset scaffold file"))).toBe(true);
+    }
+  });
+
+  it("lists model-editable paths separately from evidence paths for scaffold-first tasks", () => {
+    const taskSpec = resolveCodingTaskSpec(runHistoryHandoff);
+    expect(listAllowedPathsForTask(runHistoryHandoff, taskSpec)).toEqual([
+      "src/services/vera/vera-builder-loop-run-history.ts",
+    ]);
+    expect(listEvidencePathsForTask(runHistoryHandoff, taskSpec)).toEqual(
+      runHistoryHandoff.coding_task.expected_files,
+    );
   });
 
   it("lists allowed paths for legacy canary task", () => {

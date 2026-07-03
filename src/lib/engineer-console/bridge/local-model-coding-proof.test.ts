@@ -9,8 +9,13 @@ import {
 import {
   VERA_LOCAL_MODEL_CODING_PROOF_SCHEMA_VERSION,
   VERA_LOCAL_MODEL_CODING_TASK_ID,
+  VERA_BUILDER_LOOP_RUN_HISTORY_TASK_ID,
   validateVeraLocalModelCodingProofHandoff,
 } from "./local-model-coding-proof-contract";
+import {
+  RUN_HISTORY_V1_SERVICE_PATH,
+  RUN_HISTORY_V1_TEST_PATH,
+} from "./local-model-coding-scaffold";
 import {
   runVeraLocalModelCodingProof,
 } from "./local-model-coding-proof";
@@ -199,6 +204,150 @@ async function mockGenerateOutputValidationRepair(context: {
     return mockGenerateCode();
   }
   return mockGenerateRepair();
+}
+
+const mockRunHistoryImplementation = `import fs from "node:fs";
+import path from "node:path";
+
+export type BuilderLoopRunHistoryStage =
+  | "manual_integration_candidate"
+  | "controlled_apply_dry_run"
+  | "controlled_apply_sandbox"
+  | "controlled_apply_approval_decision"
+  | "real_controlled_apply";
+
+export type BuilderLoopRunHistoryItem = {
+  stage: BuilderLoopRunHistoryStage;
+  status: string;
+  created_at?: string;
+  evidence_id?: string;
+  candidate_id?: string;
+  model_used?: string;
+  repair_attempts?: number;
+  files_changed?: string[];
+  test_result?: string;
+  integration_state?: string;
+  boundary_flags?: Record<string, boolean>;
+  next_action?: string;
+  source_file: string;
+};
+
+export type BuilderLoopRunHistoryResult = {
+  items: BuilderLoopRunHistoryItem[];
+  warnings: string[];
+  total_records: number;
+};
+
+const STAGE_DIRECTORIES: Array<{ stage: BuilderLoopRunHistoryStage; dir: string }> = [
+  { stage: "manual_integration_candidate", dir: "builder-loop-manual-integration-candidates" },
+  { stage: "controlled_apply_dry_run", dir: "builder-loop-controlled-apply-dry-runs" },
+  { stage: "controlled_apply_sandbox", dir: "builder-loop-controlled-apply-sandboxes" },
+  { stage: "controlled_apply_approval_decision", dir: "builder-loop-controlled-apply-approval-decisions" },
+  { stage: "real_controlled_apply", dir: "builder-loop-controlled-apply-records" },
+];
+
+export async function loadBuilderLoopRunHistory(input: {
+  workspaceRoot: string;
+}): Promise<BuilderLoopRunHistoryResult> {
+  const warnings: string[] = [];
+  const items: BuilderLoopRunHistoryItem[] = [];
+
+  for (const { stage, dir } of STAGE_DIRECTORIES) {
+    const dirPath = path.join(input.workspaceRoot, dir);
+    if (!fs.existsSync(dirPath)) continue;
+    for (const filename of fs.readdirSync(dirPath)) {
+      if (!filename.endsWith(".json")) continue;
+      const source_file = path.join(dir, filename);
+      const fullPath = path.join(dirPath, filename);
+      try {
+        const record = JSON.parse(fs.readFileSync(fullPath, "utf8")) as Record<string, unknown>;
+        items.push({
+          stage,
+          status: typeof record.integration_state === "string"
+            ? record.integration_state
+            : typeof record.status === "string"
+              ? record.status
+              : "unknown",
+          created_at: typeof record.created_at === "string" ? record.created_at : undefined,
+          evidence_id: typeof record.evidence_id === "string" ? record.evidence_id : undefined,
+          candidate_id: typeof record.candidate_id === "string" ? record.candidate_id : undefined,
+          model_used: typeof record.model_used === "string" ? record.model_used : undefined,
+          repair_attempts: typeof record.repair_attempts === "number" ? record.repair_attempts : undefined,
+          files_changed: Array.isArray(record.files_changed)
+            ? record.files_changed.filter((item): item is string => typeof item === "string")
+            : undefined,
+          test_result: typeof record.test_result === "string"
+            ? record.test_result
+            : typeof record.test_passed === "boolean"
+              ? String(record.test_passed)
+              : undefined,
+          integration_state: typeof record.integration_state === "string" ? record.integration_state : undefined,
+          boundary_flags: typeof record.boundary_flags === "object" && record.boundary_flags !== null
+            ? Object.fromEntries(
+              Object.entries(record.boundary_flags).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean"),
+            )
+            : undefined,
+          next_action: typeof record.next_action === "string" ? record.next_action : undefined,
+          source_file,
+        });
+      } catch {
+        warnings.push(\`Failed to parse \${source_file}\`);
+      }
+    }
+  }
+
+  return { items, warnings, total_records: items.length };
+}
+`;
+
+const mockRunHistoryGeneratedFiles = {
+  files: [
+    {
+      relativePath: RUN_HISTORY_V1_SERVICE_PATH,
+      content: mockRunHistoryImplementation,
+    },
+  ],
+};
+
+function runHistoryHandoff() {
+  return {
+    ...handoff({
+      builder_loop_mode: "code_in_sandbox",
+      coding_task_id: VERA_BUILDER_LOOP_RUN_HISTORY_TASK_ID,
+      code_source_repo_root: path.resolve(process.cwd(), "..", "Veralux-System"),
+      coding_task: {
+        task_kind: "custom_bounded_code_task_v1" as const,
+        coding_task_id: VERA_BUILDER_LOOP_RUN_HISTORY_TASK_ID,
+        task_title: "Builder Loop Run History V1",
+        requested_change: "Build run history",
+        target_area: "src/services/vera/vera-builder-loop-run-history",
+        acceptance_criteria: ["Lists prior requests"],
+        orchestration_mode: "scaffold_first" as const,
+        model_editable_files: [RUN_HISTORY_V1_SERVICE_PATH],
+        expected_files: [RUN_HISTORY_V1_SERVICE_PATH, RUN_HISTORY_V1_TEST_PATH],
+        allowed_file_patterns: [RUN_HISTORY_V1_SERVICE_PATH, RUN_HISTORY_V1_TEST_PATH],
+        blocked_file_patterns: ["../**", "node_modules/**", ".env*", "package.json"],
+        test_expectations: [
+          `npm test -- --run ${RUN_HISTORY_V1_TEST_PATH}`,
+        ],
+        constraints: ["Isolated only"],
+        integration_intent: "candidate_only" as const,
+      },
+    }),
+    builder_loop_mode: "code_in_sandbox" as const,
+    coding_task_id: VERA_BUILDER_LOOP_RUN_HISTORY_TASK_ID,
+  };
+}
+
+async function mockGenerateRunHistoryCode() {
+  return {
+    modelUsed: "mock-local-model-v1",
+    endpoint: "test://injected-local-model",
+    modelGenerationReal: false as const,
+    rawContent: JSON.stringify(mockRunHistoryGeneratedFiles),
+    files: mockRunHistoryGeneratedFiles.files,
+    promptSummary: "Injected scaffold-first Run History implementation.",
+  };
 }
 
 describe("Vera local model coding proof", () => {
@@ -419,5 +568,61 @@ import { describe, expect, it } from "vitest";
     expect(result.output_validation?.rejected_paths).toContain("...");
     expect(result.errors.some((error) => error.includes("Unsafe generated path"))).toBe(true);
     expect(result.evidence?.summary).toContain("invalid model output paths/format");
+  });
+
+  it("seeds preset scaffold and passes vitest when model generates only Run History implementation", async () => {
+    const systemRepoRoot = path.resolve(process.cwd(), "..", "Veralux-System");
+    if (!fs.existsSync(path.join(systemRepoRoot, "node_modules", "vitest", "vitest.mjs"))) {
+      return;
+    }
+
+    const result = await runVeraLocalModelCodingProof(runHistoryHandoff(), {
+      tempRoot,
+      workspaceId: () => "coding-proof-run-history-scaffold",
+      generateCode: mockGenerateRunHistoryCode,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe("local_model_coding_proof_passed");
+    expect(result.tests?.passed).toBe(true);
+    expect(result.patch?.files_created_or_changed).toEqual([
+      RUN_HISTORY_V1_TEST_PATH,
+      RUN_HISTORY_V1_SERVICE_PATH,
+    ]);
+    expect(result.output_validation?.allowed_paths).toEqual([RUN_HISTORY_V1_SERVICE_PATH]);
+    expect(result.warnings.some((warning) => warning.includes("Scaffold-first"))).toBe(true);
+    expect(result.repair_loop?.repair_attempts_count).toBe(0);
+  });
+
+  it("rejects scaffold-first model output that attempts to rewrite the preset test file", async () => {
+    const generateRepair = vi.fn(async () => mockGenerateRunHistoryCode());
+    const result = await runVeraLocalModelCodingProof(runHistoryHandoff(), {
+      tempRoot,
+      workspaceId: () => "coding-proof-run-history-scaffold-reject",
+      maxRepairAttempts: 1,
+      generateCode: async () => ({
+        modelUsed: "mock-local-model-v1",
+        endpoint: "test://injected-local-model",
+        modelGenerationReal: false as const,
+        rawContent: JSON.stringify({
+          files: [
+            { relativePath: RUN_HISTORY_V1_SERVICE_PATH, content: mockRunHistoryImplementation },
+            { relativePath: RUN_HISTORY_V1_TEST_PATH, content: "export const bad = true;" },
+          ],
+        }),
+        files: [
+          { relativePath: RUN_HISTORY_V1_SERVICE_PATH, content: mockRunHistoryImplementation },
+          { relativePath: RUN_HISTORY_V1_TEST_PATH, content: "export const bad = true;" },
+        ],
+        promptSummary: "Invalid scaffold rewrite attempt.",
+      }),
+      generateRepair,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(generateRepair).toHaveBeenCalledTimes(1);
+    expect(generateRepair.mock.calls[0]?.[0]?.repairReason).toBe("output_validation");
+    expect(result.output_validation?.final_paths_valid).toBe(true);
+    expect(result.tests?.passed).toBe(true);
   });
 });

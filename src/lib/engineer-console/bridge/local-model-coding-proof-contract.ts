@@ -65,6 +65,26 @@ function validateCustomCodingTask(raw: unknown): { ok: true; task: CustomBounded
       test_expectations: tests,
       constraints: normalizeList(record.constraints),
       integration_intent: "candidate_only",
+      ...(typeof record.orchestration_mode === "string"
+        ? { orchestration_mode: record.orchestration_mode as CustomBoundedCodingTask["orchestration_mode"] }
+        : {}),
+      ...(normalizeList(record.model_editable_files).length > 0
+        ? { model_editable_files: normalizeList(record.model_editable_files) }
+        : {}),
+      ...(Array.isArray(record.scaffolded_files)
+        ? {
+          scaffolded_files: record.scaffolded_files
+            .filter((item): item is { relativePath: string; content: string } => {
+              if (!item || typeof item !== "object" || Array.isArray(item)) return false;
+              const entry = item as Record<string, unknown>;
+              return typeof entry.relativePath === "string" && typeof entry.content === "string";
+            })
+            .map((item) => ({ relativePath: item.relativePath.trim(), content: item.content })),
+        }
+        : {}),
+      ...(typeof record.service_contract === "string" && record.service_contract.trim()
+        ? { service_contract: record.service_contract.trim() }
+        : {}),
     },
   };
 }

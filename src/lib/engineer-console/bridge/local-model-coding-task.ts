@@ -6,6 +6,16 @@ import {
   type LocalModelCodingRepairContext,
 } from "./local-openai-compatible-coding-client";
 import {
+  isScaffoldFirstTask,
+  resolveModelEditablePaths,
+  resolveScaffoldFilesForTask,
+  RUN_HISTORY_V1_SERVICE_CONTRACT,
+  RUN_HISTORY_V1_SERVICE_PATH,
+  runHistoryStageDirectoryGuide,
+  type CodingOrchestrationMode,
+  type CodingScaffoldFile,
+} from "./local-model-coding-scaffold";
+import {
   VERA_BUILDER_LOOP_RUN_HISTORY_TASK_ID,
   VERA_LOCAL_MODEL_CODING_TASK_ID,
   type VeraLocalModelCodingProofHandoff,
@@ -24,12 +34,20 @@ export type CustomBoundedCodingTask = {
   test_expectations: string[];
   constraints: string[];
   integration_intent: "candidate_only";
+  orchestration_mode?: CodingOrchestrationMode;
+  model_editable_files?: string[];
+  scaffolded_files?: CodingScaffoldFile[];
+  service_contract?: string;
 };
 
 export type ResolvedCodingTaskSpec = {
   taskId: string;
   promptSummary: string;
+  orchestrationMode: CodingOrchestrationMode;
   allowedRelativePaths: Set<string>;
+  modelEditableRelativePaths: Set<string>;
+  scaffoldedRelativePaths: Set<string>;
+  scaffoldFiles: CodingScaffoldFile[];
   testCommand: {
     executable: string;
     args: string[];
@@ -83,6 +101,44 @@ const RUN_HISTORY_TEST_SHAPE = `Suggested test shape (adapt as needed, stay with
 - Avoid expect(...).toThrow for warning-only paths; assert on returned warnings instead.`;
 
 function buildRunHistoryTaskPrompt(task: CustomBoundedCodingTask): LocalModelCodingGenerationRequest {
+  const editablePath = RUN_HISTORY_V1_SERVICE_PATH;
+  const contract = task.service_contract?.trim() || RUN_HISTORY_V1_SERVICE_CONTRACT;
+
+  if (isScaffoldFirstTask(task)) {
+    return {
+      taskId: task.coding_task_id,
+      promptSummary: `Implement ${task.task_title} service file against preset vitest scaffold.`,
+      systemPrompt:
+        "You generate TypeScript for VeraLux scaffold-first coding proofs. Output only strict JSON with a top-level files array containing exactly one implementation file. Never generate or edit test files. Never use loggers, process.env workspace paths, ellipsis placeholders, or angle-bracket placeholders.",
+      userPrompt: `Implement ONLY the Run History service file. A deterministic vitest scaffold is already present in the isolated workspace and must not be changed.
+
+Task: ${task.task_title}
+Requested change: ${task.requested_change}
+
+Service contract (implement exactly):
+${contract}
+
+Known record directories under workspaceRoot:
+${runHistoryStageDirectoryGuide()}
+
+Constraints:
+${task.constraints.map((item) => `- ${item}`).join("\n")}
+
+Implementation rules:
+- Export the contract types and async loadBuilderLoopRunHistory function
+- Accept workspaceRoot only via the function parameter; never read process.env
+- Read .json files from the known directories above when present
+- Return { items, warnings, total_records }; push corrupt/partial records into warnings instead of throwing
+- Use only node:fs and node:path imports
+- Do not use log, logger, console, SQLite, Next.js, React, or @/ imports
+
+The ONLY valid generated file path is:
+- ${editablePath}
+
+Return strict JSON with one file entry containing complete TypeScript source for ${editablePath}.`,
+    };
+  }
+
   const allowedPathLines = buildStrictPathInstructions(task);
 
   return {
@@ -121,7 +177,11 @@ Return JSON only with BOTH allowed files and complete TypeScript source in each 
   };
 }
 
-export function inferRunHistoryRepairGuidance(testStdout: string, testStderr: string): string[] {
+export function inferRunHistoryRepairGuidance(
+  testStdout: string,
+  testStderr: string,
+  task?: CustomBoundedCodingTask,
+): string[] {
   const combined = `${testStdout}\n${testStderr}`.toLowerCase();
   const guidance: string[] = [];
 
@@ -132,7 +192,9 @@ export function inferRunHistoryRepairGuidance(testStdout: string, testStderr: st
   }
   if (/unexpected "\.\.\."|placeholder|transform failed|unsafe generated path|<complete-|<allowed-path>|not valid json/i.test(combined)) {
     guidance.push(
-      "Return strict JSON only with both allowed files. Never use ellipsis, angle-bracket placeholders, or raw TypeScript outside JSON. Populate content with complete valid TypeScript source.",
+      isScaffoldFirstTask(task)
+        ? `Return strict JSON only with the single implementation file (${RUN_HISTORY_V1_SERVICE_PATH}). Never use ellipsis, angle-bracket placeholders, or raw TypeScript outside JSON.`
+        : "Return strict JSON only with both allowed files. Never use ellipsis, angle-bracket placeholders, or raw TypeScript outside JSON. Populate content with complete valid TypeScript source.",
     );
   }
   if (/@\/|better-sqlite3|next\/|react|vera-work-order|operational-logger/.test(combined)) {
@@ -153,7 +215,9 @@ export function inferRunHistoryRepairGuidance(testStdout: string, testStderr: st
 
   if (guidance.length === 0) {
     guidance.push(
-      "Keep only the two allowed files, make the service self-contained and testable, remove unsupported imports, and rerun vitest.",
+      isScaffoldFirstTask(task)
+        ? "Fix only the implementation service file. Do not generate or edit the preset test scaffold."
+        : "Keep only the allowed files, make the service self-contained and testable, remove unsupported imports, and rerun vitest.",
     );
   }
 
@@ -172,7 +236,10 @@ function buildRunHistoryRepairPrompt(
   const fileSummaries = context.currentFiles
     .map((file) => `--- ${file.relativePath} ---\n${file.content}`)
     .join("\n\n");
-  const repairGuidance = inferRunHistoryRepairGuidance(context.testStdout, context.testStderr);
+  const repairGuidance = inferRunHistoryRepairGuidance(context.testStdout, context.testStderr, task);
+  const editableOnly = isScaffoldFirstTask(task)
+    ? `Return JSON only with corrected complete contents for ${RUN_HISTORY_V1_SERVICE_PATH}. Do not generate or edit the preset test scaffold.`
+    : "Return JSON only with corrected complete file contents for both allowed files.";
 
   return {
     ...base,
@@ -195,7 +262,7 @@ ${context.testStderr || "(empty)"}
 Current files:
 ${fileSummaries}
 
-Return JSON only with corrected complete file contents for both allowed files.`,
+${editableOnly}`,
   };
 }
 
@@ -243,7 +310,9 @@ function buildRunHistoryOutputValidationRepairPrompt(
   task: CustomBoundedCodingTask,
   context: LocalModelCodingRepairContext,
 ): LocalModelCodingGenerationRequest {
-  const allowedPathLines = buildStrictPathInstructions(task);
+  const editablePaths = isScaffoldFirstTask(task)
+    ? resolveModelEditablePaths(task).map((file) => `- ${file}`).join("\n")
+    : buildStrictPathInstructions(task);
   const rejectedPaths = context.rejectedPaths?.length
     ? context.rejectedPaths.map((file) => `- ${file}`).join("\n")
     : "(none parsed)";
@@ -255,7 +324,7 @@ function buildRunHistoryOutputValidationRepairPrompt(
     taskId: task.coding_task_id,
     promptSummary: `Repair ${task.task_title} model output format/paths (attempt ${context.attemptNumber}).`,
     systemPrompt:
-      "You repair TypeScript for VeraLux isolated coding proofs. Output only strict JSON with a top-level files array. Each item must have relativePath (exact allowed path string) and content (full TypeScript source string). Never use ellipsis or angle-bracket placeholders in paths or file bodies. No markdown fences.",
+      "You repair TypeScript for VeraLux isolated coding proofs. Output only strict JSON with a top-level files array. Never use ellipsis or angle-bracket placeholders in paths or file bodies. No markdown fences.",
     userPrompt: `The isolated Run History coding proof rejected the model output before tests ran.
 
 Task: ${task.task_title}
@@ -270,11 +339,11 @@ ${rejectedPaths}
 CRITICAL:
 - Never use "..." as relativePath or as placeholder file content
 - Use ONLY these exact relativePath values:
-${allowedPathLines}
-- Return complete TypeScript source for both files
+${editablePaths}
+${isScaffoldFirstTask(task) ? "- Do not generate or edit the preset test scaffold file" : "- Return complete TypeScript source for both files"}
 - Do not use log, logger, console, @/ imports, SQLite, Next.js, or React
 
-Return JSON only with both allowed files populated with full TypeScript source.`,
+Return strict JSON with complete TypeScript for each allowed relativePath above.`,
   };
 }
 
@@ -388,13 +457,18 @@ function parseNpmVitestCommand(
 }
 
 function resolveLegacyDecisionLabelSpec(): ResolvedCodingTaskSpec {
+  const allowed = new Set([
+    "src/formatBuilderLoopDecisionLabel.js",
+    "src/formatBuilderLoopDecisionLabel.test.js",
+  ]);
   return {
     taskId: VERA_LOCAL_MODEL_CODING_TASK_ID,
     promptSummary: FORMAT_BUILDER_LOOP_DECISION_LABEL_TASK.promptSummary,
-    allowedRelativePaths: new Set([
-      "src/formatBuilderLoopDecisionLabel.js",
-      "src/formatBuilderLoopDecisionLabel.test.js",
-    ]),
+    orchestrationMode: "full_generation",
+    allowedRelativePaths: allowed,
+    modelEditableRelativePaths: allowed,
+    scaffoldedRelativePaths: new Set(),
+    scaffoldFiles: [],
     testCommand: {
       executable: process.execPath,
       args: ["--test", "src/formatBuilderLoopDecisionLabel.test.js"],
@@ -414,17 +488,32 @@ function resolveCustomTaskSpec(
   task: CustomBoundedCodingTask,
   codeSourceRepoRoot?: string,
 ): ResolvedCodingTaskSpec {
+  const orchestrationMode = task.orchestration_mode ?? "full_generation";
+  const scaffoldFiles = resolveScaffoldFilesForTask(task);
+  const modelEditablePaths = resolveModelEditablePaths(task);
+  const scaffoldedPaths = scaffoldFiles.map((file) => file.relativePath);
+  const allPaths = [...new Set([...modelEditablePaths, ...scaffoldedPaths])];
+
   const allowedRelativePaths = new Set(
-    task.expected_files?.length ? task.expected_files : task.allowed_file_patterns.filter((p) => !p.includes("*")),
+    task.expected_files?.length ? task.expected_files : allPaths.length > 0 ? allPaths : task.allowed_file_patterns.filter((p) => !p.includes("*")),
   );
   if (allowedRelativePaths.size === 0) {
     throw new Error("Custom coding task must include expected_files or exact allowed_file_patterns.");
   }
 
+  const modelEditableRelativePaths = new Set(modelEditablePaths);
+  const scaffoldedRelativePaths = new Set(scaffoldedPaths);
+
   return {
     taskId: task.coding_task_id,
-    promptSummary: `Implement ${task.task_title} in an isolated workspace with bounded tests.`,
+    promptSummary: isScaffoldFirstTask(task)
+      ? `Implement ${task.task_title} implementation against preset scaffold.`
+      : `Implement ${task.task_title} in an isolated workspace with bounded tests.`,
+    orchestrationMode,
     allowedRelativePaths,
+    modelEditableRelativePaths,
+    scaffoldedRelativePaths,
+    scaffoldFiles,
     testCommand: parseNpmVitestCommand(task.test_expectations[0] ?? "", codeSourceRepoRoot),
     buildGenerationRequest: () => buildCustomTaskPrompt(task),
     buildRepairRequest: (context) => buildCustomRepairPrompt(task, context),

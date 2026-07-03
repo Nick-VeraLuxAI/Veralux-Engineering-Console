@@ -220,13 +220,18 @@ function buildUnifiedDiff(files: Array<{ relativePath: string; content: string }
     .join("\n");
 }
 
-function writeWorkspaceFixture(workspacePath: string, handoff?: VeraLocalModelCodingProofHandoff): void {
+function writeWorkspaceFixture(
+  workspacePath: string,
+  handoff?: VeraLocalModelCodingProofHandoff,
+  taskSpec?: ResolvedCodingTaskSpec,
+): string[] {
   fs.mkdirSync(path.join(workspacePath, "src"), { recursive: true });
   fs.writeFileSync(
     path.join(workspacePath, "package.json"),
     `${JSON.stringify({ name: "vera-local-model-coding-proof", private: true, type: "module" }, null, 2)}\n`,
     "utf8",
   );
+  const seeded: string[] = [];
   if (handoff?.coding_task) {
     fs.mkdirSync(path.join(workspacePath, "src/services/vera"), { recursive: true });
     fs.writeFileSync(
@@ -243,7 +248,12 @@ function writeWorkspaceFixture(workspacePath: string, handoff?: VeraLocalModelCo
       }, null, 2)}\n`,
       "utf8",
     );
+    for (const file of taskSpec?.scaffoldFiles ?? []) {
+      writeGeneratedFiles(workspacePath, [file]);
+      seeded.push(file.relativePath);
+    }
   }
+  return seeded;
 }
 
 function resolveGenerationFiles(generation: LocalModelCodingGenerationResult): GeneratedFileRecord[] {
@@ -420,7 +430,7 @@ export async function runVeraLocalModelCodingProof(
   const testCommand = taskSpec.testCommand.label;
 
   try {
-    writeWorkspaceFixture(workspacePath, handoff);
+    const seededScaffoldFiles = writeWorkspaceFixture(workspacePath, handoff, taskSpec);
 
     async function fetchGeneration(
       request: ReturnType<ResolvedCodingTaskSpec["buildGenerationRequest"]>,
@@ -629,7 +639,16 @@ export async function runVeraLocalModelCodingProof(
 
     latestOutputValidation.repair_attempted = outputValidationRepairAttempted || repairAttemptsCount > 0;
 
-    const unifiedDiff = currentFiles.length > 0 ? buildUnifiedDiff(currentFiles) : "";
+    const unifiedDiff = currentFiles.length > 0
+      ? buildUnifiedDiff([
+        ...taskSpec.scaffoldFiles,
+        ...currentFiles.filter((file) => !taskSpec.scaffoldedRelativePaths.has(file.relativePath)),
+      ])
+      : "";
+    const evidenceFilesChanged = [...new Set([
+      ...seededScaffoldFiles,
+      ...filesChanged,
+    ])];
     const finalStatus = latestOutputValidation.final_paths_valid
       ? attemptStatus(testResult.exitCode)
       : "failed";
@@ -656,14 +675,14 @@ export async function runVeraLocalModelCodingProof(
       {
         name: "generated_files_contained_in_workspace",
         status: latestOutputValidation.final_paths_valid
-          && filesChanged.every((file) => fs.existsSync(path.join(workspacePath, file)))
+          && evidenceFilesChanged.every((file) => fs.existsSync(path.join(workspacePath, file)))
           ? "passed" as const
           : "failed" as const,
         summary: "Generated code files were written only inside the system-created temp workspace.",
       },
       {
         name: "patch_returned",
-        status: unifiedDiff.trim().length > 0 && filesChanged.length > 0 ? "passed" as const : "failed" as const,
+        status: unifiedDiff.trim().length > 0 && evidenceFilesChanged.length > 0 ? "passed" as const : "failed" as const,
         summary: "Unified diff was generated for operator review.",
       },
       {
@@ -690,6 +709,9 @@ export async function runVeraLocalModelCodingProof(
     ];
     if (repairRequired) {
       warnings.push("Repair was required before isolated tests passed.");
+    }
+    if (taskSpec.orchestrationMode === "scaffold_first") {
+      warnings.push("Scaffold-first orchestration used a preset test file; the model only generated implementation code.");
     }
     if (outputValidationRepairAttempted) {
       warnings.push("Bounded repair was used to correct invalid model output paths or format.");
@@ -724,7 +746,7 @@ export async function runVeraLocalModelCodingProof(
       },
       patch: {
         unified_diff: unifiedDiff,
-        files_created_or_changed: filesChanged,
+        files_created_or_changed: evidenceFilesChanged,
       },
       tests: {
         command_executable: path.basename(taskSpec.testCommand.executable),

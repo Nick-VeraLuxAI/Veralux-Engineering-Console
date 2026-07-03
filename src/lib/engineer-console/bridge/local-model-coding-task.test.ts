@@ -81,6 +81,10 @@ describe("local model coding task resolver", () => {
         requested_change: "Build run history",
         target_area: "src/services/vera/vera-builder-loop-run-history",
         acceptance_criteria: ["Lists prior requests"],
+        orchestration_mode: "scaffold_first",
+        model_editable_files: [
+          "src/services/vera/vera-builder-loop-run-history.ts",
+        ],
         expected_files: [
           "src/services/vera/vera-builder-loop-run-history.ts",
           "src/services/vera/vera-builder-loop-run-history.test.ts",
@@ -109,11 +113,14 @@ describe("local model coding task resolver", () => {
     });
 
     expect(spec.taskId).toBe("builder_loop_run_history_v1");
-    expect(spec.allowedRelativePaths.has("src/services/vera/vera-builder-loop-run-history.ts")).toBe(true);
+    expect(spec.orchestrationMode).toBe("scaffold_first");
+    expect(spec.modelEditableRelativePaths.has("src/services/vera/vera-builder-loop-run-history.ts")).toBe(true);
+    expect(spec.scaffoldedRelativePaths.has("src/services/vera/vera-builder-loop-run-history.test.ts")).toBe(true);
+    expect(spec.scaffoldFiles).toHaveLength(1);
     expect(spec.testCommand.label).toContain("npm test -- --run");
     const generation = spec.buildGenerationRequest();
-    expect(generation.userPrompt).toContain("workspaceRoot");
-    expect(generation.systemPrompt).toContain("Never import loggers");
+    expect(generation.userPrompt).toContain("deterministic vitest scaffold");
+    expect(generation.userPrompt).toContain("loadBuilderLoopRunHistory");
   });
 
   it("infers repair guidance for logger and placeholder failures", () => {
@@ -152,6 +159,10 @@ describe("local model coding task resolver", () => {
         requested_change: "Build run history",
         target_area: "src/services/vera/vera-builder-loop-run-history",
         acceptance_criteria: ["Lists prior requests"],
+        orchestration_mode: "scaffold_first",
+        model_editable_files: [
+          "src/services/vera/vera-builder-loop-run-history.ts",
+        ],
         expected_files: [
           "src/services/vera/vera-builder-loop-run-history.ts",
           "src/services/vera/vera-builder-loop-run-history.test.ts",
