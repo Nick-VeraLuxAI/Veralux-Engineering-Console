@@ -14,7 +14,20 @@ export type LocalModelCodingGenerationResult = {
   rawContent: string;
   files: Array<{ relativePath: string; content: string }>;
   promptSummary: string;
+  generation_error?: string;
+  rejected_paths?: string[];
 };
+
+export type ParsedGeneratedCodingFilesResult =
+  | {
+    ok: true;
+    files: Array<{ relativePath: string; content: string }>;
+  }
+  | {
+    ok: false;
+    error: string;
+    rejected_paths: string[];
+  };
 
 export type FetchFn = typeof fetch;
 
@@ -105,25 +118,51 @@ function normalizeGeneratedFileContent(content: string): string {
   return content;
 }
 
-export function parseGeneratedCodingFiles(rawContent: string): Array<{ relativePath: string; content: string }> {
+function pathIsUnsafe(relativePath: string): boolean {
+  const trimmed = relativePath.trim();
+  if (!trimmed) return true;
+  if (trimmed !== relativePath) return true;
+  if (trimmed === "...") return true;
+  if (trimmed.includes("..")) return true;
+  if (trimmed.startsWith("/")) return true;
+  if (/^[A-Za-z]:[\\/]/.test(trimmed)) return true;
+  return false;
+}
+
+function pathIsAbsolute(value: string): boolean {
+  return value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value);
+}
+
+export function tryParseGeneratedCodingFiles(rawContent: string): ParsedGeneratedCodingFilesResult {
+  const rejected_paths: string[] = [];
+
   let parsed: { files?: unknown } | null = null;
   try {
     parsed = extractJsonObject(rawContent) as { files?: unknown };
-  } catch {
+  } catch (error) {
     const fencedFiles = parseMarkdownCodeFenceFiles(rawContent);
     if (fencedFiles.length > 0) {
-      return normalizeGeneratedFiles(fencedFiles);
+      return collectParsedFiles(fencedFiles, rejected_paths);
     }
-    throw new Error("Model output was not valid JSON and did not include parseable code fences.");
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Model output was not valid JSON.",
+      rejected_paths,
+    };
   }
 
   if (!parsed || !Array.isArray(parsed.files)) {
     const fencedFiles = parseMarkdownCodeFenceFiles(rawContent);
     if (fencedFiles.length > 0) {
-      return normalizeGeneratedFiles(fencedFiles);
+      return collectParsedFiles(fencedFiles, rejected_paths);
     }
-    throw new Error("Model output did not include a files array.");
+    return {
+      ok: false,
+      error: "Model output did not include a files array.",
+      rejected_paths,
+    };
   }
+
   const files: Array<{ relativePath: string; content: string }> = [];
   for (const item of parsed.files) {
     if (!item || typeof item !== "object" || Array.isArray(item)) continue;
@@ -133,37 +172,60 @@ export function parseGeneratedCodingFiles(rawContent: string): Array<{ relativeP
       ? normalizeGeneratedFileContent(record.content)
       : "";
     if (!relativePath || !content) continue;
-    if (relativePath.includes("..") || pathIsAbsolute(relativePath)) {
-      throw new Error(`Unsafe generated path: ${relativePath}`);
+    if (pathIsUnsafe(relativePath)) {
+      rejected_paths.push(relativePath);
+      continue;
     }
     files.push({ relativePath, content });
   }
-  if (files.length === 0) throw new Error("Model output did not include any valid files.");
-  return files;
+
+  if (files.length === 0) {
+    return {
+      ok: false,
+      error: rejected_paths.length > 0
+        ? `Unsafe generated path: ${rejected_paths.join(", ")}`
+        : "Model output did not include any valid files.",
+      rejected_paths,
+    };
+  }
+
+  return { ok: true, files };
 }
 
-function normalizeGeneratedFiles(
+function collectParsedFiles(
   files: Array<{ relativePath: string; content: string }>,
-): Array<{ relativePath: string; content: string }> {
-  const normalized: Array<{ relativePath: string; content: string }> = [];
+  rejected_paths: string[],
+): ParsedGeneratedCodingFilesResult {
+  const accepted: Array<{ relativePath: string; content: string }> = [];
   for (const file of files) {
     const relativePath = file.relativePath.trim();
-    const content = normalizeGeneratedFileContent(file.content);
-    if (!relativePath || !content) continue;
-    if (relativePath.includes("..") || pathIsAbsolute(relativePath)) {
-      throw new Error(`Unsafe generated path: ${relativePath}`);
+    if (pathIsUnsafe(relativePath)) {
+      rejected_paths.push(relativePath);
+      continue;
     }
-    normalized.push({ relativePath, content });
+    accepted.push({ relativePath, content: normalizeGeneratedFileContent(file.content) });
   }
-  if (normalized.length === 0) throw new Error("Model output did not include any valid files.");
-  return normalized;
+  if (accepted.length === 0) {
+    return {
+      ok: false,
+      error: rejected_paths.length > 0
+        ? `Unsafe generated path: ${rejected_paths.join(", ")}`
+        : "Model output did not include any valid files.",
+      rejected_paths,
+    };
+  }
+  return { ok: true, files: accepted };
 }
 
-function pathIsAbsolute(value: string): boolean {
-  return value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value);
+export function parseGeneratedCodingFiles(rawContent: string): Array<{ relativePath: string; content: string }> {
+  const parsed = tryParseGeneratedCodingFiles(rawContent);
+  if (!parsed.ok) {
+    throw new Error(parsed.error);
+  }
+  return parsed.files;
 }
 
-export async function generateCodingFilesWithLocalModel(
+export async function fetchLocalModelCodingGeneration(
   input: LocalModelCodingGenerationRequest,
   config: LocalModelCodingConfig,
   fetchFn: FetchFn = fetch,
@@ -202,18 +264,34 @@ export async function generateCodingFilesWithLocalModel(
     }
     const rawContent = payload.choices?.[0]?.message?.content?.trim() ?? "";
     if (!rawContent) throw new Error("Local model returned empty content.");
-    const files = parseGeneratedCodingFiles(rawContent);
+
+    const parsed = tryParseGeneratedCodingFiles(rawContent);
     return {
       modelUsed: config.model,
       endpoint: url,
       modelGenerationReal: true,
       rawContent,
-      files,
+      files: parsed.ok ? parsed.files : [],
       promptSummary: input.promptSummary,
+      ...(parsed.ok ? {} : {
+        generation_error: parsed.error,
+        rejected_paths: parsed.rejected_paths,
+      }),
     };
   } finally {
     clearTimeout(timeout);
   }
+}
+export async function generateCodingFilesWithLocalModel(
+  input: LocalModelCodingGenerationRequest,
+  config: LocalModelCodingConfig,
+  fetchFn: FetchFn = fetch,
+): Promise<LocalModelCodingGenerationResult> {
+  const result = await fetchLocalModelCodingGeneration(input, config, fetchFn);
+  if (result.generation_error) {
+    throw new Error(result.generation_error);
+  }
+  return result;
 }
 
 export const FORMAT_BUILDER_LOOP_DECISION_LABEL_TASK = {
@@ -239,6 +317,8 @@ export const FORMAT_BUILDER_LOOP_DECISION_LABEL_TASK = {
 Return JSON only: {"files":[{"relativePath":"src/formatBuilderLoopDecisionLabel.js","content":"..."},{"relativePath":"src/formatBuilderLoopDecisionLabel.test.js","content":"..."}]}`,
 } as const;
 
+export type LocalModelCodingRepairReason = "test_failure" | "output_validation" | "parse_failure";
+
 export type LocalModelCodingRepairContext = {
   taskId: string;
   attemptNumber: number;
@@ -246,9 +326,54 @@ export type LocalModelCodingRepairContext = {
   testStdout: string;
   testStderr: string;
   currentFiles: Array<{ relativePath: string; content: string }>;
+  repairReason?: LocalModelCodingRepairReason;
+  validationErrors?: string[];
+  allowedPaths?: string[];
+  rejectedPaths?: string[];
+  parseError?: string;
 };
 
 export function buildCodingRepairRequest(context: LocalModelCodingRepairContext): LocalModelCodingGenerationRequest {
+  if (context.repairReason === "output_validation" || context.repairReason === "parse_failure") {
+    const allowedPaths = context.allowedPaths?.length
+      ? context.allowedPaths.map((file) => `- ${file}`).join("\n")
+      : "- src/formatBuilderLoopDecisionLabel.js\n- src/formatBuilderLoopDecisionLabel.test.js";
+    const rejectedPaths = context.rejectedPaths?.length
+      ? context.rejectedPaths.map((file) => `- ${file}`).join("\n")
+      : "(none parsed)";
+    const validationErrors = context.validationErrors?.length
+      ? context.validationErrors.map((item) => `- ${item}`).join("\n")
+      : context.parseError ?? "Model output failed validation.";
+    return {
+      taskId: context.taskId,
+      promptSummary: `Repair model output format/paths (attempt ${context.attemptNumber}).`,
+      systemPrompt:
+        "You repair code for VeraLux Engineering Console isolated coding proofs. Output only strict JSON with shape {\"files\":[{\"relativePath\":\"...\",\"content\":\"...\"}]}. No markdown fences. No absolute paths. No parent-directory traversal. Do not invent extra files.",
+      userPrompt: `The isolated coding proof rejected the model output before any repo mutation occurred.
+
+Task id: ${context.taskId}
+Repair attempt: ${context.attemptNumber}
+
+Validation errors:
+${validationErrors}
+
+Rejected paths:
+${rejectedPaths}
+
+Allowed relative paths only:
+${allowedPaths}
+
+Requirements:
+- Return strict JSON only, with no markdown fences around the JSON
+- Use only the allowed relative paths listed above
+- Do not use absolute paths, "...", or parent-directory traversal
+- Do not invent additional files
+- Return complete file contents for every allowed file you include
+
+Return JSON only: {"files":[{"relativePath":"<allowed-path>","content":"..."}]}`,
+    };
+  }
+
   const fileSummaries = context.currentFiles
     .map((file) => `--- ${file.relativePath} ---\n${file.content}`)
     .join("\n\n");

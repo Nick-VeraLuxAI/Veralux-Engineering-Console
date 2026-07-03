@@ -55,16 +55,22 @@ export function pathMatchesAnyPattern(relativePath: string, patterns: string[]):
   return patterns.some((pattern) => pathMatchesPattern(relativePath, pattern));
 }
 
+function buildStrictPathInstructions(task: CustomBoundedCodingTask): string {
+  const exactPaths = task.expected_files?.length
+    ? task.expected_files
+    : task.allowed_file_patterns.filter((pattern) => !pattern.includes("*"));
+
+  return exactPaths.map((file) => `- ${file}`).join("\n");
+}
+
 function buildCustomTaskPrompt(task: CustomBoundedCodingTask): LocalModelCodingGenerationRequest {
-  const fileLines = task.expected_files?.length
-    ? task.expected_files.map((file) => `- ${file}`).join("\n")
-    : task.allowed_file_patterns.map((pattern) => `- ${pattern}`).join("\n");
+  const allowedPathLines = buildStrictPathInstructions(task);
 
   return {
     taskId: task.coding_task_id,
     promptSummary: `Implement ${task.task_title} in an isolated workspace with bounded tests.`,
     systemPrompt:
-      "You generate code for VeraLux Engineering Console isolated coding proofs. Output only JSON with shape {\"files\":[{\"relativePath\":\"...\",\"content\":\"...\"}]}. No markdown outside JSON. Use TypeScript for .ts files. For tests use vitest with import { describe, expect, it } from \"vitest\". Do not import assert from node:test. Do not include shell commands.",
+      "You generate code for VeraLux Engineering Console isolated coding proofs. Output only strict JSON with shape {\"files\":[{\"relativePath\":\"...\",\"content\":\"...\"}]}. No markdown fences around JSON. No prose outside JSON. Use TypeScript for .ts files. For tests use vitest with import { describe, expect, it } from \"vitest\". Never use absolute paths, \"...\" placeholders, parent-directory traversal, package.json, or .env files.",
     userPrompt: `Create bounded implementation files for a disposable coding proof workspace.
 
 Task: ${task.task_title}
@@ -77,12 +83,61 @@ ${task.acceptance_criteria.map((item) => `- ${item}`).join("\n")}
 Constraints:
 ${task.constraints.map((item) => `- ${item}`).join("\n")}
 
-Files to create (exact relative paths):
-${fileLines}
+The ONLY valid generated file paths are:
+${allowedPathLines}
 
-Tests must use vitest (describe/it/expect).
+Output rules:
+- Return strict JSON only
+- Do not wrap JSON in markdown code fences
+- Do not include absolute paths
+- Do not use "..." as a path placeholder
+- Do not invent additional files beyond the allowed paths above
+- Tests must use vitest (describe/it/expect)
 
-Return JSON only: {"files":[{"relativePath":"...","content":"..."}]}`,
+Return JSON only: {"files":[{"relativePath":"<one-of-the-allowed-paths>","content":"..."}]}`,
+  };
+}
+
+function buildCustomOutputValidationRepairPrompt(
+  task: CustomBoundedCodingTask,
+  context: LocalModelCodingRepairContext,
+): LocalModelCodingGenerationRequest {
+  const allowedPathLines = buildStrictPathInstructions(task);
+  const rejectedPaths = context.rejectedPaths?.length
+    ? context.rejectedPaths.map((file) => `- ${file}`).join("\n")
+    : "(none parsed)";
+  const validationErrors = context.validationErrors?.length
+    ? context.validationErrors.map((item) => `- ${item}`).join("\n")
+    : context.parseError ?? "Model output failed validation.";
+
+  return {
+    taskId: task.coding_task_id,
+    promptSummary: `Repair ${task.task_title} model output format/paths (attempt ${context.attemptNumber}).`,
+    systemPrompt:
+      "You repair code for VeraLux Engineering Console isolated coding proofs. Output only strict JSON with shape {\"files\":[{\"relativePath\":\"...\",\"content\":\"...\"}]}. No markdown fences. No absolute paths. No parent-directory traversal. Do not invent extra files.",
+    userPrompt: `The isolated coding proof rejected the model output before any repo mutation occurred.
+
+Task: ${task.task_title}
+Repair attempt: ${context.attemptNumber}
+
+Validation errors:
+${validationErrors}
+
+Rejected paths:
+${rejectedPaths}
+
+The ONLY valid generated file paths are:
+${allowedPathLines}
+
+Requirements:
+- Return strict JSON only, with no markdown fences around the JSON
+- Use only the allowed relative paths listed above
+- Do not use absolute paths, "...", or parent-directory traversal
+- Do not invent additional files
+- Return complete file contents for every allowed file you include
+- Tests must use vitest (describe/it/expect)
+
+Return JSON only: {"files":[{"relativePath":"<one-of-the-allowed-paths>","content":"..."}]}`,
   };
 }
 
@@ -90,6 +145,10 @@ function buildCustomRepairPrompt(
   task: CustomBoundedCodingTask,
   context: LocalModelCodingRepairContext,
 ): LocalModelCodingGenerationRequest {
+  if (context.repairReason === "output_validation" || context.repairReason === "parse_failure") {
+    return buildCustomOutputValidationRepairPrompt(task, context);
+  }
+
   const base = buildCustomTaskPrompt(task);
   const fileSummaries = context.currentFiles
     .map((file) => `--- ${file.relativePath} ---\n${file.content}`)

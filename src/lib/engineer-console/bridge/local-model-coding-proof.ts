@@ -6,18 +6,24 @@ import { runBoundedCommand } from "@/lib/engineer-console/hermes-worker/hermes-b
 import { getLocalModelCodingConfig } from "./local-model-coding-config";
 import {
   resolveCodingTaskSpec,
-  assertAllowedGeneratedFilePath,
   type ResolvedCodingTaskSpec,
 } from "./local-model-coding-task";
+import {
+  listAllowedPathsForTask,
+  validateGeneratedFilesForTask,
+  type GeneratedFileRecord,
+} from "./local-model-generated-files-validation";
 import {
   validateVeraLocalModelCodingProofHandoff,
   VERA_LOCAL_MODEL_CODING_PROOF_SCHEMA_VERSION,
   type VeraLocalModelCodingProofHandoff,
 } from "./local-model-coding-proof-contract";
 import {
-  generateCodingFilesWithLocalModel,
+  fetchLocalModelCodingGeneration,
+  tryParseGeneratedCodingFiles,
   type LocalModelCodingGenerationResult,
   type LocalModelCodingRepairContext,
+  type LocalModelCodingRepairReason,
 } from "./local-openai-compatible-coding-client";
 import {
   VERA_PLACEHOLDER_MODULE_CARD_INTEGRATION_MODE,
@@ -50,10 +56,22 @@ export type LocalModelCodingProofAttemptRecord = {
   status: "passed" | "failed";
   prompt_summary: string;
   repair_prompt_summary?: string;
+  repair_reason?: LocalModelCodingRepairReason;
+  validation_errors?: string[];
+  rejected_paths?: string[];
+  allowed_paths?: string[];
   test_exit_code: number;
   test_stdout: string;
   test_stderr: string;
   files_changed: string[];
+};
+
+export type LocalModelCodingProofOutputValidation = {
+  rejected_paths: string[];
+  allowed_paths: string[];
+  validation_errors: string[];
+  repair_attempted: boolean;
+  final_paths_valid: boolean;
 };
 
 export type LocalModelCodingProofRepairLoop = {
@@ -102,6 +120,7 @@ export type VeraLocalModelCodingProofResult = {
     stderr: string;
   };
   repair_loop?: LocalModelCodingProofRepairLoop;
+  output_validation?: LocalModelCodingProofOutputValidation;
   evidence?: {
     evidence_id: string;
     summary: string;
@@ -164,6 +183,7 @@ function baseResult(
     ...(input.patch ? { patch: input.patch } : {}),
     ...(input.tests ? { tests: input.tests } : {}),
     ...(input.repair_loop ? { repair_loop: input.repair_loop } : {}),
+    ...(input.output_validation ? { output_validation: input.output_validation } : {}),
     ...(input.evidence ? { evidence: input.evidence } : {}),
     boundary_flags: flags,
     execution_mode: "local_model_coding_proof",
@@ -226,20 +246,62 @@ function writeWorkspaceFixture(workspacePath: string, handoff?: VeraLocalModelCo
   }
 }
 
-function assertAllowedGeneratedFiles(
-  files: Array<{ relativePath: string; content: string }>,
+function resolveGenerationFiles(generation: LocalModelCodingGenerationResult): GeneratedFileRecord[] {
+  if (generation.files.length > 0) {
+    return generation.files;
+  }
+  const parsed = tryParseGeneratedCodingFiles(generation.rawContent);
+  return parsed.ok ? parsed.files : [];
+}
+
+type ResolvedGenerationValidation =
+  | {
+    ok: true;
+    files: GeneratedFileRecord[];
+    allowed_paths: string[];
+  }
+  | {
+    ok: false;
+    errors: string[];
+    rejected_paths: string[];
+    allowed_paths: string[];
+    repair_reason: LocalModelCodingRepairReason;
+  };
+
+function validateGenerationOutput(
+  generation: LocalModelCodingGenerationResult,
   taskSpec: ResolvedCodingTaskSpec,
   handoff: VeraLocalModelCodingProofHandoff,
-): void {
-  for (const file of files) {
-    if (handoff.coding_task) {
-      assertAllowedGeneratedFilePath(file.relativePath, handoff.coding_task);
-      continue;
-    }
-    if (!taskSpec.allowedRelativePaths.has(file.relativePath)) {
-      throw new Error(`Generated file path is not allowed: ${file.relativePath}`);
-    }
+): ResolvedGenerationValidation {
+  const allowed_paths = listAllowedPathsForTask(handoff, taskSpec);
+
+  if (generation.generation_error) {
+    return {
+      ok: false,
+      errors: [generation.generation_error],
+      rejected_paths: generation.rejected_paths ?? [],
+      allowed_paths,
+      repair_reason: "parse_failure",
+    };
   }
+
+  const files = resolveGenerationFiles(generation);
+  const validation = validateGeneratedFilesForTask(files, taskSpec, handoff);
+  if (!validation.ok) {
+    return {
+      ok: false,
+      errors: validation.errors,
+      rejected_paths: validation.rejected_paths,
+      allowed_paths: validation.allowed_paths,
+      repair_reason: "output_validation",
+    };
+  }
+
+  return {
+    ok: true,
+    files: validation.files,
+    allowed_paths: validation.allowed_paths,
+  };
 }
 
 function writeGeneratedFiles(
@@ -360,11 +422,18 @@ export async function runVeraLocalModelCodingProof(
   try {
     writeWorkspaceFixture(workspacePath, handoff);
 
+    async function fetchGeneration(
+      request: ReturnType<ResolvedCodingTaskSpec["buildGenerationRequest"]>,
+    ): Promise<LocalModelCodingGenerationResult> {
+      if (deps.generateCode) {
+        return deps.generateCode(taskSpec.taskId);
+      }
+      return fetchLocalModelCodingGeneration(request, config, deps.fetchFn);
+    }
+
     let generation: LocalModelCodingGenerationResult;
     try {
-      generation = deps.generateCode
-        ? await deps.generateCode(taskSpec.taskId)
-        : await generateCodingFilesWithLocalModel(taskSpec.buildGenerationRequest(), config, deps.fetchFn);
+      generation = await fetchGeneration(taskSpec.buildGenerationRequest());
     } catch (error) {
       return baseResult({
         ok: false,
@@ -375,27 +444,135 @@ export async function runVeraLocalModelCodingProof(
       });
     }
 
-    assertAllowedGeneratedFiles(generation.files, taskSpec, handoff);
-    let currentFiles = generation.files;
-    let filesChanged = writeGeneratedFiles(workspacePath, currentFiles);
-    let testResult = await runIsolatedTests(workspacePath, taskSpec);
-    const attempts: LocalModelCodingProofAttemptRecord[] = [{
-      attempt_number: 1,
-      generation_kind: "initial",
-      status: attemptStatus(testResult.exitCode),
-      prompt_summary: generation.promptSummary,
-      test_exit_code: testResult.exitCode,
-      test_stdout: testResult.stdout,
-      test_stderr: testResult.stderr,
-      files_changed: filesChanged,
-    }];
-
-    const initialStatus = attempts[0]?.status ?? "failed";
+    let currentFiles: GeneratedFileRecord[] = [];
+    let filesChanged: string[] = [];
+    let testResult = { exitCode: 1, stdout: "", stderr: "" };
+    const attempts: LocalModelCodingProofAttemptRecord[] = [];
     let repairAttemptsCount = 0;
     let latestRepairPromptSummary: string | null = null;
     let latestGeneration = generation;
+    let latestOutputValidation: LocalModelCodingProofOutputValidation = {
+      rejected_paths: [],
+      allowed_paths: listAllowedPathsForTask(handoff, taskSpec),
+      validation_errors: [],
+      repair_attempted: false,
+      final_paths_valid: false,
+    };
+    let outputValidationRepairAttempted = false;
+    let initialStatus: "passed" | "failed" = "failed";
+    let completed = false;
 
-    while (testResult.exitCode !== 0 && repairAttemptsCount < maxRepairAttempts) {
+    while (!completed) {
+      const outputValidation = validateGenerationOutput(latestGeneration, taskSpec, handoff);
+      latestOutputValidation = {
+        rejected_paths: outputValidation.ok ? [] : outputValidation.rejected_paths,
+        allowed_paths: outputValidation.allowed_paths,
+        validation_errors: outputValidation.ok ? [] : outputValidation.errors,
+        repair_attempted: outputValidationRepairAttempted,
+        final_paths_valid: outputValidation.ok,
+      };
+
+      if (!outputValidation.ok) {
+        attempts.push({
+          attempt_number: attempts.length + 1,
+          generation_kind: attempts.length === 0 ? "initial" : "repair",
+          status: "failed",
+          prompt_summary: latestGeneration.promptSummary,
+          repair_prompt_summary: latestRepairPromptSummary ?? undefined,
+          repair_reason: outputValidation.repair_reason,
+          validation_errors: outputValidation.errors,
+          rejected_paths: outputValidation.rejected_paths,
+          allowed_paths: outputValidation.allowed_paths,
+          test_exit_code: 1,
+          test_stdout: "",
+          test_stderr: outputValidation.errors.join("; "),
+          files_changed: [],
+        });
+        if (attempts.length === 1) {
+          initialStatus = "failed";
+        }
+
+        if (repairAttemptsCount >= maxRepairAttempts) {
+          break;
+        }
+
+        repairAttemptsCount += 1;
+        outputValidationRepairAttempted = true;
+        const repairContext: LocalModelCodingRepairContext = {
+          taskId: taskSpec.taskId,
+          attemptNumber: repairAttemptsCount,
+          testCommand,
+          testStdout: "",
+          testStderr: outputValidation.errors.join("; "),
+          currentFiles,
+          repairReason: outputValidation.repair_reason,
+          validationErrors: outputValidation.errors,
+          allowedPaths: outputValidation.allowed_paths,
+          rejectedPaths: outputValidation.rejected_paths,
+          parseError: latestGeneration.generation_error,
+        };
+
+        try {
+          latestGeneration = deps.generateRepair
+            ? await deps.generateRepair(repairContext)
+            : await fetchGeneration(taskSpec.buildRepairRequest(repairContext));
+        } catch (error) {
+          latestOutputValidation.repair_attempted = true;
+          return baseResult({
+            ok: false,
+            status: deps.generateRepair ? "failed" : "local_model_unavailable",
+            errors: [error instanceof Error ? error.message : String(error)],
+            warnings: ["Repair generation failed before any repo mutation could occur."],
+            output_validation: latestOutputValidation,
+            repair_loop: {
+              max_repair_attempts: maxRepairAttempts,
+              total_attempts: attempts.length,
+              initial_status: initialStatus,
+              repair_attempts_count: repairAttemptsCount,
+              repair_required: false,
+              final_status: "failed",
+              repair_prompt_summary: latestRepairPromptSummary,
+              attempts,
+            },
+            ...resultContext,
+          }, latestGeneration.modelGenerationReal);
+        }
+
+        latestRepairPromptSummary = latestGeneration.promptSummary;
+        continue;
+      }
+
+      currentFiles = outputValidation.files;
+      latestOutputValidation.final_paths_valid = true;
+      filesChanged = writeGeneratedFiles(workspacePath, currentFiles);
+      testResult = await runIsolatedTests(workspacePath, taskSpec);
+      attempts.push({
+        attempt_number: attempts.length + 1,
+        generation_kind: outputValidationRepairAttempted || attempts.length > 0 ? "repair" : "initial",
+        status: attemptStatus(testResult.exitCode),
+        prompt_summary: generation.promptSummary,
+        repair_prompt_summary: latestRepairPromptSummary ?? undefined,
+        repair_reason: attempts.length === 1 ? undefined : "test_failure",
+        allowed_paths: outputValidation.allowed_paths,
+        test_exit_code: testResult.exitCode,
+        test_stdout: testResult.stdout,
+        test_stderr: testResult.stderr,
+        files_changed: filesChanged,
+      });
+
+      if (attempts.length === 1) {
+        initialStatus = attempts[0]?.status ?? "failed";
+      }
+
+      if (testResult.exitCode === 0) {
+        completed = true;
+        break;
+      }
+
+      if (repairAttemptsCount >= maxRepairAttempts) {
+        break;
+      }
+
       repairAttemptsCount += 1;
       const repairContext: LocalModelCodingRepairContext = {
         taskId: taskSpec.taskId,
@@ -404,17 +581,14 @@ export async function runVeraLocalModelCodingProof(
         testStdout: testResult.stdout,
         testStderr: testResult.stderr,
         currentFiles,
+        repairReason: "test_failure",
+        allowedPaths: outputValidation.allowed_paths,
       };
 
-      let repairGeneration: LocalModelCodingGenerationResult;
       try {
-        repairGeneration = deps.generateRepair
+        latestGeneration = deps.generateRepair
           ? await deps.generateRepair(repairContext)
-          : await generateCodingFilesWithLocalModel(
-            taskSpec.buildRepairRequest(repairContext),
-            config,
-            deps.fetchFn,
-          );
+          : await fetchGeneration(taskSpec.buildRepairRequest(repairContext));
       } catch (error) {
         attempts.push({
           attempt_number: attempts.length + 1,
@@ -422,16 +596,20 @@ export async function runVeraLocalModelCodingProof(
           status: "failed",
           prompt_summary: generation.promptSummary,
           repair_prompt_summary: `Repair attempt ${repairAttemptsCount} failed before tests could rerun.`,
+          repair_reason: "test_failure",
+          allowed_paths: outputValidation.allowed_paths,
           test_exit_code: testResult.exitCode,
           test_stdout: testResult.stdout,
           test_stderr: testResult.stderr,
           files_changed: filesChanged,
         });
+        latestOutputValidation.repair_attempted = outputValidationRepairAttempted || repairAttemptsCount > 0;
         return baseResult({
           ok: false,
           status: deps.generateRepair ? "failed" : "local_model_unavailable",
           errors: [error instanceof Error ? error.message : String(error)],
           warnings: ["Repair generation failed before any repo mutation could occur."],
+          output_validation: latestOutputValidation,
           repair_loop: {
             max_repair_attempts: maxRepairAttempts,
             total_attempts: attempts.length,
@@ -446,27 +624,15 @@ export async function runVeraLocalModelCodingProof(
         }, latestGeneration.modelGenerationReal);
       }
 
-      assertAllowedGeneratedFiles(repairGeneration.files, taskSpec, handoff);
-      latestRepairPromptSummary = repairGeneration.promptSummary;
-      latestGeneration = repairGeneration;
-      currentFiles = repairGeneration.files;
-      filesChanged = writeGeneratedFiles(workspacePath, currentFiles);
-      testResult = await runIsolatedTests(workspacePath, taskSpec);
-      attempts.push({
-        attempt_number: attempts.length + 1,
-        generation_kind: "repair",
-        status: attemptStatus(testResult.exitCode),
-        prompt_summary: generation.promptSummary,
-        repair_prompt_summary: repairGeneration.promptSummary,
-        test_exit_code: testResult.exitCode,
-        test_stdout: testResult.stdout,
-        test_stderr: testResult.stderr,
-        files_changed: filesChanged,
-      });
+      latestRepairPromptSummary = latestGeneration.promptSummary;
     }
 
-    const unifiedDiff = buildUnifiedDiff(currentFiles);
-    const finalStatus = attemptStatus(testResult.exitCode);
+    latestOutputValidation.repair_attempted = outputValidationRepairAttempted || repairAttemptsCount > 0;
+
+    const unifiedDiff = currentFiles.length > 0 ? buildUnifiedDiff(currentFiles) : "";
+    const finalStatus = latestOutputValidation.final_paths_valid
+      ? attemptStatus(testResult.exitCode)
+      : "failed";
     const repairRequired = initialStatus === "failed" && finalStatus === "passed";
     const repairLoop: LocalModelCodingProofRepairLoop = {
       max_repair_attempts: maxRepairAttempts,
@@ -481,8 +647,18 @@ export async function runVeraLocalModelCodingProof(
 
     const checks = [
       {
+        name: "generated_output_paths_valid",
+        status: latestOutputValidation.final_paths_valid ? "passed" as const : "failed" as const,
+        summary: latestOutputValidation.final_paths_valid
+          ? "Generated file paths matched the bounded allowlist."
+          : `Generated file paths failed validation: ${latestOutputValidation.validation_errors.join("; ") || "unknown validation error"}`,
+      },
+      {
         name: "generated_files_contained_in_workspace",
-        status: filesChanged.every((file) => fs.existsSync(path.join(workspacePath, file))) ? "passed" as const : "failed" as const,
+        status: latestOutputValidation.final_paths_valid
+          && filesChanged.every((file) => fs.existsSync(path.join(workspacePath, file)))
+          ? "passed" as const
+          : "failed" as const,
         summary: "Generated code files were written only inside the system-created temp workspace.",
       },
       {
@@ -492,12 +668,14 @@ export async function runVeraLocalModelCodingProof(
       },
       {
         name: "isolated_tests_executed",
-        status: testResult.exitCode === 0 ? "passed" as const : "failed" as const,
-        summary: testResult.exitCode === 0
-          ? repairRequired
-            ? `${testCommand} passed inside the isolated workspace after bounded repair.`
-            : `${testCommand} passed inside the isolated workspace.`
-          : `${testCommand} failed with exit code ${testResult.exitCode}.`,
+        status: latestOutputValidation.final_paths_valid && testResult.exitCode === 0 ? "passed" as const : "failed" as const,
+        summary: !latestOutputValidation.final_paths_valid
+          ? "Isolated tests were not executed because model output path validation failed."
+          : testResult.exitCode === 0
+            ? repairRequired
+              ? `${testCommand} passed inside the isolated workspace after bounded repair.`
+              : `${testCommand} passed inside the isolated workspace.`
+            : `${testCommand} failed with exit code ${testResult.exitCode}.`,
       },
     ];
     const passed = checks.every((check) => check.status === "passed");
@@ -513,14 +691,28 @@ export async function runVeraLocalModelCodingProof(
     if (repairRequired) {
       warnings.push("Repair was required before isolated tests passed.");
     }
+    if (outputValidationRepairAttempted) {
+      warnings.push("Bounded repair was used to correct invalid model output paths or format.");
+    }
     if (!passed && repairAttemptsCount > 0) {
       warnings.push(`Bounded repair exhausted after ${repairAttemptsCount} repair attempt(s).`);
     }
 
+    const failureErrors = passed
+      ? []
+      : [
+        ...latestOutputValidation.validation_errors,
+        ...checks.filter((check) => check.status === "failed").map((check) => check.summary),
+      ].filter((value, index, array) => array.indexOf(value) === index);
+
     return baseResult({
       ok: passed,
-      status: passed ? "local_model_coding_proof_passed" : "failed",
-      errors: passed ? [] : checks.filter((check) => check.status === "failed").map((check) => check.summary),
+      status: passed
+        ? "local_model_coding_proof_passed"
+        : latestOutputValidation.final_paths_valid
+          ? "failed"
+          : "local_model_unavailable",
+      errors: failureErrors,
       warnings,
       model: {
         provider: "local_openai_compatible",
@@ -538,11 +730,12 @@ export async function runVeraLocalModelCodingProof(
         command_executable: path.basename(taskSpec.testCommand.executable),
         command_args: taskSpec.testCommand.args,
         exit_code: testResult.exitCode,
-        passed: testResult.exitCode === 0,
+        passed: latestOutputValidation.final_paths_valid && testResult.exitCode === 0,
         stdout: testResult.stdout,
         stderr: testResult.stderr,
       },
       repair_loop: repairLoop,
+      output_validation: latestOutputValidation,
       ...resultContext,
       evidence: {
         evidence_id: `local-model-coding-proof-${previewIdSeed}`,
@@ -550,9 +743,11 @@ export async function runVeraLocalModelCodingProof(
           ? repairRequired
             ? "Local model generated code in an isolated workspace, bounded repair corrected failing tests, and a reviewable patch was returned."
             : "Local model generated code in an isolated workspace, tests passed, and a reviewable patch was returned."
-          : repairAttemptsCount > 0
-            ? "Local model coding proof failed after bounded repair attempts and before any integration boundary was crossed."
-            : "Local model coding proof failed before any integration boundary was crossed.",
+          : latestOutputValidation.final_paths_valid
+            ? repairAttemptsCount > 0
+              ? "Local model coding proof failed after bounded repair attempts and before any integration boundary was crossed."
+              : "Local model coding proof failed before any integration boundary was crossed."
+            : "Local model coding proof rejected invalid model output paths/format before any integration boundary was crossed.",
         workspace_type: "system_created_temp_workspace",
         workspace_id: workspaceId,
         workspace_retention: cleanup ? "cleaned_up" : "contained_for_test",

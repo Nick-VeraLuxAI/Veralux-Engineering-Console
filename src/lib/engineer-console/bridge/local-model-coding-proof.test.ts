@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   parseGeneratedCodingFiles,
+  tryParseGeneratedCodingFiles,
 } from "./local-openai-compatible-coding-client";
 import {
   VERA_LOCAL_MODEL_CODING_PROOF_SCHEMA_VERSION,
@@ -177,6 +178,29 @@ async function mockGenerateRepairStillBad() {
   };
 }
 
+async function mockGenerateInvalidPathCode() {
+  return {
+    modelUsed: "mock-local-model-v1",
+    endpoint: "test://injected-local-model",
+    modelGenerationReal: false as const,
+    rawContent: JSON.stringify({
+      files: [{ relativePath: "...", content: "placeholder" }],
+    }),
+    files: [{ relativePath: "...", content: "placeholder" }],
+    promptSummary: "Injected invalid path placeholder output.",
+  };
+}
+
+async function mockGenerateOutputValidationRepair(context: {
+  repairReason?: string;
+  attemptNumber: number;
+}) {
+  if (context.repairReason === "output_validation" || context.repairReason === "parse_failure") {
+    return mockGenerateCode();
+  }
+  return mockGenerateRepair();
+}
+
 describe("Vera local model coding proof", () => {
   it("validates coding proof handoff requires coding_task_id", () => {
     const result = validateVeraLocalModelCodingProofHandoff(handoff());
@@ -248,6 +272,14 @@ describe("Vera local model coding proof", () => {
     expect(() => parseGeneratedCodingFiles(JSON.stringify({
       files: [{ relativePath: "../outside.js", content: "bad" }],
     }))).toThrow(/Unsafe generated path/);
+
+    const placeholderPath = tryParseGeneratedCodingFiles(JSON.stringify({
+      files: [{ relativePath: "...", content: "bad" }],
+    }));
+    expect(placeholderPath.ok).toBe(false);
+    if (!placeholderPath.ok) {
+      expect(placeholderPath.rejected_paths).toContain("...");
+    }
 
     const nemotronStyle = `We need to create two files for the coding proof.
 </think>
@@ -347,5 +379,45 @@ import { describe, expect, it } from "vitest";
     expect(result.boundary_flags.deploy_authorized).toBe(false);
     expect(result.boundary_flags.merge_authorized).toBe(false);
     expect(result.boundary_flags.final_integration_authorized).toBe(false);
+  });
+
+  it("routes invalid generated paths through bounded output validation repair", async () => {
+    const generateRepair = vi.fn(async (context) => mockGenerateOutputValidationRepair(context));
+    const result = await runVeraLocalModelCodingProof(handoff(), {
+      tempRoot,
+      workspaceId: () => "coding-proof-output-repair",
+      generateCode: mockGenerateInvalidPathCode,
+      generateRepair,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe("local_model_coding_proof_passed");
+    expect(result.output_validation?.repair_attempted).toBe(true);
+    expect(result.output_validation?.final_paths_valid).toBe(true);
+    expect(result.output_validation?.allowed_paths).toEqual([
+      "src/formatBuilderLoopDecisionLabel.js",
+      "src/formatBuilderLoopDecisionLabel.test.js",
+    ]);
+    expect(generateRepair).toHaveBeenCalledTimes(1);
+    expect(generateRepair.mock.calls[0]?.[0]?.repairReason).toBe("output_validation");
+    expect(result.repair_loop?.repair_attempts_count).toBe(1);
+  });
+
+  it("fails with output validation evidence when repair still returns unsafe paths", async () => {
+    const result = await runVeraLocalModelCodingProof(handoff(), {
+      tempRoot,
+      workspaceId: () => "coding-proof-output-repair-fail",
+      maxRepairAttempts: 1,
+      generateCode: mockGenerateInvalidPathCode,
+      generateRepair: mockGenerateInvalidPathCode,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("local_model_unavailable");
+    expect(result.output_validation?.repair_attempted).toBe(true);
+    expect(result.output_validation?.final_paths_valid).toBe(false);
+    expect(result.output_validation?.rejected_paths).toContain("...");
+    expect(result.errors.some((error) => error.includes("Unsafe generated path"))).toBe(true);
+    expect(result.evidence?.summary).toContain("invalid model output paths/format");
   });
 });
