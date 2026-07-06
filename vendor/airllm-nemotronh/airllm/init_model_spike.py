@@ -8,6 +8,7 @@ from airllm.safetensors_shard_audit import audit_safetensors_shards
 from airllm.split_cache_path import (
     BLOCKED_SPLIT_FS_TYPES,
     detect_filesystem_type,
+    read_split_cache_dir_from_env,
     read_super_model_path_from_env,
     resolve_airllm_split_output_path,
 )
@@ -28,7 +29,7 @@ def _nemotron_overlay_ready() -> bool:
     return (vendor_root / "airllm" / "airllm_nemotronh.py").is_file()
 
 
-INIT_MODEL_SPIKE_STATUS = "s4_init_model_spike_prep"
+INIT_MODEL_SPIKE_STATUS = "s4_init_model_spike"
 EXPECTED_LAYER_FILES = 91
 
 
@@ -186,17 +187,48 @@ def run_init_model_spike(
             boot_performed=False,
         )
 
-    return InitModelSpikeResult(
-        status="blocked",
-        model_path=preflight.model_path,
-        split_output_path=preflight.split_output_path,
-        blocked_reasons=["INIT_MODEL_SPIKE_NOT_ENABLED"],
-        diagnostics=[
-            *preflight.diagnostics,
-            "INIT_MODEL_SPIKE_EXECUTION_DISABLED_UNTIL_S4_OPERATOR_APPROVAL",
-        ],
-        init_model_performed=False,
-        gpu_use_performed=False,
-        generation_performed=False,
-        boot_performed=False,
-    )
+    split_cache_dir = read_split_cache_dir_from_env(env)
+    diagnostics = list(preflight.diagnostics)
+    try:
+        from airllm.init_model_spike_runtime import run_guarded_init_model_spike
+
+        spike_details = run_guarded_init_model_spike(
+            model_path=preflight.model_path,
+            split_cache_dir=split_cache_dir,
+        )
+        diagnostics.extend(
+            [
+                f"SPIKE_ARCHITECTURE:{spike_details.get('architecture')}",
+                f"SPIKE_LAYER_COUNT:{spike_details.get('resolved_layer_count')}",
+                f"SPIKE_CHECKPOINT_PATH:{spike_details.get('checkpoint_path')}",
+                "INIT_MODEL_SPIKE_EXECUTED",
+            ]
+        )
+        passed = (
+            spike_details.get("init_model_performed") is True
+            and spike_details.get("resolved_layer_count") == spike_details.get("num_hidden_layers")
+        )
+        return InitModelSpikeResult(
+            status="init_model_spike_ready" if passed else "init_model_spike_incomplete",
+            model_path=preflight.model_path,
+            split_output_path=preflight.split_output_path,
+            blocked_reasons=[] if passed else ["INIT_MODEL_LAYER_COUNT_MISMATCH"],
+            diagnostics=[*diagnostics, f"SPIKE_DETAILS:{spike_details}"],
+            init_model_performed=bool(spike_details.get("init_model_performed")),
+            gpu_use_performed=False,
+            generation_performed=False,
+            boot_performed=False,
+        )
+    except Exception as error:  # pragma: no cover - runtime spike path
+        diagnostics.append(f"INIT_MODEL_SPIKE_ERROR:{type(error).__name__}:{error}")
+        return InitModelSpikeResult(
+            status="init_model_spike_failed",
+            model_path=preflight.model_path,
+            split_output_path=preflight.split_output_path,
+            blocked_reasons=["INIT_MODEL_SPIKE_FAILED"],
+            diagnostics=diagnostics,
+            init_model_performed=False,
+            gpu_use_performed=False,
+            generation_performed=False,
+            boot_performed=False,
+        )

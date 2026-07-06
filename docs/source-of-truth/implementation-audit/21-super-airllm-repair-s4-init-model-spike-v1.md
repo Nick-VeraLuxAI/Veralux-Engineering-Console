@@ -1,15 +1,15 @@
-# Super AirLLM Repair — Phase S4 Init Model Spike (Prep)
+# Super AirLLM Repair — Phase S4 Init Model Spike
 
 ## Purpose
 
-Phase S4 prepares a **guarded Nemotron-safe `init_model` spike** using `AirLLMNemotronHBaseModel` against S3 materialized splits. S4 prep adds preflight gates only; **`init_model` is not executed** until explicit operator approval in a later step.
+Phase S4 executes a **guarded Nemotron-safe `init_model` spike** against the ext4 model mirror and S3 materialized split cache. The spike validates that AirLLM can initialize the NemotronH/Super model structure without hitting Llama assumptions or unsupported hybrid block behavior.
 
 **Prerequisites:**
 
 | Phase | Commit |
 |-------|--------|
 | S3 guardrails | `e230c51` |
-| S3 closeout | (this commit) |
+| S3 closeout + S4 prep | `8a01d21` |
 
 Related: [20-super-airllm-repair-s3-split-materialization-v1.md](./20-super-airllm-repair-s3-split-materialization-v1.md)
 
@@ -30,11 +30,13 @@ export ENGINEER_CONSOLE_SUPER_AIRLLM_SPLIT_CACHE_DIR=/mnt/model-storage/airllm-s
 
 ---
 
-## S4 preflight (dry-run default)
+## S4 preflight
 
 ```bash
 bash scripts/runtime/super-airllm/run-init-model-spike.sh --preflight-only
 ```
+
+Expected verdict: **`init_model_preflight_ready`**.
 
 Preflight gates:
 
@@ -43,13 +45,9 @@ Preflight gates:
 - `SPLIT_MATERIALIZED_MISSING` if layer count < 91
 - `AIRLLM_BASE_NOT_AVAILABLE` / `NEMOTRON_BASE_MODEL_NOT_AVAILABLE` if fork deps missing
 
-Expected verdict when S3 closeout is healthy: **`init_model_preflight_ready`**.
-
 ---
 
-## Operator-approved spike (NOT enabled in S4 prep)
-
-Explicit flags are required but **execution remains blocked** in S4 prep:
+## Operator-approved spike (executed)
 
 ```bash
 bash scripts/runtime/super-airllm/run-init-model-spike.sh \
@@ -57,40 +55,59 @@ bash scripts/runtime/super-airllm/run-init-model-spike.sh \
   --confirm-init-model-spike
 ```
 
-Current behavior: returns `INIT_MODEL_SPIKE_NOT_ENABLED` — no `init_model()` call, no GPU, no generation.
+### Spike result (2026-07-03)
 
-Planned S4+ execution (future):
+| Field | Value |
+|-------|-------|
+| Verdict | `init_model_spike_ready` |
+| Architecture | `NemotronHForCausalLM` |
+| Model type | `nemotron_h` |
+| Hidden layers (config) | 88 |
+| Resolved layer count | 88 |
+| Layer names count | 91 (embed + 88 layers + norm + lm_head) |
+| `init_model_performed` | true |
+| GPU use | false |
+| Generation | false |
+| HTTP boot | false |
+| Runtime | ~12 s on CPU empty-weights init |
 
-- Nemotron-safe empty-weights `AutoModelForCausalLM.from_config` via `AirLLMNemotronHBaseModel`
-- `get_use_better_transformer() -> False` (skip Llama `model.layers[3].self_attn` probe)
-- FP8 via `hf_quantizer` path when config carries quantization metadata
-- Still **no** forward pass, generation, HTTP, or Builder Loop wiring
+Key fixes applied for spike success:
+
+1. **Stock AirLLM import isolation** — vendor modules removed from `sys.modules` without evicting stock `airllm.*`.
+2. **Modelopt FP8 skip** — `hf_quantizer` bypassed for `quant_method == "modelopt"` (structure-only init).
+3. **Module vs weight key paths** — split files use `backbone.*` prefixes; runtime traversal uses `model.embeddings`, `model.layers`, `model.norm_f`, `lm_head`.
+
+Spike log: `.download-logs/super-init-model-spike.log`
 
 ---
 
-## Nemotron overrides (fork)
+## Nemotron overrides (fork / spike runtime)
 
 | Override | Purpose |
 |----------|---------|
-| `set_layer_names_dict` | `backbone.embeddings` / `backbone.layers` / `backbone.norm_f` / `lm_head` |
-| `get_use_better_transformer -> False` | Skip BetterTransformer and SDPA self-attn probe |
-| `init_model` | Not enabled until post-S4 operator go/no-go |
+| `set_layer_names_dict` | Weight/split prefixes: `backbone.embeddings` / `backbone.layers` / `backbone.norm_f` / `lm_head` |
+| `NEMOTRONH_MODULE_NAMES` | Runtime module paths: `model.embeddings` / `model.layers` / `model.norm_f` / `lm_head` |
+| `set_layers_from_layer_names` | Traverse module paths, not weight prefixes |
+| Custom `__init__` (spike class) | Layer count discovery via module paths after `init_model` |
+| `get_use_better_transformer -> False` | Skip BetterTransformer and SDPA Llama self-attn probe |
+| `nemotron_safe_init_model` | Empty-weights `from_config`, modelopt-safe, buffer placement on CPU |
 
 ---
 
-## Safety boundaries (S4 prep)
+## Safety boundaries (S4)
 
 | Boundary | Status |
 |----------|--------|
-| `init_model` execution | ❌ disabled (`INIT_MODEL_SPIKE_NOT_ENABLED`) |
+| `init_model` execution | ✅ performed (empty weights, CPU) |
 | Generation | ❌ not performed |
-| GPU use | ❌ not performed |
+| GPU use | ❌ not performed (`CUDA_VISIBLE_DEVICES=""`) |
 | HTTP server | ❌ not started |
 | Builder Loop wiring | ❌ not wired |
 | NTFS model path | ❌ blocked |
+| Destructive retry on failure | ❌ not attempted |
 
 ---
 
-## Next step after S4 prep
+## Next step after S4
 
-Operator go/no-go to implement and run Nemotron-safe `AirLLMNemotronHBaseModel.init_model` empty-weights spike (L5), still without generation until L8.
+Operator go/no-go for **L5+ layer load / forward probe** (still without generation until explicitly approved). Do not retry destructively if a future load step fails — document blockers instead.

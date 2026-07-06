@@ -186,9 +186,8 @@ if _BaseModel is not None:
             return False
 
         def init_model(self) -> None:
-            raise NotImplementedError(
-                "AirLLMNemotronHBaseModel.init_model is not enabled until S3+ gated boot; "
-                "must not run stock Llama self_attn probe on NemotronH."
-            )
+            from airllm.init_model_spike_runtime import nemotron_safe_init_model
+
+            nemotron_safe_init_model(self)
 else:
     AirLLMNemotronHBaseModel = None  # type: ignore[assignment,misc]

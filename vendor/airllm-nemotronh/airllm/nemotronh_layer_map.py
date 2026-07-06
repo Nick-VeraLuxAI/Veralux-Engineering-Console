@@ -10,6 +10,14 @@ NEMOTRONH_LAYER_NAMES = {
     "lm_head": "lm_head",
 }
 
+# Runtime module paths for NemotronHForCausalLM (state-dict keys use backbone.*).
+NEMOTRONH_MODULE_NAMES = {
+    "embed": "model.embeddings",
+    "layer_prefix": "model.layers",
+    "norm": "model.norm_f",
+    "lm_head": "lm_head",
+}
+
 EXPECTED_LAYER_COUNT = 88
 EXPECTED_PREFIX_COUNT = 91
 
