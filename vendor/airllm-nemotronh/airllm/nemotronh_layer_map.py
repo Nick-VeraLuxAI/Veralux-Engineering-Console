@@ -36,6 +36,26 @@ def build_super_layer_name_list() -> list[str]:
     return build_layer_name_list(EXPECTED_LAYER_COUNT)
 
 
+def layer_weight_prefix_to_module_path(layer_name: str) -> str:
+    if layer_name == NEMOTRONH_LAYER_NAMES["embed"]:
+        return NEMOTRONH_MODULE_NAMES["embed"]
+    if layer_name == NEMOTRONH_LAYER_NAMES["norm"]:
+        return NEMOTRONH_MODULE_NAMES["norm"]
+    if layer_name == NEMOTRONH_LAYER_NAMES["lm_head"]:
+        return NEMOTRONH_MODULE_NAMES["lm_head"]
+    layer_prefix = NEMOTRONH_LAYER_NAMES["layer_prefix"]
+    if layer_name.startswith(f"{layer_prefix}."):
+        index = layer_name[len(layer_prefix) + 1 :]
+        return f'{NEMOTRONH_MODULE_NAMES["layer_prefix"]}.{index}'
+    raise ValueError(f"Unknown layer name: {layer_name}")
+
+
+def state_dict_key_to_module_key(key: str) -> str:
+    if key.startswith("backbone."):
+        return "model." + key[len("backbone.") :]
+    return key
+
+
 @dataclass(frozen=True)
 class SplitPlanResult:
     proposed_layer_names: list[str]
