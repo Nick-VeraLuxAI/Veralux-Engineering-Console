@@ -46,7 +46,8 @@ def test_audit_fp8_quant_config_detects_modelopt_missing(tmp_path: Path) -> None
         '{"quantization_config":{"quant_method":"modelopt","quant_algo":"FP8"}}',
         encoding="utf-8",
     )
-    audit = audit_fp8_quant_config(str(model_path), for_preflight=True)
+    with patch("airllm.fp8_injection_probe._import_modelopt_available", return_value=False):
+        audit = audit_fp8_quant_config(str(model_path), for_preflight=True)
     assert audit.quant_method == "modelopt"
     assert audit.modelopt_available is False
     assert "modelopt_missing" not in audit.blocked_reasons
