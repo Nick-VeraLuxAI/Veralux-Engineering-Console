@@ -71,11 +71,16 @@ import {
   canShowVeraCommitProposalPanel,
   VeraCommitProposalPanel,
 } from "@/components/engineer-console/vera-commit-proposal-panel";
+import {
+  canShowVeraCommitPanel,
+  VeraCommitPanel,
+} from "@/components/engineer-console/vera-commit-panel";
 import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
 import { assessVeraApprovedPatchContentApplicationReadiness } from "@/lib/engineer-console/bridge/vera-approved-patch-content-application-readiness";
 import { assessVeraPostPatchQualityGatesReadiness } from "@/lib/engineer-console/bridge/vera-post-patch-quality-gates-readiness";
 import { assessVeraPostPatchQualityReportReviewReadiness } from "@/lib/engineer-console/bridge/vera-post-patch-quality-report-review-readiness";
 import { assessVeraCommitProposalReadiness } from "@/lib/engineer-console/bridge/vera-commit-proposal-readiness";
+import { assessVeraCommitReadiness } from "@/lib/engineer-console/bridge/vera-commit-readiness";
 import { assessVeraPatchApplicationReadiness } from "@/lib/engineer-console/bridge/vera-patch-application-readiness";
 import { assessVeraPatchContentDraftReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-readiness";
 import { assessVeraPatchContentDraftReviewReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-review-readiness";
@@ -83,6 +88,7 @@ import { assessVeraPatchProposalApprovalReadiness } from "@/lib/engineer-console
 import { assessVeraPatchProposalReadiness } from "@/lib/engineer-console/bridge/vera-patch-proposal-readiness";
 import {
   readVeraCommitProposal,
+  readVeraCommitReport,
   readVeraImplementationArtifact,
   readVeraImplementationPatchApplicationReport,
   readVeraImplementationPatchContentDraft,
@@ -195,6 +201,12 @@ export default async function RunDetailPage({
     governanceNotes.veraCommitProposalPath,
   );
   const showVeraCommitProposalPanel = canShowVeraCommitProposalPanel(run);
+  const veraCommitReadiness = assessVeraCommitReadiness(id);
+  const veraCommitReport = readVeraCommitReport(
+    id,
+    governanceNotes.veraCommitReportPath,
+  );
+  const showVeraCommitPanel = canShowVeraCommitPanel(run);
 
   return (
     <div>
@@ -397,6 +409,28 @@ export default async function RunDetailPage({
             proposedFiles: veraCommitProposalReadiness.proposedFiles,
             excludedDirtyFiles: veraCommitProposalReadiness.excludedDirtyFiles,
             dirtyWorkingTreeSummary: veraCommitProposalReadiness.dirtyWorkingTreeSummary,
+          }}
+        />
+      ) : null}
+      {showVeraCommitPanel ? (
+        <VeraCommitPanel
+          run={run}
+          taskId={task.id}
+          commitProposal={veraCommitProposal}
+          commitReport={veraCommitReport}
+          readiness={{
+            safeToCreateCommit: veraCommitReadiness.safeToCreateCommit,
+            reasons: veraCommitReadiness.reasons,
+            checks: veraCommitReadiness.checks,
+            veraWorkOrderId: veraCommitReadiness.veraWorkOrderId,
+            commitProposalPath: veraCommitReadiness.commitProposalPath,
+            commitProposalHash: veraCommitReadiness.commitProposalHash,
+            targetRepoPath: veraCommitReadiness.targetRepoPath,
+            branchName: veraCommitReadiness.branchName,
+            parentHeadSha: veraCommitReadiness.parentHeadSha,
+            proposedFiles: veraCommitReadiness.proposedFiles,
+            excludedDirtyFiles: veraCommitReadiness.excludedDirtyFiles,
+            dirtyWorkingTreeSummary: veraCommitReadiness.dirtyWorkingTreeSummary,
           }}
         />
       ) : null}

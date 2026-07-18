@@ -13,6 +13,8 @@ import type { VeraPostPatchQualityReport } from "./vera-post-patch-quality-repor
 import { VERA_POST_PATCH_QUALITY_REPORT_FILENAME } from "./vera-post-patch-quality-report-types";
 import type { VeraCommitProposal } from "./vera-commit-proposal-types";
 import { VERA_COMMIT_PROPOSAL_FILENAME } from "./vera-commit-proposal-types";
+import type { VeraCommitReport } from "./vera-commit-report-types";
+import { VERA_COMMIT_REPORT_FILENAME } from "./vera-commit-report-types";
 
 export function resolveRunArtifactRoot(): string {
   const dbPath =
@@ -244,6 +246,37 @@ export function readVeraCommitProposal(
   if (!fs.existsSync(proposalPath)) return null;
   try {
     return JSON.parse(fs.readFileSync(proposalPath, "utf8")) as VeraCommitProposal;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveVeraCommitReportPath(runId: string): string {
+  return path.join(resolveRunArtifactRoot(), runId.trim(), VERA_COMMIT_REPORT_FILENAME);
+}
+
+export function writeVeraCommitReport(
+  report: VeraCommitReport,
+): { commitReportPath: string; commitReportHash: string } {
+  const commitReportPath = resolveVeraCommitReportPath(report.runId);
+  fs.mkdirSync(path.dirname(commitReportPath), { recursive: true });
+  const content = JSON.stringify(report, null, 2);
+  fs.writeFileSync(commitReportPath, content, "utf8");
+  return {
+    commitReportPath,
+    commitReportHash: hashArtifactContent(content),
+  };
+}
+
+export function readVeraCommitReport(
+  runId: string,
+  reportPathOverride?: string | null,
+): VeraCommitReport | null {
+  const reportPath =
+    reportPathOverride?.trim() || resolveVeraCommitReportPath(runId);
+  if (!fs.existsSync(reportPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(reportPath, "utf8")) as VeraCommitReport;
   } catch {
     return null;
   }

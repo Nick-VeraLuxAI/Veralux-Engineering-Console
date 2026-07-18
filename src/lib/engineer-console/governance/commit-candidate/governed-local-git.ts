@@ -29,6 +29,11 @@ const LOCAL_COMMIT_GIT_ALLOWED: GitArgCheck[] = [
   (a) => a[0] === "status" && a.length === 2 && a[1] === "--porcelain",
   (a) => a[0] === "diff" && a.length === 2 && a[1] === "--name-only",
   (a) =>
+    a[0] === "diff" &&
+    a.length === 3 &&
+    a[1] === "--cached" &&
+    a[2] === "--name-only",
+  (a) =>
     a[0] === "add" &&
     a.length === 3 &&
     a[1] === "--" &&
@@ -124,6 +129,18 @@ export function readHeadShaFromRepo(repoPath: string): string | null {
 export async function gitStatusPorcelain(repoPath: string): Promise<string> {
   const result = await runGovernedLocalGit(repoPath, ["status", "--porcelain"]);
   return result.stdout;
+}
+
+/** List paths staged in the index (`git diff --cached --name-only`). */
+export async function gitDiffCachedNameOnly(repoPath: string): Promise<string[]> {
+  const result = await runGovernedLocalGit(repoPath, ["diff", "--cached", "--name-only"]);
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr || "git diff --cached --name-only failed");
+  }
+  return result.stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 export async function gitAddFile(repoPath: string, relativePath: string): Promise<GovernedGitResult> {

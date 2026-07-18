@@ -77,6 +77,15 @@ export type VeraRunGovernanceNotes = {
   veraCommitProposalCreatedAt?: string | null;
   veraCommitProposalFileCount?: number | null;
   veraCommitProposalSource?: string | null;
+  veraCommitStatus?: string | null;
+  veraCommitReportPath?: string | null;
+  veraCommitReportHash?: string | null;
+  veraCommitSha?: string | null;
+  veraCommitShaPrefix?: string | null;
+  veraCommitCreatedBy?: string | null;
+  veraCommitCreatedAt?: string | null;
+  veraCommitFileCount?: number | null;
+  veraCommitSource?: string | null;
   nonExecutionNote?: string;
 };
 
@@ -228,6 +237,17 @@ export function hasVeraCommitProposal(
   return (
     notes.veraCommitProposalStatus === "proposal_created" ||
     Boolean(notes.veraCommitProposalPath?.trim())
+  );
+}
+
+export function hasVeraCommit(
+  governanceNotes: string | null | undefined,
+): boolean {
+  const notes = parseVeraRunGovernanceNotes(governanceNotes);
+  return (
+    notes.veraCommitStatus === "commit_created" ||
+    Boolean(notes.veraCommitReportPath?.trim()) ||
+    Boolean(notes.veraCommitSha?.trim())
   );
 }
 
