@@ -1766,3 +1766,213 @@ export function auditVeraImplementationRunPrepareRejected(
     },
   });
 }
+
+const POST_PATCH_QUALITY_REPORT_REVIEW_FLAGS = {
+  noCommitCreated: true as const,
+  noPullRequestCreated: true as const,
+  noMergePerformed: true as const,
+  noDeploymentPerformed: true as const,
+  noReleasePerformed: true as const,
+  noCommitProposalCreated: true as const,
+};
+
+export function auditVeraPostPatchQualityReportReviewRequested(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    decision: string;
+    veraWorkOrderId?: string | null;
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+    gateCount?: number;
+    overallStatus?: string | null;
+    reviewerNote?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_POST_PATCH_QUALITY_REPORT_REVIEW_REQUESTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: detail.decision,
+      reviewer: detail.reviewer,
+      reviewerNote: detail.reviewerNote ?? null,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      gateCount: detail.gateCount ?? 0,
+      overallStatus: detail.overallStatus ?? null,
+      message: "Vera post-patch quality report review requested.",
+      ...POST_PATCH_QUALITY_REPORT_REVIEW_FLAGS,
+    },
+  });
+}
+
+export function auditVeraPostPatchQualityReportApproved(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    veraWorkOrderId?: string | null;
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+    gateCount?: number;
+    overallStatus?: string | null;
+    reviewerNote?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_POST_PATCH_QUALITY_REPORT_APPROVED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: "approved",
+      reviewer: detail.reviewer,
+      reviewerNote: detail.reviewerNote ?? null,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      gateCount: detail.gateCount ?? 0,
+      overallStatus: detail.overallStatus ?? null,
+      message:
+        "Vera post-patch quality report approved. Commit proposal, commit, PR, merge, deploy, and release remain gated.",
+      ...POST_PATCH_QUALITY_REPORT_REVIEW_FLAGS,
+    },
+  });
+}
+
+export function auditVeraPostPatchQualityReportRejected(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    veraWorkOrderId?: string | null;
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+    gateCount?: number;
+    overallStatus?: string | null;
+    reviewerNote?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_POST_PATCH_QUALITY_REPORT_REJECTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: "rejected",
+      reviewer: detail.reviewer,
+      reviewerNote: detail.reviewerNote ?? null,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      gateCount: detail.gateCount ?? 0,
+      overallStatus: detail.overallStatus ?? null,
+      message:
+        "Vera post-patch quality report rejected. No commit/PR/merge/deploy/release performed.",
+      ...POST_PATCH_QUALITY_REPORT_REVIEW_FLAGS,
+    },
+  });
+}
+
+export function auditVeraPostPatchQualityReportReviewBlocked(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    decision: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    readinessReasons?: string[];
+    reasonCodes?: string[];
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+    gateCount?: number;
+    overallStatus?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_POST_PATCH_QUALITY_REPORT_REVIEW_BLOCKED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: detail.decision,
+      reviewer: detail.reviewer,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      gateCount: detail.gateCount ?? 0,
+      overallStatus: detail.overallStatus ?? null,
+      ...(detail.readinessReasons ? { readinessReasons: detail.readinessReasons } : {}),
+      ...(detail.reasonCodes ? { reasonCodes: detail.reasonCodes } : {}),
+      ...POST_PATCH_QUALITY_REPORT_REVIEW_FLAGS,
+    },
+  });
+}
+
+export function auditVeraPostPatchQualityReportReviewFailed(
+  taskId: string,
+  runId: string,
+  detail: {
+    reviewer: string;
+    decision: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+    gateCount?: number;
+    overallStatus?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_POST_PATCH_QUALITY_REPORT_REVIEW_FAILED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.reviewer,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      decision: detail.decision,
+      reviewer: detail.reviewer,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      gateCount: detail.gateCount ?? 0,
+      overallStatus: detail.overallStatus ?? null,
+      ...POST_PATCH_QUALITY_REPORT_REVIEW_FLAGS,
+    },
+  });
+}

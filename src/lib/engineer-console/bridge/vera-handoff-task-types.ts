@@ -65,6 +65,11 @@ export type VeraRunGovernanceNotes = {
   veraPostPatchQualityRanBy?: string | null;
   veraPostPatchQualityRanAt?: string | null;
   veraPostPatchQualityGateSummary?: string | null;
+  veraPostPatchQualityReportReviewDecision?: "approved" | "rejected" | null;
+  veraPostPatchQualityReportReviewedBy?: string | null;
+  veraPostPatchQualityReportReviewedAt?: string | null;
+  veraPostPatchQualityReportReviewNote?: string | null;
+  veraPostPatchQualityReportApprovedHash?: string | null;
   nonExecutionNote?: string;
 };
 
@@ -191,6 +196,22 @@ export function hasVeraPostPatchQualityReport(
     notes.veraPostPatchQualityStatus === "completed" ||
     Boolean(notes.veraPostPatchQualityReportPath?.trim())
   );
+}
+
+export type VeraPostPatchQualityReportReviewDecision = "approved" | "rejected";
+
+export function getVeraPostPatchQualityReportReviewDecision(
+  governanceNotes: string | null | undefined,
+): VeraPostPatchQualityReportReviewDecision | null {
+  const decision = parseVeraRunGovernanceNotes(governanceNotes)
+    .veraPostPatchQualityReportReviewDecision;
+  return decision === "approved" || decision === "rejected" ? decision : null;
+}
+
+export function hasVeraPostPatchQualityReportReviewDecision(
+  governanceNotes: string | null | undefined,
+): boolean {
+  return getVeraPostPatchQualityReportReviewDecision(governanceNotes) !== null;
 }
 
 export function mergeVeraRunGovernanceNotes(

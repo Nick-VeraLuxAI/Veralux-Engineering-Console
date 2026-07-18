@@ -63,9 +63,14 @@ import {
   canShowVeraPostPatchQualityGatesPanel,
   VeraPostPatchQualityGatesPanel,
 } from "@/components/engineer-console/vera-post-patch-quality-gates-panel";
+import {
+  canShowVeraPostPatchQualityReportReviewPanel,
+  VeraPostPatchQualityReportReviewPanel,
+} from "@/components/engineer-console/vera-post-patch-quality-report-review-panel";
 import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
 import { assessVeraApprovedPatchContentApplicationReadiness } from "@/lib/engineer-console/bridge/vera-approved-patch-content-application-readiness";
 import { assessVeraPostPatchQualityGatesReadiness } from "@/lib/engineer-console/bridge/vera-post-patch-quality-gates-readiness";
+import { assessVeraPostPatchQualityReportReviewReadiness } from "@/lib/engineer-console/bridge/vera-post-patch-quality-report-review-readiness";
 import { assessVeraPatchApplicationReadiness } from "@/lib/engineer-console/bridge/vera-patch-application-readiness";
 import { assessVeraPatchContentDraftReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-readiness";
 import { assessVeraPatchContentDraftReviewReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-review-readiness";
@@ -174,6 +179,10 @@ export default async function RunDetailPage({
     governanceNotes.veraPostPatchQualityReportPath,
   );
   const showVeraPostPatchQualityGatesPanel = canShowVeraPostPatchQualityGatesPanel(run);
+  const veraPostPatchQualityReportReviewReadiness =
+    assessVeraPostPatchQualityReportReviewReadiness(id);
+  const showVeraPostPatchQualityReportReviewPanel =
+    canShowVeraPostPatchQualityReportReviewPanel(run);
 
   return (
     <div>
@@ -336,6 +345,23 @@ export default async function RunDetailPage({
             applicationReportPath: veraPostPatchQualityGatesReadiness.applicationReportPath,
             applicationReportHash: veraPostPatchQualityGatesReadiness.applicationReportHash,
             appliedFiles: veraPostPatchQualityGatesReadiness.appliedFiles,
+          }}
+        />
+      ) : null}
+      {showVeraPostPatchQualityReportReviewPanel ? (
+        <VeraPostPatchQualityReportReviewPanel
+          run={run}
+          taskId={task.id}
+          qualityReport={veraPostPatchQualityReport}
+          readiness={{
+            safeToReviewPostPatchQualityReport:
+              veraPostPatchQualityReportReviewReadiness.safeToReviewPostPatchQualityReport,
+            reasons: veraPostPatchQualityReportReviewReadiness.reasons,
+            checks: veraPostPatchQualityReportReviewReadiness.checks,
+            veraWorkOrderId: veraPostPatchQualityReportReviewReadiness.veraWorkOrderId,
+            qualityReportPath: veraPostPatchQualityReportReviewReadiness.qualityReportPath,
+            qualityReportHash: veraPostPatchQualityReportReviewReadiness.qualityReportHash,
+            reportSummary: veraPostPatchQualityReportReviewReadiness.reportSummary,
           }}
         />
       ) : null}
