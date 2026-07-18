@@ -11,6 +11,8 @@ import type { VeraImplementationPatchContentDraft } from "./vera-implementation-
 import { VERA_IMPLEMENTATION_PATCH_CONTENT_DRAFT_FILENAME } from "./vera-implementation-patch-content-draft-types";
 import type { VeraPostPatchQualityReport } from "./vera-post-patch-quality-report-types";
 import { VERA_POST_PATCH_QUALITY_REPORT_FILENAME } from "./vera-post-patch-quality-report-types";
+import type { VeraCommitProposal } from "./vera-commit-proposal-types";
+import { VERA_COMMIT_PROPOSAL_FILENAME } from "./vera-commit-proposal-types";
 
 export function resolveRunArtifactRoot(): string {
   const dbPath =
@@ -211,6 +213,37 @@ export function readVeraPostPatchQualityReport(
     return JSON.parse(
       fs.readFileSync(reportPath, "utf8"),
     ) as VeraPostPatchQualityReport;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveVeraCommitProposalPath(runId: string): string {
+  return path.join(resolveRunArtifactRoot(), runId.trim(), VERA_COMMIT_PROPOSAL_FILENAME);
+}
+
+export function writeVeraCommitProposal(
+  proposal: VeraCommitProposal,
+): { commitProposalPath: string; commitProposalHash: string } {
+  const commitProposalPath = resolveVeraCommitProposalPath(proposal.runId);
+  fs.mkdirSync(path.dirname(commitProposalPath), { recursive: true });
+  const content = JSON.stringify(proposal, null, 2);
+  fs.writeFileSync(commitProposalPath, content, "utf8");
+  return {
+    commitProposalPath,
+    commitProposalHash: hashArtifactContent(content),
+  };
+}
+
+export function readVeraCommitProposal(
+  runId: string,
+  proposalPathOverride?: string | null,
+): VeraCommitProposal | null {
+  const proposalPath =
+    proposalPathOverride?.trim() || resolveVeraCommitProposalPath(runId);
+  if (!fs.existsSync(proposalPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(proposalPath, "utf8")) as VeraCommitProposal;
   } catch {
     return null;
   }

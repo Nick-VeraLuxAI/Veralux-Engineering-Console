@@ -70,6 +70,13 @@ export type VeraRunGovernanceNotes = {
   veraPostPatchQualityReportReviewedAt?: string | null;
   veraPostPatchQualityReportReviewNote?: string | null;
   veraPostPatchQualityReportApprovedHash?: string | null;
+  veraCommitProposalStatus?: string | null;
+  veraCommitProposalPath?: string | null;
+  veraCommitProposalHash?: string | null;
+  veraCommitProposalCreatedBy?: string | null;
+  veraCommitProposalCreatedAt?: string | null;
+  veraCommitProposalFileCount?: number | null;
+  veraCommitProposalSource?: string | null;
   nonExecutionNote?: string;
 };
 
@@ -212,6 +219,16 @@ export function hasVeraPostPatchQualityReportReviewDecision(
   governanceNotes: string | null | undefined,
 ): boolean {
   return getVeraPostPatchQualityReportReviewDecision(governanceNotes) !== null;
+}
+
+export function hasVeraCommitProposal(
+  governanceNotes: string | null | undefined,
+): boolean {
+  const notes = parseVeraRunGovernanceNotes(governanceNotes);
+  return (
+    notes.veraCommitProposalStatus === "proposal_created" ||
+    Boolean(notes.veraCommitProposalPath?.trim())
+  );
 }
 
 export function mergeVeraRunGovernanceNotes(

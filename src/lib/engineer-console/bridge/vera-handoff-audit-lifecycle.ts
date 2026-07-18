@@ -1976,3 +1976,178 @@ export function auditVeraPostPatchQualityReportReviewFailed(
     },
   });
 }
+
+const COMMIT_PROPOSAL_FLAGS = {
+  noStagingPerformed: true as const,
+  noCommitCreated: true as const,
+  noPushPerformed: true as const,
+  noPullRequestCreated: true as const,
+  noMergePerformed: true as const,
+  noDeploymentPerformed: true as const,
+  noReleasePerformed: true as const,
+};
+
+export function auditVeraCommitProposalRequested(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    applicationReportPath?: string | null;
+    applicationReportHash?: string | null;
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+    note?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_COMMIT_PROPOSAL_REQUESTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      applicationReportPath: detail.applicationReportPath ?? null,
+      applicationReportHash: detail.applicationReportHash ?? null,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      note: detail.note ?? null,
+      message: "Vera commit proposal preparation requested.",
+      ...COMMIT_PROPOSAL_FLAGS,
+    },
+  });
+}
+
+export function auditVeraCommitProposalCreated(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    commitProposalPath?: string | null;
+    commitProposalHash?: string | null;
+    applicationReportPath?: string | null;
+    applicationReportHash?: string | null;
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+    proposedFileCount?: number;
+    note?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_COMMIT_PROPOSAL_CREATED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      commitProposalPath: detail.commitProposalPath ?? null,
+      commitProposalHash: detail.commitProposalHash ?? null,
+      applicationReportPath: detail.applicationReportPath ?? null,
+      applicationReportHash: detail.applicationReportHash ?? null,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      proposedFileCount: detail.proposedFileCount ?? 0,
+      note: detail.note ?? null,
+      message:
+        "Vera commit proposal created. Commit creation, staging, push, PR, merge, deploy, and release remain gated.",
+      ...COMMIT_PROPOSAL_FLAGS,
+    },
+  });
+}
+
+export function auditVeraCommitProposalBlocked(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    readinessReasons?: string[];
+    reasonCodes?: string[];
+    applicationReportPath?: string | null;
+    applicationReportHash?: string | null;
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+    commitProposalPath?: string | null;
+    commitProposalHash?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_COMMIT_PROPOSAL_BLOCKED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      readinessReasons: detail.readinessReasons ?? [],
+      reasonCodes: detail.reasonCodes ?? [],
+      applicationReportPath: detail.applicationReportPath ?? null,
+      applicationReportHash: detail.applicationReportHash ?? null,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      commitProposalPath: detail.commitProposalPath ?? null,
+      commitProposalHash: detail.commitProposalHash ?? null,
+      ...COMMIT_PROPOSAL_FLAGS,
+    },
+  });
+}
+
+export function auditVeraCommitProposalFailed(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    applicationReportPath?: string | null;
+    applicationReportHash?: string | null;
+    qualityReportPath?: string | null;
+    qualityReportHash?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_COMMIT_PROPOSAL_FAILED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      applicationReportPath: detail.applicationReportPath ?? null,
+      applicationReportHash: detail.applicationReportHash ?? null,
+      qualityReportPath: detail.qualityReportPath ?? null,
+      qualityReportHash: detail.qualityReportHash ?? null,
+      ...COMMIT_PROPOSAL_FLAGS,
+    },
+  });
+}

@@ -103,6 +103,24 @@ export function readCurrentBranchFromRepo(repoPath: string): string {
   return `detached:${head.slice(0, 12)}`;
 }
 
+/**
+ * Resolve HEAD OID by reading `.git/HEAD` and the pointed-to ref file.
+ * No git subprocess.
+ */
+export function readHeadShaFromRepo(repoPath: string): string | null {
+  const gitDir = path.join(path.resolve(repoPath), ".git");
+  const headPath = path.join(gitDir, "HEAD");
+  if (!fs.existsSync(headPath)) return null;
+  const head = fs.readFileSync(headPath, "utf8").trim();
+  if (head.startsWith("ref: ")) {
+    const refPath = path.join(gitDir, head.slice("ref: ".length));
+    if (!fs.existsSync(refPath)) return null;
+    const sha = fs.readFileSync(refPath, "utf8").trim();
+    return sha || null;
+  }
+  return /^[0-9a-f]{40}$/i.test(head) ? head : head || null;
+}
+
 export async function gitStatusPorcelain(repoPath: string): Promise<string> {
   const result = await runGovernedLocalGit(repoPath, ["status", "--porcelain"]);
   return result.stdout;
