@@ -2319,3 +2319,171 @@ export function auditVeraCommitCreateFailed(
     },
   });
 }
+
+const PR_PREPARATION_FLAGS = {
+  noStagingPerformed: true as const,
+  noCommitCreated: true as const,
+  noPushPerformed: true as const,
+  noGitHubCalled: true as const,
+  noPullRequestCreated: true as const,
+  noMergePerformed: true as const,
+  noDeploymentPerformed: true as const,
+  noReleasePerformed: true as const,
+};
+
+export function auditVeraPullRequestPreparationRequested(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    commitReportPath?: string | null;
+    commitReportHash?: string | null;
+    commitSha?: string | null;
+    note?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_PULL_REQUEST_PREPARATION_REQUESTED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      commitReportPath: detail.commitReportPath ?? null,
+      commitReportHash: detail.commitReportHash ?? null,
+      commitSha: detail.commitSha ?? null,
+      note: detail.note ?? null,
+      message: "Vera pull request preparation requested.",
+      ...PR_PREPARATION_FLAGS,
+    },
+  });
+}
+
+export function auditVeraPullRequestPreparationCreated(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    preparationPath?: string | null;
+    preparationHash?: string | null;
+    commitReportPath?: string | null;
+    commitReportHash?: string | null;
+    commitSha?: string | null;
+    proposedFileCount?: number;
+    note?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_PULL_REQUEST_PREPARATION_CREATED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      preparationPath: detail.preparationPath ?? null,
+      preparationHash: detail.preparationHash ?? null,
+      commitReportPath: detail.commitReportPath ?? null,
+      commitReportHash: detail.commitReportHash ?? null,
+      commitSha: detail.commitSha ?? null,
+      proposedFileCount: detail.proposedFileCount ?? 0,
+      note: detail.note ?? null,
+      message:
+        "Vera pull request preparation created. Push, GitHub PR creation, merge, deploy, and release remain gated.",
+      ...PR_PREPARATION_FLAGS,
+    },
+  });
+}
+
+export function auditVeraPullRequestPreparationBlocked(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    readinessReasons?: string[];
+    reasonCodes?: string[];
+    commitReportPath?: string | null;
+    commitReportHash?: string | null;
+    preparationPath?: string | null;
+    preparationHash?: string | null;
+    commitSha?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_PULL_REQUEST_PREPARATION_BLOCKED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      readinessReasons: detail.readinessReasons ?? [],
+      reasonCodes: detail.reasonCodes ?? [],
+      commitReportPath: detail.commitReportPath ?? null,
+      commitReportHash: detail.commitReportHash ?? null,
+      preparationPath: detail.preparationPath ?? null,
+      preparationHash: detail.preparationHash ?? null,
+      commitSha: detail.commitSha ?? null,
+      ...PR_PREPARATION_FLAGS,
+    },
+  });
+}
+
+export function auditVeraPullRequestPreparationFailed(
+  taskId: string,
+  runId: string,
+  detail: {
+    requestedBy: string;
+    veraWorkOrderId?: string | null;
+    reasonCode: string;
+    message: string;
+    commitReportPath?: string | null;
+    commitReportHash?: string | null;
+    commitSha?: string | null;
+  },
+): AuditEventRecord {
+  return requireAuditEvent({
+    eventType: AUDIT_EVENT_TYPES.VERA_PULL_REQUEST_PREPARATION_FAILED,
+    entityType: AUDIT_ENTITY_TYPES.RUN,
+    entityId: runId,
+    actorType: AUDIT_ACTOR_TYPES.HUMAN,
+    actorLabel: detail.requestedBy,
+    taskId,
+    runId,
+    payload: {
+      taskId,
+      runId,
+      veraWorkOrderId: detail.veraWorkOrderId ?? null,
+      requestedBy: detail.requestedBy,
+      reasonCode: detail.reasonCode,
+      message: detail.message,
+      commitReportPath: detail.commitReportPath ?? null,
+      commitReportHash: detail.commitReportHash ?? null,
+      commitSha: detail.commitSha ?? null,
+      ...PR_PREPARATION_FLAGS,
+    },
+  });
+}

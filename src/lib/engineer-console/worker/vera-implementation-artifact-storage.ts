@@ -15,6 +15,8 @@ import type { VeraCommitProposal } from "./vera-commit-proposal-types";
 import { VERA_COMMIT_PROPOSAL_FILENAME } from "./vera-commit-proposal-types";
 import type { VeraCommitReport } from "./vera-commit-report-types";
 import { VERA_COMMIT_REPORT_FILENAME } from "./vera-commit-report-types";
+import type { VeraPullRequestPreparation } from "./vera-pull-request-preparation-types";
+import { VERA_PULL_REQUEST_PREPARATION_FILENAME } from "./vera-pull-request-preparation-types";
 
 export function resolveRunArtifactRoot(): string {
   const dbPath =
@@ -277,6 +279,43 @@ export function readVeraCommitReport(
   if (!fs.existsSync(reportPath)) return null;
   try {
     return JSON.parse(fs.readFileSync(reportPath, "utf8")) as VeraCommitReport;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveVeraPullRequestPreparationPath(runId: string): string {
+  return path.join(
+    resolveRunArtifactRoot(),
+    runId.trim(),
+    VERA_PULL_REQUEST_PREPARATION_FILENAME,
+  );
+}
+
+export function writeVeraPullRequestPreparation(
+  preparation: VeraPullRequestPreparation,
+): { preparationPath: string; preparationHash: string } {
+  const preparationPath = resolveVeraPullRequestPreparationPath(preparation.runId);
+  fs.mkdirSync(path.dirname(preparationPath), { recursive: true });
+  const content = JSON.stringify(preparation, null, 2);
+  fs.writeFileSync(preparationPath, content, "utf8");
+  return {
+    preparationPath,
+    preparationHash: hashArtifactContent(content),
+  };
+}
+
+export function readVeraPullRequestPreparation(
+  runId: string,
+  preparationPathOverride?: string | null,
+): VeraPullRequestPreparation | null {
+  const preparationPath =
+    preparationPathOverride?.trim() || resolveVeraPullRequestPreparationPath(runId);
+  if (!fs.existsSync(preparationPath)) return null;
+  try {
+    return JSON.parse(
+      fs.readFileSync(preparationPath, "utf8"),
+    ) as VeraPullRequestPreparation;
   } catch {
     return null;
   }

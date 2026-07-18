@@ -75,12 +75,17 @@ import {
   canShowVeraCommitPanel,
   VeraCommitPanel,
 } from "@/components/engineer-console/vera-commit-panel";
+import {
+  canShowVeraPullRequestPreparationPanel,
+  VeraPullRequestPreparationPanel,
+} from "@/components/engineer-console/vera-pull-request-preparation-panel";
 import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
 import { assessVeraApprovedPatchContentApplicationReadiness } from "@/lib/engineer-console/bridge/vera-approved-patch-content-application-readiness";
 import { assessVeraPostPatchQualityGatesReadiness } from "@/lib/engineer-console/bridge/vera-post-patch-quality-gates-readiness";
 import { assessVeraPostPatchQualityReportReviewReadiness } from "@/lib/engineer-console/bridge/vera-post-patch-quality-report-review-readiness";
 import { assessVeraCommitProposalReadiness } from "@/lib/engineer-console/bridge/vera-commit-proposal-readiness";
 import { assessVeraCommitReadiness } from "@/lib/engineer-console/bridge/vera-commit-readiness";
+import { assessVeraPullRequestPreparationReadiness } from "@/lib/engineer-console/bridge/vera-pull-request-preparation-readiness";
 import { assessVeraPatchApplicationReadiness } from "@/lib/engineer-console/bridge/vera-patch-application-readiness";
 import { assessVeraPatchContentDraftReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-readiness";
 import { assessVeraPatchContentDraftReviewReadiness } from "@/lib/engineer-console/bridge/vera-patch-content-draft-review-readiness";
@@ -94,6 +99,7 @@ import {
   readVeraImplementationPatchContentDraft,
   readVeraImplementationPatchProposal,
   readVeraPostPatchQualityReport,
+  readVeraPullRequestPreparation,
 } from "@/lib/engineer-console/worker/vera-implementation-artifact-storage";
 import { parseVeraRunGovernanceNotes } from "@/lib/engineer-console/bridge/vera-handoff-task-types";
 
@@ -207,6 +213,14 @@ export default async function RunDetailPage({
     governanceNotes.veraCommitReportPath,
   );
   const showVeraCommitPanel = canShowVeraCommitPanel(run);
+  const veraPullRequestPreparationReadiness =
+    await assessVeraPullRequestPreparationReadiness(id);
+  const veraPullRequestPreparation = readVeraPullRequestPreparation(
+    id,
+    governanceNotes.veraPullRequestPreparationPath,
+  );
+  const showVeraPullRequestPreparationPanel =
+    canShowVeraPullRequestPreparationPanel(run);
 
   return (
     <div>
@@ -431,6 +445,30 @@ export default async function RunDetailPage({
             proposedFiles: veraCommitReadiness.proposedFiles,
             excludedDirtyFiles: veraCommitReadiness.excludedDirtyFiles,
             dirtyWorkingTreeSummary: veraCommitReadiness.dirtyWorkingTreeSummary,
+          }}
+        />
+      ) : null}
+      {showVeraPullRequestPreparationPanel ? (
+        <VeraPullRequestPreparationPanel
+          run={run}
+          taskId={task.id}
+          preparation={veraPullRequestPreparation}
+          readiness={{
+            safeToPreparePullRequest:
+              veraPullRequestPreparationReadiness.safeToPreparePullRequest,
+            reasons: veraPullRequestPreparationReadiness.reasons,
+            checks: veraPullRequestPreparationReadiness.checks,
+            veraWorkOrderId: veraPullRequestPreparationReadiness.veraWorkOrderId,
+            commitReportPath: veraPullRequestPreparationReadiness.commitReportPath,
+            commitReportHash: veraPullRequestPreparationReadiness.commitReportHash,
+            commitSha: veraPullRequestPreparationReadiness.commitSha,
+            parentHeadSha: veraPullRequestPreparationReadiness.parentHeadSha,
+            baseBranch: veraPullRequestPreparationReadiness.baseBranch,
+            headBranch: veraPullRequestPreparationReadiness.headBranch,
+            proposedPrFiles: veraPullRequestPreparationReadiness.proposedPrFiles,
+            excludedDirtyFiles: veraPullRequestPreparationReadiness.excludedDirtyFiles,
+            dirtyWorkingTreeSummary:
+              veraPullRequestPreparationReadiness.dirtyWorkingTreeSummary,
           }}
         />
       ) : null}

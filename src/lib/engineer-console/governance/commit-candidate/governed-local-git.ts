@@ -23,6 +23,10 @@ function isSafeRelativeRepoPath(filePath: string): boolean {
   return true;
 }
 
+function isFullCommitSha(value: string): boolean {
+  return /^[0-9a-f]{40}$/i.test(value);
+}
+
 type GitArgCheck = (args: string[]) => boolean;
 
 const LOCAL_COMMIT_GIT_ALLOWED: GitArgCheck[] = [
@@ -46,6 +50,31 @@ const LOCAL_COMMIT_GIT_ALLOWED: GitArgCheck[] = [
     a[2].length > 0 &&
     !a[2].startsWith("-"),
   (a) => a[0] === "rev-parse" && a.length === 2 && a[1] === "HEAD",
+  (a) =>
+    a[0] === "rev-parse" &&
+    a.length === 3 &&
+    a[1] === "--verify" &&
+    typeof a[2] === "string" &&
+    isFullCommitSha(a[2]),
+  (a) =>
+    a[0] === "rev-parse" &&
+    a.length === 2 &&
+    typeof a[1] === "string" &&
+    /^[0-9a-f]{40}\^$/i.test(a[1]),
+  (a) =>
+    a[0] === "diff-tree" &&
+    a.length === 5 &&
+    a[1] === "--no-commit-id" &&
+    a[2] === "--name-only" &&
+    a[3] === "-r" &&
+    typeof a[4] === "string" &&
+    isFullCommitSha(a[4]),
+  (a) =>
+    a[0] === "cat-file" &&
+    a.length === 3 &&
+    a[1] === "-t" &&
+    typeof a[2] === "string" &&
+    isFullCommitSha(a[2]),
 ];
 
 const FORBIDDEN_GIT_SUBCOMMANDS = new Set([
@@ -163,4 +192,47 @@ export async function gitRevParseHead(repoPath: string): Promise<string> {
     throw new Error(result.stderr || "git rev-parse HEAD failed");
   }
   return result.stdout.trim();
+}
+
+/** Read-only: verify a full commit SHA exists as a commit object. */
+export async function gitCommitExists(repoPath: string, commitSha: string): Promise<boolean> {
+  if (!isFullCommitSha(commitSha)) return false;
+  const result = await runGovernedLocalGit(repoPath, ["cat-file", "-t", commitSha]);
+  return result.exitCode === 0 && result.stdout.trim() === "commit";
+}
+
+/** Read-only: resolve the first parent of a commit (`sha^`). */
+export async function gitCommitParentSha(
+  repoPath: string,
+  commitSha: string,
+): Promise<string | null> {
+  if (!isFullCommitSha(commitSha)) return null;
+  const result = await runGovernedLocalGit(repoPath, ["rev-parse", `${commitSha}^`]);
+  if (result.exitCode !== 0) return null;
+  const parent = result.stdout.trim();
+  return isFullCommitSha(parent) ? parent : null;
+}
+
+/** Read-only: list paths changed by a single commit (`git diff-tree ...`). */
+export async function gitCommitDiffNameOnly(
+  repoPath: string,
+  commitSha: string,
+): Promise<string[]> {
+  if (!isFullCommitSha(commitSha)) {
+    throw new Error("Invalid commit sha for git diff-tree");
+  }
+  const result = await runGovernedLocalGit(repoPath, [
+    "diff-tree",
+    "--no-commit-id",
+    "--name-only",
+    "-r",
+    commitSha,
+  ]);
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr || "git diff-tree --name-only failed");
+  }
+  return result.stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 }

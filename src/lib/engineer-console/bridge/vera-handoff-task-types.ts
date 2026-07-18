@@ -86,6 +86,14 @@ export type VeraRunGovernanceNotes = {
   veraCommitCreatedAt?: string | null;
   veraCommitFileCount?: number | null;
   veraCommitSource?: string | null;
+  veraPullRequestPreparationStatus?: string | null;
+  veraPullRequestPreparationPath?: string | null;
+  veraPullRequestPreparationHash?: string | null;
+  veraPullRequestPreparationCreatedBy?: string | null;
+  veraPullRequestPreparationCreatedAt?: string | null;
+  veraPullRequestPreparationFileCount?: number | null;
+  veraPullRequestPreparationSource?: string | null;
+  veraPullRequestPreparationCommitSha?: string | null;
   nonExecutionNote?: string;
 };
 
@@ -248,6 +256,16 @@ export function hasVeraCommit(
     notes.veraCommitStatus === "commit_created" ||
     Boolean(notes.veraCommitReportPath?.trim()) ||
     Boolean(notes.veraCommitSha?.trim())
+  );
+}
+
+export function hasVeraPullRequestPreparation(
+  governanceNotes: string | null | undefined,
+): boolean {
+  const notes = parseVeraRunGovernanceNotes(governanceNotes);
+  return (
+    notes.veraPullRequestPreparationStatus === "preparation_created" ||
+    Boolean(notes.veraPullRequestPreparationPath?.trim())
   );
 }
 
