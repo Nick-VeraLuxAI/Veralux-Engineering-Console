@@ -1,38 +1,14 @@
 {
-  "overallScore": 90,
+  "overallScore": 92,
   "scores": {
     "canvasConsistency": 95,
-    "routeConsistency": 91,
-    "componentReuse": 89,
-    "accessibility": 97,
-    "visualDensityRisk": 19,
-    "legacyPatternRisk": 55
+    "routeConsistency": 95,
+    "componentReuse": 90,
+    "accessibility": 98,
+    "visualDensityRisk": 11,
+    "legacyPatternRisk": 45
   },
   "findings": [
-    {
-      "file": "src/components/engineer-console/review-stages-panel.tsx",
-      "category": "legacy-layout",
-      "severity": "high",
-      "message": "Stacks many repeated card/panel shells in one file.",
-      "evidence": "9 repeated border/card shell patterns detected.",
-      "suggestedFix": "Consolidate repeated shells into shared primitives or reduce first-screen panel density on this surface."
-    },
-    {
-      "file": "src/components/engineer-console/run-live-panel.tsx",
-      "category": "density",
-      "severity": "high",
-      "message": "Contains a large amount of visible copy for a first-screen or primary surface.",
-      "evidence": "9 visible text blocks, about 291 words.",
-      "suggestedFix": "Check whether some explanation can move behind details-on-demand, help affordances, or deeper panels."
-    },
-    {
-      "file": "src/components/engineer-console/run-workspace-shell.tsx",
-      "category": "legacy-layout",
-      "severity": "high",
-      "message": "Stacks many repeated card/panel shells in one file.",
-      "evidence": "10 repeated border/card shell patterns detected.",
-      "suggestedFix": "Consolidate repeated shells into shared primitives or reduce first-screen panel density on this surface."
-    },
     {
       "file": "src/app/page.tsx",
       "category": "legacy-layout",
@@ -198,7 +174,7 @@
       "category": "density",
       "severity": "medium",
       "message": "Reads like a checklist-heavy or explanation-heavy default surface.",
-      "evidence": "9 checklist/help-style phrases detected.",
+      "evidence": "10 checklist/help-style phrases detected.",
       "suggestedFix": "Review whether this first-view surface can be simplified or progressively disclosed."
     },
     {
@@ -258,28 +234,12 @@
       "suggestedFix": "Consider routing repeated pill/status treatments through a smaller shared badge vocabulary."
     },
     {
-      "file": "src/components/engineer-console/engineer-task-list.tsx",
-      "category": "accessibility",
-      "severity": "low",
-      "message": "Interactive elements appear without explicit `focus-visible` styling.",
-      "evidence": "5 button/link elements detected and no focus-visible utility found.",
-      "suggestedFix": "Add consistent keyboard focus treatment to interactive controls on this surface."
-    },
-    {
       "file": "src/components/engineer-console/operator-queue-panel.tsx",
       "category": "accessibility",
       "severity": "low",
       "message": "Interactive elements appear without explicit `focus-visible` styling.",
       "evidence": "6 button/link elements detected and no focus-visible utility found.",
       "suggestedFix": "Add consistent keyboard focus treatment to interactive controls on this surface."
-    },
-    {
-      "file": "src/components/engineer-console/run-workspace-shell.tsx",
-      "category": "component-reuse",
-      "severity": "low",
-      "message": "Repeats custom badge/status markup instead of reusing a shared primitive.",
-      "evidence": "3 badge-like rounded pill patterns detected.",
-      "suggestedFix": "Consider routing repeated pill/status treatments through a smaller shared badge vocabulary."
     }
   ],
   "routeFindings": [
@@ -333,7 +293,7 @@
       "area": "Task entry surfaces",
       "status": "premium aligned",
       "risk": "low",
-      "score": 93,
+      "score": 95,
       "mainIssue": "Uses larger page/card padding that may reinforce older high-density layouts.",
       "recommendedAction": "Check whether this surface can use calmer spacing or progressive disclosure instead of large padded card stacks.",
       "files": [
@@ -346,11 +306,11 @@
     {
       "route": "/engineer/runs/:id",
       "area": "Run workspace",
-      "status": "inconsistent",
-      "risk": "medium",
-      "score": 64,
-      "mainIssue": "Contains a large amount of visible copy for a first-screen or primary surface.",
-      "recommendedAction": "Check whether some explanation can move behind details-on-demand, help affordances, or deeper panels.",
+      "status": "premium aligned",
+      "risk": "low",
+      "score": 90,
+      "mainIssue": "Uses `max-w-*` layout boxing on a major surface.",
+      "recommendedAction": "Confirm this route intentionally uses boxed content rather than inheriting the newer immersive or calmer shell patterns.",
       "files": [
         "src/app/(main)/engineer/runs/[id]/page.tsx",
         "src/components/engineer-console/run-live-panel.tsx",
@@ -378,7 +338,7 @@
       "phase": "Phase 1",
       "title": "Fix critical inconsistency",
       "items": [
-        "Stacks many repeated card/panel shells in one file.",
+        "Uses `max-w-*` layout boxing on a major surface.",
         "Interactive elements appear without explicit `focus-visible` styling."
       ]
     },
@@ -409,21 +369,6 @@
   ],
   "topRisks": [
     {
-      "severity": "high",
-      "message": "Stacks many repeated card/panel shells in one file.",
-      "file": "src/components/engineer-console/review-stages-panel.tsx"
-    },
-    {
-      "severity": "high",
-      "message": "Contains a large amount of visible copy for a first-screen or primary surface.",
-      "file": "src/components/engineer-console/run-live-panel.tsx"
-    },
-    {
-      "severity": "high",
-      "message": "Stacks many repeated card/panel shells in one file.",
-      "file": "src/components/engineer-console/run-workspace-shell.tsx"
-    },
-    {
       "severity": "medium",
       "message": "Uses `max-w-*` layout boxing on a major surface.",
       "file": "src/app/page.tsx"
@@ -432,32 +377,47 @@
       "severity": "medium",
       "message": "Uses centered `mx-auto` wrappers on a major UI surface.",
       "file": "src/app/page.tsx"
+    },
+    {
+      "severity": "medium",
+      "message": "Multiple overlay-like implementations increase drift risk across drawers, windows, and issue centers.",
+      "file": "src/components/engineer-console"
+    },
+    {
+      "severity": "medium",
+      "message": "Navigation chrome is implemented across several separate patterns.",
+      "file": "src/components/engineer-console"
+    },
+    {
+      "severity": "medium",
+      "message": "Uses hardcoded hex colors outside the global token palette.",
+      "file": "src/components/engineer-console/dashboard-issue-center.tsx"
     }
   ],
   "topStrengths": [
     "Premium immersive engineering chrome is centralized in 9 reusable canvas components.",
     "A shared status badge primitive exists for at least part of the state vocabulary.",
     "Operator help and glossary guidance are already documented and partially componentized.",
-    "Keyboard focus styling appears in 21 scanned source files.",
+    "Keyboard focus styling appears in 22 scanned source files.",
     "The app already exposes a small global token palette through CSS variables in `globals.css`."
   ],
-  "recommendedNextAction": "Stacks many repeated card/panel shells in one file.",
+  "recommendedNextAction": "Uses `max-w-*` layout boxing on a major surface.",
   "summary": {
     "severityCounts": {
       "critical": 0,
-      "high": 3,
+      "high": 0,
       "medium": 25,
-      "low": 6
+      "low": 4
     },
-    "severitySummary": "3 high, 25 medium, 6 low",
-    "rawButtonFiles": 37,
-    "panelShellFiles": 39,
+    "severitySummary": "25 medium, 4 low",
+    "rawButtonFiles": 30,
+    "panelShellFiles": 34,
     "hardcodedColorFiles": 14,
     "hardcodedColorFindings": 1,
-    "badgeHeavyFiles": 2,
-    "accessibilityFiles": 2,
+    "badgeHeavyFiles": 1,
+    "accessibilityFiles": 1,
     "densityFiles": 3,
-    "legacyFiles": 18,
+    "legacyFiles": 16,
     "overlayComponentCount": 7,
     "navComponentCount": 6,
     "premiumComponentCoverage": {
@@ -468,6 +428,6 @@
     "genericButtonPrimitivePresent": true,
     "genericCardPrimitivePresent": true,
     "escapeHandlersPresent": true,
-    "docsWithUiGuidance": 16
+    "docsWithUiGuidance": 17
   }
 }
