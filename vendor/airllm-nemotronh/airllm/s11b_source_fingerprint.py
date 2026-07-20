@@ -70,8 +70,6 @@ def verify_fingerprint(
     stage: str,
     require_clean_executable_tree: bool = True,
 ) -> dict[str, Any]:
-    from airllm.s11b_source_inventory import build_source_manifest
-
     manifest_path = repo_root / ".download-logs" / "s11b-airllm-repair-source-manifest.json"
     if not manifest_path.is_file():
         return {
