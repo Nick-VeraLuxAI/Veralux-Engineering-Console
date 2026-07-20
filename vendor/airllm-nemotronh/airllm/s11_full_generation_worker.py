@@ -19,6 +19,8 @@ from airllm.nemotronh_layer_map import state_dict_key_to_module_key
 from airllm.s10_multilayer_streaming_worker import _disable_unmapped_quantizers
 from airllm.s11_full_generation_checkpoint import append_event, tensor_from_checkpoint_payload, validate_checkpoint, write_layer_checkpoint
 from airllm.s11_runtime_fixes import project_lm_head_logits, zero_uninitialized_storage
+from airllm.s11b_memory_telemetry import collect_memory_telemetry, summarize_telemetry
+from airllm.s11b_source_fingerprint import verify_fingerprint
 from airllm.s9_cuda_layer_forward_worker import _quantize_layer, _vram_bytes, assert_quantizer_state, install_quantizer_hooks
 
 
@@ -167,16 +169,12 @@ def run_worker(config: dict[str, Any]) -> dict[str, Any]:
     def _mem(stage: str) -> None:
         result["memoryMeasurements"].append({"stage": stage, **_vram_bytes()})
         if full_mem:
-            from airllm.s11b_memory_telemetry import collect_memory_telemetry
-
             sample = collect_memory_telemetry(stage=stage, include_cuda=True)
             mem_samples.append(sample)
             result.setdefault("memoryTelemetrySamples", []).append(sample)
 
     try:
         if config.get("expected_executable_sha256"):
-            from airllm.s11b_source_fingerprint import verify_fingerprint
-
             repo = Path(config.get("repo_root") or Path(__file__).resolve().parents[3])
             fp = verify_fingerprint(
                 repo_root=repo,
@@ -222,6 +220,7 @@ def run_worker(config: dict[str, Any]) -> dict[str, Any]:
         append_event(events, {"event": "embeddings_complete", "phase": phase, **embed_info})
         _release(instance, embed, "model.embeddings", torch)
         _mem("embeddings_released")
+        # Stock AirLLM path may shadow vendor modules — fingerprint already imported at module load.
         modeling = importlib.import_module(type(instance.model.model.layers[0]).__module__)
         cache = getattr(modeling, "NemotronHHybridDynamicCache")(instance.config, batch_size=1, dtype=torch.float32, device=str(device))
 
@@ -314,8 +313,6 @@ def run_worker(config: dict[str, Any]) -> dict[str, Any]:
         result["layer87Digest"] = _digest(hidden)
         append_event(events, {"event": "layer_87_complete"})
         if config.get("expected_executable_sha256"):
-            from airllm.s11b_source_fingerprint import verify_fingerprint
-
             repo = Path(config.get("repo_root") or Path(__file__).resolve().parents[3])
             fp87 = verify_fingerprint(
                 repo_root=repo,
@@ -379,8 +376,6 @@ def run_worker(config: dict[str, Any]) -> dict[str, Any]:
         result["executionClassification"].update({"quantizedTopologyExecuted": True, "modeloptFakeQuantPathExecuted": True})
         result.update({"verdict": "s11_worker_technical_passed", "technicalPassed": True})
         if full_mem:
-            from airllm.s11b_memory_telemetry import summarize_telemetry
-
             result["memoryTelemetrySummary"] = summarize_telemetry(mem_samples)
     except Exception as error:  # noqa: BLE001
         result["errors"].append(f"{type(error).__name__}:{error}")
