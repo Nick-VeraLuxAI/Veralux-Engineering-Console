@@ -192,6 +192,10 @@ def run_worker(config: dict[str, Any]) -> dict[str, Any]:
             prefetching=False,
         )
         instance.config._attn_implementation = "eager"
+        # Mixer reads model.config (not the AirLLM wrapper). Seq-len>1 SDPA fails with
+        # float32 query vs mismatched bias dtype; eager is the proven S11A path.
+        if hasattr(instance, "model") and hasattr(instance.model, "config"):
+            instance.model.config._attn_implementation = "eager"
         modeling = importlib.import_module(type(instance.model.model.layers[0]).__module__)
         cache = getattr(modeling, "NemotronHHybridDynamicCache")(
             instance.config, batch_size=1, dtype=torch.float32, device=str(device)

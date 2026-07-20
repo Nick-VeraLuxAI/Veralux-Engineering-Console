@@ -207,6 +207,8 @@ def run_worker(config: dict[str, Any]) -> dict[str, Any]:
         instance = model_class(config["model_path"], device="cpu", dtype=torch.float32,
                                layer_shards_saving_path=config["split_cache_dir"], prefetching=False)
         instance.config._attn_implementation = "eager"
+        if hasattr(instance, "model") and hasattr(instance.model, "config"):
+            instance.model.config._attn_implementation = "eager"
         ids = torch.tensor([config["prompt_token_ids"]], dtype=torch.long, device=device)
         if ids.numel() == 0:
             raise ValueError("prompt_token_ids_empty")
