@@ -87,6 +87,18 @@ REPAIR_SOURCE_PATHS: tuple[str, ...] = (
     "docs/source-of-truth/implementation-audit/28-super-airllm-repair-s11-full-generation-probe-v1.md",
     "docs/source-of-truth/implementation-audit/29-super-airllm-repair-s11a-attention-scale-compatibility-v1.md",
     "docs/source-of-truth/implementation-audit/30-super-airllm-repair-s11b-immutable-reproduction-v1.md",
+    # S12
+    "vendor/airllm-nemotronh/airllm/s12_prompt_suite.py",
+    "vendor/airllm-nemotronh/airllm/s12_repeatability_compare.py",
+    "vendor/airllm-nemotronh/airllm/s12_repeatability_worker.py",
+    "vendor/airllm-nemotronh/airllm/s12_repeatability_probe.py",
+    "vendor/airllm-nemotronh/airllm/s12_repeatability_probe_cli.py",
+    "vendor/airllm-nemotronh/airllm/s12_repeatability_runtime.py",
+    "vendor/airllm-nemotronh/tests/test_s12_repeatability.py",
+    "scripts/runtime/super-airllm/run-s12-repeatability-probe.sh",
+    "scripts/runtime/super-airllm/s12-repeatability-probe.ts",
+    "src/lib/engineer-console/experimental/super-airllm/s12-repeatability-probe.test.ts",
+    "docs/source-of-truth/implementation-audit/31-super-airllm-repair-s12-repeatable-cold-start-generation-v1.md",
 )
 
 # Executable sources that must remain immutable during reproduction.
@@ -171,15 +183,21 @@ def build_source_manifest(repo_root: Path, *, out_path: Path | None = None) -> d
 
 
 def executable_fingerprint(repo_root: Path, manifest: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Fingerprint only vendored executable Python modules used at runtime."""
+    """Fingerprint vendored executable Python modules listed in the manifest (or defaults)."""
     if manifest is None:
         manifest = build_source_manifest(repo_root)
     by_path = {e["path"]: e for e in manifest.get("entries") or []}
     exec_paths = [
         p
-        for p in REPAIR_SOURCE_PATHS
+        for p in sorted(by_path.keys())
         if p.startswith("vendor/airllm-nemotronh/airllm/") and p.endswith(".py")
     ]
+    if not exec_paths:
+        exec_paths = [
+            p
+            for p in REPAIR_SOURCE_PATHS
+            if p.startswith("vendor/airllm-nemotronh/airllm/") and p.endswith(".py")
+        ]
     parts = []
     for path in sorted(exec_paths):
         entry = by_path.get(path) or inventory_entry(repo_root, path)

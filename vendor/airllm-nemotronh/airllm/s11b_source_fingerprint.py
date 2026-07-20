@@ -69,18 +69,24 @@ def verify_fingerprint(
     expected_git_commit: str | None,
     stage: str,
     require_clean_executable_tree: bool = True,
+    manifest_path: Path | None = None,
 ) -> dict[str, Any]:
-    manifest_path = repo_root / ".download-logs" / "s11b-airllm-repair-source-manifest.json"
-    if not manifest_path.is_file():
+    path = manifest_path or (repo_root / ".download-logs" / "s11b-airllm-repair-source-manifest.json")
+    if not path.is_file():
+        # Fall back to S12 manifest when S11B file is absent.
+        s12 = repo_root / ".download-logs" / "s12-airllm-repair-source-manifest.json"
+        if s12.is_file():
+            path = s12
+    if not path.is_file():
         return {
             "stage": stage,
             "ok": False,
             "errors": ["source_manifest_missing"],
         }
-    live_manifest_sha = sha256_file(manifest_path)
+    live_manifest_sha = sha256_file(path)
     import json
 
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = json.loads(path.read_text(encoding="utf-8"))
     disk = verify_manifest_matches_disk(repo_root, manifest)
     fp = executable_fingerprint(repo_root, manifest)
     head = git_head(repo_root)
@@ -101,6 +107,7 @@ def verify_fingerprint(
         "ok": not errors,
         "errors": errors,
         "manifestSha256": live_manifest_sha,
+        "manifestPath": str(path),
         "executableSourceSha256": fp["executableSourceSha256"],
         "gitCommit": head,
         "dirtyFiles": dirty_files,
