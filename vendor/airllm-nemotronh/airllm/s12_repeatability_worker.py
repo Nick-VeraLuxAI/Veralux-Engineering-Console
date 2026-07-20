@@ -264,7 +264,8 @@ def run_worker(config: dict[str, Any]) -> dict[str, Any]:
             }
             append_event(events, {"event": "deep_resume_start", "layer": start_layer, "replayMatched": True})
             result["layersCompleted"].extend(list(range(0, boundary + 1)))
-            result["digests"]["layer36Digest"] = _digest(expected_hidden)        else:
+            result["digests"]["layer36Digest"] = _digest(expected_hidden)
+        else:
             ids = torch.tensor([config["prompt_token_ids"]], dtype=torch.long, device=device)
             if ids.numel() == 0:
                 raise ValueError("prompt_token_ids_empty")

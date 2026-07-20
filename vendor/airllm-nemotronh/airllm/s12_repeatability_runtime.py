@@ -705,6 +705,9 @@ def run_guarded_s12_repeatability(
         memory_samples.extend(view["memoryTelemetrySamples"])
         if final.get("verdict") != "s12_worker_technical_passed":
             errors.extend(final.get("errors") or [f"TOKEN_STEP_FAILED:{cycle_id}:{prompt_id}:{token_step}"])
+            view["failed"] = True
+        else:
+            view["failed"] = False
         return view
 
     def _run_cycle(cycle_id: str) -> dict[str, Any]:
@@ -756,6 +759,8 @@ def run_guarded_s12_repeatability(
                 token_steps: list[dict[str, Any]] = []
                 token1: dict[str, Any] | None = None
                 for step in (1, 2):
+                    if step == 2 and (token1 is None or token1.get("generatedTokenId") is None):
+                        raise RuntimeError(f"token1_missing_for_token2:{cycle_id}:{prompt_id}")
                     prefix = original_ids if step == 1 else expand_prefix(original_ids, int(token1["generatedTokenId"]))
                     deep = (
                         cycle_id == DEEP_RESUME_CYCLE
@@ -844,12 +849,27 @@ def run_guarded_s12_repeatability(
     prompt_b_a = next((p for p in cycle_a.get("prompts") or [] if p["promptId"] == PROMPT_B_ID), {})
     prompt_b_b = next((p for p in cycle_b.get("prompts") or [] if p["promptId"] == PROMPT_B_ID), {})
 
-    prompt_a_cmp = compare_prompt_across_cycles(
-        prompt_id=PROMPT_A_ID, cycle_a_prompt=prompt_a_a, cycle_b_prompt=prompt_a_b
-    )
-    prompt_b_cmp = compare_prompt_across_cycles(
-        prompt_id=PROMPT_B_ID, cycle_a_prompt=prompt_b_a, cycle_b_prompt=prompt_b_b
-    )
+    def _safe_compare_prompt(prompt_id: str, left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
+        try:
+            if not (left.get("tokenSteps") and right.get("tokenSteps")):
+                return {
+                    "promptId": prompt_id,
+                    "orderIndependent": False,
+                    "firstDivergence": "incomplete_prompt_results",
+                    "comparisons": {},
+                }
+            return compare_prompt_across_cycles(prompt_id=prompt_id, cycle_a_prompt=left, cycle_b_prompt=right)
+        except Exception as error:  # noqa: BLE001
+            errors.append(f"COMPARE_PROMPT_FAILED:{prompt_id}:{type(error).__name__}:{error}")
+            return {
+                "promptId": prompt_id,
+                "orderIndependent": False,
+                "firstDivergence": f"compare_error:{error}",
+                "comparisons": {},
+            }
+
+    prompt_a_cmp = _safe_compare_prompt(PROMPT_A_ID, prompt_a_a, prompt_a_b)
+    prompt_b_cmp = _safe_compare_prompt(PROMPT_B_ID, prompt_b_a, prompt_b_b)
 
     def _token1_step(prompt_result: dict[str, Any]) -> dict[str, Any]:
         for step in prompt_result.get("tokenSteps") or []:
