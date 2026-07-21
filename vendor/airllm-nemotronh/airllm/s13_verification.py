@@ -92,6 +92,7 @@ def run_s13_verification(
 ) -> dict[str, Any]:
     errors: list[str] = []
     scenarios: dict[str, Any] = {}
+    recovery: dict[str, Any] = {}
     if not baseline_commit or not baseline_commit.get("commit"):
         return {
             "phase": S13_PHASE,

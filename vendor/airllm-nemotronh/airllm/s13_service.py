@@ -23,6 +23,8 @@ from airllm.s13_service_state import build_readiness, is_terminal_request
 from airllm.s13_worker_manager import WorkerManager
 from airllm.s9_nano_runtime import (
     DEFAULT_NANO_CANDIDATES,
+    default_command_runner,
+    default_http_getter,
     gpu_memory_released,
     list_gpu_inventory,
     probe_nano_health,
@@ -270,8 +272,8 @@ class S13LocalService:
             allow_request_time_nano_interruption and confirm_request_time_nano_interruption
         )
         self.baseline_commit = baseline_commit or {}
-        self.runner = command_runner
-        self.getter = http_getter
+        self.runner = command_runner or default_command_runner
+        self.getter = http_getter or default_http_getter
         self.worker_timeout_seconds = worker_timeout_seconds
         self.started_at = time.time()
         self._stop_event = threading.Event()
@@ -297,7 +299,7 @@ class S13LocalService:
         )
         self.tokenizer_hash = "pending"
 
-        inventory = list_gpu_inventory(self.runner) if self.runner is not None or True else []
+        inventory: list[dict[str, Any]] = []
         try:
             inventory = list_gpu_inventory(self.runner)
         except Exception:  # noqa: BLE001
