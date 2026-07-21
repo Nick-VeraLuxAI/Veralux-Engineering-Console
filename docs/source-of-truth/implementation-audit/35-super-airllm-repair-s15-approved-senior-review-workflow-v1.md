@@ -3,12 +3,12 @@
 ## Final verdict
 
 ```text
-s15_runtime_verification_not_authorized
+s15_approved_senior_review_ready
 ```
 
-Status: **S15 BLOCKED — RUNTIME VERIFICATION NOT AUTHORIZED**
+Status: **S15 READY — APPROVED SENIOR REVIEW**
 
-Interpretation: the immutable S15 workflow implementation and automated tests are complete. Fixture-based verification of dual preservation, comparison, acceptance, recovery, and no-default behavior passed. Live senior-review routing through S13/S14 was **not** authorized in the S15 launcher. Long-form natural-language senior review generation is **not** claimed.
+Live S15/S14/S13 workflow integration is proven. Long-form natural-language senior review generation remains **not proven** (S13 still supports only one or two generated tokens).
 
 This is not autonomous senior decision-making, automatic escalation, production action authorization, native FP8, default senior routing, or full production readiness.
 
@@ -81,15 +81,29 @@ scripts/runtime/super-airllm/s15-senior-review-workflow.ts
 
 ## Limitations
 
-- S13/S14 still support only `maxNewTokens` 1|2 for live generation; S15 workflow tests use fixture/synthetic senior review text.
+- S13/S14 still support only `maxNewTokens` 1|2 for live generation.
 - `workflowIntegrationProven = true`
-- `longFormSeniorReviewProven = false`
-- Live runtime verification requires a separate authorization.
+- `liveSeniorRoutingProven = true` (Hello → `[1044]`; France → `[6993, 32876]`)
+- `operatorAcceptanceProven = true`
+- `longFormSeniorReviewGenerationProven = false`
+- Live senior content is a transport/workflow proof (token IDs + metadata), not a useful review.
+
+## Live verification
+
+| Field | Value |
+| ----- | ----- |
+| Run ID | `20260721T223452Z-s15-live` |
+| Dir | `.download-logs/s15-senior-review-live-verification/20260721T223452Z-s15-live/` |
+| Canonical | `.download-logs/super-s15-senior-review-result.json` |
+| Historical blocked | `.download-logs/super-s15-senior-review-result-blocked-historical.json` |
+| Authorization | `--allow-s15-runtime-verification --confirm-s15-runtime-verification` |
+| Scenarios 1–14 | all passed |
+| S13.1 cleanup | exit 0, ~2.6s, no SIGKILL, port 8091 released, both Nanos healthy |
 
 ## Next gate
 
 ```text
-S16: gated senior-review use within one specific VeraLux lifecycle step
+S16: gated use of an accepted senior review within one specific VeraLux lifecycle decision, while preserving every existing execution approval and preventing the review from directly performing actions.
 ```
 
-An accepted senior review may influence a narrowly scoped decision while all existing execution approvals remain mandatory. Do not begin S16 automatically.
+Do not begin S16 automatically.

@@ -40,6 +40,12 @@ function fileSha(rel: string): string {
 }
 
 async function main(): Promise<number> {
+  const flags = new Set(process.argv.slice(2));
+  if (flags.has("--allow-s15-runtime-verification") || flags.has("--confirm-s15-runtime-verification")) {
+    const { runS15LiveVerification } = await import("./s15-senior-review-live-verify");
+    return runS15LiveVerification(process.argv.slice(2));
+  }
+
   const runId = `${utcStamp()}-s15`;
   const verDir = path.join(ROOT, ".download-logs", "s15-senior-review-verification", runId);
   mkdirSync(verDir, { recursive: true });
