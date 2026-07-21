@@ -103,6 +103,7 @@ def build_s13_source_manifest(repo_root: Path | None = None) -> dict[str, Any]:
     h = hashlib.sha256()
     for d in sorted(e["sha256"] for e in entries if e.get("sha256")):
         h.update(d.encode("ascii"))
+    digest = h.hexdigest()
     out = root / ARTIFACT_DIR / S13_MANIFEST_NAME
     payload = {
         "phase": S13_PHASE,
@@ -111,17 +112,15 @@ def build_s13_source_manifest(repo_root: Path | None = None) -> dict[str, Any]:
         "entries": entries,
         "entryCount": len(entries),
         "missing": missing,
-        "aggregateContentSha256": h.hexdigest(),
+        "aggregateContentSha256": digest,
+        "manifestSha256": digest,
         "s13Paths": list(S13_SOURCE_PATHS),
         "manifestPath": str(out),
     }
     out.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(payload, indent=2) + "\n"
     out.write_text(text, encoding="utf-8")
-    # Stable identity is content aggregate (not the on-disk file, which includes createdAt).
-    payload["manifestSha256"] = h.hexdigest()
     payload["manifestFileSha256"] = sha256_file(out)
-    payload["aggregateContentSha256"] = h.hexdigest()
     return payload
 
 

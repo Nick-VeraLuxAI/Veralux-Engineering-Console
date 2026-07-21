@@ -83,10 +83,15 @@ def verify_fingerprint(
             "ok": False,
             "errors": ["source_manifest_missing"],
         }
-    live_manifest_sha = sha256_file(path)
     import json
 
     manifest = json.loads(path.read_text(encoding="utf-8"))
+    # Prefer stable embedded content digest when present (S13+); else file hash.
+    live_manifest_sha = str(
+        manifest.get("manifestSha256")
+        or manifest.get("aggregateContentSha256")
+        or sha256_file(path)
+    )
     disk = verify_manifest_matches_disk(repo_root, manifest)
     fp = executable_fingerprint(repo_root, manifest)
     head = git_head(repo_root)
