@@ -78,7 +78,14 @@ REQUEST_TRANSITIONS: dict[str, frozenset[str]] = {
     "tokenizing": frozenset({"embedding", "cancellation_requested", "failed"}),
     "embedding": frozenset({"streaming_layers", "cancellation_requested", "failed"}),
     "streaming_layers": frozenset(
-        {"checkpointed", "final_norm", "cancellation_requested", "failed", "recovery_required"}
+        {
+            "streaming_layers",
+            "checkpointed",
+            "final_norm",
+            "cancellation_requested",
+            "failed",
+            "recovery_required",
+        }
     ),
     "checkpointed": frozenset(
         {"streaming_layers", "final_norm", "cancellation_requested", "failed", "recovery_required"}
