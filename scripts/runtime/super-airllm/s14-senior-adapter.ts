@@ -277,6 +277,10 @@ async function main() {
   writeJson(path.join(verDir, "registry-after.json"), GATED_SENIOR_REGISTRY_AFTER);
   assertNoDefaultInvariants(GATED_SENIOR_REGISTRY_AFTER);
 
+  // S13 health.sourceCommit comes from .download-logs/s13-baseline-commit.json.
+  // After the S14 freeze, that file is updated to the Console S14 HEAD so the
+  // S13 fingerprint accepts the descendant commit while preserving S13 content digests.
+  const expectedSourceCommit = String(s14Baseline.commit || s13Baseline.commit || S13_COMMIT);
   const expectedManifest =
     s13Baseline.manifestSha ??
     (existsSync(path.join(repoRoot, ".download-logs/s13-airllm-repair-source-manifest.json"))
@@ -330,7 +334,7 @@ async function main() {
   const { runner, client, store } = createSeniorAdapter({
     stateRoot,
     s13BaseUrl: args.s13BaseUrl,
-    expectedSourceCommit: s13Baseline.commit ?? S13_COMMIT,
+    expectedSourceCommit,
     expectedManifestSha: expectedManifest,
   });
 
@@ -691,7 +695,7 @@ async function main() {
       const restarted = createSeniorAdapter({
         stateRoot,
         s13BaseUrl: args.s13BaseUrl,
-        expectedSourceCommit: s13Baseline.commit ?? S13_COMMIT,
+        expectedSourceCommit,
         expectedManifestSha: expectedManifest,
       });
       // Mark prior poll as abandoned — new runner reconciles
@@ -815,7 +819,7 @@ async function main() {
       const afterResume = createSeniorAdapter({
         stateRoot,
         s13BaseUrl: args.s13BaseUrl,
-        expectedSourceCommit: s13Baseline.commit ?? S13_COMMIT,
+        expectedSourceCommit,
         expectedManifestSha: expectedManifest,
       });
       const reconciled = await afterResume.runner.run(
