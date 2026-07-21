@@ -671,6 +671,8 @@ class S13LocalService:
                 self.store.transition_request(request_id, "cancelling")
                 raise RuntimeError("cancelled_before_nano_stop")
 
+            self.store.write_service_state("waiting_for_gpu", activeRequestId=request_id)
+            self.store.transition_request(request_id, "waiting_for_gpu")
             self.store.write_service_state("stopping_nano", activeRequestId=request_id)
             self.store.transition_request(request_id, "stopping_nano")
             stop_info = self._stop_nano()
