@@ -118,7 +118,10 @@ def build_s13_source_manifest(repo_root: Path | None = None) -> dict[str, Any]:
     out.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(payload, indent=2) + "\n"
     out.write_text(text, encoding="utf-8")
-    payload["manifestSha256"] = sha256_file(out)
+    # Stable identity is content aggregate (not the on-disk file, which includes createdAt).
+    payload["manifestSha256"] = h.hexdigest()
+    payload["manifestFileSha256"] = sha256_file(out)
+    payload["aggregateContentSha256"] = h.hexdigest()
     return payload
 
 
@@ -608,6 +611,7 @@ class S13LocalService:
             expected_prompt=str(request.get("prompt") or ""),
             expected_model_config_hash=self.model_config_hash,
             expected_tokenizer_hash=str(request.get("tokenizerHash") or self.tokenizer_hash),
+            expected_executable_sha=self.executable_sha,
         )
         resume_gen = int(request.get("resumeGeneration") or 0) + 1
         request["resumeGeneration"] = resume_gen

@@ -414,16 +414,23 @@ def run_s13_verification(
                     "preKillWorkerPid": worker_pid,
                 }
                 if st.get("state") == "recovery_required":
-                    _http_json("POST", f"{base}/v1/generations/{sub['requestId']}/resume", {})
-                    resumed = _wait_terminal(base, sub["requestId"], timeout=14400.0)
-                    recovery["scenario7_service_restart"]["resumeState"] = resumed.get("state")
-                    recovery["scenario7_service_restart"]["passed"] = resumed.get("state") == "completed"
+                    try:
+                        _http_json("POST", f"{base}/v1/generations/{sub['requestId']}/resume", {})
+                    except Exception as resume_err:  # noqa: BLE001
+                        recovery["scenario7_service_restart"]["passed"] = False
+                        recovery["scenario7_service_restart"]["error"] = f"resume_rejected:{resume_err}"
+                        errors.append("SCENARIO7_RESTART_FAILED")
+                    else:
+                        resumed = _wait_terminal(base, sub["requestId"], timeout=14400.0)
+                        recovery["scenario7_service_restart"]["resumeState"] = resumed.get("state")
+                        recovery["scenario7_service_restart"]["passed"] = resumed.get("state") == "completed"
+                        if not recovery["scenario7_service_restart"].get("passed"):
+                            errors.append("SCENARIO7_RESTART_FAILED")
                 elif st.get("state") == "completed":
                     recovery["scenario7_service_restart"]["passed"] = True
                 else:
                     recovery["scenario7_service_restart"]["passed"] = False
                     recovery["scenario7_service_restart"]["error"] = f"unexpected_state:{st.get('state')}"
-                if not recovery["scenario7_service_restart"].get("passed"):
                     errors.append("SCENARIO7_RESTART_FAILED")
 
         # Scenario 8: clean shutdown (service must still be reachable)

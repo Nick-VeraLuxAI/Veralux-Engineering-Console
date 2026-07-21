@@ -138,13 +138,17 @@ def validate_resume_eligibility(
     expected_prompt: str,
     expected_model_config_hash: str,
     expected_tokenizer_hash: str,
+    expected_executable_sha: str | None = None,
 ) -> None:
     if str(state.get("state")) not in {"recovery_required", "failed", "cancelled", "checkpointed"}:
-        # allow recovery_required primarily
         if str(state.get("state")) != "recovery_required":
             raise ValueError(f"resume_ineligible_state:{state.get('state')}")
     if request.get("sourceCommit") and request.get("sourceCommit") != expected_commit:
         raise ValueError("resume_source_commit_mismatch")
+    # Prefer stable executable fingerprint; fall back to manifest content digest.
+    req_exec = request.get("executableSourceSha256")
+    if expected_executable_sha and req_exec and req_exec != expected_executable_sha:
+        raise ValueError("resume_executable_source_mismatch")
     if request.get("sourceManifestSha256") and request.get("sourceManifestSha256") != expected_manifest_sha:
         raise ValueError("resume_source_manifest_mismatch")
     if request.get("prompt") != expected_prompt:
