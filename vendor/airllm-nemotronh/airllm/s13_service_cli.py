@@ -6,6 +6,7 @@ import argparse
 import json
 import signal
 import sys
+import threading
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 
@@ -18,6 +19,7 @@ from airllm.s13_service import (
     create_s13_baseline_commit,
     reject_non_loopback_bind,
 )
+from airllm.s13_shutdown import DEFAULT_SHUTDOWN_DEADLINE_SECONDS, ShutdownMode
 from airllm.s13_verification import run_required_tests, run_s13_verification
 from airllm.split_cache_path import read_super_model_path_from_env
 
@@ -56,6 +58,18 @@ def main() -> None:
     parser.add_argument("--verify", action="store_true")
     parser.add_argument("--run-tests-only", action="store_true")
     parser.add_argument("--skip-tests", action="store_true")
+    parser.add_argument(
+        "--shutdown-deadline-seconds",
+        type=float,
+        default=DEFAULT_SHUTDOWN_DEADLINE_SECONDS,
+        help="Bounded S13.1 shutdown deadline (default 30s)",
+    )
+    parser.add_argument(
+        "--shutdown-mode",
+        default=ShutdownMode.CANCEL_ACTIVE.value,
+        choices=[m.value for m in ShutdownMode],
+        help="Default shutdown mode for signals / API",
+    )
     args = parser.parse_args()
 
     repo_root = _repo_root()
@@ -131,11 +145,28 @@ def main() -> None:
             baseline_commit=baseline_commit,
         )
         server = S13HttpServer(service)
+        shutdown_once = threading.Event()
+        escalate = threading.Event()
 
         def _handle_signal(signum, frame):  # noqa: ANN001, ARG001
-            info = server.shutdown()
-            print(json.dumps({"phase": "S13", "event": "shutdown", **info}, indent=2, default=_json_default))
-            raise SystemExit(0)
+            # NEVER call httpd.shutdown() from this handler — that deadlocks serve_forever.
+            if shutdown_once.is_set():
+                # Second signal: escalate to immediate mode.
+                escalate.set()
+                server.request_shutdown(
+                    mode=ShutdownMode.IMMEDIATE,
+                    deadline_seconds=args.shutdown_deadline_seconds,
+                    reason=f"signal_{signum}_escalation",
+                    wait=False,
+                )
+                return
+            shutdown_once.set()
+            server.request_shutdown(
+                mode=args.shutdown_mode,
+                deadline_seconds=args.shutdown_deadline_seconds,
+                reason=f"signal_{signum}",
+                wait=False,
+            )
 
         signal.signal(signal.SIGTERM, _handle_signal)
         signal.signal(signal.SIGINT, _handle_signal)
@@ -149,13 +180,21 @@ def main() -> None:
                         args.allow_request_time_nano_interruption
                         and args.confirm_request_time_nano_interruption
                     ),
+                    "shutdownDeadlineSeconds": args.shutdown_deadline_seconds,
+                    "shutdownMode": args.shutdown_mode,
                 },
                 indent=2,
             ),
             flush=True,
         )
-        server.serve_forever()
-        return
+        result = server.serve_forever()
+        payload = {
+            "phase": "S13",
+            "event": "shutdown",
+            **(result.to_dict() if result is not None else {"verdict": "s13_shutdown_failed"}),
+        }
+        print(json.dumps(payload, indent=2, default=_json_default), flush=True)
+        sys.exit(server.exit_code if result is not None else 2)
 
     print(
         json.dumps(

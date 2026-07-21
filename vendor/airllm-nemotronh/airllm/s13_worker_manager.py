@@ -139,7 +139,7 @@ class WorkerManager:
 
     def force_terminate(self, *, sig: int = signal.SIGTERM) -> dict[str, Any]:
         if self._active is None:
-            return {"terminated": False, "reason": "no_active_worker"}
+            return {"terminated": False, "reason": "no_active_worker", "reaped": True, "sigkillUsed": False}
         handle = self._active
         try:
             handle.process.send_signal(sig)
@@ -150,13 +150,112 @@ class WorkerManager:
         except subprocess.TimeoutExpired:
             handle.process.kill()
             handle.process.wait(timeout=10)
+            info = {
+                "terminated": True,
+                "pid": handle.pid,
+                "exitCode": handle.process.returncode,
+                "signal": sig,
+                "reaped": True,
+                "sigkillUsed": True,
+            }
+            self._active = None
+            return info
         info = {
             "terminated": True,
             "pid": handle.pid,
             "exitCode": handle.process.returncode,
             "signal": sig,
+            "reaped": True,
+            "sigkillUsed": False,
         }
         self._active = None
+        return info
+
+    def escalate_terminate(
+        self,
+        *,
+        deadline_seconds: float,
+        cooperative_cancel: bool = True,
+        term_wait_seconds: float = 5.0,
+        kill_wait_seconds: float = 3.0,
+    ) -> dict[str, Any]:
+        """Bounded worker termination ladder: cancel → SIGTERM → SIGKILL → reap."""
+        if self._active is None:
+            return {
+                "terminated": False,
+                "reason": "no_active_worker",
+                "reaped": True,
+                "sigkillUsed": False,
+                "cooperativeCancellationRequested": False,
+            }
+        handle = self._active
+        deadline = time.monotonic() + max(0.0, deadline_seconds)
+        coop = False
+        if cooperative_cancel:
+            try:
+                handle.cancel_path.write_text("cancel\n", encoding="utf-8")
+                coop = True
+            except OSError:
+                pass
+            # Brief cooperative window
+            coop_wait = min(2.0, max(0.0, deadline - time.monotonic()))
+            try:
+                handle.process.wait(timeout=coop_wait)
+            except subprocess.TimeoutExpired:
+                pass
+            if handle.process.poll() is not None:
+                code = int(handle.process.returncode or 0)
+                self._active = None
+                return {
+                    "terminated": True,
+                    "reaped": True,
+                    "sigkillUsed": False,
+                    "cooperativeCancellationRequested": coop,
+                    "pid": handle.pid,
+                    "exitCode": code,
+                    "signal": "cooperative",
+                }
+
+        # SIGTERM
+        if handle.process.poll() is None:
+            try:
+                handle.process.send_signal(signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            term_wait = min(term_wait_seconds, max(0.0, deadline - time.monotonic()))
+            try:
+                handle.process.wait(timeout=term_wait)
+            except subprocess.TimeoutExpired:
+                pass
+
+        sigkill_used = False
+        if handle.process.poll() is None:
+            try:
+                handle.process.kill()
+                sigkill_used = True
+            except ProcessLookupError:
+                pass
+            kill_wait = min(kill_wait_seconds, max(0.1, deadline - time.monotonic()))
+            try:
+                handle.process.wait(timeout=kill_wait)
+            except subprocess.TimeoutExpired:
+                # Last resort: still try wait briefly
+                try:
+                    handle.process.wait(timeout=1.0)
+                except subprocess.TimeoutExpired:
+                    pass
+
+        reaped = handle.process.poll() is not None
+        info = {
+            "terminated": True,
+            "reaped": reaped,
+            "sigkillUsed": sigkill_used,
+            "cooperativeCancellationRequested": coop,
+            "pid": handle.pid,
+            "exitCode": handle.process.returncode,
+        }
+        if reaped:
+            self._active = None
         return info
 
     def alive(self) -> bool:
