@@ -839,6 +839,7 @@ async function main() {
         s13BaseUrl: args.s13BaseUrl,
         expectedSourceCommit,
         expectedManifestSha: expectedManifestSha,
+        deadlines: liveDeadlines,
       });
       const reconciled = await afterResume.runner.run(
         {
