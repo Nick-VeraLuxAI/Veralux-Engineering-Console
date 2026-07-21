@@ -330,12 +330,19 @@ async function main() {
     process.exit(2);
   }
 
+  // Prefer the live S13-reported fingerprint (descendant S14 tree may rebuild
+  // the content digest while keeping the executable SHA stable).
+  const expectedManifestSha =
+    (typeof health.sourceManifestSha256 === "string" && health.sourceManifestSha256) ||
+    expectedManifest ||
+    null;
+
   const stateRoot = path.join(verDir, "adapter-state");
   const { runner, client, store } = createSeniorAdapter({
     stateRoot,
     s13BaseUrl: args.s13BaseUrl,
     expectedSourceCommit,
-    expectedManifestSha: expectedManifest,
+    expectedManifestSha: expectedManifestSha,
   });
 
   const routing = {
@@ -696,7 +703,7 @@ async function main() {
         stateRoot,
         s13BaseUrl: args.s13BaseUrl,
         expectedSourceCommit,
-        expectedManifestSha: expectedManifest,
+        expectedManifestSha: expectedManifestSha,
       });
       // Mark prior poll as abandoned — new runner reconciles
       const recoveredList = await restarted.runner.reconcileActive();
@@ -820,7 +827,7 @@ async function main() {
         stateRoot,
         s13BaseUrl: args.s13BaseUrl,
         expectedSourceCommit,
-        expectedManifestSha: expectedManifest,
+        expectedManifestSha: expectedManifestSha,
       });
       const reconciled = await afterResume.runner.run(
         {
