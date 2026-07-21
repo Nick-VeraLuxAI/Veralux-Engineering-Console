@@ -1,5 +1,25 @@
 # 33 — Super AirLLM Repair S14: Gated Senior-Worker Adapter (v1)
 
+# Final status (post-verification)
+
+```text
+S14 READY — GATED FAKE-QUANT SENIOR ADAPTER
+s14_gated_senior_adapter_ready_fake_quant
+```
+
+| Repo | Branch | S14 tip commit |
+| --- | --- | --- |
+| Engineering Console | `repair/super-airllm-s14-senior-adapter` | `55abb4afceceb498f8aaf7acee94dfa9e56b1b48` |
+| VeraLux System | `repair/super-airllm-s14-senior-adapter` | `36d97d80237edc8f94ce4b301d535a40cd307faa` |
+| S13 immutable | parent | `614377b02fa7ee06976fd58aeccaa7965a96b6e6` |
+
+Live run: `.download-logs/s14-senior-adapter-verification/20260721T175152Z-55abb4af/`
+
+Deterministic tokens confirmed: Hello `[1044]`; France `[6993, 32876]`.
+
+---
+
+
 Status: implementation complete; immutable baseline / live routing verification require paired authorization flags.
 
 ## S13 baseline (immutable)
