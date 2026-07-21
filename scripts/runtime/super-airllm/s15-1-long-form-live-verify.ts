@@ -218,11 +218,12 @@ async function main(): Promise<void> {
       "bash",
       [
         path.join(ROOT, "scripts/runtime/super-airllm/run-s13-local-service.sh"),
+        "--serve",
         "--allow-request-time-nano-interruption",
         "--confirm-request-time-nano-interruption",
-        "--bind",
+        "--bind-host",
         "127.0.0.1",
-        "--port",
+        "--bind-port",
         "8091",
       ],
       {
