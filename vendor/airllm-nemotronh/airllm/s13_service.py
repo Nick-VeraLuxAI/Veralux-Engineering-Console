@@ -16,6 +16,26 @@ from typing import Any, Callable
 from airllm.s11b_source_fingerprint import executable_working_tree_dirty, verify_fingerprint
 from airllm.s11b_source_inventory import executable_fingerprint, sha256_file
 from airllm.s12_prompt_suite import expand_prefix
+from airllm.s13_long_form import (
+    CONFIGURED_MAX_NEW_TOKENS,
+    DEFAULT_EOS_TOKEN_ID,
+    VERIFIED_MAX_NEW_TOKENS,
+    check_admission_limits,
+    decode_partial_output,
+    enforce_output_byte_limit,
+    estimate_generation_cost,
+    load_completed_token_steps,
+    limits_snapshot,
+    persist_token_step,
+    prefix_hash,
+    reject_stop_strings,
+    should_stop_generation,
+    token_step_dir,
+    validate_max_new_tokens,
+    validate_resume_prefix,
+    validate_stop_token_ids,
+    write_generated_tokens,
+)
 from airllm.s13_recovery import classify_orphaned_request, reconcile_service_startup, validate_resume_eligibility
 from airllm.s13_request_queue import RequestQueue
 from airllm.s13_request_store import RequestStore, append_event_atomic, assert_ext4_path, atomic_write_json
@@ -60,9 +80,11 @@ S13_SOURCE_PATHS: tuple[str, ...] = (
     "vendor/airllm-nemotronh/airllm/s13_recovery.py",
     "vendor/airllm-nemotronh/airllm/s13_api.py",
     "vendor/airllm-nemotronh/airllm/s13_service.py",
+    "vendor/airllm-nemotronh/airllm/s13_long_form.py",
     "vendor/airllm-nemotronh/airllm/s13_service_cli.py",
     "vendor/airllm-nemotronh/airllm/s13_verification.py",
     "vendor/airllm-nemotronh/tests/test_s13_local_service.py",
+    "vendor/airllm-nemotronh/tests/test_s15_1_long_form.py",
     "scripts/runtime/super-airllm/run-s13-local-service.sh",
     "scripts/runtime/super-airllm/s13-local-service.ts",
     "src/lib/engineer-console/experimental/super-airllm/s13-local-service.test.ts",
@@ -608,6 +630,9 @@ class S13LocalService:
             "generationStrategy": GENERATION_STRATEGY,
             "nativeFp8KernelProven": False,
             "nativeFp8ExtensionAvailable": False,
+            "configuredMaxNewTokens": CONFIGURED_MAX_NEW_TOKENS,
+            "verifiedMaxNewTokens": VERIFIED_MAX_NEW_TOKENS,
+            "longFormLimits": limits_snapshot(),
             "bindHost": self.bind_host,
             "bindPort": self.bind_port,
             "sourceCommit": self.baseline_commit.get("commit"),
@@ -621,9 +646,12 @@ class S13LocalService:
         prompt = body.get("prompt")
         if not isinstance(prompt, str) or not prompt:
             raise ValueError("prompt_required")
-        max_new = int(body.get("maxNewTokens") or 0)
-        if max_new not in {1, 2}:
-            raise ValueError("unsupported_max_new_tokens")
+        try:
+            max_new = validate_max_new_tokens(int(body.get("maxNewTokens") or 0))
+        except (TypeError, ValueError) as error:
+            if "unsupported_max_new_tokens" in str(error):
+                raise ValueError("unsupported_max_new_tokens") from error
+            raise ValueError("unsupported_max_new_tokens") from error
         policy = body.get("generationPolicy") or "greedy"
         if policy != "greedy":
             raise ValueError("unsupported_generation_policy")
@@ -632,6 +660,13 @@ class S13LocalService:
                 raise ValueError("sampling_not_supported")
             if body.get("temperature") not in (None, 0, 0.0):
                 raise ValueError("temperature_must_be_zero")
+        reject_stop_strings(body)
+        stop_token_ids = validate_stop_token_ids(body.get("stopTokenIds"))
+        stop_on_eos = body.get("stopOnEos")
+        if stop_on_eos is None:
+            stop_on_eos = True
+        elif not isinstance(stop_on_eos, bool):
+            raise ValueError("stop_on_eos_must_be_boolean")
 
         if self._shutting_down or self.admission_paused or self.recovery_required:
             raise ValueError("admission_paused_or_recovery_required")
@@ -642,6 +677,22 @@ class S13LocalService:
         if not fp.get("ok"):
             raise ValueError("source_fingerprint_failed")
 
+        # Tokenize for limit checks before Nano interruption (admission-time).
+        # Callers may supply promptTokenIds for deterministic test admission.
+        raw_ids = body.get("promptTokenIds")
+        if isinstance(raw_ids, list) and raw_ids:
+            prompt_ids = [int(x) for x in raw_ids]
+            if not self.tokenizer_hash:
+                self.tokenizer_hash = hashlib.sha256(repr(prompt_ids).encode()).hexdigest()[:32]
+        else:
+            prompt_ids = self._tokenize(prompt)
+        check_admission_limits(
+            prompt_token_count=len(prompt_ids),
+            max_new_tokens=max_new,
+            state_root=self.store.state_root,
+        )
+        cost = estimate_generation_cost(max_new)
+
         request_key = body.get("requestKey")
         if request_key:
             mapping = self.store.load_idempotency()
@@ -650,14 +701,26 @@ class S13LocalService:
                 prev = self.store.read_request(existing)
                 if prev.get("prompt") != prompt or int(prev.get("maxNewTokens") or -1) != max_new:
                     raise ValueError("idempotency_key_conflict")
-                return {"requestId": existing, "state": self.store.read_state(existing).get("state"), "idempotentReplay": True}
+                return {
+                    "requestId": existing,
+                    "state": self.store.read_state(existing).get("state"),
+                    "idempotentReplay": True,
+                    **cost,
+                }
 
         request_id = f"s13-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:10]}"
         request = {
             "requestId": request_id,
             "prompt": prompt,
+            "promptTokenIds": prompt_ids,
+            "promptTokenCount": len(prompt_ids),
             "maxNewTokens": max_new,
+            "configuredMaxNewTokens": CONFIGURED_MAX_NEW_TOKENS,
+            "verifiedMaxNewTokens": VERIFIED_MAX_NEW_TOKENS,
             "generationPolicy": "greedy",
+            "stopTokenIds": stop_token_ids,
+            "stopOnEos": bool(stop_on_eos),
+            "eosTokenId": DEFAULT_EOS_TOKEN_ID,
             "requestKey": request_key,
             "createdAt": _utc(),
             "sourceCommit": self.baseline_commit.get("commit"),
@@ -670,11 +733,19 @@ class S13LocalService:
             "gpuUuid": self.gpu_uuid,
             "executionMode": EXECUTION_MODE,
             "generationStrategy": GENERATION_STRATEGY,
+            "kvCacheClaimed": False,
+            **cost,
         }
         self.store.write_request(request_id, request)
         atomic_write_json(
             self.store.request_dir(request_id) / "state.json",
-            {"requestId": request_id, "state": "queued", "updatedAt": _utc()},
+            {
+                "requestId": request_id,
+                "state": "queued",
+                "tokensCompleted": 0,
+                "requestedMaxNewTokens": max_new,
+                "updatedAt": _utc(),
+            },
         )
         append_event_atomic(
             self.store.request_dir(request_id) / "events.jsonl",
@@ -697,7 +768,8 @@ class S13LocalService:
                 "createdAt": _utc(),
             },
         )
-        return {"requestId": request_id, "state": "queued", "idempotentReplay": False}
+        atomic_write_json(req_dir / "limits.json", limits_snapshot())
+        return {"requestId": request_id, "state": "queued", "idempotentReplay": False, **cost}
 
     def get_request(self, request_id: str) -> dict[str, Any]:
         request = self.store.read_request(request_id)
@@ -815,11 +887,13 @@ class S13LocalService:
 
     def _execute_request_locked(self, request_id: str) -> None:
         request = self.store.read_request(request_id)
+        req_dir = self.store.request_dir(request_id)
         nano_restore_info: dict[str, Any] = {}
         generated: list[dict[str, Any]] = []
         cancelled = False
         failed_error: str | None = None
         input_ids: list[int] = []
+        completion_reason: str | None = None
         try:
             self.store.write_service_state("admitting_request", activeRequestId=request_id)
             self.store.transition_request(request_id, "admitted")
@@ -836,6 +910,18 @@ class S13LocalService:
                 self.store.transition_request(request_id, "cancelling")
                 raise RuntimeError("cancelled_before_nano_stop")
 
+            # Re-validate limits before Nano interruption (use durable prompt ids when present).
+            if isinstance(request.get("promptTokenIds"), list) and request["promptTokenIds"]:
+                input_ids = [int(x) for x in request["promptTokenIds"]]
+            else:
+                input_ids = self._tokenize(str(request["prompt"]))
+            max_new = int(request["maxNewTokens"])
+            check_admission_limits(
+                prompt_token_count=len(input_ids),
+                max_new_tokens=max_new,
+                state_root=self.store.state_root,
+            )
+
             self.store.write_service_state("waiting_for_gpu", activeRequestId=request_id)
             self.store.transition_request(request_id, "waiting_for_gpu")
             self.store.write_service_state("stopping_nano", activeRequestId=request_id)
@@ -847,24 +933,82 @@ class S13LocalService:
             self.store.write_service_state("starting_worker")
             self.store.transition_request(request_id, "starting_worker")
             self.store.transition_request(request_id, "tokenizing")
-            input_ids = self._tokenize(str(request["prompt"]))
-            max_new = int(request["maxNewTokens"])
-            prefix = list(input_ids)
+
+            # Between-token resume: load durable completed steps; do not regenerate.
+            completed = load_completed_token_steps(req_dir)
+            if completed:
+                prefix = validate_resume_prefix(input_ids=input_ids, completed=completed)
+                generated = [
+                    {
+                        "tokenId": int(t["tokenId"]),
+                        "decoded": t.get("decoded"),
+                        "selectedLogit": t.get("selectedLogit"),
+                        "step": int(t.get("step") or i + 1),
+                        "prefixHash": t.get("prefixHash"),
+                        "resumed": True,
+                    }
+                    for i, t in enumerate(completed)
+                ]
+                start_step = len(generated) + 1
+                append_event_atomic(
+                    req_dir / "events.jsonl",
+                    {
+                        "event": "resume_between_tokens",
+                        "tokensCompleted": len(generated),
+                        "resumeAtStep": start_step,
+                    },
+                )
+            else:
+                prefix = list(input_ids)
+                start_step = 1
+
+            stop_token_ids = validate_stop_token_ids(request.get("stopTokenIds") or [])
+            stop_on_eos = bool(request.get("stopOnEos", True))
+            eos_token_id = int(request.get("eosTokenId") or DEFAULT_EOS_TOKEN_ID)
             self.large_model_running = True
             self.store.write_service_state("running_request", activeRequestId=request_id)
+            self.store.transition_request(
+                request_id,
+                "streaming_layers",
+                tokensCompleted=len(generated),
+                requestedMaxNewTokens=max_new,
+                currentTokenStep=start_step if start_step <= max_new else None,
+            )
 
-            for step in range(1, max_new + 1):
+            for step in range(start_step, max_new + 1):
                 if self._cancel_requested(request_id):
                     cancelled = True
-                    self.store.transition_request(request_id, "cancelling")
+                    completion_reason = "cancelled"
+                    self.store.transition_request(
+                        request_id,
+                        "cancelling",
+                        tokensCompleted=len(generated),
+                        requestedMaxNewTokens=max_new,
+                    )
                     break
-                self.store.transition_request(request_id, "embedding", tokenStep=step)
-                self.store.transition_request(request_id, "streaming_layers", tokenStep=step)
+                self.store.transition_request(
+                    request_id,
+                    "embedding",
+                    tokenStep=step,
+                    tokensCompleted=len(generated),
+                    requestedMaxNewTokens=max_new,
+                    currentTokenStep=step,
+                )
+                self.store.transition_request(
+                    request_id,
+                    "streaming_layers",
+                    tokenStep=step,
+                    tokensCompleted=len(generated),
+                    requestedMaxNewTokens=max_new,
+                    currentTokenStep=step,
+                )
                 resume_gen = int(request.get("resumeGeneration") or 0)
-                token_dir = self.store.request_dir(request_id) / f"token-{step}" / f"gen-{resume_gen}"
-                # Fresh checkpoint dir for each generation attempt (resume-safe).
+                # Legacy worker dir + durable token-steps layout.
+                token_dir = req_dir / f"token-{step}" / f"gen-{resume_gen}"
                 (token_dir / "checkpoints").mkdir(parents=True, exist_ok=True)
+                durable_step = token_step_dir(req_dir, step)
                 worker_run_id = f"{request_id}-t{step}-g{resume_gen}"
+                step_prefix_hash = prefix_hash(prefix)
                 config = {
                     "mode": "full",
                     "model_path": self.model_path,
@@ -873,6 +1017,7 @@ class S13LocalService:
                     "run_id": worker_run_id,
                     "prompt": request["prompt"],
                     "prompt_token_ids": prefix,
+                    "prefix_hash": step_prefix_hash,
                     "gpu_uuid": self.gpu_uuid,
                     "source_manifest_sha256": self.manifest_sha,
                     "source_manifest_path": str(self.repo_root / ARTIFACT_DIR / S13_MANIFEST_NAME),
@@ -892,10 +1037,21 @@ class S13LocalService:
                     },
                     "rng_seed": 0,
                 }
+                # Reject accidental reuse of another step's checkpoint tree.
+                if (durable_step / "foreign-checkpoint.json").is_file():
+                    raise RuntimeError("cross_token_checkpoint_rejected")
                 handle = self.workers.start_token_worker(
                     request_id=request_id, work_dir=token_dir, config=config, label=f"t{step}"
                 )
-                self.store.transition_request(request_id, "streaming_layers", workerPid=handle.pid, tokenStep=step)
+                self.store.transition_request(
+                    request_id,
+                    "streaming_layers",
+                    workerPid=handle.pid,
+                    tokenStep=step,
+                    tokensCompleted=len(generated),
+                    requestedMaxNewTokens=max_new,
+                    currentTokenStep=step,
+                )
                 # Monitor for cancel / death
                 while self.workers.alive():
                     if self._cancel_requested(request_id):
@@ -905,28 +1061,35 @@ class S13LocalService:
                 exit_code, worker_result = self.workers.wait(timeout=self.worker_timeout_seconds)
                 if worker_result.get("verdict") == "s13_worker_cancelled":
                     cancelled = True
+                    completion_reason = "cancelled"
                     self.store.transition_request(
-                        request_id, "cancelling", cancelledAfterLayer=worker_result.get("cancelledAfterLayer")
+                        request_id,
+                        "cancelling",
+                        cancelledAfterLayer=worker_result.get("cancelledAfterLayer"),
+                        tokensCompleted=len(generated),
                     )
                     break
                 if worker_result.get("verdict") != "s12_worker_technical_passed":
                     # Signal death / missing result => recovery_required (retain checkpoints).
                     if int(exit_code) < 0 or not (worker_result.get("generation") or {}).get("tokenId"):
+                        write_generated_tokens(req_dir, generated)
                         try:
                             self.store.transition_request(
                                 request_id,
                                 "recovery_required",
                                 workerExit=exit_code,
                                 errors=worker_result.get("errors"),
+                                tokensCompleted=len(generated),
                             )
                         except ValueError:
                             atomic_write_json(
-                                self.store.request_dir(request_id) / "state.json",
+                                req_dir / "state.json",
                                 {
                                     **self.store.read_state(request_id),
                                     "state": "recovery_required",
                                     "workerExit": exit_code,
                                     "terminal": True,
+                                    "tokensCompleted": len(generated),
                                     "updatedAt": _utc(),
                                 },
                             )
@@ -942,13 +1105,18 @@ class S13LocalService:
                                 "state": "recovery_required",
                                 "error": f"worker_exit:{exit_code}",
                                 "generatedTokens": generated,
+                                "tokensCompleted": len(generated),
+                                "requestedMaxNewTokens": max_new,
+                                "partialOutput": decode_partial_output(generated),
+                                "completionReason": "recovery_required",
+                                "s15AcceptanceEligible": False,
                                 "nanoRestored": bool(nano_restore_info.get("healthy")),
                                 "inputTokenIds": input_ids,
                                 "workerExit": exit_code,
                             },
                         )
                         append_event_atomic(
-                            self.store.request_dir(request_id) / "events.jsonl",
+                            req_dir / "events.jsonl",
                             {"event": "worker_crash_recovery_required", "workerExit": exit_code},
                         )
                         self.store.write_service_state(
@@ -961,17 +1129,61 @@ class S13LocalService:
                     raise RuntimeError("unquantized_fallback_detected")
                 gen = worker_result.get("generation") or {}
                 token_id = int(gen["tokenId"])
-                generated.append(
-                    {
+                token_record = {
+                    "tokenId": token_id,
+                    "decoded": gen.get("decoded"),
+                    "selectedLogit": gen.get("selectedLogit"),
+                    "digests": worker_result.get("digests"),
+                    "layerCountCompleted": len(worker_result.get("layersCompleted") or []),
+                    "step": step,
+                    "prefixHash": step_prefix_hash,
+                }
+                generated.append(token_record)
+                persist_token_step(
+                    req_dir,
+                    step=step,
+                    prefix_ids=prefix,
+                    selected={
                         "tokenId": token_id,
-                        "decoded": gen.get("decoded"),
                         "selectedLogit": gen.get("selectedLogit"),
-                        "digests": worker_result.get("digests"),
-                        "layerCountCompleted": len(worker_result.get("layersCompleted") or []),
-                    }
+                        "decoded": gen.get("decoded"),
+                    },
+                    worker_pid=handle.pid,
+                    source_fingerprint=self.manifest_sha,
+                    model_fingerprint=self.model_config_hash,
+                    checkpoint_path=str(token_dir / "checkpoints"),
+                    layer_progress=worker_result.get("layersCompleted"),
+                    logits_digest=(worker_result.get("digests") or {}).get("logits"),
+                    cleanup_result=worker_result.get("cleanup"),
                 )
-                self.store.transition_request(request_id, "selecting_token", tokenId=token_id, tokenStep=step)
+                write_generated_tokens(req_dir, generated)
+                enforce_output_byte_limit(generated)
+                self.store.transition_request(
+                    request_id,
+                    "selecting_token",
+                    tokenId=token_id,
+                    tokenStep=step,
+                    tokensCompleted=len(generated),
+                    requestedMaxNewTokens=max_new,
+                )
                 prefix = expand_prefix(prefix, token_id)
+
+                stop_why = should_stop_generation(
+                    token_id,
+                    stop_on_eos=stop_on_eos,
+                    eos_token_id=eos_token_id,
+                    stop_token_ids=stop_token_ids,
+                )
+                if stop_why:
+                    completion_reason = stop_why
+                    append_event_atomic(
+                        req_dir / "events.jsonl",
+                        {"event": "early_stop", "reason": stop_why, "tokenStep": step, "tokenId": token_id},
+                    )
+                    break
+            else:
+                if not cancelled:
+                    completion_reason = "max_new_tokens"
 
             self.large_model_running = False
             self.store.write_service_state("restoring_nano")
@@ -986,6 +1198,7 @@ class S13LocalService:
             if not nano_restore_info.get("healthy"):
                 raise RuntimeError("nano_restore_failed")
 
+            write_generated_tokens(req_dir, generated)
             if cancelled:
                 result = {
                     "requestId": request_id,
@@ -996,14 +1209,25 @@ class S13LocalService:
                     "prompt": request["prompt"],
                     "inputTokenIds": input_ids,
                     "generatedTokens": generated,
+                    "tokensCompleted": len(generated),
+                    "requestedMaxNewTokens": max_new,
+                    "partialOutput": decode_partial_output(generated),
+                    "completionReason": completion_reason or "cancelled",
+                    "s15AcceptanceEligible": False,
                     "nativeFp8KernelProven": False,
                     "fallbackDetected": False,
+                    "kvCacheClaimed": False,
                     "nanoRestored": True,
                     "createdAt": request.get("createdAt"),
                     "completedAt": _utc(),
                 }
                 self.store.write_result(request_id, result)
-                self.store.transition_request(request_id, "cancelled")
+                self.store.transition_request(
+                    request_id,
+                    "cancelled",
+                    tokensCompleted=len(generated),
+                    requestedMaxNewTokens=max_new,
+                )
             else:
                 result = {
                     "requestId": request_id,
@@ -1014,14 +1238,26 @@ class S13LocalService:
                     "prompt": request["prompt"],
                     "inputTokenIds": input_ids,
                     "generatedTokens": generated,
+                    "tokensCompleted": len(generated),
+                    "requestedMaxNewTokens": max_new,
+                    "partialOutput": None,
+                    "completionReason": completion_reason or "max_new_tokens",
+                    "s15AcceptanceEligible": True,
                     "nativeFp8KernelProven": False,
                     "fallbackDetected": False,
+                    "kvCacheClaimed": False,
                     "nanoRestored": True,
                     "createdAt": request.get("createdAt"),
                     "completedAt": _utc(),
                 }
                 self.store.write_result(request_id, result)
-                self.store.transition_request(request_id, "completed")
+                self.store.transition_request(
+                    request_id,
+                    "completed",
+                    tokensCompleted=len(generated),
+                    requestedMaxNewTokens=max_new,
+                    completionReason=result["completionReason"],
+                )
             self.store.write_service_state("idle")
             self.queue.set_active(None)
         except Exception as error:  # noqa: BLE001
@@ -1036,6 +1272,7 @@ class S13LocalService:
             nano_restore_info = self._restore_nano()
             state = self.store.read_state(request_id)
             cur = str(state.get("state") or "")
+            write_generated_tokens(req_dir, generated)
             if "cancel" in str(error).lower() or cancelled:
                 try:
                     if cur not in {"cancelling", "cancellation_requested", "restoring_nano"}:
@@ -1049,7 +1286,7 @@ class S13LocalService:
                             self.store.transition_request(request_id, "cancelled")
                 except ValueError:
                     atomic_write_json(
-                        self.store.request_dir(request_id) / "state.json",
+                        req_dir / "state.json",
                         {**state, "state": "cancelled", "error": failed_error, "updatedAt": _utc()},
                     )
                 self.store.write_result(
@@ -1059,6 +1296,11 @@ class S13LocalService:
                         "state": "cancelled",
                         "error": failed_error,
                         "generatedTokens": generated,
+                        "tokensCompleted": len(generated),
+                        "requestedMaxNewTokens": int(request.get("maxNewTokens") or 0),
+                        "partialOutput": decode_partial_output(generated),
+                        "completionReason": "cancelled",
+                        "s15AcceptanceEligible": False,
                         "nanoRestored": bool(nano_restore_info.get("healthy")),
                         "inputTokenIds": input_ids,
                     },
@@ -1070,13 +1312,14 @@ class S13LocalService:
                     if cur not in {"failed", "recovery_required"}:
                         # best-effort path to failed
                         atomic_write_json(
-                            self.store.request_dir(request_id) / "state.json",
+                            req_dir / "state.json",
                             {
                                 **state,
                                 "state": "failed",
                                 "error": failed_error,
                                 "updatedAt": _utc(),
                                 "terminal": True,
+                                "tokensCompleted": len(generated),
                             },
                         )
                 except Exception:  # noqa: BLE001
@@ -1088,6 +1331,11 @@ class S13LocalService:
                         "state": "failed",
                         "error": failed_error,
                         "generatedTokens": generated,
+                        "tokensCompleted": len(generated),
+                        "requestedMaxNewTokens": int(request.get("maxNewTokens") or 0),
+                        "partialOutput": decode_partial_output(generated),
+                        "completionReason": "failed",
+                        "s15AcceptanceEligible": False,
                         "nanoRestored": bool(nano_restore_info.get("healthy")),
                         "inputTokenIds": input_ids,
                     },

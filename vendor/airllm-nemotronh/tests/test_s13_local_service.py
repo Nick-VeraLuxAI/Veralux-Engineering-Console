@@ -232,7 +232,7 @@ def test_submit_rejects_unsupported_without_mutation(tmp_path: Path) -> None:
                     )
                     svc.admission_paused = False
                     with pytest.raises(ValueError, match="unsupported_max_new_tokens"):
-                        svc.submit_generation({"prompt": "Hello", "maxNewTokens": 3, "generationPolicy": "greedy"})
+                        svc.submit_generation({"prompt": "Hello", "maxNewTokens": 33, "generationPolicy": "greedy"})
                     assert svc.store.list_request_ids() == []
 
 

@@ -1,6 +1,11 @@
 /** Gated registry facts for Super senior runtime (truthful; never default). */
 
-import { S14_EXECUTION_MODE, S14_RUNTIME_ID } from "./types";
+import {
+  S14_CONFIGURED_MAX_NEW_TOKENS,
+  S14_EXECUTION_MODE,
+  S14_RUNTIME_ID,
+  S14_VERIFIED_MAX_NEW_TOKENS,
+} from "./types";
 
 export type GatedSeniorRegistryView = {
   model_id: typeof S14_RUNTIME_ID;
@@ -14,7 +19,12 @@ export type GatedSeniorRegistryView = {
   maxConcurrentRequests: 1;
   s13BaseUrlRequired: true;
   consoleNanoInterruptionRequired: true;
-  maxNewTokens: readonly [1, 2];
+  /** Inclusive supported range for bounded long-form. */
+  maxNewTokens: readonly [1, typeof S14_CONFIGURED_MAX_NEW_TOKENS];
+  configuredMaxNewTokens: typeof S14_CONFIGURED_MAX_NEW_TOKENS;
+  verifiedMaxNewTokens: typeof S14_VERIFIED_MAX_NEW_TOKENS;
+  generationStrategy: "full_prefix_recomputation";
+  kvCacheClaimed: false;
   tokenStreaming: false;
   productionReady: false;
   veraluxRoutingEnabled: false;
@@ -32,7 +42,11 @@ export const GATED_SENIOR_REGISTRY_BEFORE: GatedSeniorRegistryView = {
   maxConcurrentRequests: 1,
   s13BaseUrlRequired: true,
   consoleNanoInterruptionRequired: true,
-  maxNewTokens: [1, 2],
+  maxNewTokens: [1, S14_CONFIGURED_MAX_NEW_TOKENS],
+  configuredMaxNewTokens: S14_CONFIGURED_MAX_NEW_TOKENS,
+  verifiedMaxNewTokens: S14_VERIFIED_MAX_NEW_TOKENS,
+  generationStrategy: "full_prefix_recomputation",
+  kvCacheClaimed: false,
   tokenStreaming: false,
   productionReady: false,
   veraluxRoutingEnabled: false,
@@ -51,4 +65,8 @@ export function assertNoDefaultInvariants(view: GatedSeniorRegistryView): void {
   if (view.nativeFp8KernelProven !== false) throw new Error("nativeFp8_must_be_unproven");
   if (view.maxConcurrentRequests !== 1) throw new Error("maxConcurrentRequests_must_be_1");
   if (view.executionMode !== S14_EXECUTION_MODE) throw new Error("executionMode_mismatch");
+  if (view.kvCacheClaimed !== false) throw new Error("kv_cache_must_not_be_claimed");
+  if (view.configuredMaxNewTokens !== S14_CONFIGURED_MAX_NEW_TOKENS) {
+    throw new Error("configured_max_mismatch");
+  }
 }

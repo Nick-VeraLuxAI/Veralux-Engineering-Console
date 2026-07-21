@@ -2,6 +2,7 @@
 
 import { validateSeniorApproval } from "./approval-gate";
 import {
+  S14_CONFIGURED_MAX_NEW_TOKENS,
   S14_RUNTIME_ID,
   type SeniorApprovalArtifact,
   type SeniorGenerationRequest,
@@ -15,11 +16,13 @@ export type RouteGateInput = {
   runtimeAvailable?: boolean;
   consumedApprovals?: Set<string>;
   nowMs?: number;
+  configuredMaxNewTokens?: number;
 };
 
 export function evaluateSeniorRouteDecision(input: RouteGateInput): SeniorRouteDecision {
   const now = new Date(input.nowMs ?? Date.now()).toISOString();
   const request = input.request;
+  const configuredMax = input.configuredMaxNewTokens ?? S14_CONFIGURED_MAX_NEW_TOKENS;
   const base = {
     runtimeId: request.runtimeId ?? S14_RUNTIME_ID,
     approvalReference: request.approvalReference || null,
@@ -36,7 +39,11 @@ export function evaluateSeniorRouteDecision(input: RouteGateInput): SeniorRouteD
   if (!request.prompt || !request.prompt.trim()) {
     return { ...base, eligible: false, approved: false, reason: "senior_request_shape_unsupported" };
   }
-  if (request.maxNewTokens !== 1 && request.maxNewTokens !== 2) {
+  if (
+    !Number.isInteger(request.maxNewTokens) ||
+    request.maxNewTokens < 1 ||
+    request.maxNewTokens > configuredMax
+  ) {
     return { ...base, eligible: false, approved: false, reason: "senior_request_shape_unsupported" };
   }
   if ((request.runtimeId ?? S14_RUNTIME_ID) !== S14_RUNTIME_ID) {

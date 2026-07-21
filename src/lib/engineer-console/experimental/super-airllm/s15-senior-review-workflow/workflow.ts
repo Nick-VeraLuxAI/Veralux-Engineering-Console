@@ -34,6 +34,7 @@ export type SeniorReviewWorkflowOptions = {
     approvalReference: string;
     prompt: string;
     idempotencyKey: string;
+    maxNewTokens?: number;
   }) => Promise<{
     s14CorrelationId: string;
     s13RequestId?: string;
@@ -141,6 +142,7 @@ export class SeniorReviewWorkflow {
         approvalReference: input.approvalReference,
         prompt: input.prompt ?? `S15 senior review for bundle ${bundle.reviewBundleId}`,
         idempotencyKey,
+        maxNewTokens: input.maxNewTokens,
       });
       s14CorrelationId = submitted.s14CorrelationId;
       s13RequestId = submitted.s13RequestId;
@@ -185,6 +187,66 @@ export class SeniorReviewWorkflow {
       throw new Error("senior_review_immutable_cannot_overwrite");
     }
 
+    const isPartial =
+      input.partial === true ||
+      input.complete === false ||
+      input.s15AcceptanceEligible === false ||
+      input.completionReason === "cancelled" ||
+      input.completionReason === "failed" ||
+      input.completionReason === "recovery_required" ||
+      input.completionReason === "truncated";
+
+    if (isPartial) {
+      const seniorPartial: SeniorReviewRecord = {
+        reviewId: newId("s15-senior"),
+        runtimeId: S15_RUNTIME_ID,
+        executionMode: S15_EXECUTION_MODE,
+        content: input.content,
+        contentSha256: sha256Text(input.content),
+        generatedTokenIds: input.generatedTokenIds,
+        createdAt: input.createdAt ?? utcNow(),
+        syntheticOrFixture: input.syntheticOrFixture ?? false,
+        completionReason: input.completionReason ?? "cancelled",
+        tokensCompleted: input.tokensCompleted ?? input.generatedTokenIds?.length ?? 0,
+        requestedMaxNewTokens: input.requestedMaxNewTokens,
+        complete: false,
+        s15AcceptanceEligible: false,
+      };
+      const state =
+        input.completionReason === "cancelled"
+          ? "senior_cancelled"
+          : input.completionReason === "recovery_required"
+            ? "senior_recovery_required"
+            : "senior_failed";
+      const next: SeniorReviewBundle = {
+        ...bundle,
+        state,
+        seniorReview: seniorPartial,
+        comparison: undefined,
+        decisionReason:
+          input.completionReason === "cancelled"
+            ? "senior_review_cancelled"
+            : "senior_output_partial_not_acceptable",
+        effectiveReview: {
+          source: "default",
+          reviewId: bundle.defaultReview.reviewId,
+          contentSha256: bundle.defaultReview.contentSha256,
+          eligibleForDownstreamUse: true,
+          downstreamActionAuthorized: false,
+        },
+        seniorReviewRequest: bundle.seniorReviewRequest
+          ? {
+              ...bundle.seniorReviewRequest,
+              s13RequestId: input.s13RequestId ?? bundle.seniorReviewRequest.s13RequestId,
+              state,
+            }
+          : undefined,
+      };
+      return this.store.write(next);
+    }
+
+    const complete = input.complete !== false;
+    const eligible = input.s15AcceptanceEligible !== false && complete;
     const senior: SeniorReviewRecord = {
       reviewId: newId("s15-senior"),
       runtimeId: S15_RUNTIME_ID,
@@ -194,6 +256,11 @@ export class SeniorReviewWorkflow {
       generatedTokenIds: input.generatedTokenIds,
       createdAt: input.createdAt ?? utcNow(),
       syntheticOrFixture: input.syntheticOrFixture ?? true,
+      completionReason: input.completionReason ?? (input.syntheticOrFixture === false ? "max_new_tokens" : "fixture"),
+      tokensCompleted: input.tokensCompleted ?? input.generatedTokenIds?.length,
+      requestedMaxNewTokens: input.requestedMaxNewTokens,
+      complete,
+      s15AcceptanceEligible: eligible,
     };
     const comparison = compareReviews(bundle.defaultReview, senior);
     const next: SeniorReviewBundle = {

@@ -48,6 +48,23 @@ export function validateAndBuildOperatorDecision(
     if (!bundle.seniorReview) {
       return { ok: false, reason: "senior_review_failed", message: "cannot accept missing senior review" };
     }
+    if (
+      bundle.seniorReview.complete === false ||
+      bundle.seniorReview.s15AcceptanceEligible === false ||
+      bundle.seniorReview.completionReason === "cancelled" ||
+      bundle.seniorReview.completionReason === "failed" ||
+      bundle.seniorReview.completionReason === "recovery_required" ||
+      bundle.seniorReview.completionReason === "truncated"
+    ) {
+      return {
+        ok: false,
+        reason:
+          bundle.seniorReview.completionReason === "cancelled"
+            ? "senior_output_cancelled_not_acceptable"
+            : "senior_output_partial_not_acceptable",
+        message: "partial or incomplete senior output is not eligible for acceptance",
+      };
+    }
     if (!bundle.comparison) {
       return { ok: false, reason: "comparison_pending", message: "comparison required before accept_senior" };
     }

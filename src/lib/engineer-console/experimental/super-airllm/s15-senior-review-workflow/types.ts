@@ -48,7 +48,20 @@ export type DecisionReason =
   | "acceptance_reuse_rejected"
   | "acceptance_wrong_bundle"
   | "downstream_action_rejected"
-  | "unaccepted_senior_cannot_trigger_actions";
+  | "unaccepted_senior_cannot_trigger_actions"
+  | "senior_output_incomplete"
+  | "senior_output_partial_not_acceptable"
+  | "senior_output_cancelled_not_acceptable";
+
+export type SeniorCompletionReason =
+  | "max_new_tokens"
+  | "eos"
+  | "stop_token"
+  | "cancelled"
+  | "failed"
+  | "recovery_required"
+  | "truncated"
+  | "fixture";
 
 export type DefaultReviewRecord = {
   reviewId: string;
@@ -79,6 +92,12 @@ export type SeniorReviewRecord = {
   createdAt: string;
   /** True only for fixture/synthetic bounded outputs — not long-form generation proof. */
   syntheticOrFixture?: boolean;
+  completionReason?: SeniorCompletionReason;
+  tokensCompleted?: number;
+  requestedMaxNewTokens?: number;
+  /** False for partial/cancelled/failed; required true for accept_senior. */
+  complete?: boolean;
+  s15AcceptanceEligible?: boolean;
 };
 
 export type ComparisonRecord = {
@@ -168,6 +187,7 @@ export type RequestSeniorInput = {
   prompt?: string;
   idempotencyKey?: string;
   requestId?: string;
+  maxNewTokens?: number;
 };
 
 export type RecordSeniorResultInput = {
@@ -177,6 +197,12 @@ export type RecordSeniorResultInput = {
   generatedTokenIds?: number[];
   syntheticOrFixture?: boolean;
   createdAt?: string;
+  completionReason?: SeniorCompletionReason;
+  tokensCompleted?: number;
+  requestedMaxNewTokens?: number;
+  complete?: boolean;
+  s15AcceptanceEligible?: boolean;
+  partial?: boolean;
 };
 
 export type OperatorDecisionInput = {

@@ -110,15 +110,27 @@ export class S13LocalClient {
 
   submitGeneration(input: {
     prompt: string;
-    maxNewTokens: 1 | 2;
+    maxNewTokens: number;
     generationPolicy?: "greedy";
     requestKey?: string;
-  }): Promise<{ requestId: string; state?: string; idempotentReplay?: boolean }> {
+    stopTokenIds?: number[];
+    stopOnEos?: boolean;
+  }): Promise<{
+    requestId: string;
+    state?: string;
+    idempotentReplay?: boolean;
+    requestedMaxNewTokens?: number;
+    expectedFullModelPasses?: number;
+    generationStrategy?: string;
+    serializedExecution?: boolean;
+  }> {
     return this.request("POST", "/v1/generations", {
       prompt: input.prompt,
       maxNewTokens: input.maxNewTokens,
       generationPolicy: input.generationPolicy ?? "greedy",
       requestKey: input.requestKey,
+      stopTokenIds: input.stopTokenIds,
+      stopOnEos: input.stopOnEos,
     });
   }
 

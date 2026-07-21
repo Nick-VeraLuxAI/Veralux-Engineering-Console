@@ -4,8 +4,12 @@ export const S14_RUNTIME_ID = "airllm-nemotron-super-120b-senior-candidate" as c
 export const S14_DEFAULT_S13_BASE_URL = "http://127.0.0.1:8091" as const;
 export const S14_EXECUTION_MODE = "modelopt_fake_quant_cuda" as const;
 export const S14_GENERATION_STRATEGY = "full_prefix_recomputation" as const;
+/** Configured and verified S15.1 ceiling — do not claim higher without a new proof. */
+export const S14_CONFIGURED_MAX_NEW_TOKENS = 32 as const;
+export const S14_VERIFIED_MAX_NEW_TOKENS = 32 as const;
 
-export type MaxNewTokens = 1 | 2;
+/** Bounded positive integer; validated against configured maximum. */
+export type MaxNewTokens = number;
 
 export type SeniorGenerationRequest = {
   veraRequestId: string;
@@ -193,7 +197,8 @@ export const DEFAULT_DEADLINES: AdapterDeadlines = {
   connectMs: 5_000,
   admissionMs: 30_000,
   queuedWaitMs: 3_600_000,
-  activeExecutionMs: 14_400_000,
+  /** 32 full-prefix passes can exceed 4h; keep correlation without replacement submit. */
+  activeExecutionMs: 86_400_000,
   operationalCleanupMs: 600_000,
   cancellationMs: 600_000,
   pollIntervalMs: 2_000,
