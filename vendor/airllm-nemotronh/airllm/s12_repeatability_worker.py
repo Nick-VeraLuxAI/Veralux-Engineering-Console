@@ -328,6 +328,19 @@ def run_worker(config: dict[str, Any]) -> dict[str, Any]:
             _mem(f"layer_{index}_released")
             append_event(events, {"event": "layer_complete", "index": index, "type": prepared["type"]})
 
+            cancel_path = Path(str(config.get("cancel_path") or ""))
+            if cancel_path.is_file():
+                append_event(events, {"event": "cooperative_cancel_boundary", "index": index})
+                result.update(
+                    {
+                        "verdict": "s13_worker_cancelled",
+                        "cancelled": True,
+                        "cancelledAfterLayer": index,
+                        "nextLayer": index + 1,
+                    }
+                )
+                return result
+
             if mode == "deep_stop" and index == boundary:
                 append_event(events, {"event": "controlled_deep_resume_boundary", "index": boundary})
                 result.update(
@@ -442,7 +455,11 @@ def main() -> None:
     result = run_worker(config)
     Path(config["result_path"]).write_text(json.dumps(result, indent=2, default=str) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2, default=str))
-    ok = result["verdict"] in {"s12_worker_deep_stop_complete", "s12_worker_technical_passed"}
+    ok = result["verdict"] in {
+        "s12_worker_deep_stop_complete",
+        "s12_worker_technical_passed",
+        "s13_worker_cancelled",
+    }
     raise SystemExit(0 if ok else 2)
 
 

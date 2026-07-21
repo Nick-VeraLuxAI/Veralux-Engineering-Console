@@ -99,6 +99,22 @@ REPAIR_SOURCE_PATHS: tuple[str, ...] = (
     "scripts/runtime/super-airllm/s12-repeatability-probe.ts",
     "src/lib/engineer-console/experimental/super-airllm/s12-repeatability-probe.test.ts",
     "docs/source-of-truth/implementation-audit/31-super-airllm-repair-s12-repeatable-cold-start-generation-v1.md",
+    # S13
+    "vendor/airllm-nemotronh/airllm/s13_service_state.py",
+    "vendor/airllm-nemotronh/airllm/s13_request_store.py",
+    "vendor/airllm-nemotronh/airllm/s13_request_queue.py",
+    "vendor/airllm-nemotronh/airllm/s13_worker_manager.py",
+    "vendor/airllm-nemotronh/airllm/s13_generation_worker.py",
+    "vendor/airllm-nemotronh/airllm/s13_recovery.py",
+    "vendor/airllm-nemotronh/airllm/s13_api.py",
+    "vendor/airllm-nemotronh/airllm/s13_service.py",
+    "vendor/airllm-nemotronh/airllm/s13_service_cli.py",
+    "vendor/airllm-nemotronh/airllm/s13_verification.py",
+    "vendor/airllm-nemotronh/tests/test_s13_local_service.py",
+    "scripts/runtime/super-airllm/run-s13-local-service.sh",
+    "scripts/runtime/super-airllm/s13-local-service.ts",
+    "src/lib/engineer-console/experimental/super-airllm/s13-local-service.test.ts",
+    "docs/source-of-truth/implementation-audit/32-super-airllm-repair-s13-local-runtime-service-v1.md",
 )
 
 # Executable sources that must remain immutable during reproduction.
