@@ -25,10 +25,13 @@ class RequestQueue:
         with self._lock:
             return len(self.store.load_queue())
 
-    def enqueue(self, request_id: str) -> None:
+    def enqueue(self, request_id: str, *, force: bool = False) -> None:
         with self._lock:
             queued = self.store.load_queue()
-            if request_id in queued or request_id == self._active_request_id:
+            if request_id in queued:
+                return
+            # Resume may re-queue while the prior execute is still restoring Nano.
+            if request_id == self._active_request_id and not force:
                 return
             if len(queued) >= self.max_depth:
                 raise ValueError("queue_capacity_exceeded")

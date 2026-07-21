@@ -66,6 +66,21 @@ def test_fifo_queue(tmp_path: Path) -> None:
     assert q.promote_next() == "b"
 
 
+def test_resume_force_enqueue_while_active(tmp_path: Path) -> None:
+    """Resume must re-queue even if the prior execute still holds active during Nano restore."""
+    store = RequestStore(tmp_path / "state")
+    q = RequestQueue(store, max_depth=4)
+    store.write_request("r1", {"requestId": "r1"})
+    atomic_write_json(store.request_dir("r1") / "state.json", {"requestId": "r1", "state": "recovery_required"})
+    q.set_active("r1")
+    q.enqueue("r1")  # no-op while active
+    assert q.depth() == 0
+    q.enqueue("r1", force=True)
+    assert q.depth() == 1
+    q.set_active(None)
+    assert q.promote_next() == "r1"
+
+
 def test_queue_capacity(tmp_path: Path) -> None:
     store = RequestStore(tmp_path / "state")
     q = RequestQueue(store, max_depth=1)

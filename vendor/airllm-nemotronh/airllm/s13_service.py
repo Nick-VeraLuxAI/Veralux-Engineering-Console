@@ -627,7 +627,8 @@ class S13LocalService:
         )
         self.admission_paused = False
         self.recovery_required = False
-        self.queue.enqueue(request_id)
+        # Force enqueue: prior execute may still hold active during Nano restore.
+        self.queue.enqueue(request_id, force=True)
         return {"requestId": request_id, "state": "queued", "resumeAccepted": True, "resumeGeneration": resume_gen}
 
     def _dispatcher_loop(self) -> None:

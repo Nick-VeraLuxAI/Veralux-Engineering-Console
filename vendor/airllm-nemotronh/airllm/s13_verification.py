@@ -287,21 +287,31 @@ def run_s13_verification(
                 f"{base}/v1/generations",
                 {"prompt": "Hello", "maxNewTokens": 1, "generationPolicy": "greedy"},
             )
-            # Wait until worker PID is durable before deliberate kill.
+            # Wait until worker PID exists and at least one durable layer checkpoint is present.
             pid = None
-            for _ in range(180):
+            req_dir = state_root / "requests" / sub["requestId"]
+            for _ in range(600):
                 st = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}")
                 if st.get("state") in {"completed", "failed", "cancelled", "recovery_required"}:
                     break
                 pid = st.get("workerPid")
-                if pid:
+                ckpts = list((req_dir / "token-1").glob("gen-*/checkpoints/ckpt-*.json"))
+                if pid and len(ckpts) >= 3:
                     break
                 time.sleep(1.0)
             if pid:
                 os.kill(int(pid), 9)
-            # Allow service to observe death and restore Nano.
-            time.sleep(20.0)
-            done = _wait_terminal(base, sub["requestId"], timeout=600.0)
+            # Wait until recovery classification is durable AND service returned to idle
+            # (Nano restore finished) before calling resume — avoids enqueue/active races.
+            done: dict[str, Any] = {}
+            for _ in range(600):
+                done = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}", timeout=60.0)
+                health = _http_json("GET", f"{base}/v1/health", timeout=30.0)
+                if done.get("state") == "recovery_required" and health.get("serviceState") == "idle":
+                    break
+                if done.get("state") in {"completed", "failed", "cancelled"}:
+                    break
+                time.sleep(1.0)
             recovery["scenario6_worker_crash"] = {
                 "passed": done.get("state") in {"recovery_required", "failed", "cancelled"},
                 "state": done.get("state"),
@@ -365,8 +375,15 @@ def run_s13_verification(
                 errors.append("SCENARIO7_SERVICE_DID_NOT_RETURN")
                 recovery["scenario7_service_restart"] = {"passed": False, "error": "service_not_healthy"}
             else:
-                # Give reconcile a moment to flush orphan classification.
-                time.sleep(5.0)
+                # Give reconcile a moment to flush orphan classification and Nano restore.
+                for _ in range(180):
+                    health = _http_json("GET", f"{base}/v1/health")
+                    st = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}")
+                    if st.get("state") in {"recovery_required", "completed", "failed", "cancelled"} and health.get(
+                        "serviceState"
+                    ) in {"idle", "degraded"}:
+                        break
+                    time.sleep(1.0)
                 st = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}")
                 recovery["scenario7_service_restart"] = {
                     "orphanedState": st.get("state"),
