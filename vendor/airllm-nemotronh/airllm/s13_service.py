@@ -605,17 +605,30 @@ class S13LocalService:
             expected_model_config_hash=self.model_config_hash,
             expected_tokenizer_hash=str(request.get("tokenizerHash") or self.tokenizer_hash),
         )
-        # Re-queue for explicit resume
-        if str(state.get("state")) == "recovery_required":
-            # Move to admitted path via queued
-            atomic_write_json(
-                self.store.request_dir(request_id) / "state.json",
-                {**state, "state": "queued", "resumeRequested": True, "updatedAt": _utc()},
-            )
+        resume_gen = int(request.get("resumeGeneration") or 0) + 1
+        request["resumeGeneration"] = resume_gen
+        request["resumeRequested"] = True
+        self.store.write_request(request_id, request)
+        atomic_write_json(
+            self.store.request_dir(request_id) / "state.json",
+            {
+                **state,
+                "state": "queued",
+                "resumeRequested": True,
+                "resumeGeneration": resume_gen,
+                "terminal": False,
+                "error": None,
+                "updatedAt": _utc(),
+            },
+        )
+        append_event_atomic(
+            self.store.request_dir(request_id) / "events.jsonl",
+            {"event": "resume_accepted", "resumeGeneration": resume_gen},
+        )
         self.admission_paused = False
         self.recovery_required = False
         self.queue.enqueue(request_id)
-        return {"requestId": request_id, "state": "queued", "resumeAccepted": True}
+        return {"requestId": request_id, "state": "queued", "resumeAccepted": True, "resumeGeneration": resume_gen}
 
     def _dispatcher_loop(self) -> None:
         while not self._stop_event.is_set():
@@ -695,8 +708,11 @@ class S13LocalService:
                     break
                 self.store.transition_request(request_id, "embedding", tokenStep=step)
                 self.store.transition_request(request_id, "streaming_layers", tokenStep=step)
-                token_dir = self.store.request_dir(request_id) / f"token-{step}"
-                worker_run_id = f"{request_id}-t{step}"
+                resume_gen = int(request.get("resumeGeneration") or 0)
+                token_dir = self.store.request_dir(request_id) / f"token-{step}" / f"gen-{resume_gen}"
+                # Fresh checkpoint dir for each generation attempt (resume-safe).
+                (token_dir / "checkpoints").mkdir(parents=True, exist_ok=True)
+                worker_run_id = f"{request_id}-t{step}-g{resume_gen}"
                 config = {
                     "mode": "full",
                     "model_path": self.model_path,
@@ -737,14 +753,57 @@ class S13LocalService:
                 exit_code, worker_result = self.workers.wait(timeout=self.worker_timeout_seconds)
                 if worker_result.get("verdict") == "s13_worker_cancelled":
                     cancelled = True
-                    self.store.transition_request(request_id, "cancelling", cancelledAfterLayer=worker_result.get("cancelledAfterLayer"))
+                    self.store.transition_request(
+                        request_id, "cancelling", cancelledAfterLayer=worker_result.get("cancelledAfterLayer")
+                    )
                     break
                 if worker_result.get("verdict") != "s12_worker_technical_passed":
-                    if exit_code != 0 and not worker_result.get("generation", {}).get("tokenId"):
-                        self.store.transition_request(request_id, "recovery_required", workerExit=exit_code)
+                    # Signal death / missing result => recovery_required (retain checkpoints).
+                    if int(exit_code) < 0 or not (worker_result.get("generation") or {}).get("tokenId"):
+                        try:
+                            self.store.transition_request(
+                                request_id,
+                                "recovery_required",
+                                workerExit=exit_code,
+                                errors=worker_result.get("errors"),
+                            )
+                        except ValueError:
+                            atomic_write_json(
+                                self.store.request_dir(request_id) / "state.json",
+                                {
+                                    **self.store.read_state(request_id),
+                                    "state": "recovery_required",
+                                    "workerExit": exit_code,
+                                    "terminal": True,
+                                    "updatedAt": _utc(),
+                                },
+                            )
                         self.recovery_required = True
                         self.admission_paused = True
-                        raise RuntimeError(f"worker_failed:{worker_result.get('errors')}")
+                        self.large_model_running = False
+                        self.store.write_service_state("restoring_nano")
+                        nano_restore_info = self._restore_nano()
+                        self.store.write_result(
+                            request_id,
+                            {
+                                "requestId": request_id,
+                                "state": "recovery_required",
+                                "error": f"worker_exit:{exit_code}",
+                                "generatedTokens": generated,
+                                "nanoRestored": bool(nano_restore_info.get("healthy")),
+                                "inputTokenIds": input_ids,
+                                "workerExit": exit_code,
+                            },
+                        )
+                        append_event_atomic(
+                            self.store.request_dir(request_id) / "events.jsonl",
+                            {"event": "worker_crash_recovery_required", "workerExit": exit_code},
+                        )
+                        self.store.write_service_state(
+                            "idle" if nano_restore_info.get("healthy") else "degraded"
+                        )
+                        self.queue.set_active(None)
+                        return
                     raise RuntimeError(f"worker_failed:{worker_result.get('errors')}")
                 if worker_result.get("executionClassification", {}).get("unquantizedFallbackDetected"):
                     raise RuntimeError("unquantized_fallback_detected")

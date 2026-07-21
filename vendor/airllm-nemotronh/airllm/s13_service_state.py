@@ -103,7 +103,7 @@ REQUEST_TRANSITIONS: dict[str, frozenset[str]] = {
     "cancelled": frozenset(),
     "blocked": frozenset(),
     "failed": frozenset(),
-    "recovery_required": frozenset({"admitted", "failed", "cancelled"}),  # explicit resume only
+    "recovery_required": frozenset({"queued", "admitted", "failed", "cancelled"}),  # explicit resume only
 }
 
 

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 from typing import Any
 
-from airllm.s13_request_store import RequestStore, append_event_atomic
+from airllm.s13_request_store import RequestStore, append_event_atomic, atomic_write_json
 from airllm.s13_service_state import is_terminal_request
 
 
@@ -20,6 +21,25 @@ def pid_alive(pid: int | None) -> bool:
         return False
 
 
+def terminate_pid(pid: int | None, *, sig: int = 15) -> dict[str, Any]:
+    if not pid or pid <= 0:
+        return {"terminated": False, "reason": "no_pid"}
+    try:
+        os.kill(int(pid), int(sig))
+    except ProcessLookupError:
+        return {"terminated": False, "reason": "already_dead", "pid": int(pid)}
+    except OSError as error:
+        return {"terminated": False, "reason": str(error), "pid": int(pid)}
+    # Escalate if still alive
+    time.sleep(1.0)
+    if pid_alive(int(pid)):
+        try:
+            os.kill(int(pid), 9)
+        except OSError:
+            pass
+    return {"terminated": True, "pid": int(pid), "aliveAfter": pid_alive(int(pid))}
+
+
 def classify_orphaned_request(store: RequestStore, request_id: str) -> dict[str, Any]:
     state = store.read_state(request_id)
     cur = str(state.get("state") or "")
@@ -30,19 +50,20 @@ def classify_orphaned_request(store: RequestStore, request_id: str) -> dict[str,
     latest = store.request_dir(request_id) / "latest-checkpoint.json"
     has_ckpt = latest.is_file()
     if alive:
-        return {"requestId": request_id, "classification": "worker_still_alive", "state": cur, "workerPid": worker_pid}
-    if has_ckpt:
         return {
             "requestId": request_id,
-            "classification": "recovery_required",
+            "classification": "worker_still_alive",
             "state": cur,
-            "checkpointPresent": True,
+            "workerPid": worker_pid,
+            "checkpointPresent": has_ckpt,
         }
+    # Dead worker + nonterminal → explicit resume required (full-prefix recompute allowed).
     return {
         "requestId": request_id,
-        "classification": "failed_no_checkpoint",
+        "classification": "recovery_required",
         "state": cur,
-        "checkpointPresent": False,
+        "checkpointPresent": has_ckpt,
+        "workerPid": worker_pid,
     }
 
 
@@ -51,30 +72,42 @@ def reconcile_service_startup(
     *,
     nano_restore_fn=None,
 ) -> dict[str, Any]:
-    """Scan durable requests; classify orphans; optionally restore Nano."""
+    """Scan durable requests; kill orphan workers; classify; optionally restore Nano."""
     append_event_atomic(store.service_events_path, {"event": "recovery_scan_start"})
     orphans: list[dict[str, Any]] = []
     recovery_required = False
+
     for rid in store.list_request_ids():
         info = classify_orphaned_request(store, rid)
-        if info["classification"] in {"recovery_required", "failed_no_checkpoint", "worker_still_alive"}:
-            orphans.append(info)
-            if info["classification"] == "recovery_required":
-                recovery_required = True
-                try:
-                    store.transition_request(rid, "recovery_required", reason="service_restart_orphan")
-                except ValueError:
-                    # may already be nonterminal incompatible; force via direct write
-                    state = store.read_state(rid)
-                    state.update({"state": "recovery_required", "reason": "service_restart_orphan"})
-                    from airllm.s13_request_store import atomic_write_json
-
-                    atomic_write_json(store.request_dir(rid) / "state.json", state)
-            elif info["classification"] == "failed_no_checkpoint":
-                try:
-                    store.transition_request(rid, "failed", reason="orphan_no_checkpoint")
-                except ValueError:
-                    pass
+        if info["classification"] == "terminal":
+            continue
+        # Terminate any orphaned worker before classifying as recovery_required.
+        if info["classification"] == "worker_still_alive":
+            term = terminate_pid(info.get("workerPid"))
+            info["workerTermination"] = term
+            time.sleep(0.5)
+            info = classify_orphaned_request(store, rid)
+            if info["classification"] == "worker_still_alive":
+                # Force kill already attempted; still mark recovery and continue.
+                info["classification"] = "recovery_required"
+                info["forcedAfterKill"] = True
+        orphans.append(info)
+        if info["classification"] == "recovery_required":
+            recovery_required = True
+            state = store.read_state(rid)
+            state.update(
+                {
+                    "state": "recovery_required",
+                    "reason": "service_restart_orphan",
+                    "terminal": True,
+                    "updatedAt": state.get("updatedAt"),
+                }
+            )
+            atomic_write_json(store.request_dir(rid) / "state.json", state)
+            append_event_atomic(
+                store.request_dir(rid) / "events.jsonl",
+                {"event": "orphan_recovery_required", "checkpointPresent": info.get("checkpointPresent")},
+            )
     nano_restore = None
     if nano_restore_fn is not None:
         nano_restore = nano_restore_fn()
@@ -83,7 +116,10 @@ def reconcile_service_startup(
         "recoveryRequired": recovery_required,
         "nanoRestore": nano_restore,
     }
-    append_event_atomic(store.service_events_path, {"event": "recovery_scan_complete", **{k: result[k] for k in ("recoveryRequired",)}})
+    append_event_atomic(
+        store.service_events_path,
+        {"event": "recovery_scan_complete", "recoveryRequired": recovery_required, "orphanCount": len(orphans)},
+    )
     return result
 
 

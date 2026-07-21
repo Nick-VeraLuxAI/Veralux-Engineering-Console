@@ -287,24 +287,37 @@ def run_s13_verification(
                 f"{base}/v1/generations",
                 {"prompt": "Hello", "maxNewTokens": 1, "generationPolicy": "greedy"},
             )
-            # Wait until worker likely running
-            time.sleep(30.0)
-            # Find worker pid via state
-            st = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}")
-            pid = st.get("workerPid")
+            # Wait until worker PID is durable before deliberate kill.
+            pid = None
+            for _ in range(180):
+                st = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}")
+                if st.get("state") in {"completed", "failed", "cancelled", "recovery_required"}:
+                    break
+                pid = st.get("workerPid")
+                if pid:
+                    break
+                time.sleep(1.0)
             if pid:
                 os.kill(int(pid), 9)
+            # Allow service to observe death and restore Nano.
+            time.sleep(20.0)
             done = _wait_terminal(base, sub["requestId"], timeout=600.0)
             recovery["scenario6_worker_crash"] = {
                 "passed": done.get("state") in {"recovery_required", "failed", "cancelled"},
                 "state": done.get("state"),
                 "requestId": sub["requestId"],
+                "killedPid": pid,
             }
             if done.get("state") == "recovery_required":
                 _http_json("POST", f"{base}/v1/generations/{sub['requestId']}/resume", {})
-                resumed = _wait_terminal(base, sub["requestId"])
+                resumed = _wait_terminal(base, sub["requestId"], timeout=14400.0)
                 recovery["scenario6_worker_crash"]["resumeState"] = resumed.get("state")
                 recovery["scenario6_worker_crash"]["passed"] = resumed.get("state") == "completed"
+                if resumed.get("result") or resumed.get("generatedTokens"):
+                    recovery["scenario6_worker_crash"]["tokens"] = [
+                        t.get("tokenId")
+                        for t in ((resumed.get("result") or resumed).get("generatedTokens") or [])
+                    ]
             if not recovery["scenario6_worker_crash"].get("passed"):
                 errors.append("SCENARIO6_WORKER_CRASH_FAILED")
 
@@ -316,51 +329,86 @@ def run_s13_verification(
                 f"{base}/v1/generations",
                 {"prompt": "Hello", "maxNewTokens": 1, "generationPolicy": "greedy"},
             )
-            time.sleep(40.0)
+            # Wait until request is actively running with a worker before killing service.
+            for _ in range(180):
+                st = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}")
+                if st.get("workerPid") or st.get("state") in {
+                    "streaming_layers",
+                    "embedding",
+                    "starting_worker",
+                }:
+                    break
+                if st.get("state") in {"completed", "failed", "cancelled", "recovery_required"}:
+                    break
+                time.sleep(1.0)
+            time.sleep(15.0)
+            # Hard-kill the service process so request remains orphaned (no graceful cancel/restore).
+            proc.kill()
+            try:
+                proc.wait(timeout=60)
+            except subprocess.TimeoutExpired:
+                pass
+            # Restart same command into the same durable state root.
+            proc = subprocess.Popen(
+                cmd, cwd=str(repo_root), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            healthy = False
+            for _ in range(120):
+                try:
+                    health = _http_json("GET", f"{base}/v1/health")
+                    if health.get("serviceState") in {"idle", "recovering", "degraded"} or health.get("healthy"):
+                        healthy = True
+                        break
+                except Exception:  # noqa: BLE001
+                    time.sleep(1.0)
+            if not healthy:
+                errors.append("SCENARIO7_SERVICE_DID_NOT_RETURN")
+                recovery["scenario7_service_restart"] = {"passed": False, "error": "service_not_healthy"}
+            else:
+                # Give reconcile a moment to flush orphan classification.
+                time.sleep(5.0)
+                st = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}")
+                recovery["scenario7_service_restart"] = {
+                    "orphanedState": st.get("state"),
+                    "requestId": sub["requestId"],
+                    "serviceReturned": True,
+                }
+                if st.get("state") == "recovery_required":
+                    _http_json("POST", f"{base}/v1/generations/{sub['requestId']}/resume", {})
+                    resumed = _wait_terminal(base, sub["requestId"], timeout=14400.0)
+                    recovery["scenario7_service_restart"]["resumeState"] = resumed.get("state")
+                    recovery["scenario7_service_restart"]["passed"] = resumed.get("state") == "completed"
+                elif st.get("state") == "completed":
+                    recovery["scenario7_service_restart"]["passed"] = True
+                else:
+                    recovery["scenario7_service_restart"]["passed"] = False
+                    recovery["scenario7_service_restart"]["error"] = f"unexpected_state:{st.get('state')}"
+                if not recovery["scenario7_service_restart"].get("passed"):
+                    errors.append("SCENARIO7_RESTART_FAILED")
+
+        # Scenario 8: clean shutdown (service must still be reachable)
+        try:
+            _http_json("GET", f"{base}/v1/health", timeout=10.0)
             proc.send_signal(15)
             try:
                 proc.wait(timeout=180)
             except subprocess.TimeoutExpired:
                 proc.kill()
-            # Restart
-            proc = subprocess.Popen(cmd, cwd=str(repo_root), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            for _ in range(90):
-                try:
-                    _http_json("GET", f"{base}/v1/health")
-                    break
-                except Exception:  # noqa: BLE001
-                    time.sleep(1.0)
-            st = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}")
-            recovery["scenario7_service_restart"] = {
-                "orphanedState": st.get("state"),
-                "requestId": sub["requestId"],
+                proc.wait(timeout=30)
+            scenarios["scenario8_shutdown"] = {
+                "passed": proc.poll() is not None,
+                "exitCode": proc.returncode,
             }
-            if st.get("state") == "recovery_required":
-                _http_json("POST", f"{base}/v1/generations/{sub['requestId']}/resume", {})
-                resumed = _wait_terminal(base, sub["requestId"])
-                recovery["scenario7_service_restart"]["resumeState"] = resumed.get("state")
-                recovery["scenario7_service_restart"]["passed"] = resumed.get("state") == "completed"
-            else:
-                recovery["scenario7_service_restart"]["passed"] = st.get("state") in {
-                    "completed",
-                    "recovery_required",
-                    "failed",
-                    "cancelled",
-                }
-            if not recovery["scenario7_service_restart"].get("passed"):
-                errors.append("SCENARIO7_RESTART_FAILED")
-
-        # Scenario 8: clean shutdown
-        stop_req = urllib.request.Request(f"{base}/v1/health")
-        with urllib.request.urlopen(stop_req, timeout=10) as _:
-            pass
-        proc.send_signal(15)
-        try:
-            proc.wait(timeout=180)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=30)
-        scenarios["scenario8_shutdown"] = {"passed": proc.poll() is not None, "exitCode": proc.returncode}
+        except Exception as shutdown_error:  # noqa: BLE001
+            scenarios["scenario8_shutdown"] = {
+                "passed": False,
+                "error": f"{type(shutdown_error).__name__}:{shutdown_error}",
+            }
+            errors.append(f"SCENARIO8_SHUTDOWN_FAILED:{shutdown_error}")
+            try:
+                proc.kill()
+            except Exception:  # noqa: BLE001
+                pass
 
     except Exception as error:  # noqa: BLE001
         errors.append(f"{type(error).__name__}:{error}")
