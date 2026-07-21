@@ -338,11 +338,21 @@ async function main() {
     null;
 
   const stateRoot = path.join(verDir, "adapter-state");
+  const liveDeadlines = {
+    connectMs: 60_000,
+    pollIntervalMs: 5_000,
+    queuedWaitMs: 3_600_000,
+    activeExecutionMs: 14_400_000,
+    operationalCleanupMs: 1_200_000,
+    cancellationMs: 1_200_000,
+  };
+
   const { runner, client, store } = createSeniorAdapter({
     stateRoot,
     s13BaseUrl: args.s13BaseUrl,
     expectedSourceCommit,
     expectedManifestSha: expectedManifestSha,
+    deadlines: liveDeadlines,
   });
 
   const routing = {
@@ -704,6 +714,7 @@ async function main() {
         s13BaseUrl: args.s13BaseUrl,
         expectedSourceCommit,
         expectedManifestSha: expectedManifestSha,
+        deadlines: liveDeadlines,
       });
       // Mark prior poll as abandoned — new runner reconciles
       const recoveredList = await restarted.runner.reconcileActive();
