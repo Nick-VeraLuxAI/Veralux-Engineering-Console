@@ -93,7 +93,9 @@ REQUEST_TRANSITIONS: dict[str, frozenset[str]] = {
     ),
     "final_norm": frozenset({"lm_head", "cancellation_requested", "failed"}),
     "lm_head": frozenset({"selecting_token", "failed"}),
-    "selecting_token": frozenset({"streaming_layers", "restoring_nano", "checkpointed", "failed"}),
+    "selecting_token": frozenset(
+        {"streaming_layers", "embedding", "tokenizing", "restoring_nano", "checkpointed", "failed"}
+    ),
     "cancellation_requested": frozenset({"cancelling", "failed"}),
     "cancelling": frozenset({"restoring_nano", "cancelled", "failed"}),
     "restoring_nano": frozenset({"completed", "cancelled", "failed", "recovery_required", "blocked"}),
