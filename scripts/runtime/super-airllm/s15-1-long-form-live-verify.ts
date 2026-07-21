@@ -459,7 +459,7 @@ async function main(): Promise<void> {
     const shutdown = await httpJson(`${S13_BASE}/v1/shutdown`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "graceful", confirm: true }),
+      body: JSON.stringify({ mode: "cancel_active", reason: "s15_1_live_verify_complete" }),
     });
     let shutdownResult = shutdown;
     for (let i = 0; i < 60; i++) {
