@@ -162,16 +162,21 @@ class RequestStore:
     def save_idempotency(self, mapping: dict[str, str]) -> None:
         atomic_write_json(self.idempotency_path, {"keys": mapping, "updatedAt": _utc_now()})
 
-    def write_service_state(self, state: str, **extra: Any) -> dict[str, Any]:
+    def write_service_state(self, state: str, *, force: bool = False, **extra: Any) -> dict[str, Any]:
         current: dict[str, Any] = {}
         if self.service_state_path.is_file():
             current = json.loads(self.service_state_path.read_text(encoding="utf-8"))
         cur = str(current.get("state") or "starting")
-        if cur != state:
+        if cur != state and not force:
             validate_service_transition(cur, state)
         payload = {**current, **extra, "state": state, "updatedAt": _utc_now()}
+        if force and cur != state:
+            payload["forcedTransition"] = f"{cur}->{state}"
         atomic_write_json(self.service_state_path, payload)
-        append_event_atomic(self.service_events_path, {"event": "service_state", "from": cur, "to": state})
+        append_event_atomic(
+            self.service_events_path,
+            {"event": "service_state", "from": cur, "to": state, "forced": bool(force and cur != state)},
+        )
         return payload
 
     def read_service_state(self) -> dict[str, Any]:

@@ -320,7 +320,11 @@ class S13LocalService:
         )
 
     def start(self) -> dict[str, Any]:
-        self.store.write_service_state("starting", bindHost=self.bind_host, bindPort=self.bind_port)
+        # After a hard process kill, durable service state may be mid-request.
+        # Force bootstrap into starting so recovery can run.
+        self.store.write_service_state(
+            "starting", force=True, bindHost=self.bind_host, bindPort=self.bind_port, processRestart=True
+        )
         # Do NOT stop Nano on startup.
         recovery = reconcile_service_startup(
             self.store,
@@ -329,12 +333,12 @@ class S13LocalService:
         self.queue.reconcile_from_disk()
         self.recovery_required = bool(recovery.get("recoveryRequired"))
         if self.recovery_required:
-            self.store.write_service_state("recovering", recovery=recovery)
+            self.store.write_service_state("recovering", force=True, recovery=recovery)
             # After classifying orphans, return to idle but keep admission paused until clear
             self.admission_paused = True
-            self.store.write_service_state("idle", recoveryRequired=True, admissionPaused=True)
+            self.store.write_service_state("idle", force=True, recoveryRequired=True, admissionPaused=True)
         else:
-            self.store.write_service_state("idle", recoveryRequired=False)
+            self.store.write_service_state("idle", force=True, recoveryRequired=False)
         self._fingerprint("service_startup")
         self._dispatcher_thread = threading.Thread(target=self._dispatcher_loop, name="s13-dispatcher", daemon=True)
         self._dispatcher_thread.start()
@@ -350,8 +354,8 @@ class S13LocalService:
     def stop(self, *, timeout_seconds: float = 120.0) -> dict[str, Any]:
         self.admission_paused = True
         try:
-            self.store.write_service_state("stopping")
-        except ValueError:
+            self.store.write_service_state("stopping", force=True)
+        except Exception:  # noqa: BLE001
             pass
         self._stop_event.set()
         # Cancel active if any
@@ -367,7 +371,7 @@ class S13LocalService:
         if self.workers.alive():
             self.workers.force_terminate()
         restore = self._restore_nano()
-        self.store.write_service_state("stopped", nanoRestore=restore)
+        self.store.write_service_state("stopped", force=True, nanoRestore=restore)
         return {"stopped": True, "nanoRestored": bool(restore.get("healthy")), "queue": self.queue.snapshot()}
 
     def _fingerprint(self, stage: str) -> dict[str, Any]:

@@ -81,6 +81,16 @@ def test_resume_force_enqueue_while_active(tmp_path: Path) -> None:
     assert q.promote_next() == "r1"
 
 
+def test_service_state_force_bootstrap_after_crash(tmp_path: Path) -> None:
+    store = RequestStore(tmp_path / "state")
+    atomic_write_json(store.service_state_path, {"state": "running_request", "updatedAt": "x"})
+    # Without force, mid-flight -> starting is rejected.
+    with pytest.raises(ValueError, match="invalid_service_transition"):
+        store.write_service_state("starting")
+    store.write_service_state("starting", force=True, processRestart=True)
+    assert store.read_service_state()["state"] == "starting"
+
+
 def test_queue_capacity(tmp_path: Path) -> None:
     store = RequestStore(tmp_path / "state")
     q = RequestQueue(store, max_depth=1)
