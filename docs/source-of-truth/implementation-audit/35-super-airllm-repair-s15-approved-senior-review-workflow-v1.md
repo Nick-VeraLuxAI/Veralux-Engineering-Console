@@ -29,6 +29,11 @@ This is not autonomous senior decision-making, automatic escalation, production 
 | ----- | ----- |
 | Branch | `feature/super-airllm-s15-senior-review` |
 | Parent | S13.1 `79bc766dc49be756fa4154097348a8f56183a751` |
+| S15 commit | `36f1861bba9c9814a9fd1fc650b179017f4c4b53` |
+| Tree | `bc3cb63e5036f420f3b03bd4d362c422fc41182b` |
+| Message | `Add approved senior-review workflow` |
+| Manifest digest | `03569bbf2344e8fb903829d81f17e0be44309c5d51a8ddb5ee7d2e66fff4722e` |
+| Baseline record | `.download-logs/s15-baseline-commit.json` |
 
 ## Workflow architecture
 
