@@ -967,13 +967,8 @@ class S13LocalService:
             eos_token_id = int(request.get("eosTokenId") or DEFAULT_EOS_TOKEN_ID)
             self.large_model_running = True
             self.store.write_service_state("running_request", activeRequestId=request_id)
-            self.store.transition_request(
-                request_id,
-                "streaming_layers",
-                tokensCompleted=len(generated),
-                requestedMaxNewTokens=max_new,
-                currentTokenStep=start_step if start_step <= max_new else None,
-            )
+            # Progress fields are updated on embedding/streaming transitions inside the loop.
+            # Do not jump tokenizing -> streaming_layers (invalid FSM edge).
 
             for step in range(start_step, max_new + 1):
                 if self._cancel_requested(request_id):
