@@ -91,6 +91,9 @@ def reconcile_service_startup(
                 # Force kill already attempted; still mark recovery and continue.
                 info["classification"] = "recovery_required"
                 info["forcedAfterKill"] = True
+        # Also terminate recorded workerPid even if already dead (idempotent).
+        elif info.get("workerPid"):
+            terminate_pid(info.get("workerPid"), sig=9)
         orphans.append(info)
         if info["classification"] == "recovery_required":
             recovery_required = True
@@ -108,6 +111,9 @@ def reconcile_service_startup(
                 store.request_dir(rid) / "events.jsonl",
                 {"event": "orphan_recovery_required", "checkpointPresent": info.get("checkpointPresent")},
             )
+    # Brief pause so CUDA/GPU releases before Nano restore.
+    if orphans:
+        time.sleep(2.0)
     nano_restore = None
     if nano_restore_fn is not None:
         nano_restore = nano_restore_fn()

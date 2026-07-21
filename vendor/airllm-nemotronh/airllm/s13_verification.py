@@ -159,12 +159,16 @@ def run_s13_verification(
         "--allow-request-time-nano-interruption",
         "--confirm-request-time-nano-interruption",
     ]
-    proc = subprocess.Popen(cmd, cwd=str(repo_root), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    serve_stdout = (ver_dir / "service-stdout.log").open("w", encoding="utf-8")
+    serve_stderr = (ver_dir / "service-stderr.log").open("w", encoding="utf-8")
+    proc = subprocess.Popen(
+        cmd, cwd=str(repo_root), env=env, stdout=serve_stdout, stderr=serve_stderr, text=True
+    )
     base = f"http://{bind_host}:{bind_port}"
     nano_ok = True
     try:
         # Wait for health
-        for _ in range(60):
+        for _ in range(90):
             try:
                 health = _http_json("GET", f"{base}/v1/health")
                 if health.get("healthy"):
@@ -339,44 +343,62 @@ def run_s13_verification(
                 f"{base}/v1/generations",
                 {"prompt": "Hello", "maxNewTokens": 1, "generationPolicy": "greedy"},
             )
-            # Wait until request is actively running with a worker before killing service.
-            for _ in range(180):
+            req_dir = state_root / "requests" / sub["requestId"]
+            worker_pid = None
+            for _ in range(600):
                 st = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}")
-                if st.get("workerPid") or st.get("state") in {
-                    "streaming_layers",
-                    "embedding",
-                    "starting_worker",
-                }:
-                    break
                 if st.get("state") in {"completed", "failed", "cancelled", "recovery_required"}:
                     break
+                worker_pid = st.get("workerPid")
+                ckpts = list((req_dir / "token-1").glob("gen-*/checkpoints/ckpt-*.json"))
+                if worker_pid and len(ckpts) >= 3:
+                    break
                 time.sleep(1.0)
-            time.sleep(15.0)
             # Hard-kill the service process so request remains orphaned (no graceful cancel/restore).
             proc.kill()
             try:
                 proc.wait(timeout=60)
             except subprocess.TimeoutExpired:
                 pass
-            # Restart same command into the same durable state root.
+            # Wait for port release; leave orphan worker for service reconcile to kill.
+            for _ in range(60):
+                try:
+                    _http_json("GET", f"{base}/v1/health", timeout=1.0)
+                    time.sleep(0.5)
+                except Exception:  # noqa: BLE001
+                    break
+            time.sleep(2.0)
+            # Restart into same durable state root; log to files (avoid PIPE deadlock).
+            serve_stdout = (ver_dir / "service-stdout-restart.log").open("w", encoding="utf-8")
+            serve_stderr = (ver_dir / "service-stderr-restart.log").open("w", encoding="utf-8")
             proc = subprocess.Popen(
-                cmd, cwd=str(repo_root), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                cmd, cwd=str(repo_root), env=env, stdout=serve_stdout, stderr=serve_stderr, text=True
             )
             healthy = False
-            for _ in range(120):
+            health: dict[str, Any] = {}
+            for _ in range(300):
                 try:
                     health = _http_json("GET", f"{base}/v1/health")
-                    if health.get("serviceState") in {"idle", "recovering", "degraded"} or health.get("healthy"):
+                    if health.get("healthy") or health.get("serviceState") in {
+                        "idle",
+                        "recovering",
+                        "degraded",
+                        "starting",
+                    }:
                         healthy = True
                         break
                 except Exception:  # noqa: BLE001
                     time.sleep(1.0)
             if not healthy:
                 errors.append("SCENARIO7_SERVICE_DID_NOT_RETURN")
-                recovery["scenario7_service_restart"] = {"passed": False, "error": "service_not_healthy"}
+                recovery["scenario7_service_restart"] = {
+                    "passed": False,
+                    "error": "service_not_healthy",
+                    "preKillWorkerPid": worker_pid,
+                }
             else:
-                # Give reconcile a moment to flush orphan classification and Nano restore.
-                for _ in range(180):
+                # Wait for orphan classification + Nano restore to finish.
+                for _ in range(600):
                     health = _http_json("GET", f"{base}/v1/health")
                     st = _http_json("GET", f"{base}/v1/generations/{sub['requestId']}")
                     if st.get("state") in {"recovery_required", "completed", "failed", "cancelled"} and health.get(
@@ -389,6 +411,7 @@ def run_s13_verification(
                     "orphanedState": st.get("state"),
                     "requestId": sub["requestId"],
                     "serviceReturned": True,
+                    "preKillWorkerPid": worker_pid,
                 }
                 if st.get("state") == "recovery_required":
                     _http_json("POST", f"{base}/v1/generations/{sub['requestId']}/resume", {})

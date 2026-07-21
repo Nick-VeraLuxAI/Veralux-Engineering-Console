@@ -98,14 +98,19 @@ class S13HttpServer:
         handler = make_handler(service)
         self.httpd = ThreadingHTTPServer((service.bind_host, service.bind_port), handler)
         self._thread: threading.Thread | None = None
+        self._boot_thread: threading.Thread | None = None
 
     def start_background(self) -> None:
-        self.service.start()
+        # Accept health traffic while startup recovery (orphan kill / Nano restore) runs.
+        self._boot_thread = threading.Thread(target=self.service.start, name="s13-boot", daemon=True)
+        self._boot_thread.start()
         self._thread = threading.Thread(target=self.httpd.serve_forever, name="s13-http", daemon=True)
         self._thread.start()
 
     def serve_forever(self) -> None:
-        self.service.start()
+        # Critical: do not block HTTP accept behind Nano restore after a hard restart.
+        self._boot_thread = threading.Thread(target=self.service.start, name="s13-boot", daemon=True)
+        self._boot_thread.start()
         self.httpd.serve_forever()
 
     def shutdown(self) -> dict[str, Any]:
