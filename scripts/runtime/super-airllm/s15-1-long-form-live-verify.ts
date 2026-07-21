@@ -91,30 +91,24 @@ function updateS13BaselineToHead(): void {
   const baseline = JSON.parse(readFileSync(p, "utf8"));
   const head = spawnSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).stdout.trim();
   const tree = spawnSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: ROOT, encoding: "utf8" }).stdout.trim();
-  const py = spawnSync(
-    path.join(ROOT, ".venv-airllm/bin/python"),
-    [
-      "-c",
-      [
-        "import json,hashlib",
-        "from pathlib import Path",
-        "from airllm.s13_service import build_s13_source_manifest, S13LocalService",
-        "from airllm.s11b_source_inventory import executable_fingerprint",
-        f"root=Path({JSON.stringify(ROOT)})",
-        "m=build_s13_source_manifest(root)",
-        "e=executable_fingerprint(root)",
-        "print(json.dumps({'manifest':m.get('manifestSha256'),'exec':e.get('executableSourceSha256')}))",
-      ].join(";"),
-    ],
-    {
-      cwd: ROOT,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        PYTHONPATH: path.join(ROOT, "vendor/airllm-nemotronh"),
-      },
+  const pyCode = `
+import json
+from pathlib import Path
+from airllm.s13_service import build_s13_source_manifest
+from airllm.s11b_source_inventory import executable_fingerprint
+root = Path(${JSON.stringify(ROOT)})
+m = build_s13_source_manifest(root)
+e = executable_fingerprint(root)
+print(json.dumps({"manifest": m.get("manifestSha256"), "exec": e.get("executableSourceSha256")}))
+`;
+  const py = spawnSync(path.join(ROOT, ".venv-airllm/bin/python"), ["-c", pyCode], {
+    cwd: ROOT,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      PYTHONPATH: path.join(ROOT, "vendor/airllm-nemotronh"),
     },
-  );
+  });
   if (py.status !== 0) {
     throw new Error(`baseline_fingerprint_failed:${py.stderr || py.stdout}`);
   }
