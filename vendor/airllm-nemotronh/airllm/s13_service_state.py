@@ -82,6 +82,7 @@ REQUEST_TRANSITIONS: dict[str, frozenset[str]] = {
             "streaming_layers",
             "checkpointed",
             "final_norm",
+            "selecting_token",
             "cancellation_requested",
             "failed",
             "recovery_required",
