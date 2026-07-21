@@ -29,7 +29,7 @@ def main() -> None:
     out = Path(config["result_path"])
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2, default=str) + "\n", encoding="utf-8")
-    print(json.dumps(result, indent=2, default=str))
+    print(json.dumps({"verdict": result.get("verdict"), "tokenId": (result.get("generation") or {}).get("tokenId")}, default=str))
     ok = result.get("verdict") in {
         "s12_worker_technical_passed",
         "s12_worker_deep_stop_complete",

@@ -78,14 +78,21 @@ class WorkerManager:
             "request_id": request_id,
         }
         config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+        stdout_path = work_dir / f"worker-{label}-stdout.log"
+        stderr_path = work_dir / f"worker-{label}-stderr.log"
+        stdout_f = stdout_path.open("w", encoding="utf-8")
+        stderr_f = stderr_path.open("w", encoding="utf-8")
         proc = subprocess.Popen(
             [self.python_bin, "-m", "airllm.s13_generation_worker"],
             cwd=str(self.repo_root),
             env=self._child_env(config_path),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=stdout_f,
+            stderr=stderr_f,
             text=True,
         )
+        # Files owned by process lifetime; close our handles after spawn.
+        stdout_f.close()
+        stderr_f.close()
         handle = WorkerHandle(
             request_id=request_id,
             pid=int(proc.pid),
@@ -114,13 +121,11 @@ class WorkerManager:
             raise RuntimeError("no_active_worker")
         handle = self._active
         try:
-            stdout, stderr = handle.process.communicate(timeout=timeout)
+            handle.process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             handle.process.kill()
-            stdout, stderr = handle.process.communicate(timeout=30)
+            handle.process.wait(timeout=30)
         exit_code = int(handle.process.returncode or 0)
-        (handle.config_path.parent / f"{handle.config_path.stem}-stdout.log").write_text(stdout or "", encoding="utf-8")
-        (handle.config_path.parent / f"{handle.config_path.stem}-stderr.log").write_text(stderr or "", encoding="utf-8")
         if handle.result_path.is_file():
             result = json.loads(handle.result_path.read_text(encoding="utf-8"))
         else:
