@@ -2,7 +2,7 @@
 
 ## Status
 
-**S16 READY — GATED QUALITY-REPORT DECISION** (pending live closeout fill-in)
+**S16 READY — GATED QUALITY-REPORT DECISION**
 
 Verdict: `s16_gated_quality_report_decision_ready`
 
@@ -141,14 +141,17 @@ Default-only quality-report decisions remain unchanged unless senior review is e
 ## Immutable S16 baseline
 
 - Branch: `feature/super-airllm-s16-quality-report-decision`
-- Parent: `6c787aeb647ba6ab3944a35bd29457ccf2eef279`
-- Implementation commit: _(filled after immutable commit)_
-- Tree SHA: _(filled after immutable commit)_
-- Source-manifest digest: _(filled after manifest)_
+- Parent (S15.1 docs tip): `6c787aeb647ba6ab3944a35bd29457ccf2eef279`
+- Implementation commit: `1a57426c508a703a57878bcf428431addc5c5817` (`Add gated senior review to quality report decision`)
+- Executable tip (Nano port fix): `c6fcc7e21a344fec6a15c02ad604bebf4e2f5e6f`
+- Tree SHA (executable tip): `64726cc37006297b4ab2eb9a24a4d1626ef85db5`
+- Source-manifest digest (implementation tree files): `757f42cf95e1e521d180d772117820e6fdb1bc98b47263e4042ba42d94386697`
 
 ## Final verdict
 
 Expected success: `s16_gated_quality_report_decision_ready`
+
+Live verification run (fill-in): _(pending live closeout)_
 
 ## Next gate (not started)
 
