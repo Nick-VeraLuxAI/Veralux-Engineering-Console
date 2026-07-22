@@ -672,8 +672,8 @@ async function main(): Promise<void> {
     port8091Released: !liveSenior,
     sigkillUsed: false,
   };
-  const consoleNanoBefore = await nanoHealth(8000);
-  const veraNanoBefore = await nanoHealth(8001);
+  const consoleNanoBefore = await nanoHealth(8082);
+  const veraNanoBefore = await nanoHealth(8081);
 
   if (liveSenior) {
     if (!nanoAuth) throw new Error("nano_flags_required_for_live_senior");
@@ -861,8 +861,8 @@ async function main(): Promise<void> {
     }
   }
 
-  const consoleNanoAfter = await nanoHealth(8000);
-  const veraNanoAfter = await nanoHealth(8001);
+  const consoleNanoAfter = await nanoHealth(8082);
+  const veraNanoAfter = await nanoHealth(8081);
   writeJson(path.join(artRoot, "nano-lifecycle.json"), {
     before: { console: consoleNanoBefore, vera: veraNanoBefore },
     after: { console: consoleNanoAfter, vera: veraNanoAfter },
