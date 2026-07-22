@@ -108,15 +108,53 @@ Launcher: `scripts/runtime/super-airllm/s16-quality-report-decision-verify.ts`
 Flags:
 
 - `--allow-s16-quality-report-verification --confirm-s16-quality-report-verification`
-- Optional live senior: `--allow-s16-live-senior-review --confirm-s16-live-senior-review`
+- Live senior: `--allow-s16-live-senior-review --confirm-s16-live-senior-review`
 - Nano: `--allow-request-time-nano-interruption --confirm-request-time-nano-interruption`
 
-Artifacts: `.download-logs/s16-quality-report-decision/<run-id>/`  
-Canonical: `.download-logs/super-s16-quality-report-decision-result.json`
+### Live closeout
+
+- Run ID: `s16-live-20260722T175458Z`
+- Artifact dir: `.download-logs/s16-quality-report-decision/s16-live-20260722T175458Z/`
+- Canonical: `.download-logs/super-s16-quality-report-decision-result.json`
+- Verdict: `s16_gated_quality_report_decision_ready`
+
+| Proof | Result |
+|---|---|
+| Default-only quality-report decision | passed |
+| Unapproved senior blocked | passed |
+| Live 32-token senior via S15→S14→S13 | passed (`max_new_tokens`) |
+| Senior output preserved | passed |
+| S15 acceptance required | `accept_senior` |
+| Accepted senior visible in S16 | passed |
+| Operator approval required | passed |
+| Operator override of senior | `followedSeniorRecommendation = false` (fixture reject → operator approve) |
+| Stale report rejection | passed |
+| Cancel/fail fallback | passed |
+| Duplicate prevention | passed |
+| No-action boundary | all false |
+| S13.1 shutdown | exit 0 in 3619 ms; SIGKILL unused; port 8091 released |
+
+### Live senior review
+
+- Prompt SHA-256: `833498c9e199750ed908c6fcc8515150ffa60bab3b4f79efdd47ab1bca33c2f6`
+- Generated token IDs (32): `[1032, 1010, 9476, 1605, 2229, 17984, 1044, 67273, 1044, 1505, 7481, 4319, 1626, 11186, 2342, 1278, 11748, 1626, 19227, 1273, 54069, 1370, 2811, 1429, 13008, 1672, 36745, 19227, 1273, 54069, 1370, 2811]`
+- Decoded (truncated): includes `{"recommendation": "approve"}` (JSON form → S16 extractor yields `neutral` unless labeled `recommendation:` line)
+- S15 bundle: `s15-bundle-mrwdubpc-p1f7wlzf`
+- S14 correlation: `s15-senior-req-mrwdubpc-9odoxkt9`
+- S13 request: `s13-20260722T175502Z-8594b9b86c`
+- Acceptance: `accept_senior`
+
+### Operator decision (fixture scenario with accepted senior)
+
+- Decision: `approve_quality_report`
+- Senior recommendation followed: `false` (senior fixture recommended reject)
+- Resulting step: `implementation_post_patch_quality_report_approved`
+- Approved hash written by senior: `false`
+- Downstream authorized by senior: `false`
 
 ## Nano lifecycle
 
-Live senior path may interrupt Console Nano through S13 request-time authorization, then restore. S13.1 bounded shutdown used when this launcher starts S13. SIGKILL must remain unused for success.
+Live senior path interrupted Console Nano through S13 request-time authorization, then restored. S13.1 bounded shutdown completed when this launcher started S13 (`exitCode=0`, `shutdownMs=3619`, `sigkillUsed=false`). Console Nano (8082) and Vera Nano (8081) healthy after cleanup.
 
 ## Fake-quant versus native-FP8
 
@@ -145,13 +183,22 @@ Default-only quality-report decisions remain unchanged unless senior review is e
 - Implementation commit: `1a57426c508a703a57878bcf428431addc5c5817` (`Add gated senior review to quality report decision`)
 - Executable tip (Nano port fix): `c6fcc7e21a344fec6a15c02ad604bebf4e2f5e6f`
 - Tree SHA (executable tip): `64726cc37006297b4ab2eb9a24a4d1626ef85db5`
-- Source-manifest digest (implementation tree files): `757f42cf95e1e521d180d772117820e6fdb1bc98b47263e4042ba42d94386697`
+- Live verification used executable tip `c6fcc7e21a344fec6a15c02ad604bebf4e2f5e6f`
+- Source-manifest digest at live verify: `68c9caa4bbad71dd085b67d3f45dd0b49bfa93a000ecbeaef2fe5ea91868c251`
+
+### Test counts
+
+- Pytest: `209` passed
+- Vitest super-airllm: `142` passed
+- Focused S16: `20` passed
+- Focused S15.1: `9` passed
+- Focused S15: `21` passed
+- Focused S14: `23` passed
+- Quality-report gate: `25` passed
 
 ## Final verdict
 
-Expected success: `s16_gated_quality_report_decision_ready`
-
-Live verification run (fill-in): _(pending live closeout)_
+`s16_gated_quality_report_decision_ready`
 
 ## Next gate (not started)
 
