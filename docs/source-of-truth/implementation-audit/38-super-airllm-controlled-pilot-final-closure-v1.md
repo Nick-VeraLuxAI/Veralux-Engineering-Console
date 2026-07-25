@@ -1,13 +1,17 @@
 # 38 — Super AirLLM Controlled-Pilot Final Closure (v1)
 
-Status: **FINAL CLOSURE BLOCKED** — `super_airllm_final_closure_blocked`
+Status: **VERALUX SUPER CONTROLLED PILOT READY** —
+`super_airllm_controlled_pilot_ready` (live run `final-cp-20260725T163327Z`;
+see §13). Historical blocked verdicts are preserved below and in
+`.download-logs/super-airllm-final-closure/` — earlier revisions of this
+document recorded `super_airllm_final_closure_blocked` for the NVML mismatch
+(later resolved) and the subsequent ENOSPC-terminated live run
+`final-cp-20260725T054331Z` (30/32 tokens).
 
 This records the complete S8–S17 lineage and the S17 second-lifecycle
-integration. Implementation, automated tests, and fixture/end-to-end
-verification are complete and frozen. The **live** second-lifecycle proof and
-final controlled-pilot sign-off are **blocked by a host GPU driver/library
-version mismatch** (NVML), which is outside this program's authorization to
-repair. This document does **not** claim controlled-pilot readiness,
+integration. Implementation, automated tests, fixture/end-to-end
+verification, and (as of `final-cp-20260725T163327Z`) the **live**
+second-lifecycle proof are complete. This document does **not** claim
 production readiness, native FP8, or default senior routing.
 
 ---
@@ -165,14 +169,70 @@ required; fake-quant CUDA; native FP8 unproven; no default senior routing; no
 autonomous action; human acceptance required; controlled pilot, not
 production.
 
-## 12. Verdict and required next step
+## 12. Verdict history
 
-Verdict: `super_airllm_final_closure_blocked`.
+- 2026-07-24: `super_airllm_final_closure_blocked` — host NVML
+  driver/library mismatch (§8, historical). Resolved by host operations.
+- 2026-07-25 (run `final-cp-20260725T054331Z`): live generation reached
+  30/32 tokens then failed with ENOSPC (root filesystem full; S13 state
+  ~44 GiB). Recovery record: `final-cp-enospc-blocked-20260725T101236Z`;
+  verdict remained `super_airllm_final_closure_blocked`.
+- 2026-07-25 (run `final-cp-20260725T163327Z`): **live proof complete** —
+  `super_airllm_controlled_pilot_ready` (§13).
 
-To reach `super_airllm_controlled_pilot_ready`, the operator must, on the
-host: (1) resolve the NVIDIA driver/library version mismatch (reload
-`nvidia` kernel modules or reboot); (2) restore Console Nano (`docker start
-nemotron-nano-console-8082`) and confirm both Nanos healthy; (3) re-run
-`scripts/runtime/super-airllm/final-controlled-pilot-verify.ts` with the live
-flags. The implementation and fixture/end-to-end proofs are already frozen
-and passing; only the live second-lifecycle proof and Nano cleanup remain.
+## 13. Live closure — `final-cp-20260725T163327Z` (READY)
+
+### Storage remediation (pre-run, operator-authorized)
+
+Root free space was raised from 80 GiB to ~164 GiB (target ≥160 GiB) by
+relocating ~92 GiB of regenerable/superseded data to
+`/mnt/model-storage/veralux-super-airllm-archive/20260725/` (ext4, checksummed
+rsync moves; see `storage-20260725T161424Z/storage-inventory.json` and
+`storage-relocation-manifest.json` under
+`.download-logs/super-airllm-final-closure/`). The Nano NVFP4 weights were
+relocated to the archive SSD (full per-file SHA-256 verified against two
+copies) and both Nano containers were recreated with the archive path
+bind-mounted read-only; both returned healthy before the run. No tracked
+repo files, decision records, or historical evidence were deleted.
+
+### Live run facts
+
+```text
+runId                   = final-cp-20260725T163327Z
+verdict                 = super_airllm_controlled_pilot_ready
+status                  = VERALUX SUPER CONTROLLED PILOT READY
+executionMode           = modelopt_fake_quant_cuda   (native FP8 false)
+generationStrategy      = full_prefix_recomputation  (no KV cache)
+tokens                  = 32/32 complete (max_new_tokens), no fallback
+s13RequestId            = s13-20260725T163330Z-1e78f222d4
+s14CorrelationId        = s15-senior-req-ms0l915h-988pzk5c
+S13 bind                = 127.0.0.1:8091 (loopback only)
+sourceCommit            = afdf30b51200323b5154722c4eae03ac1d9e27b7
+executableSourceSha256  = 0d4b3a41273b9ab95460cbca1bae70e402229010a1333ca11261b20b4858f139
+duration                = ~4.6 h live generation
+disk                    = 164 GiB free at start, 117 GiB at completion (>=40 GiB floor held)
+```
+
+- S17 scenarios 1–10 **and** the live scenario all pass; end-to-end Variant A
+  (default-only) and Variant B (senior-advisory) pass. In Variant B the
+  operator **overrode** the senior on the quality-report decision
+  (senior: reject → operator: approve) and **followed** the senior on the
+  PR-readiness decision (senior: ready → operator: mark_pr_ready).
+- Live senior review: S14 execution approval issued; S15 acceptance
+  (`accept_senior`) recorded; S17 operator decision `mark_pr_ready` with
+  `prCreationAuthorized:false` and resulting step
+  `implementation_pull_request_prepared`. PR creation (Phase 2Y) remains
+  pending and separate.
+- Console Nano was interrupted at request time and restored; Vera Nano
+  remained healthy throughout (`nano-lifecycle.json`).
+- No-action proof: patch/commit/branch-push/PR/merge/deploy all `false`.
+- Cleanup: S13 exit 0, SIGKILL false, shutdown 3.8 s, port 8091 released,
+  both Nanos healthy, no residual workers.
+- Canonical result: `.download-logs/super-airllm-final-closure-result.json`
+  (+ timestamped copy `…-20260725T210852Z.json`); historical blocked results
+  preserved unmodified.
+
+### Classification
+
+Controlled internal pilot readiness only — **not** production. All
+limitations in §11 still apply.
