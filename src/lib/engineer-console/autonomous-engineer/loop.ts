@@ -1,6 +1,8 @@
 import { AUDIT_EVENT_TYPES } from "../governance/audit-ledger/audit-event-types";
 import { generateAndPersistWorkerPlanDraft } from "../model-router/worker-plan-draft-generator";
+import { getPublicModelProviderInfo } from "../model-router/model-provider-config";
 import { submitAndExecuteWorkerPlan } from "../orchestrator/worker-plan-orchestrator";
+import { runQualityGates, type QualityGateCommandResult } from "../quality-gates/quality-gate-runner";
 import { getQualityGateResultsForRun, getRunById, updateRun } from "../run-manager/run-manager";
 import { resolveTaskTargetRepoPath } from "../repo-intelligence/task-repo-path";
 import { getTaskById, updateTask } from "../task-manager/task-manager";
@@ -16,7 +18,14 @@ import { diagnoseIterationFailure } from "./diagnosis";
 import { classifyAutonomousFailure, isTerminalFailureClass } from "./failure-classification";
 import { defaultInvestigationOperations, runInvestigation } from "./investigation";
 import { interpretObjective } from "./objective-interpreter";
+import {
+  compareQcToBaseline,
+  qcIterationShouldFail,
+  snapshotQcResults,
+} from "./qc-baseline";
 import { reviewsHaveActionableDefects, runAutonomousReviews } from "./reviews";
+import { invokeAutonomousWorker } from "./worker-client";
+import { describeWorkerRoute, resolveAutonomousWorkerRoute } from "./worker-route";
 import { autonomousStateToRunStatus, isPausedAutonomousState, isTerminalAutonomousState } from "./state-machine";
 import {
   getAutonomousState,
@@ -37,6 +46,10 @@ export interface AutonomousLoopDependencies {
     repoPath: string;
   }) => Promise<WorkerPlan>;
   now?: () => Date;
+  runQualityGates?: (options: {
+    repoPath: string;
+    registeredRepoId?: string | null;
+  }) => Promise<QualityGateCommandResult[]>;
 }
 
 function nowIso(deps: AutonomousLoopDependencies): string {
@@ -105,14 +118,62 @@ async function generatePlanForIteration(
       ]
     : [];
 
+  if (document.workerModel?.route === "live_default_worker") {
+    const live = await invokeAutonomousWorker(
+      {
+        role: document.diagnosis ? "replan" : "planning",
+        system: "",
+        user: [
+          `Run ID: ${runId}`,
+          `Objective: ${document.originalObjective}`,
+          `Requirements: ${(document.requirements ?? []).join("; ")}`,
+          `Constraints: ${[...document.constraints, ...diagnosisHint].join("; ")}`,
+          `Allowed path prefixes: ${document.authorizedPathPrefixes.join(", ") || "(repo src/)"}`,
+          `Investigation: ${document.observations.map((obs) => obs.summary).join("\n")}`,
+          "Return worker plan JSON with runId matching the run, allowedFiles, and file operations with full content.",
+        ].join("\n"),
+      },
+      { generatePlanInjected: false },
+    );
+    document.usage.modelCalls += 1;
+    document.workerModel.rolesInvoked.push(document.diagnosis ? "replan" : "planning");
+    document.workerModel.providerName = live.providerName;
+    document.workerModel.modelName = live.modelName;
+    document.workerModel.mockBypassed = live.mockBypassed;
+    const parsed = live.parsed as unknown as WorkerPlan | null;
+    if (
+      !parsed ||
+      typeof parsed.summary !== "string" ||
+      !Array.isArray(parsed.allowedFiles) ||
+      !Array.isArray(parsed.operations)
+    ) {
+      throw Object.assign(
+        new Error(live.parseErrors.join("; ") || "Live worker did not return a worker plan JSON object"),
+        { failureClass: "MODEL_OUTPUT_FAILURE" as const },
+      );
+    }
+    parsed.runId = runId;
+    return parsed;
+  }
+
   const draft = await generateAndPersistWorkerPlanDraft(runId, {
-    constraints: [...document.constraints, ...diagnosisHint],
+    constraints: [
+      ...document.constraints,
+      ...diagnosisHint,
+      "Model output is a worker plan JSON draft only. Never write files, never run shell, never approve release.",
+    ],
     allowedFiles: document.authorizedPathPrefixes,
     includeFileContents: document.observations
       .flatMap((obs) => obs.paths ?? [])
       .slice(0, 8),
   });
   document.usage.modelCalls += 1;
+  if (document.workerModel) {
+    document.workerModel.rolesInvoked.push(document.diagnosis ? "replan" : "planning");
+    document.workerModel.providerName = draft.providerName;
+    document.workerModel.modelName = draft.modelName;
+    document.workerModel.mockBypassed = draft.providerName !== "mock";
+  }
 
   if (!draft.draft.parsedPlanJson) {
     throw Object.assign(new Error(draft.parseErrors.join("; ") || "Model output was not a worker plan"), {
@@ -182,10 +243,40 @@ export async function executeAutonomousLoop(
   });
 
   const repoPath = worktree.worktreePath;
+  const workerRoute = resolveAutonomousWorkerRoute(process.env, {
+    generatePlanInjected: Boolean(deps.generatePlan),
+  });
+  const providerInfo = getPublicModelProviderInfo();
+  document.workerModel = {
+    route: workerRoute,
+    providerName: providerInfo.provider,
+    modelName: providerInfo.model,
+    mockBypassed: workerRoute === "live_default_worker" && providerInfo.provider !== "mock",
+    rolesInvoked: document.workerModel?.rolesInvoked ?? [],
+  };
+  describeWorkerRoute(workerRoute, providerInfo.provider);
   auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_RUN_STARTED, runId, task.id, {
     mode: document.mode,
     objective: document.originalObjective,
+    workerRoute: document.workerModel.route,
+    provider: document.workerModel.providerName,
   });
+
+  if (!document.qcBaseline) {
+    const gateRunner = deps.runQualityGates ?? runQualityGates;
+    const baselineResults = await gateRunner({
+      repoPath,
+      registeredRepoId: task.registeredRepoId,
+    });
+    document.qcBaseline = snapshotQcResults(baselineResults, repoPath, deps.now ?? (() => new Date()));
+    document.decisions.push({
+      at: nowIso(deps),
+      kind: "qc_baseline",
+      summary: `Recorded QC baseline: ${document.qcBaseline.failures.length} failure(s) before mutation.`,
+      rationale: "Baseline-aware QC: pre-existing failures are disclosed, not treated as new iteration failures.",
+    });
+    persistAutonomousDocument(runId, document);
+  }
 
   const loopGuard = document.budget.max_iterations * 4 + 8;
   let steps = 0;
@@ -229,6 +320,12 @@ export async function executeAutonomousLoop(
       );
       document.usage = investigation.usage;
       document.observations.push(...investigation.observations);
+      await maybeInvokeWorker(
+        document,
+        "investigation",
+        `Objective: ${document.originalObjective}\nObservations:\n${investigation.observations.map((obs) => obs.summary).join("\n")}`,
+        Boolean(deps.generatePlan),
+      );
       auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_INVESTIGATION, runId, task.id, {
         observationCount: investigation.observations.length,
       });
@@ -258,6 +355,12 @@ export async function executeAutonomousLoop(
       document.requirements = interpretation.requirements;
       document.acceptanceCriteria = interpretation.acceptanceCriteria;
       document.assumptions = interpretation.assumptions;
+      await maybeInvokeWorker(
+        document,
+        "interpretation",
+        `Objective: ${document.originalObjective}\nHeuristic summary: ${interpretation.objectiveSummary}`,
+        Boolean(deps.generatePlan),
+      );
 
       const governanceUnknown = interpretation.unknowns.find(
         (item) => item.classification === "governance" && !item.resolved,
@@ -381,13 +484,28 @@ export async function executeAutonomousLoop(
 
       const qc = getQualityGateResultsForRun(runId);
       const failedCommands = qc.filter((gate) => gate.status === "failed").map((gate) => gate.command);
-      const qcSummary = failedCommands.length
+      const delta = compareQcToBaseline(
+        document.qcBaseline,
+        qc.map((gate) => ({
+          command: gate.command,
+          status: gate.status,
+          exitCode: gate.exitCode,
+          stdout: gate.stdout,
+          stderr: gate.stderr,
+          durationMs: gate.durationMs,
+        })),
+        deps.now ?? (() => new Date()),
+        { mutatedThisIteration: Boolean(submission.execution?.success) },
+      );
+      document.qcDelta = delta;
+      const rawQcSummary = failedCommands.length
         ? `Failed gates: ${failedCommands.join(", ")}`
         : "Quality gates passed or skipped.";
+      const qcSummary = qcSummaryFromDelta(delta, rawQcSummary);
       document.qcObservations.push({
         iteration: document.iterationNumber,
         at: nowIso(deps),
-        passed: !submission.qualityGatesFailed,
+        passed: delta.objectiveQcPassed,
         failedCommands,
         summary: qcSummary,
       });
@@ -474,7 +592,19 @@ export async function executeAutonomousLoop(
         return terminalResult(runId, document, "POLICY_BLOCK");
       }
 
-      if (submission.qualityGatesFailed || submission.iterationOutcome === "iteration_failed") {
+      if (delta.infrastructureFailures.length > 0) {
+        document = applyTerminal(
+          document,
+          "failed",
+          "INFRASTRUCTURE_FAILURE",
+          delta.infrastructureFailures.map((item) => item.identity.rawEvidence).join("; "),
+        );
+        persistAndSync(runId, document, task.id);
+        updateTask(task.id, { status: "failed" });
+        return terminalResult(runId, document, "INFRASTRUCTURE_FAILURE");
+      }
+
+      if (qcIterationShouldFail(delta)) {
         const failureClass = classifyAutonomousFailure({ qualityGatesFailed: true });
         document.priorAttempts.push({
           iteration: document.iterationNumber,
@@ -496,6 +626,12 @@ export async function executeAutonomousLoop(
           failureClass,
           qcSummary,
         });
+        await maybeInvokeWorker(
+          document,
+          "diagnosis",
+          `Failure class: ${failureClass}\n${qcSummary}\nPre-existing: ${delta.preExistingFailures.map((item) => item.identity.key).join(", ")}`,
+          Boolean(deps.generatePlan),
+        );
         auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
           iteration: document.iterationNumber,
           failureClass,
@@ -506,13 +642,23 @@ export async function executeAutonomousLoop(
         continue;
       }
 
+      if (delta.preExistingFailures.length > 0) {
+        document.openRisks = delta.preExistingFailures.map((finding, index) => ({
+          id: `preexisting-${index}-${finding.identity.key}`,
+          summary: `Pre-existing QC failure (not introduced by this objective): ${finding.identity.name}`,
+          class: "ENGINEERING_FAILURE" as const,
+        }));
+      }
+
       document.priorAttempts.push({
         iteration: document.iterationNumber,
         workerPlanId: submission.workerPlanId,
         strategy: document.strategy ?? plan.summary,
         outcome: "passed",
         failureClass: null,
-        summary: "Worker plan executed and quality gates passed.",
+        summary: delta.preExistingFailures.length
+          ? "Worker plan executed. Objective QC passed with disclosed pre-existing failures."
+          : "Worker plan executed and quality gates passed.",
         qcSummary,
       });
       document = transitionAutonomousState(runId, "quality_checking", document).document;
@@ -555,7 +701,7 @@ export async function executeAutonomousLoop(
         document,
         changedFiles,
         diffSummary,
-        qcPassed: true,
+        qcPassed: document.qcDelta?.objectiveQcPassed ?? true,
       });
       document.reviews = reviews;
       if (reviewsHaveActionableDefects(reviews)) {
@@ -586,11 +732,17 @@ export async function executeAutonomousLoop(
       const changedFiles = await getChangedFiles(repoPath);
       const evaluation = evaluateCompletion({
         document,
-        qcPassed: true,
+        qcPassed: document.qcDelta?.objectiveQcPassed ?? true,
         changedFiles,
         reviews: document.reviews,
       });
       document.completionEvaluation = evaluation;
+      await maybeInvokeWorker(
+        document,
+        "completion",
+        `Complete=${evaluation.complete}. ${evaluation.summary}`,
+        Boolean(deps.generatePlan),
+      );
       if (!evaluation.complete) {
         document.diagnosis = diagnoseIterationFailure({
           document,
@@ -628,4 +780,43 @@ function persistAndSync(runId: string, document: AutonomousDocument, taskId: str
     iteration: document.iterationNumber,
     failureClass: document.failureClass,
   });
+}
+
+function qcSummaryFromDelta(
+  delta: ReturnType<typeof compareQcToBaseline>,
+  fallback: string,
+): string {
+  if (delta.ownedIterationFailures.length === 0 && delta.preExistingFailures.length === 0) {
+    return fallback;
+  }
+  const parts = [
+    `new=${delta.newFailures.length}`,
+    `changed=${delta.changedFailures.length}`,
+    `pre_existing=${delta.preExistingFailures.length}`,
+    `resolved=${delta.resolvedBaselineFailures.length}`,
+  ];
+  return `QC vs baseline: ${parts.join(", ")}. ${fallback}`;
+}
+
+async function maybeInvokeWorker(
+  document: AutonomousDocument,
+  role: "interpretation" | "investigation" | "diagnosis" | "completion" | "review",
+  user: string,
+  generatePlanInjected: boolean,
+): Promise<void> {
+  if (!document.workerModel || document.workerModel.route !== "live_default_worker") return;
+  const result = await invokeAutonomousWorker({ role, system: "", user }, { generatePlanInjected });
+  document.usage.modelCalls += 1;
+  document.workerModel.rolesInvoked.push(role);
+  document.workerModel.providerName = result.providerName;
+  document.workerModel.modelName = result.modelName;
+  document.workerModel.mockBypassed = result.mockBypassed;
+  if (result.parsed?.summary && typeof result.parsed.summary === "string") {
+    document.decisions.push({
+      at: new Date().toISOString(),
+      kind: `worker_${role}`,
+      summary: result.parsed.summary.slice(0, 400),
+      rationale: "Live default worker structured JSON (advisory; cannot mutate or approve).",
+    });
+  }
 }

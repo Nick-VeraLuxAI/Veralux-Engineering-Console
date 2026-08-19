@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import fs from "fs";
+import path from "path";
 import { buildAuthorityEnvelope, assertExecutorCannotSelfAuthorize, isPathAuthorized } from "./authority";
 import { checkBudget, emptyBudgetUsage, wouldExceedBudget, BudgetExhaustedError } from "./budget";
 import { resolveAutonomousBudgets } from "./policy-budgets";
@@ -156,3 +158,20 @@ describe("completion evaluator", () => {
     expect(evaluation.qcPassed).toBe(true);
   });
 });
+
+describe("director UX contracts", () => {
+  it("presents the seven director questions in the autonomous panel", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "src/components/engineer-console/autonomous-engineer-panel.tsx"),
+      "utf8",
+    );
+    expect(source).toContain("What is it doing?");
+    expect(source).toContain("Does it need me?");
+    expect(source).toContain("Did it finish?");
+    expect(source).toContain("QC vs baseline?");
+    expect(source).toContain("What changed?");
+    expect(source).toContain("Risks?");
+    expect(source).toContain("What decision?");
+  });
+});
+

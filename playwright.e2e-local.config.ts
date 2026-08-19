@@ -9,7 +9,7 @@ const port = Number(process.env.E2E_PORT ?? 3000);
  */
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["**/engineer-console-smoke.spec.ts", "**/zz-release-panels-smoke.spec.ts"],
+  testMatch: ["**/engineer-console-smoke.spec.ts", "**/zz-release-panels-smoke.spec.ts", "**/autonomous-engineer-v1.spec.ts"],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 1,

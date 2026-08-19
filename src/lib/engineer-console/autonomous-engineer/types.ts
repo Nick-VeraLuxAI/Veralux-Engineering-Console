@@ -201,6 +201,14 @@ export interface DiagnosisResult {
   doNotMutate: true;
 }
 
+export interface AutonomousWorkerModelTrace {
+  route: string;
+  providerName: string;
+  modelName: string;
+  mockBypassed: boolean;
+  rolesInvoked: string[];
+}
+
 export interface AutonomousDocument {
   version: number;
   mode: typeof AUTONOMOUS_ENGINEER_MODE;
@@ -225,6 +233,9 @@ export interface AutonomousDocument {
   currentPlanId: string | null;
   previousPlanId: string | null;
   qcObservations: QcObservation[];
+  qcBaseline: import("./qc-baseline").QcBaselineSnapshot | null;
+  qcDelta: import("./qc-baseline").QcDelta | null;
+  workerModel: AutonomousWorkerModelTrace | null;
   unresolvedDefects: UnresolvedDefect[];
   openRisks: OpenRisk[];
   clarification: ClarificationRecord | null;

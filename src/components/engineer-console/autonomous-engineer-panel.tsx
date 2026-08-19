@@ -45,6 +45,29 @@ export interface AutonomousProgressPayload {
   currentPlanId?: string | null;
   qualityGates?: Array<{ command: string; status: string }>;
   humanGatesRemaining?: string[];
+  director?: {
+    objectiveResult: string;
+    whatItIsDoing: string;
+    needsDirector: boolean;
+    finished: boolean;
+    qcVersusBaseline: {
+      baselineFailureCount: number;
+      newRegressions: string[];
+      preExistingFailures: string[];
+      objectiveQcPassed: boolean | null;
+    };
+    whatChanged: string[];
+    risks: string[];
+    decision: string;
+    nextAction: string;
+  } | null;
+  workerModel?: {
+    route: string;
+    providerName: string;
+    modelName: string;
+    mockBypassed: boolean;
+    rolesInvoked: string[];
+  } | null;
 }
 
 export function AutonomousEngineerPanel({
@@ -118,6 +141,42 @@ export function AutonomousEngineerPanel({
         allowlisted QC. Manual plan submit and QC retry are not required in this mode. PR, merge,
         deploy, and sign-off stay human gates.
       </p>
+      <dl className="mb-4 grid gap-2 text-sm md:grid-cols-2">
+        <div>
+          <dt className="text-[var(--muted)]">What is it doing?</dt>
+          <dd className="text-white">{payload.director?.whatItIsDoing ?? payload.strategy ?? payload.status}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Does it need me?</dt>
+          <dd className="text-white">{payload.director?.needsDirector || waiting ? "Yes — clarification" : "No"}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Did it finish?</dt>
+          <dd className="text-white">{payload.director?.finished || deliveryReady ? "Delivery candidate ready" : "Not yet"}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">QC vs baseline?</dt>
+          <dd className="text-white">
+            {payload.director
+              ? `${payload.director.qcVersusBaseline.newRegressions.length} new / ${payload.director.qcVersusBaseline.preExistingFailures.length} pre-existing`
+              : "Recording"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">What changed?</dt>
+          <dd className="text-white">{payload.director?.whatChanged[0] ?? payload.strategy ?? "No mutation yet"}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Risks?</dt>
+          <dd className="text-white">{payload.director?.risks[0] ?? payload.failureClass ?? "None disclosed"}</dd>
+        </div>
+        <div className="md:col-span-2">
+          <dt className="text-[var(--muted)]">What decision?</dt>
+          <dd className="text-white">
+            {payload.director?.nextAction ?? (deliveryReady ? "Authorize PR" : "Wait")}
+          </dd>
+        </div>
+      </dl>
       {payload.strategy ? (
         <p className="mb-3 text-sm text-white">{payload.strategy}</p>
       ) : null}

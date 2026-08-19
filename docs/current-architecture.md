@@ -27,10 +27,10 @@ Autonomous Engineer V1 plans, executes, and retries **inside** those primitives.
 | Tasks / runs | `task-manager/`, `run-manager/` | CRUD, run lifecycle fields |
 | Workspace | `workspace/` | Git checkout, **per-run isolated worktrees**, diff, controlled git for PR/merge |
 | Orchestrator | `orchestrator/` | Start run, approval actions, worker plan submit; Autonomous Engineer loop for AE-mode runs |
-| Autonomous Engineer | `autonomous-engineer/` | Investigate → (clarify) → plan → validate → execute → QC → diagnose/replan → completion |
+| Autonomous Engineer | `autonomous-engineer/` | Investigate → (clarify) → plan → validate → execute → baseline-aware QC → diagnose/replan → director completion package |
 | Worker plan | `worker-plan/` | Validate, execute UTF-8 file ops only |
 | Model router | `model-router/` | Draft generation, providers, prompts |
-| Quality gates | `quality-gates/` | Run repo `npm test` / build / lint when present |
+| Quality gates | `quality-gates/` | Allowlisted `npm test` / build / lint / typecheck; AE compares post-change results to a pre-mutation baseline |
 | Approval | `approval/` | Approval report JSON |
 | Governance | `governance/` | Audit ledger, evidence, decisions, replay, policy, review stages |
 | Repo intelligence | `repo-intelligence/` | Register repos, file/code index, compatibility |

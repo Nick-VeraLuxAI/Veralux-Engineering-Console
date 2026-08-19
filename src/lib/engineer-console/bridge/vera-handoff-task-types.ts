@@ -59,6 +59,10 @@ export type VeraRunGovernanceNotes = {
   veraImplementationPatchContentDraftReviewedBy?: string | null;
   veraImplementationPatchContentDraftReviewedAt?: string | null;
   veraImplementationPatchContentDraftReviewNote?: string | null;
+  veraImplementationPatchContentDraftReviewerActorId?: string | null;
+  veraImplementationPatchContentDraftReviewerRole?: string | null;
+  veraImplementationPatchAppliedActorId?: string | null;
+  veraImplementationPatchAppliedRole?: string | null;
   veraPostPatchQualityStatus?: string | null;
   veraPostPatchQualityReportPath?: string | null;
   veraPostPatchQualityReportHash?: string | null;

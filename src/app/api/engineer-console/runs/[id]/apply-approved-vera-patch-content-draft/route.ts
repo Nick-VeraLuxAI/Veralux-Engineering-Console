@@ -37,6 +37,8 @@ export async function POST(
       runId,
       confirmationText: body.confirmationText ?? "",
       requestedBy: auth.operator.displayName,
+      actorId: auth.operator.id,
+      actorRole: "executor",
       note: body.note ?? null,
     });
 

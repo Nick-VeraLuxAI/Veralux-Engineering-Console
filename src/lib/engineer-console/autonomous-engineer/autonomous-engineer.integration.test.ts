@@ -139,6 +139,9 @@ describe("autonomous engineer integration", () => {
     const pkg = getAutonomousCompletionPackage(runId);
     expect(pkg?.completionEvaluation?.complete).toBe(true);
     expect(pkg?.authorityEnvelope.canSelfApprove).toBe(false);
+    expect(pkg?.qcBaseline).toBeTruthy();
+    expect(pkg?.director.objectiveResult).toBe("SATISFIED");
+    expect(pkg?.director.nextAction).toBe("Authorize PR");
   });
 
   it("failing first attempt persists observation, diagnoses, replans, and passes", async () => {
@@ -171,6 +174,42 @@ describe("autonomous engineer integration", () => {
     expect(plans.some((plan) => plan.iterationNumber === 2)).toBe(true);
     expect(getRunById(runId)?.status).not.toBe("failed");
     expect(state.document.priorAttempts[0]?.failureClass).toBe("ENGINEERING_FAILURE");
+  });
+
+  it("Case 5: pre-existing repo-wide QC failure plus objective pass is a delivery candidate", async () => {
+    fs.writeFileSync(
+      path.join(repoRoot, "typecheck.js"),
+      "console.error(\"src/lib/legacy.ts(1,1): error TS2307: Cannot find module 'airllm'.\");\nprocess.exit(1);\n",
+    );
+    fs.writeFileSync(
+      path.join(repoRoot, "package.json"),
+      JSON.stringify({
+        name: "ae-specimen",
+        scripts: {
+          test: "node test.js",
+          typecheck: "node typecheck.js",
+        },
+      }),
+    );
+    execSync("git add package.json typecheck.js", { cwd: repoRoot, stdio: "ignore" });
+    execSync('git commit -m "add pre-existing typecheck failure"', { cwd: repoRoot, stdio: "ignore" });
+
+    const task = createTask({
+      title: "Ready flag",
+      description: "Add src/ready.txt so the test script passes.",
+      targetRepoPath: repoRoot,
+    });
+    const { runId, result } = await startAutonomousRun(
+      { taskId: task.id },
+      { generatePlan: async ({ runId: id }) => passingPlan(id) },
+    );
+    expect(result.state).toBe("waiting_for_approval");
+    const pkg = getAutonomousCompletionPackage(runId);
+    expect(pkg?.qcDelta?.preExistingFailures.length).toBeGreaterThan(0);
+    expect(pkg?.qcDelta?.newFailures ?? []).toHaveLength(0);
+    expect(pkg?.qcDelta?.objectiveQcPassed).toBe(true);
+    expect(pkg?.director.objectiveResult).toBe("SATISFIED");
+    expect(pkg?.openRisks.length).toBeGreaterThan(0);
   });
 
   it("discoverable uncertainty is investigated without a human question", async () => {
