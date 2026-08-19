@@ -23,6 +23,12 @@ const DISCOVERABLE_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
 
 export function classifyUnknown(statement: string): { classification: UnknownClass; reason: string } {
   const text = statement.trim();
+  if (isProhibitionOfProtectedAction(text)) {
+    return {
+      classification: "engineering",
+      reason: "A prohibition of PR/merge/deploy is a constraint, not a request to perform a human release gate.",
+    };
+  }
   for (const rule of GOVERNANCE_PATTERNS) {
     if (rule.pattern.test(text)) {
       return { classification: "governance", reason: rule.reason };
@@ -75,4 +81,11 @@ export function extractUnknownStatements(objective: string): string[] {
     .map((part) => part.trim())
     .filter((part) => part.endsWith("?"));
   return questions;
+}
+
+function isProhibitionOfProtectedAction(text: string): boolean {
+  return (
+    /\b(do not|don't|never|without|must not)\b/i.test(text) &&
+    /\b(pr|pull request|merge|deploy|sign[- ]off)\b/i.test(text)
+  );
 }

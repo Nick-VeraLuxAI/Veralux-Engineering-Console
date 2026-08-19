@@ -1,6 +1,6 @@
 # Autonomous Engineer V1 — source of truth
 
-Status: **PARTIAL** — core loop, baseline-aware QC, approver/executor split, and director package are implemented in `src/lib/engineer-console/autonomous-engineer/`. Live dogfood against a real worker model and a headed browser run of the rebuilt Console were not both proven at closure.
+Status: **COMPLETE** — live local Nano 30B (`Nemotron-Nano-30B-A3B-NVFP4` via vLLM on `http://127.0.0.1:8081/v1`) ran a governed Engineering Console dogfood to `waiting_for_approval` / delivery-candidate ready, and Playwright proved director task creation, live progress, clarification pause/resume on the same run, and the delivery-candidate package on this branch.
 
 ## Canonical control plane
 
@@ -26,11 +26,11 @@ Before the first mutation, the loop records allowlisted QC on the isolated workt
 - `NEW_FAILURE` — not present at baseline
 - `PRE_EXISTING_FAILURE` — same identity and fingerprint as baseline
 - `CHANGED_FAILURE` — same identity, different evidence (or generic test command after a mutation)
-- `RESOLVED_BASELINE_FAILURE` — baseline failure gone
-- `INFRASTRUCTURE_FAILURE` — runner/timeout/missing binary
+- `RESOLVED_BASELINE_FAILURE` — baseline failure gone **and** that gate no longer failed
+- `INFRASTRUCTURE_FAILURE` — runner/timeout/missing binary (not application `cannot find module`)
 - `SKIPPED`
 
-`ITERATION_FAILED` is raised only for **owned** failures (`NEW_FAILURE`, `CHANGED_FAILURE`, `INFRASTRUCTURE_FAILURE`). Unchanged pre-existing Super/AirLLM-class failures are disclosed on the director package and do not consume the iteration budget as new engineering defects.
+`ITERATION_FAILED` is raised only for **owned** failures (`NEW_FAILURE`, `CHANGED_FAILURE`, `INFRASTRUCTURE_FAILURE`). Unchanged pre-existing Super/AirLLM-class failures are disclosed on the director package and do not consume the iteration budget as new engineering defects. Vitest duration suffixes and unparsed build/lint stdout churn do not create false new/changed identities. Truncating or appending onto large existing modules is rejected at plan validation so live models cannot gut the library.
 
 Delivery candidate is allowed when objective-specific verification passes, checks that were green at baseline stay green, new owned failures are resolved, and remaining pre-existing failures are disclosed separately.
 
@@ -38,8 +38,14 @@ Delivery candidate is allowed when objective-specific verification passes, check
 
 - Automated tests inject `generatePlan` and/or run under Vitest → `test_mock`.
 - Live runs (`ENGINEER_CONSOLE_AE_WORKER_ROUTE=live`, configured Kimi, or enabled local OpenAI-compatible Nano coding model) → `live_default_worker`.
-- Super/AirLLM is forbidden as the AE worker.
+- Super/AirLLM is forbidden as the AE worker. This host’s live worker is Docker `nemotron-nano-vera-8081` serving `Nemotron-Nano-30B-A3B-NVFP4` (OpenAI-compatible `/v1/chat/completions`, thinking disabled). Console port 8082 is not required by current AE routing.
 - Model output is structured JSON only. It never writes files, never shells, and never approves release. Mutations remain worker-plan execute.
+
+## Live V1 proof (this closure)
+
+- Dogfood run `a35c5a88-785b-494b-869f-9964674ad5db`: director-level QC-sentence helper objective; Nano investigation/interpretation/planning/review/completion; isolated worktree `qc-baseline-helper.ts` + Vitest; QC new=0 / pre-existing=157; delivery candidate ready; `waiting_for_approval`; no PR.
+- Semantic retry: live contract specimen `materiallyDifferentReplan: true`, plus earlier live dogfood iterations that diagnosed and replanned before the successful run.
+- Browser: Playwright `tests/e2e/autonomous-engineer-v1.spec.ts` against this branch on `:3030` — create-task, progress, clarification pause/resume (`bar` on the same run), delivery-candidate UI.
 
 ## Director experience
 
@@ -81,6 +87,7 @@ Super remains optional, advisory, gated, and non-authoritative. It is not the de
 
 ## Known limitations (V1)
 
-- Live dogfood on this host requires a reachable Kimi key or local OpenAI-compatible worker (`127.0.0.1:8081`). If that endpoint is down, live model proof is incomplete.
-- Headed/browser proof requires a Console build that includes this UI; Playwright spec is `tests/e2e/autonomous-engineer-v1.spec.ts`.
-- Generic `npm test` failures after a mutation are treated as owned `CHANGED_FAILURE` so objective tests can iterate; specific TS/lint identities stay pre-existing when unchanged.
+- Live dogfood on this host needs the Nano vLLM container on `127.0.0.1:8081`. If that endpoint is down, start the existing `nemotron-nano-vera-8081` runtime; do not install a second serving stack.
+- Headed/browser proof uses the Console on this branch (not port 3000). Playwright spec is `tests/e2e/autonomous-engineer-v1.spec.ts` with live run ids.
+- Generic `npm test` blobs after a mutation are treated as owned `CHANGED_FAILURE` so objective tests can iterate when names cannot be parsed; specific TS/lint/test identities stay pre-existing when unchanged.
+- Repo-wide `npm test` / `tsc` still report pre-existing Super/AirLLM and unrelated test typing failures. Those are not AE V1 repair fuel.

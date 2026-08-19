@@ -201,12 +201,26 @@ export interface DiagnosisResult {
   doNotMutate: true;
 }
 
+export interface AutonomousWorkerInvocationTrace {
+  role: string;
+  providerName: string;
+  modelName: string;
+  requestPath: string;
+  schemaValid: boolean;
+  parseErrors: string[];
+  schemaErrors: string[];
+  repairAttempted: boolean;
+  accepted: boolean;
+}
+
 export interface AutonomousWorkerModelTrace {
   route: string;
   providerName: string;
   modelName: string;
   mockBypassed: boolean;
   rolesInvoked: string[];
+  requestPath?: string;
+  lastInvocations?: AutonomousWorkerInvocationTrace[];
 }
 
 export interface AutonomousDocument {

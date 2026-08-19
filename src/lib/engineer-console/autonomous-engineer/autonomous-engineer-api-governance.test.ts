@@ -31,5 +31,14 @@ describe("autonomous engineer API governance", () => {
     expect(loop).not.toContain("production-deploy");
     expect(loop).toContain("submitAndExecuteWorkerPlan");
     expect(loop).toContain("iterationMode: true");
+    expect(loop).toContain("coerceWorkerPlanToWorktree");
+  });
+
+  it("does not invoke client-only Vera panel helpers from the run server page", () => {
+    const page = fs.readFileSync(
+      path.join(process.cwd(), "src/app/(main)/engineer/runs/[id]/page.tsx"),
+      "utf8",
+    );
+    expect(page).not.toMatch(/canShowVera[A-Za-z]+\(/);
   });
 });

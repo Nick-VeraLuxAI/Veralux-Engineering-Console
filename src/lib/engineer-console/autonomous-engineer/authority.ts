@@ -58,3 +58,24 @@ export function isPathAuthorized(
     (prefix) => normalized === prefix || normalized.startsWith(`${prefix.replace(/\/$/, "")}/`),
   );
 }
+
+const INVESTIGATION_DISCOVERY_FILES = new Set([
+  "package.json",
+  "tsconfig.json",
+  "vitest.config.ts",
+  "vitest.config.js",
+  "next.config.ts",
+  "next.config.js",
+  "eslint.config.mjs",
+  "eslint.config.js",
+]);
+
+/** Investigation may read root discovery files even when mutation prefixes are set. */
+export function isInvestigationPathAllowed(
+  envelope: AutonomousAuthorityEnvelope,
+  relativePath: string,
+): boolean {
+  const normalized = relativePath.replace(/\\/g, "/").replace(/^\.\//, "");
+  if (INVESTIGATION_DISCOVERY_FILES.has(normalized)) return true;
+  return isPathAuthorized(envelope, normalized);
+}

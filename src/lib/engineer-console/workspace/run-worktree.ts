@@ -74,6 +74,14 @@ function parseDirtyPaths(json: string): string[] {
   }
 }
 
+/** Allowlisted QC in a git worktree needs the host repo's installed dependencies. */
+export function linkWorktreeRuntimeDependencies(repoPath: string, worktreePath: string): void {
+  const source = path.join(path.resolve(repoPath), "node_modules");
+  const destination = path.join(path.resolve(worktreePath), "node_modules");
+  if (!fs.existsSync(source) || fs.existsSync(destination)) return;
+  fs.symlinkSync(source, destination);
+}
+
 function mapRow(row: RunWorktreeRow): RunWorktreeRecord {
   return {
     id: row.id,
@@ -153,6 +161,8 @@ export async function createIsolatedRunWorktree(input: {
     const message = error instanceof Error ? error.message : String(error);
     throw new GitWorkspaceError(`Failed to create isolated worktree for run ${input.runId}: ${message}`);
   }
+
+  linkWorktreeRuntimeDependencies(input.repoPath, worktreePath);
 
   const now = nowIso();
   const record: RunWorktreeRecord = {

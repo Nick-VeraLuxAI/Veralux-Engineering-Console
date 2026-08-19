@@ -4,8 +4,9 @@ import { collectRepoContext } from "../model-router/repo-context-collector";
 import { searchSymbols } from "../repo-intelligence/code-index/search-symbols";
 import { listIndexedFiles } from "../repo-intelligence/file-index/list-indexed-files";
 import { getGitLog, getGitStatus, verifyGitRepo } from "../workspace/git-workspace";
-import { isProtectedWorkerPath, normalizeRelativePath, resolvePathWithinRepo } from "../worker-plan/path-safety";
+import { isProtectedWorkerPath, resolvePathWithinRepo } from "../worker-plan/path-safety";
 import type { AutonomousAuthorityEnvelope, InvestigationObservation } from "./types";
+import { isInvestigationPathAllowed } from "./authority";
 import { BudgetExhaustedError, checkBudget } from "./budget";
 import type { AutonomousBudgetConfig, AutonomousBudgetUsage } from "./types";
 
@@ -57,13 +58,8 @@ function assertReadAllowed(envelope: AutonomousAuthorityEnvelope, relativePath: 
     throw new Error(`Investigation blocked for protected path: ${relativePath}`);
   }
   if (envelope.authorizedPathPrefixes.length === 0) return;
-  const normalized = normalizeRelativePath(relativePath);
-  const allowed = envelope.authorizedPathPrefixes.some(
-    (prefix) => normalized === prefix || normalized.startsWith(`${prefix.replace(/\/$/, "")}/`),
-  );
-  if (!allowed) {
-    throw new Error(`Investigation path not in authority envelope: ${relativePath}`);
-  }
+  if (isInvestigationPathAllowed(envelope, relativePath)) return;
+  throw new Error(`Investigation path not in authority envelope: ${relativePath}`);
 }
 
 function chargeRead(

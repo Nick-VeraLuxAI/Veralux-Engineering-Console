@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "fs";
 import path from "path";
-import { buildAuthorityEnvelope, assertExecutorCannotSelfAuthorize, isPathAuthorized } from "./authority";
+import { buildAuthorityEnvelope, assertExecutorCannotSelfAuthorize, isPathAuthorized, isInvestigationPathAllowed } from "./authority";
 import { checkBudget, emptyBudgetUsage, wouldExceedBudget, BudgetExhaustedError } from "./budget";
 import { resolveAutonomousBudgets } from "./policy-budgets";
 import { classifyAutonomousFailure, isIterationFailureClass, isTerminalFailureClass } from "./failure-classification";
@@ -43,6 +43,8 @@ describe("authority envelope", () => {
     const envelope = buildAuthorityEnvelope(fakeTask(), ["src/"]);
     expect(isPathAuthorized(envelope, "src/lib/a.ts")).toBe(true);
     expect(isPathAuthorized(envelope, "docs/secret.md")).toBe(false);
+    expect(isInvestigationPathAllowed(envelope, "package.json")).toBe(true);
+    expect(isInvestigationPathAllowed(envelope, "docs/secret.md")).toBe(false);
   });
 });
 
@@ -94,6 +96,9 @@ describe("unknown classifier", () => {
     expect(classifyUnknown("Please merge this to main after the change.").classification).toBe(
       "governance",
     );
+    expect(
+      classifyUnknown("Add a helper. Do not open a PR or deploy.").classification,
+    ).toBe("engineering");
     const unknowns = classifyUnknowns(["Should we rename the public API?"]);
     expect(requiresDirectorClarification(unknowns)).toBe(true);
   });

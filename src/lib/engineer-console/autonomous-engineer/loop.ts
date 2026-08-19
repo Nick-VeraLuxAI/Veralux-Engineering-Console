@@ -1,6 +1,7 @@
 import { AUDIT_EVENT_TYPES } from "../governance/audit-ledger/audit-event-types";
 import { generateAndPersistWorkerPlanDraft } from "../model-router/worker-plan-draft-generator";
 import { getPublicModelProviderInfo } from "../model-router/model-provider-config";
+import { getLocalModelCodingConfig } from "../bridge/local-model-coding-config";
 import { submitAndExecuteWorkerPlan } from "../orchestrator/worker-plan-orchestrator";
 import { runQualityGates, type QualityGateCommandResult } from "../quality-gates/quality-gate-runner";
 import { getQualityGateResultsForRun, getRunById, updateRun } from "../run-manager/run-manager";
@@ -11,7 +12,7 @@ import type { WorkerPlan } from "../worker-plan/worker-plan-types";
 import { getChangedFiles, getDiffSummary } from "../workspace/git-workspace";
 import { createIsolatedRunWorktree } from "../workspace/run-worktree";
 import { auditAutonomousEvent } from "./audit";
-import { assertExecutorCannotSelfAuthorize } from "./authority";
+import { assertExecutorCannotSelfAuthorize, isPathAuthorized } from "./authority";
 import { BudgetExhaustedError, checkBudget, wouldExceedBudget } from "./budget";
 import { evaluateCompletion } from "./completion-evaluator";
 import { diagnoseIterationFailure } from "./diagnosis";
@@ -24,6 +25,11 @@ import {
   snapshotQcResults,
 } from "./qc-baseline";
 import { reviewsHaveActionableDefects, runAutonomousReviews } from "./reviews";
+import {
+  coerceWorkerPlanToWorktree,
+  listAuthorizedWorktreeFiles,
+  truncatingUpdateErrors,
+} from "./plan-worktree-adapter";
 import { invokeAutonomousWorker } from "./worker-client";
 import { describeWorkerRoute, resolveAutonomousWorkerRoute } from "./worker-route";
 import { autonomousStateToRunStatus, isPausedAutonomousState, isTerminalAutonomousState } from "./state-machine";
@@ -129,6 +135,11 @@ async function generatePlanForIteration(
           `Requirements: ${(document.requirements ?? []).join("; ")}`,
           `Constraints: ${[...document.constraints, ...diagnosisHint].join("; ")}`,
           `Allowed path prefixes: ${document.authorizedPathPrefixes.join(", ") || "(repo src/)"}`,
+          `Existing files under those prefixes: ${
+            listAuthorizedWorktreeFiles(repoPath, document.authorizedPathPrefixes).join(", ") || "(none)"
+          }`,
+          "Use update_file for paths that already exist and create_file only for new paths. Include complete file contents.",
+          "Prefer create_file for a new small helper and a Vitest test file (import { describe, it, expect } from \"vitest\"). Do not rewrite or append to entire large existing modules. Pre-existing Super/AirLLM QC failures are out of scope.",
           `Investigation: ${document.observations.map((obs) => obs.summary).join("\n")}`,
           "Return worker plan JSON with runId matching the run, allowedFiles, and file operations with full content.",
         ].join("\n"),
@@ -136,24 +147,25 @@ async function generatePlanForIteration(
       { generatePlanInjected: false },
     );
     document.usage.modelCalls += 1;
-    document.workerModel.rolesInvoked.push(document.diagnosis ? "replan" : "planning");
-    document.workerModel.providerName = live.providerName;
-    document.workerModel.modelName = live.modelName;
-    document.workerModel.mockBypassed = live.mockBypassed;
+    recordWorkerInvocation(document, live);
     const parsed = live.parsed as unknown as WorkerPlan | null;
     if (
+      !live.schemaValid ||
       !parsed ||
       typeof parsed.summary !== "string" ||
       !Array.isArray(parsed.allowedFiles) ||
       !Array.isArray(parsed.operations)
     ) {
       throw Object.assign(
-        new Error(live.parseErrors.join("; ") || "Live worker did not return a worker plan JSON object"),
+        new Error(
+          [...live.parseErrors, ...live.schemaErrors].join("; ")
+            || "Live worker did not return a worker plan JSON object",
+        ),
         { failureClass: "MODEL_OUTPUT_FAILURE" as const },
       );
     }
     parsed.runId = runId;
-    return parsed;
+    return coerceWorkerPlanToWorktree(repoPath, parsed);
   }
 
   const draft = await generateAndPersistWorkerPlanDraft(runId, {
@@ -182,7 +194,7 @@ async function generatePlanForIteration(
   }
   const parsed = JSON.parse(draft.draft.parsedPlanJson) as WorkerPlan;
   parsed.runId = runId;
-  return parsed;
+  return coerceWorkerPlanToWorktree(repoPath, parsed);
 }
 
 function applyTerminal(
@@ -247,14 +259,24 @@ export async function executeAutonomousLoop(
     generatePlanInjected: Boolean(deps.generatePlan),
   });
   const providerInfo = getPublicModelProviderInfo();
+  const localCoding = getLocalModelCodingConfig();
+  const liveLocal =
+    workerRoute === "live_default_worker" &&
+    providerInfo.provider !== "kimi" &&
+    localCoding.enabled &&
+    Boolean(localCoding.model);
   document.workerModel = {
     route: workerRoute,
-    providerName: providerInfo.provider,
-    modelName: providerInfo.model,
-    mockBypassed: workerRoute === "live_default_worker" && providerInfo.provider !== "mock",
+    providerName: liveLocal ? "local_openai_compatible" : providerInfo.provider,
+    modelName: liveLocal ? (localCoding.model as string) : providerInfo.model,
+    mockBypassed: workerRoute === "live_default_worker" && (providerInfo.provider !== "mock" || liveLocal),
     rolesInvoked: document.workerModel?.rolesInvoked ?? [],
+    requestPath: liveLocal
+      ? `${localCoding.baseUrl.replace(/\/$/, "")}/chat/completions`
+      : document.workerModel?.requestPath,
+    lastInvocations: document.workerModel?.lastInvocations ?? [],
   };
-  describeWorkerRoute(workerRoute, providerInfo.provider);
+  describeWorkerRoute(workerRoute, liveLocal ? "local_openai_compatible" : providerInfo.provider);
   auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_RUN_STARTED, runId, task.id, {
     mode: document.mode,
     objective: document.originalObjective,
@@ -263,6 +285,8 @@ export async function executeAutonomousLoop(
   });
 
   if (!document.qcBaseline) {
+    document.strategy = "Recording QC baseline on the isolated worktree before any mutation.";
+    persistAndSync(runId, document, task.id);
     const gateRunner = deps.runQualityGates ?? runQualityGates;
     const baselineResults = await gateRunner({
       repoPath,
@@ -307,17 +331,26 @@ export async function executeAutonomousLoop(
     }
 
     if (document.currentState === "investigating") {
-      const investigation = await runInvestigation(
-        {
-          repoPath,
-          registeredRepoId: task.registeredRepoId,
-          envelope: document.authorityEnvelope,
-          budget: document.budget,
-          usage: document.usage,
-          taskSearchTerms: [task.title, document.originalObjective],
-        },
-        defaultInvestigationOperations(document.originalObjective),
-      );
+      let investigation;
+      try {
+        investigation = await runInvestigation(
+          {
+            repoPath,
+            registeredRepoId: task.registeredRepoId,
+            envelope: document.authorityEnvelope,
+            budget: document.budget,
+            usage: document.usage,
+            taskSearchTerms: [task.title, document.originalObjective],
+          },
+          defaultInvestigationOperations(document.originalObjective),
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        document = applyTerminal(document, "failed", "ENGINEERING_FAILURE", message);
+        persistAndSync(runId, document, task.id);
+        updateTask(task.id, { status: "failed" });
+        return terminalResult(runId, document, message);
+      }
       document.usage = investigation.usage;
       document.observations.push(...investigation.observations);
       await maybeInvokeWorker(
@@ -441,7 +474,27 @@ export async function executeAutonomousLoop(
       try {
         checkBudget(document.budget, document.usage, "modelCalls", deps.generatePlan ? 0 : 1);
         checkBudget(document.budget, document.usage, "plans", 1);
-        plan = await generatePlanForIteration(runId, document, repoPath, deps);
+        plan = coerceWorkerPlanToWorktree(
+          repoPath,
+          await generatePlanForIteration(runId, document, repoPath, deps),
+        );
+        const truncated = truncatingUpdateErrors(repoPath, plan);
+        if (truncated.length > 0) {
+          throw Object.assign(new Error(truncated.join("; ")), {
+            failureClass: "VALIDATION_FAILURE" as const,
+          });
+        }
+        const escaped = (plan.operations ?? []).filter(
+          (op) => !isPathAuthorized(document.authorityEnvelope, op.path),
+        );
+        if (escaped.length > 0) {
+          throw Object.assign(
+            new Error(
+              `Worker plan paths outside authorized prefixes: ${escaped.map((op) => op.path).join(", ")}`,
+            ),
+            { failureClass: "VALIDATION_FAILURE" as const },
+          );
+        }
       } catch (error) {
         const failureClass =
           error instanceof BudgetExhaustedError
@@ -464,6 +517,12 @@ export async function executeAutonomousLoop(
           failureClass,
           validationErrors: [error instanceof Error ? error.message : String(error)],
         });
+        await maybeInvokeWorker(
+          document,
+          "diagnosis",
+          `Failure class: ${failureClass}\n${error instanceof Error ? error.message : String(error)}`,
+          Boolean(deps.generatePlan),
+        );
         document = transitionAutonomousState(runId, "diagnosing", document).document;
         syncRun(runId, document);
         continue;
@@ -472,6 +531,8 @@ export async function executeAutonomousLoop(
       document.usage.plans += 1;
       document = transitionAutonomousState(runId, "validating", { ...document, strategy: plan.summary }).document;
       syncRun(runId, document, { agentMessage: plan.summary });
+      document = transitionAutonomousState(runId, "executing", document).document;
+      persistAndSync(runId, document, task.id);
 
       const submission = await submitAndExecuteWorkerPlan(runId, plan, {
         iterationMode: true,
@@ -539,6 +600,12 @@ export async function executeAutonomousLoop(
           failureClass,
           validationErrors: submission.validation.errors.map((err) => err.message),
         });
+        await maybeInvokeWorker(
+          document,
+          "diagnosis",
+          `Failure class: ${failureClass}\n${submission.validation.errors.map((err) => err.message).join("; ")}`,
+          Boolean(deps.generatePlan),
+        );
         auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
           iteration: document.iterationNumber,
           failureClass,
@@ -570,6 +637,12 @@ export async function executeAutonomousLoop(
           failureClass,
           executionErrors: submission.execution?.errors.map((err) => err.message),
         });
+        await maybeInvokeWorker(
+          document,
+          "diagnosis",
+          `Failure class: ${failureClass}\n${submission.execution?.errors.map((err) => err.message).join("; ") ?? "execution failed"}`,
+          Boolean(deps.generatePlan),
+        );
         auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
           iteration: document.iterationNumber,
           failureClass,
@@ -629,7 +702,16 @@ export async function executeAutonomousLoop(
         await maybeInvokeWorker(
           document,
           "diagnosis",
-          `Failure class: ${failureClass}\n${qcSummary}\nPre-existing: ${delta.preExistingFailures.map((item) => item.identity.key).join(", ")}`,
+          [
+            `Failure class: ${failureClass}`,
+            qcSummary,
+            `Owned failures only (fix these, not pre-existing Super/AirLLM): ${
+              delta.ownedIterationFailures
+                .map((item) => `${item.identity.name}${item.identity.rawEvidence ? ` :: ${item.identity.rawEvidence.slice(0, 180)}` : ""}`)
+                .join("; ") || "(none)"
+            }`,
+            "Do not rewrite large existing modules. Add or repair a small helper. Pre-existing failures are out of scope.",
+          ].join("\n"),
           Boolean(deps.generatePlan),
         );
         auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
@@ -704,6 +786,12 @@ export async function executeAutonomousLoop(
         qcPassed: document.qcDelta?.objectiveQcPassed ?? true,
       });
       document.reviews = reviews;
+      await maybeInvokeWorker(
+        document,
+        "review",
+        `Changed files: ${changedFiles.join(", ")}\nDiff:\n${diffSummary.slice(0, 4000)}\nHeuristic reviews: ${JSON.stringify(reviews)}`,
+        Boolean(deps.generatePlan),
+      );
       if (reviewsHaveActionableDefects(reviews)) {
         document.unresolvedDefects = reviews.flatMap((review) =>
           review.actionableDefects.map((summary) => ({
@@ -798,6 +886,32 @@ function qcSummaryFromDelta(
   return `QC vs baseline: ${parts.join(", ")}. ${fallback}`;
 }
 
+function recordWorkerInvocation(
+  document: AutonomousDocument,
+  result: Awaited<ReturnType<typeof invokeAutonomousWorker>>,
+): void {
+  if (!document.workerModel) return;
+  document.workerModel.rolesInvoked.push(result.role);
+  document.workerModel.providerName = result.providerName;
+  document.workerModel.modelName = result.modelName;
+  document.workerModel.mockBypassed = result.mockBypassed;
+  document.workerModel.requestPath = result.requestPath;
+  document.workerModel.lastInvocations = [
+    ...(document.workerModel.lastInvocations ?? []),
+    {
+      role: result.role,
+      providerName: result.providerName,
+      modelName: result.modelName,
+      requestPath: result.requestPath,
+      schemaValid: result.schemaValid,
+      parseErrors: result.parseErrors,
+      schemaErrors: result.schemaErrors,
+      repairAttempted: result.repairAttempted,
+      accepted: result.schemaValid && result.parsed !== null,
+    },
+  ].slice(-24);
+}
+
 async function maybeInvokeWorker(
   document: AutonomousDocument,
   role: "interpretation" | "investigation" | "diagnosis" | "completion" | "review",
@@ -807,15 +921,35 @@ async function maybeInvokeWorker(
   if (!document.workerModel || document.workerModel.route !== "live_default_worker") return;
   const result = await invokeAutonomousWorker({ role, system: "", user }, { generatePlanInjected });
   document.usage.modelCalls += 1;
-  document.workerModel.rolesInvoked.push(role);
-  document.workerModel.providerName = result.providerName;
-  document.workerModel.modelName = result.modelName;
-  document.workerModel.mockBypassed = result.mockBypassed;
-  if (result.parsed?.summary && typeof result.parsed.summary === "string") {
+  recordWorkerInvocation(document, result);
+  if (result.schemaValid && result.parsed) {
+    if (role === "diagnosis" && document.diagnosis) {
+      const why = result.parsed.whyPreviousFailed;
+      const strategy = result.parsed.suggestedStrategy;
+      if (typeof why === "string" && typeof strategy === "string") {
+        document.diagnosis = {
+          ...document.diagnosis,
+          whyPreviousFailed: why,
+          suggestedStrategy: strategy,
+          filesToInspect: Array.isArray(result.parsed.filesToInspect)
+            ? result.parsed.filesToInspect.filter((item): item is string => typeof item === "string")
+            : document.diagnosis.filesToInspect,
+        };
+        document.strategy = strategy;
+      }
+    }
+    const summary =
+      typeof result.parsed.summary === "string"
+        ? result.parsed.summary
+        : typeof result.parsed.suggestedStrategy === "string"
+          ? result.parsed.suggestedStrategy
+          : typeof result.parsed.objectiveSummary === "string"
+            ? result.parsed.objectiveSummary
+            : `${role} JSON accepted`;
     document.decisions.push({
       at: new Date().toISOString(),
       kind: `worker_${role}`,
-      summary: result.parsed.summary.slice(0, 400),
+      summary: summary.slice(0, 400),
       rationale: "Live default worker structured JSON (advisory; cannot mutate or approve).",
     });
   }

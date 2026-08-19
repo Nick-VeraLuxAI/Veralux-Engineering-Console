@@ -10,15 +10,12 @@ import {
   resolveAutonomousWorkerRoute,
   type AutonomousWorkerRoute,
 } from "./worker-route";
+import {
+  validateAutonomousWorkerSchema,
+  type AutonomousWorkerRole,
+} from "./worker-schemas";
 
-export type AutonomousWorkerRole =
-  | "interpretation"
-  | "investigation"
-  | "planning"
-  | "diagnosis"
-  | "replan"
-  | "completion"
-  | "review";
+export type { AutonomousWorkerRole } from "./worker-schemas";
 
 export interface AutonomousWorkerInvocation {
   role: AutonomousWorkerRole;
@@ -32,79 +29,154 @@ export interface AutonomousWorkerResult {
   modelName: string;
   role: AutonomousWorkerRole;
   mockBypassed: boolean;
+  requestPath: string;
   rawResponse: string;
   parsed: Record<string, unknown> | null;
   parseErrors: string[];
+  schemaErrors: string[];
+  schemaValid: boolean;
+  repairAttempted: boolean;
 }
 
-const ROLE_SYSTEM: Record<AutonomousWorkerRole, string> = {
+export const ROLE_SYSTEM: Record<AutonomousWorkerRole, string> = {
   interpretation:
     "You interpret an engineering objective. Output JSON only: {objectiveSummary, requirements, acceptanceCriteria, assumptions, investigationTargets}. Never write files, never run shell, never approve release.",
   investigation:
     "You reason about already-collected repo observations. Output JSON only: {summary, filesToInspect, hypotheses}. Do not claim to have read files yourself. Never write files, never run shell.",
   planning:
-    "You generate a worker plan JSON object only: {runId, summary, allowedFiles, operations:[{type: create_file|update_file|append_file, path, content, reason}]}. Never write files yourself, never run shell, never approve release. JSON only.",
+    "You generate a worker plan JSON object only: {runId, summary, allowedFiles, operations:[{type: create_file|update_file|append_file, path, content, reason}]}. Never write files yourself, never run shell, never approve release. JSON only. Include complete file contents. allowedFiles must list every operation path. Use update_file when the path already exists and create_file only for new paths.",
   diagnosis:
-    "You diagnose a failed iteration. Output JSON only: {whyPreviousFailed, suggestedStrategy, filesToInspect}. Advisory only. Do not mutate files or run shell.",
+    "You diagnose a failed iteration. Output JSON only: {whyPreviousFailed, suggestedStrategy, filesToInspect}. Advisory only. Do not mutate files or run shell. Change the implementation strategy; do not repeat the failed hypothesis. Do not attempt to repair pre-existing Super/AirLLM failures. Prefer adding a new small file over rewriting a large module.",
   replan:
-    "You generate a revised worker plan JSON object only: {runId, summary, allowedFiles, operations:[{type: create_file|update_file|append_file, path, content, reason}]}. Do not repeat the failed hypothesis. Never write files yourself, never run shell. JSON only.",
+    "You generate a revised worker plan JSON object only: {runId, summary, allowedFiles, operations:[{type: create_file|update_file|append_file, path, content, reason}]}. Do not repeat the failed hypothesis. Never write files yourself, never run shell. JSON only. Include complete file contents. allowedFiles must list every operation path. Use update_file when the path already exists and create_file only for new paths.",
   completion:
     "You evaluate whether the objective looks complete given evidence. Output JSON only: {complete, summary, unmetAcceptanceCriteria}. You cannot approve release.",
   review:
     "You review the diff for requirements, quality, regression risk, and scope. Output JSON only: {passed, findings, actionableDefects}. Advisory only.",
 };
 
-async function completeLocalStructuredJson(system: string, user: string): Promise<{
+const PLAN_ROLES: AutonomousWorkerRole[] = ["planning", "replan"];
+
+function localChatCompletionsUrl(): { url: string; requestPath: string } {
+  const local = getLocalModelCodingConfig();
+  const requestPath = `${local.baseUrl.replace(/\/$/, "")}/chat/completions`;
+  return { url: requestPath, requestPath };
+}
+
+function maxTokensForRole(role: AutonomousWorkerRole): number {
+  return PLAN_ROLES.includes(role) ? 4096 : 1024;
+}
+
+function parsedObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+async function completeLocalStructuredJson(
+  role: AutonomousWorkerRole,
+  system: string,
+  user: string,
+): Promise<{
   providerName: string;
   modelName: string;
+  requestPath: string;
   rawResponse: string;
-  parsed: unknown | null;
+  parsed: Record<string, unknown> | null;
   parseErrors: string[];
+  schemaErrors: string[];
+  schemaValid: boolean;
+  repairAttempted: boolean;
 }> {
   const local = getLocalModelCodingConfig();
   if (!local.enabled || !local.model) {
     throw new Error("Live AE worker requires Kimi or enabled local OpenAI-compatible coding model.");
   }
   assertNotSuperWorker(local.model);
-  const url = `${local.baseUrl.replace(/\/$/, "")}/chat/completions`;
+  const { url, requestPath } = localChatCompletionsUrl();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (local.apiKey) headers.Authorization = `Bearer ${local.apiKey}`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), local.timeoutMs);
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: local.model,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        temperature: 0.1,
-        max_tokens: 2048,
-      }),
-      signal: controller.signal,
-    });
-    const payload = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string | null } }>;
-      error?: { message?: string };
-    };
-    if (!response.ok) {
-      throw new Error(payload.error?.message || `Local worker HTTP ${response.status}`);
+
+  async function once(messages: Array<{ role: string; content: string }>): Promise<{
+    rawResponse: string;
+    parsed: Record<string, unknown> | null;
+    parseErrors: string[];
+  }> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), local.timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: local.model,
+          messages,
+          temperature: 0.1,
+          max_tokens: maxTokensForRole(role),
+          chat_template_kwargs: { enable_thinking: false },
+        }),
+        signal: controller.signal,
+      });
+      const payload = (await response.json()) as {
+        choices?: Array<{ message?: { content?: string | null } }>;
+        error?: { message?: string };
+      };
+      if (!response.ok) {
+        throw new Error(payload.error?.message || `Local worker HTTP ${response.status}`);
+      }
+      const rawResponse = payload.choices?.[0]?.message?.content?.trim() ?? "";
+      const parsed = parseJsonModelOutput(rawResponse);
+      return {
+        rawResponse,
+        parsed: parsed.success ? parsedObject(parsed.parsed) : null,
+        parseErrors: parsed.errors,
+      };
+    } finally {
+      clearTimeout(timeout);
     }
-    const rawResponse = payload.choices?.[0]?.message?.content?.trim() ?? "";
-    const parsed = parseJsonModelOutput(rawResponse);
-    return {
-      providerName: "local_openai_compatible",
-      modelName: local.model,
-      rawResponse,
-      parsed: parsed.success ? parsed.parsed : null,
-      parseErrors: parsed.errors,
-    };
-  } finally {
-    clearTimeout(timeout);
   }
+
+  const first = await once([
+    { role: "system", content: system },
+    { role: "user", content: user },
+  ]);
+  let parsed = first.parsed;
+  let parseErrors = first.parseErrors;
+  let rawResponse = first.rawResponse;
+  let schema = validateAutonomousWorkerSchema(role, parsed);
+  let repairAttempted = false;
+
+  if (!parsed || parseErrors.length > 0 || !schema.valid) {
+    repairAttempted = true;
+    const repairUser = [
+      "Your previous output was not valid structured JSON for this role.",
+      `Role: ${role}`,
+      `Parse errors: ${parseErrors.join("; ") || "(none)"}`,
+      `Schema errors: ${schema.errors.join("; ") || "(none)"}`,
+      "Return a single JSON object only. No markdown. No prose. No code fences.",
+      `Original request:\n${user}`,
+    ].join("\n");
+    const repaired = await once([
+      { role: "system", content: system },
+      { role: "user", content: repairUser },
+    ]);
+    parsed = repaired.parsed;
+    parseErrors = repaired.parseErrors;
+    rawResponse = repaired.rawResponse;
+    schema = validateAutonomousWorkerSchema(role, parsed);
+  }
+
+  return {
+    providerName: "local_openai_compatible",
+    modelName: local.model,
+    requestPath,
+    rawResponse,
+    parsed: schema.valid ? parsed : null,
+    parseErrors,
+    schemaErrors: schema.errors,
+    schemaValid: schema.valid,
+    repairAttempted,
+  };
 }
 
 export async function invokeAutonomousWorker(
@@ -116,6 +188,8 @@ export async function invokeAutonomousWorker(
   });
   const info = getPublicModelProviderInfo();
   assertNotSuperWorker(info.provider);
+  const local = getLocalModelCodingConfig();
+  const requestPath = local.enabled ? localChatCompletionsUrl().requestPath : "kimi/chat/completions";
 
   if (route === "test_mock") {
     return {
@@ -124,34 +198,54 @@ export async function invokeAutonomousWorker(
       modelName: info.model,
       role: input.role,
       mockBypassed: false,
+      requestPath: "test_mock",
       rawResponse: "",
       parsed: null,
       parseErrors: [],
+      schemaErrors: [],
+      schemaValid: false,
+      repairAttempted: false,
     };
   }
 
   const config = getModelProviderConfig();
-  const result =
-    config.provider === "kimi"
-      ? await new KimiModelProvider(config).completeStructuredJson({
-          system: ROLE_SYSTEM[input.role],
-          user: input.user,
-        })
-      : await completeLocalStructuredJson(ROLE_SYSTEM[input.role], input.user);
+  const system = input.system.trim() || ROLE_SYSTEM[input.role];
+  if (config.provider === "kimi") {
+    const result = await new KimiModelProvider(config).completeStructuredJson({
+      system,
+      user: input.user,
+    });
+    const parsed = parsedObject(result.parsed);
+    const schema = validateAutonomousWorkerSchema(input.role, parsed);
+    return {
+      route,
+      providerName: result.providerName,
+      modelName: result.modelName,
+      role: input.role,
+      mockBypassed: true,
+      requestPath: `${config.kimiBaseUrl.replace(/\/$/, "")}/chat/completions`,
+      rawResponse: result.rawResponse,
+      parsed: schema.valid ? parsed : null,
+      parseErrors: result.parseErrors,
+      schemaErrors: schema.errors,
+      schemaValid: schema.valid,
+      repairAttempted: false,
+    };
+  }
 
-  const parsedObject =
-    result.parsed && typeof result.parsed === "object" && !Array.isArray(result.parsed)
-      ? (result.parsed as Record<string, unknown>)
-      : null;
-
+  const result = await completeLocalStructuredJson(input.role, system, input.user);
   return {
     route,
     providerName: result.providerName,
     modelName: result.modelName,
     role: input.role,
     mockBypassed: true,
+    requestPath: result.requestPath || requestPath,
     rawResponse: result.rawResponse,
-    parsed: parsedObject,
+    parsed: result.parsed,
     parseErrors: result.parseErrors,
+    schemaErrors: result.schemaErrors,
+    schemaValid: result.schemaValid,
+    repairAttempted: result.repairAttempted,
   };
 }

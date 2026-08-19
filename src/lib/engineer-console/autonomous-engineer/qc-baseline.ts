@@ -75,12 +75,12 @@ function fingerprint(text: string): string {
 
 function isInfrastructureOutput(stdout: string, stderr: string, exitCode: number): boolean {
   const blob = `${stdout}\n${stderr}`.toLowerCase();
+  const runnerMissing = blob.includes("spawn ") && blob.includes("enoent");
+  const hostUnresolved = blob.includes("enotfound") && !blob.includes("fail ");
   return (
     blob.includes("etimedout") ||
-    blob.includes("enotfound") ||
-    blob.includes("spawn ") && blob.includes("enoent") ||
-    blob.includes("killed") ||
-    /npm err! code elifecycle/.test(blob) === false && blob.includes("cannot find module") && blob.includes("npm") ||
+    hostUnresolved ||
+    runnerMissing ||
     exitCode === 127
   );
 }
@@ -128,33 +128,74 @@ function extractLintFailures(command: string, output: string): QcFailureIdentity
   return identities;
 }
 
+function stripVitestTiming(text: string): string {
+  return text.replace(/\s+\d+(?:\.\d+)?m?s\s*$/i, "").trim();
+}
+
+function leafTestName(text: string): string {
+  const stripped = stripVitestTiming(text);
+  const separator = stripped.includes(" > ") ? " > " : stripped.includes(" › ") ? " › " : null;
+  if (!separator) return stripped;
+  return stripped.slice(stripped.lastIndexOf(separator) + separator.length).trim();
+}
+
 function extractTestFailures(command: string, output: string): QcFailureIdentity[] {
   const identities: QcFailureIdentity[] = [];
-  const vitest = /(?:FAIL|×|x)\s+(.+?)(?:\s+>\s+|\s+›\s+)(.+)/g;
+  const seen = new Set<string>();
+
+  const failFile = /FAIL\s+(\S+\.(?:test|spec)\.[jt]sx?)\s+>\s+(.+)/g;
   let match: RegExpExecArray | null;
-  while ((match = vitest.exec(output)) !== null) {
+  while ((match = failFile.exec(output)) !== null) {
     const file = match[1].trim();
-    const testName = match[2].trim();
+    const rest = stripVitestTiming(match[2]);
+    const leaf = leafTestName(rest);
+    const key = `test:${file}:${leaf}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     identities.push({
-      key: `test:${file}:${testName}`,
+      key,
       kind: "test",
       command,
-      name: testName,
+      name: rest,
       location: file,
-      fingerprint: fingerprint(`${file} ${testName}`),
+      fingerprint: fingerprint(`${file} ${leaf}`),
       rawEvidence: match[0],
     });
   }
-  const assertion = /AssertionError[:\s]+(.+)/g;
-  while ((match = assertion.exec(output)) !== null) {
-    identities.push({
-      key: `test:${command}:${normalizeWs(match[1]).slice(0, 80)}`,
-      kind: "test",
-      command,
-      name: normalizeWs(match[1]).slice(0, 120),
-      fingerprint: fingerprint(match[1]),
-      rawEvidence: match[0],
-    });
+
+  if (identities.length === 0) {
+    const vitest = /(?:FAIL|×|x)\s+(.+?)(?:\s+>\s+|\s+›\s+)(.+)/g;
+    while ((match = vitest.exec(output)) !== null) {
+      const file = stripVitestTiming(match[1].trim());
+      const testName = stripVitestTiming(match[2].trim());
+      const leaf = leafTestName(`${file} > ${testName}`);
+      const key = `test:${file}:${leaf}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      identities.push({
+        key,
+        kind: "test",
+        command,
+        name: testName,
+        location: file,
+        fingerprint: fingerprint(`${file} ${leaf}`),
+        rawEvidence: match[0],
+      });
+    }
+  }
+
+  if (identities.length === 0) {
+    const assertion = /AssertionError[:\s]+(.+)/g;
+    while ((match = assertion.exec(output)) !== null) {
+      identities.push({
+        key: `test:${command}:${normalizeWs(match[1]).slice(0, 80)}`,
+        kind: "test",
+        command,
+        name: normalizeWs(match[1]).slice(0, 120),
+        fingerprint: fingerprint(match[1]),
+        rawEvidence: match[0],
+      });
+    }
   }
   return identities;
 }
@@ -210,7 +251,7 @@ export function extractFailureIdentities(gate: QcGateSnapshot): QcFailureIdentit
       kind: commandKind(gate.command),
       command: gate.command,
       name: gate.command,
-      fingerprint: fingerprint(output),
+      fingerprint: fingerprint(`${gate.command}:${gate.status}:${gate.exitCode}`),
       rawEvidence: normalizeWs(output).slice(0, 1200),
     },
   ];
@@ -243,10 +284,14 @@ export function snapshotQcResults(
 function classificationForPair(
   baseline: QcFailureIdentity | undefined,
   current: QcFailureIdentity | undefined,
+  gateStillFailed = false,
 ): QcClassification {
   if (current && current.key.startsWith("infra:")) return "INFRASTRUCTURE_FAILURE";
   if (current && current.key.startsWith("skipped:")) return "SKIPPED";
-  if (baseline && !current) return "RESOLVED_BASELINE_FAILURE";
+  if (baseline && !current) {
+    if (gateStillFailed) return "PRE_EXISTING_FAILURE";
+    return "RESOLVED_BASELINE_FAILURE";
+  }
   if (!baseline && current) return "NEW_FAILURE";
   if (baseline && current) {
     if (baseline.fingerprint === current.fingerprint) return "PRE_EXISTING_FAILURE";
@@ -269,6 +314,10 @@ export function compareQcToBaseline(
     .map((gate) => extractFailureIdentities({ ...gate, status: "skipped" })[0])
     .filter(Boolean);
 
+  const failedCommands = new Set(
+    currentSnapshot.gates.filter((gate) => gate.status === "failed").map((gate) => gate.command),
+  );
+
   const keys = new Set([...baselineByKey.keys(), ...currentByKey.keys()]);
   const findings: QcClassifiedFinding[] = [];
 
@@ -277,7 +326,8 @@ export function compareQcToBaseline(
     const after = currentByKey.get(key);
     const identity = after ?? before;
     if (!identity) continue;
-    const classification = classificationForPair(before, after);
+    const gateStillFailed = failedCommands.has(identity.command);
+    const classification = classificationForPair(before, after, gateStillFailed);
     const genericTestKey = after?.kind === "test" && after.key === `test:${after.command}`;
     const adjusted =
       genericTestKey && options.mutatedThisIteration && after

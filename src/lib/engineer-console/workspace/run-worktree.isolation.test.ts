@@ -76,4 +76,19 @@ describe("concurrent run worktrees", () => {
     }).trim();
     expect(branchAfter).toBe(branchBefore);
   });
+
+  it("symlinks host node_modules into the isolated worktree for QC", async () => {
+    fs.mkdirSync(path.join(repoRoot, "node_modules", "example"), { recursive: true });
+    fs.writeFileSync(path.join(repoRoot, "node_modules", "example", "index.js"), "module.exports = 1;\n");
+    const task = createTask({ title: "deps", targetRepoPath: repoRoot });
+    const run = createRun(task.id);
+    const worktree = await createIsolatedRunWorktree({
+      runId: run.id,
+      taskId: task.id,
+      repoPath: repoRoot,
+    });
+    const linked = path.join(worktree.worktreePath, "node_modules", "example", "index.js");
+    expect(fs.existsSync(linked)).toBe(true);
+    expect(fs.lstatSync(path.join(worktree.worktreePath, "node_modules")).isSymbolicLink()).toBe(true);
+  });
 });

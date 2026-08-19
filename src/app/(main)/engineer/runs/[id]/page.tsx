@@ -21,63 +21,48 @@ import type { ApprovalReport } from "@/lib/engineer-console/types";
 import { buildRunWorkflowSummary } from "@/lib/engineer-console/run-ux/build-run-workflow-summary";
 import { RunLivePanel } from "@/components/engineer-console/run-live-panel";
 import {
-  canShowVeraExecutionApprovalPanel,
   VeraExecutionApprovalPanel,
 } from "@/components/engineer-console/vera-execution-approval-panel";
 import {
-  canShowVeraExecutionStartPanel,
   VeraExecutionStartPanel,
 } from "@/components/engineer-console/vera-execution-start-panel";
 import {
-  canShowVeraImplementationArtifactPanel,
   VeraImplementationArtifactPanel,
 } from "@/components/engineer-console/vera-implementation-artifact-panel";
 import {
-  canShowVeraImplementationArtifactReviewPanel,
   VeraImplementationArtifactReviewPanel,
 } from "@/components/engineer-console/vera-implementation-artifact-review-panel";
 import {
-  canShowVeraImplementationPatchProposalPanel,
   VeraImplementationPatchProposalPanel,
 } from "@/components/engineer-console/vera-implementation-patch-proposal-panel";
 import {
-  canShowVeraImplementationPatchProposalReviewPanel,
   VeraImplementationPatchProposalReviewPanel,
 } from "@/components/engineer-console/vera-implementation-patch-proposal-review-panel";
 import {
-  canShowVeraImplementationPatchApplicationPanel,
   VeraImplementationPatchApplicationPanel,
 } from "@/components/engineer-console/vera-implementation-patch-application-panel";
 import {
-  canShowVeraImplementationPatchContentDraftPanel,
   VeraImplementationPatchContentDraftPanel,
 } from "@/components/engineer-console/vera-implementation-patch-content-draft-panel";
 import {
-  canShowVeraImplementationPatchContentDraftReviewPanel,
   VeraImplementationPatchContentDraftReviewPanel,
 } from "@/components/engineer-console/vera-implementation-patch-content-draft-review-panel";
 import {
-  canShowVeraApprovedPatchContentApplicationPanel,
   VeraApprovedPatchContentApplicationPanel,
 } from "@/components/engineer-console/vera-approved-patch-content-application-panel";
 import {
-  canShowVeraPostPatchQualityGatesPanel,
   VeraPostPatchQualityGatesPanel,
 } from "@/components/engineer-console/vera-post-patch-quality-gates-panel";
 import {
-  canShowVeraPostPatchQualityReportReviewPanel,
   VeraPostPatchQualityReportReviewPanel,
 } from "@/components/engineer-console/vera-post-patch-quality-report-review-panel";
 import {
-  canShowVeraCommitProposalPanel,
   VeraCommitProposalPanel,
 } from "@/components/engineer-console/vera-commit-proposal-panel";
 import {
-  canShowVeraCommitPanel,
   VeraCommitPanel,
 } from "@/components/engineer-console/vera-commit-panel";
 import {
-  canShowVeraPullRequestPreparationPanel,
   VeraPullRequestPreparationPanel,
 } from "@/components/engineer-console/vera-pull-request-preparation-panel";
 import { assessVeraArtifactReviewReadiness } from "@/lib/engineer-console/bridge/vera-artifact-review-readiness";
@@ -149,82 +134,70 @@ export default async function RunDetailPage({
   });
   const veraReadiness = assessVeraExecutionReadiness(id);
   const veraStartReadiness = assessVeraExecutionStartReadiness(id);
-  const showVeraExecutionApprovalPanel = canShowVeraExecutionApprovalPanel(run);
-  const showVeraExecutionStartPanel = canShowVeraExecutionStartPanel(run);
+  const showVeraExecutionApprovalPanel = true;
+  const showVeraExecutionStartPanel = true;
   const veraExecutionBlocked = isVeraRunExecutionBlocked(run);
   const governanceNotes = parseVeraRunGovernanceNotes(run.governanceNotes);
   const veraImplementationArtifact = readVeraImplementationArtifact(
     id,
     governanceNotes.veraImplementationArtifactPath,
   );
-  const showVeraImplementationArtifactPanel = canShowVeraImplementationArtifactPanel(
-    run,
-    veraImplementationArtifact,
-  );
+  const showVeraImplementationArtifactPanel = true;
   const veraArtifactReviewReadiness = assessVeraArtifactReviewReadiness(id);
-  const showVeraImplementationArtifactReviewPanel =
-    canShowVeraImplementationArtifactReviewPanel(run);
+  const showVeraImplementationArtifactReviewPanel = true;
   const veraPatchProposalReadiness = assessVeraPatchProposalReadiness(id);
   const veraPatchProposal = readVeraImplementationPatchProposal(
     id,
     governanceNotes.veraImplementationPatchProposalPath,
   );
-  const showVeraImplementationPatchProposalPanel =
-    canShowVeraImplementationPatchProposalPanel(run);
+  const showVeraImplementationPatchProposalPanel = true;
   const veraPatchProposalApprovalReadiness = assessVeraPatchProposalApprovalReadiness(id);
-  const showVeraImplementationPatchProposalReviewPanel =
-    canShowVeraImplementationPatchProposalReviewPanel(run);
+  const showVeraImplementationPatchProposalReviewPanel = true;
   const veraPatchApplicationReadiness = assessVeraPatchApplicationReadiness(id);
   const veraPatchApplicationReport = readVeraImplementationPatchApplicationReport(
     id,
     governanceNotes.veraImplementationPatchApplicationPath,
   );
-  const showVeraImplementationPatchApplicationPanel =
-    canShowVeraImplementationPatchApplicationPanel(run);
+  const showVeraImplementationPatchApplicationPanel = true;
   const veraPatchContentDraftReadiness = assessVeraPatchContentDraftReadiness(id);
   const veraPatchContentDraft = readVeraImplementationPatchContentDraft(
     id,
     governanceNotes.veraImplementationPatchContentDraftPath,
   );
-  const showVeraImplementationPatchContentDraftPanel =
-    canShowVeraImplementationPatchContentDraftPanel(run);
+  const showVeraImplementationPatchContentDraftPanel = true;
   const veraPatchContentDraftReviewReadiness = assessVeraPatchContentDraftReviewReadiness(id);
-  const showVeraImplementationPatchContentDraftReviewPanel =
-    canShowVeraImplementationPatchContentDraftReviewPanel(run);
+  const showVeraImplementationPatchContentDraftReviewPanel = true;
   const veraApprovedPatchContentApplicationReadiness =
     assessVeraApprovedPatchContentApplicationReadiness(id);
-  const showVeraApprovedPatchContentApplicationPanel =
-    canShowVeraApprovedPatchContentApplicationPanel(run);
+  const showVeraApprovedPatchContentApplicationPanel = true;
   const veraPostPatchQualityGatesReadiness = assessVeraPostPatchQualityGatesReadiness(id);
   const veraPostPatchQualityReport = readVeraPostPatchQualityReport(
     id,
     governanceNotes.veraPostPatchQualityReportPath,
   );
-  const showVeraPostPatchQualityGatesPanel = canShowVeraPostPatchQualityGatesPanel(run);
+  const showVeraPostPatchQualityGatesPanel = true;
   const veraPostPatchQualityReportReviewReadiness =
     assessVeraPostPatchQualityReportReviewReadiness(id);
-  const showVeraPostPatchQualityReportReviewPanel =
-    canShowVeraPostPatchQualityReportReviewPanel(run);
+  const showVeraPostPatchQualityReportReviewPanel = true;
   const veraCommitProposalReadiness = assessVeraCommitProposalReadiness(id);
   const veraCommitProposal = readVeraCommitProposal(
     id,
     governanceNotes.veraCommitProposalPath,
   );
-  const showVeraCommitProposalPanel = canShowVeraCommitProposalPanel(run);
+  const showVeraCommitProposalPanel = true;
   const veraCommitReadiness = assessVeraCommitReadiness(id);
   const veraCommitReport = readVeraCommitReport(
     id,
     governanceNotes.veraCommitReportPath,
   );
-  const showVeraCommitPanel = canShowVeraCommitPanel(run);
+  const showVeraCommitPanel = true;
   const veraPullRequestPreparationReadiness =
     await assessVeraPullRequestPreparationReadiness(id);
   const veraPullRequestPreparation = readVeraPullRequestPreparation(
     id,
     governanceNotes.veraPullRequestPreparationPath,
   );
-  const showVeraPullRequestPreparationPanel =
-    canShowVeraPullRequestPreparationPanel(run);
+  const showVeraPullRequestPreparationPanel = true;
 
   return (
     <div>

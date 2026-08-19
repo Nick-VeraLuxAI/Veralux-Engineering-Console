@@ -116,6 +116,81 @@ describe("baseline-aware QC classification", () => {
     expect(delta.objectiveQcPassed).toBe(true);
   });
 
+  it("does not treat vitest duration suffixes as new test failures", () => {
+    const baseline = snapshotQcResults(
+      [
+        gate({
+          command: "npm test",
+          status: "failed",
+          stdout:
+            "FAIL  src/components/create-task-form.test.tsx > UX-6 setup guidance > create task form shows the staging preset only when enabled",
+        }),
+      ],
+      "/repo",
+    );
+    const delta = compareQcToBaseline(baseline, [
+      gate({
+        command: "npm test",
+        status: "failed",
+        stdout: [
+          "FAIL  src/components/create-task-form.test.tsx > UX-6 setup guidance > create task form shows the staging preset only when enabled",
+          "× UX-6 setup guidance > create task form shows the staging preset only when enabled 10ms",
+        ].join("\n"),
+      }),
+    ]);
+    expect(delta.newFailures).toHaveLength(0);
+    expect(delta.changedFailures).toHaveLength(0);
+    expect(delta.preExistingFailures).toHaveLength(1);
+    expect(qcIterationShouldFail(delta)).toBe(false);
+  });
+
+  it("treats unparsed build/lint gate failures with stdout churn as pre-existing", () => {
+    const baseline = snapshotQcResults(
+      [gate({ command: "npm run lint", status: "failed", stdout: "eslint noise 1" })],
+      "/repo",
+    );
+    const delta = compareQcToBaseline(baseline, [
+      gate({ command: "npm run lint", status: "failed", stdout: "eslint noise 2 with different hashes" }),
+    ]);
+    expect(delta.preExistingFailures).toHaveLength(1);
+    expect(delta.newFailures).toHaveLength(0);
+    expect(delta.changedFailures).toHaveLength(0);
+    expect(qcIterationShouldFail(delta)).toBe(false);
+  });
+
+  it("keeps generic npm test blobs owned after a mutation so objective tests can iterate", () => {
+    const baseline = snapshotQcResults(
+      [gate({ command: "npm test", status: "failed", stdout: "suite failed" })],
+      "/repo",
+    );
+    const delta = compareQcToBaseline(
+      baseline,
+      [gate({ command: "npm test", status: "failed", stdout: "suite still failed" })],
+      () => new Date(),
+      { mutatedThisIteration: true },
+    );
+    expect(delta.changedFailures).toHaveLength(1);
+    expect(qcIterationShouldFail(delta)).toBe(true);
+  });
+
+  it("does not mark baseline identities resolved when the same gate still failed", () => {
+    const tsLine = "src/experimental/super.ts(1,1): error TS2307: Cannot find module 'airllm'.";
+    const baseline = snapshotQcResults(
+      [gate({ command: "npm run typecheck", status: "failed", stdout: tsLine })],
+      "/repo",
+    );
+    const delta = compareQcToBaseline(baseline, [
+      gate({
+        command: "npm run typecheck",
+        status: "failed",
+        stdout: "Cannot find module './loop' imported from qc-baseline.test.ts",
+      }),
+    ]);
+    expect(delta.resolvedBaselineFailures).toHaveLength(0);
+    expect(delta.preExistingFailures.length + delta.newFailures.length).toBeGreaterThan(0);
+    expect(qcIterationShouldFail(delta)).toBe(true);
+  });
+
   it("normalizes TypeScript identities as file+code+location", () => {
     const identities = extractFailureIdentities(
       gate({

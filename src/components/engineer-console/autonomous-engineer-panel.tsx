@@ -67,7 +67,26 @@ export interface AutonomousProgressPayload {
     modelName: string;
     mockBypassed: boolean;
     rolesInvoked: string[];
+    requestPath?: string;
   } | null;
+  objective?: string;
+  qcBaseline?: { failures: Array<{ name: string }>; capturedAt?: string } | null;
+  qcDelta?: {
+    newFailures: Array<{ identity: { name: string } }>;
+    preExistingFailures: Array<{ identity: { name: string } }>;
+    resolvedBaselineFailures?: Array<{ identity: { name: string } }>;
+    objectiveQcPassed?: boolean | null;
+  } | null;
+  openRisks?: Array<{ summary: string }>;
+  unresolvedDefects?: Array<{ summary: string }>;
+  workerPlans?: Array<{ id: string; summary: string; iterationNumber: number | null }>;
+}
+
+function progressLabel(status: string, hasDiagnosis: boolean): string {
+  if (status === "quality_checking") return "verifying";
+  if (status === "evaluating_completion") return "completion";
+  if (status === "planning" && hasDiagnosis) return "replanning";
+  return status;
 }
 
 export function AutonomousEngineerPanel({
@@ -85,6 +104,22 @@ export function AutonomousEngineerPanel({
 
   const waiting = payload.status === "waiting_for_director";
   const deliveryReady = payload.deliveryCandidateStatus === "ready";
+  const hasDiagnosis = Boolean(payload.failedHypotheses && payload.failedHypotheses.length > 0);
+  const visibleStatus = progressLabel(payload.status, hasDiagnosis);
+  const qcBaselineCount = payload.director?.qcVersusBaseline.baselineFailureCount
+    ?? payload.qcBaseline?.failures.length
+    ?? 0;
+  const newRegressions = payload.director?.qcVersusBaseline.newRegressions
+    ?? payload.qcDelta?.newFailures.map((item) => item.identity.name)
+    ?? [];
+  const preExisting = payload.director?.qcVersusBaseline.preExistingFailures
+    ?? payload.qcDelta?.preExistingFailures.map((item) => item.identity.name)
+    ?? [];
+  const implementationSummary =
+    payload.workerPlans?.[payload.workerPlans.length - 1]?.summary
+    ?? payload.completionEvaluation?.summary
+    ?? payload.strategy
+    ?? "No implementation summary yet";
 
   async function resume() {
     setBusy(true);
@@ -131,11 +166,16 @@ export function AutonomousEngineerPanel({
     <Surface as="section" id="autonomous-engineer-panel" className="mb-6 scroll-mt-28">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <h2 className="font-semibold">Autonomous Engineer</h2>
-        <StatusBadge status={payload.status} />
+        <StatusBadge status={visibleStatus} />
         <span className="text-xs text-[var(--muted)]">
           Iteration {payload.iteration.current}/{payload.iteration.max}
         </span>
       </div>
+      {payload.objective ? (
+        <p className="mb-3 text-sm text-white" data-testid="ae-objective">
+          {payload.objective}
+        </p>
+      ) : null}
       <p className="mb-3 text-sm text-[var(--muted)]">
         The control plane is investigating, planning, executing via worker plans, and running
         allowlisted QC. Manual plan submit and QC retry are not required in this mode. PR, merge,
@@ -144,7 +184,9 @@ export function AutonomousEngineerPanel({
       <dl className="mb-4 grid gap-2 text-sm md:grid-cols-2">
         <div>
           <dt className="text-[var(--muted)]">What is it doing?</dt>
-          <dd className="text-white">{payload.director?.whatItIsDoing ?? payload.strategy ?? payload.status}</dd>
+          <dd className="text-white" data-testid="ae-progress">
+            {visibleStatus}: {payload.director?.whatItIsDoing ?? payload.strategy ?? payload.status}
+          </dd>
         </div>
         <div>
           <dt className="text-[var(--muted)]">Does it need me?</dt>
@@ -156,9 +198,9 @@ export function AutonomousEngineerPanel({
         </div>
         <div>
           <dt className="text-[var(--muted)]">QC vs baseline?</dt>
-          <dd className="text-white">
+          <dd className="text-white" data-testid="ae-qc-delta">
             {payload.director
-              ? `${payload.director.qcVersusBaseline.newRegressions.length} new / ${payload.director.qcVersusBaseline.preExistingFailures.length} pre-existing`
+              ? `baseline ${qcBaselineCount} / ${newRegressions.length} new / ${preExisting.length} pre-existing`
               : "Recording"}
           </dd>
         </div>
@@ -174,6 +216,14 @@ export function AutonomousEngineerPanel({
           <dt className="text-[var(--muted)]">What decision?</dt>
           <dd className="text-white">
             {payload.director?.nextAction ?? (deliveryReady ? "Authorize PR" : "Wait")}
+          </dd>
+        </div>
+        <div className="md:col-span-2">
+          <dt className="text-[var(--muted)]">Worker</dt>
+          <dd className="text-white" data-testid="ae-worker">
+            {payload.workerModel
+              ? `${payload.workerModel.providerName} / ${payload.workerModel.modelName} (${payload.workerModel.route}${payload.workerModel.mockBypassed ? ", mock bypassed" : ""})`
+              : "Not recorded"}
           </dd>
         </div>
       </dl>
@@ -192,7 +242,7 @@ export function AutonomousEngineerPanel({
       ) : null}
 
       {waiting && payload.clarification ? (
-        <Surface className="mb-4" padding="sm" variant="warning">
+        <Surface className="mb-4" padding="sm" variant="warning" data-testid="ae-clarification">
           <p className="font-medium text-white">Director clarification required</p>
           <p className="mt-2 text-sm">{payload.clarification.question}</p>
           <p className="mt-1 text-xs text-[var(--muted)]">{payload.clarification.context}</p>
@@ -210,17 +260,72 @@ export function AutonomousEngineerPanel({
       ) : null}
 
       {deliveryReady ? (
-        <Surface className="mb-4" padding="sm" variant="inset">
+        <Surface className="mb-4" padding="sm" variant="inset" data-testid="ae-delivery-candidate">
           <p className="font-medium text-white">Delivery candidate ready</p>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            {payload.completionEvaluation?.summary ??
-              "Authorize the next human release gate. The executor cannot self-approve."}
-          </p>
-          {payload.humanGatesRemaining ? (
-            <p className="mt-2 text-xs text-[var(--muted)]">
-              Remaining human gates: {payload.humanGatesRemaining.join(", ")}
-            </p>
-          ) : null}
+          <dl className="mt-3 grid gap-2 text-sm">
+            <div>
+              <dt className="text-[var(--muted)]">Objective</dt>
+              <dd className="text-white">{payload.objective ?? payload.director?.decision}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Status</dt>
+              <dd className="text-white">{payload.status} / {payload.deliveryCandidateStatus}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Implementation summary</dt>
+              <dd className="text-white">{implementationSummary}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Iterations</dt>
+              <dd className="text-white">
+                {payload.iteration.current} / {payload.iteration.max}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">QC baseline / post</dt>
+              <dd className="text-white">
+                baseline {qcBaselineCount} failures; post new {newRegressions.length}; pre-existing {preExisting.length}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">New regressions</dt>
+              <dd className="text-white">{newRegressions.join("; ") || "None"}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Pre-existing</dt>
+              <dd className="text-white">{preExisting.join("; ") || "None disclosed"}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Reviews</dt>
+              <dd className="text-white">
+                {(payload.reviews ?? []).map((review) => `${review.review}:${review.passed ? "pass" : "fail"}`).join(", ")
+                  || "None"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Risks</dt>
+              <dd className="text-white">
+                {(payload.director?.risks ?? payload.openRisks?.map((risk) => risk.summary) ?? []).join("; ")
+                  || "None disclosed"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Evidence</dt>
+              <dd className="text-white">
+                {payload.worktree
+                  ? `${payload.worktree.branchName} @ ${payload.worktree.baseRevision.slice(0, 12)}`
+                  : "Worktree recorded on the run"}
+                {payload.currentPlanId ? ` · plan ${payload.currentPlanId.slice(0, 8)}` : ""}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Next governed action</dt>
+              <dd className="text-white">
+                {payload.director?.nextAction ?? "Authorize PR"}
+                {payload.humanGatesRemaining ? ` (${payload.humanGatesRemaining.join(", ")})` : ""}
+              </dd>
+            </div>
+          </dl>
         </Surface>
       ) : null}
 

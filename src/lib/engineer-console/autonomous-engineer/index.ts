@@ -13,6 +13,7 @@ export * from "./completion-evaluator";
 export * from "./reviews";
 export * from "./qc-baseline";
 export * from "./worker-route";
+export * from "./worker-schemas";
 export * from "./worker-client";
 export * from "./loop";
 export * from "./start-autonomous-run";
