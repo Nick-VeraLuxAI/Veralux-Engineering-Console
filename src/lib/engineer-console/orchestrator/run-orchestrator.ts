@@ -1,6 +1,8 @@
 import { runAgentWorker } from "../agent-worker/agent-worker";
 import { isVeraStartedImplementationRun } from "../bridge/vera-handoff-task-types";
 import { runVeraImplementationPipeline } from "./vera-implementation-run-pipeline";
+import { isAutonomousRun } from "../autonomous-engineer/state-store";
+import { executeAutonomousLoop } from "../autonomous-engineer/loop";
 import {
   auditBranchCreated,
   auditHumanApproved,
@@ -83,9 +85,16 @@ export async function executeRun(runId: string): Promise<void> {
     currentStep: "preparing_workspace",
     startedAt: run.startedAt ?? nowIso(),
   });
-  auditRunStarted(runId, task.id, { path: "default_run" });
+  auditRunStarted(runId, task.id, {
+    path: isAutonomousRun(runId) ? "autonomous_engineer" : "default_run",
+  });
 
   try {
+    if (isAutonomousRun(runId)) {
+      await executeAutonomousLoop(runId);
+      return;
+    }
+
     const repoPath = resolveTaskTargetRepoPath(task);
 
     await verifyGitRepo(repoPath);

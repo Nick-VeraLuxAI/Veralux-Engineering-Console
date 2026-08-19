@@ -24,6 +24,7 @@ export interface WorkerPlanRecord {
   executionStatus: "pending" | "executed" | "failed" | "skipped";
   executionErrorsJson: string;
   executedOperationsJson: string;
+  iterationNumber: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,6 +53,7 @@ interface WorkerPlanRow {
   execution_status: string;
   execution_errors_json: string;
   executed_operations_json: string;
+  iteration_number: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +83,7 @@ function mapWorkerPlanRow(row: WorkerPlanRow): WorkerPlanRecord {
     executionStatus: row.execution_status as WorkerPlanRecord["executionStatus"],
     executionErrorsJson: row.execution_errors_json,
     executedOperationsJson: row.executed_operations_json,
+    iterationNumber: row.iteration_number ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -101,7 +104,11 @@ function mapWorkerOperationRow(row: WorkerOperationRow): WorkerOperationRecord {
   };
 }
 
-export function createWorkerPlanRecord(runId: string, plan: WorkerPlan): WorkerPlanRecord {
+export function createWorkerPlanRecord(
+  runId: string,
+  plan: WorkerPlan,
+  options: { iterationNumber?: number | null } = {},
+): WorkerPlanRecord {
   const db = getEngineerConsoleDb();
   const now = nowIso();
   const record: WorkerPlanRecord = {
@@ -115,6 +122,7 @@ export function createWorkerPlanRecord(runId: string, plan: WorkerPlan): WorkerP
     executionStatus: "pending",
     executionErrorsJson: "[]",
     executedOperationsJson: "[]",
+    iterationNumber: options.iterationNumber ?? null,
     createdAt: now,
     updatedAt: now,
   };
@@ -123,11 +131,11 @@ export function createWorkerPlanRecord(runId: string, plan: WorkerPlan): WorkerP
     `INSERT INTO engineer_worker_plans
       (id, run_id, plan_json, summary, validation_status, validation_errors_json,
        validation_warnings_json, execution_status, execution_errors_json,
-       executed_operations_json, created_at, updated_at)
+       executed_operations_json, iteration_number, created_at, updated_at)
      VALUES
       (@id, @run_id, @plan_json, @summary, @validation_status, @validation_errors_json,
        @validation_warnings_json, @execution_status, @execution_errors_json,
-       @executed_operations_json, @created_at, @updated_at)`,
+       @executed_operations_json, @iteration_number, @created_at, @updated_at)`,
   ).run({
     id: record.id,
     run_id: record.runId,
@@ -139,6 +147,7 @@ export function createWorkerPlanRecord(runId: string, plan: WorkerPlan): WorkerP
     execution_status: record.executionStatus,
     execution_errors_json: record.executionErrorsJson,
     executed_operations_json: record.executedOperationsJson,
+    iteration_number: record.iterationNumber,
     created_at: record.createdAt,
     updated_at: record.updatedAt,
   });

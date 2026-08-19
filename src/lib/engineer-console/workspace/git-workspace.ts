@@ -266,3 +266,56 @@ export async function getDiffSummary(
 
   return "No diff against HEAD (working tree clean).";
 }
+
+export async function getHeadRevision(repoPath: string): Promise<string> {
+  const resolved = path.resolve(repoPath);
+  const { stdout } = await execFileAsync("git", ["-C", resolved, "rev-parse", "HEAD"], {
+    maxBuffer: 64 * 1024,
+  });
+  const rev = stdout.trim();
+  if (!rev) {
+    throw new GitWorkspaceError(`Unable to resolve HEAD for ${resolved}`);
+  }
+  return rev;
+}
+
+export async function getGitLog(repoPath: string, maxEntries = 20): Promise<string> {
+  const resolved = path.resolve(repoPath);
+  try {
+    const { stdout } = await execFileAsync(
+      "git",
+      ["-C", resolved, "log", "-n", String(maxEntries), "--oneline"],
+      { maxBuffer: 1024 * 1024 },
+    );
+    return stdout.trim();
+  } catch {
+    return "";
+  }
+}
+
+export async function addGitWorktree(input: {
+  repoPath: string;
+  worktreePath: string;
+  branchName: string;
+  baseRevision: string;
+}): Promise<void> {
+  const repo = path.resolve(input.repoPath);
+  const worktree = path.resolve(input.worktreePath);
+  await execFileAsync(
+    "git",
+    ["-C", repo, "worktree", "add", "-b", input.branchName, worktree, input.baseRevision],
+    { maxBuffer: 1024 * 1024 },
+  );
+}
+
+export async function removeGitWorktree(input: {
+  repoPath: string;
+  worktreePath: string;
+  force?: boolean;
+}): Promise<void> {
+  const repo = path.resolve(input.repoPath);
+  const worktree = path.resolve(input.worktreePath);
+  const args = ["-C", repo, "worktree", "remove", worktree];
+  if (input.force) args.push("--force");
+  await execFileAsync("git", args, { maxBuffer: 1024 * 1024 });
+}

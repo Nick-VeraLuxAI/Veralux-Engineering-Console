@@ -62,7 +62,10 @@ export default async function TaskDetailPage({
             controlled preparation panel below.
           </div>
         ) : canStartRun ? (
-          <StartRunButton taskId={task.id} />
+          <div className="flex flex-col gap-2 sm:items-end">
+            <StartRunButton taskId={task.id} autonomous />
+            <StartRunButton taskId={task.id} />
+          </div>
         ) : (
           <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[var(--muted)]">
             Review the latest run before starting another one.

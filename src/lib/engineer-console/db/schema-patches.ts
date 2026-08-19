@@ -227,4 +227,11 @@ export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
       }
     }
   }
+
+  const workerPlanColumns = db
+    .prepare(`PRAGMA table_info(engineer_worker_plans)`)
+    .all() as Array<{ name: string }>;
+  if (workerPlanColumns.length > 0 && !workerPlanColumns.some((c) => c.name === "iteration_number")) {
+    db.exec(`ALTER TABLE engineer_worker_plans ADD COLUMN iteration_number INTEGER`);
+  }
 }

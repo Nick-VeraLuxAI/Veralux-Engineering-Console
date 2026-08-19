@@ -16,6 +16,7 @@ import {
 } from "@/lib/engineer-console/worker-plan/worker-plan-draft-manager";
 import { getWorkerPlanChangedFilesScope } from "@/lib/engineer-console/worker-plan/worker-plan-manager";
 import { getChangedFiles, getDiffSummary } from "@/lib/engineer-console/workspace/git-workspace";
+import { resolveRunExecutionPath } from "@/lib/engineer-console/workspace/run-worktree";
 import type { ApprovalReport } from "@/lib/engineer-console/types";
 import { buildRunWorkflowSummary } from "@/lib/engineer-console/run-ux/build-run-workflow-summary";
 import { RunLivePanel } from "@/components/engineer-console/run-live-panel";
@@ -102,6 +103,8 @@ import {
   readVeraPullRequestPreparation,
 } from "@/lib/engineer-console/worker/vera-implementation-artifact-storage";
 import { parseVeraRunGovernanceNotes } from "@/lib/engineer-console/bridge/vera-handoff-task-types";
+import { getAutonomousCompletionPackage } from "@/lib/engineer-console/autonomous-engineer/completion-package";
+import { isAutonomousRun } from "@/lib/engineer-console/autonomous-engineer/state-store";
 
 export const dynamic = "force-dynamic";
 
@@ -121,7 +124,7 @@ export default async function RunDetailPage({
   let changedFiles: string[] = [];
   let diffSummary = "";
   try {
-    const repoPath = resolveTaskTargetRepoPath(task);
+    const repoPath = resolveRunExecutionPath(id, resolveTaskTargetRepoPath(task));
     const scope = getWorkerPlanChangedFilesScope(id);
     changedFiles = await getChangedFiles(repoPath, scope ?? {});
     diffSummary = await getDiffSummary(repoPath, { changedFiles });
@@ -136,6 +139,7 @@ export default async function RunDetailPage({
     ? (JSON.parse(reportJson) as ApprovalReport)
     : null;
   const latestDraft = getLatestWorkerPlanDraftForRun(id);
+  const autonomous = isAutonomousRun(id) ? getAutonomousCompletionPackage(id) : null;
   const uxSummary = buildRunWorkflowSummary({
     run,
     task,
@@ -516,6 +520,7 @@ export default async function RunDetailPage({
               }
             : null,
           uxSummary,
+          autonomous,
         }}
       />
     </div>

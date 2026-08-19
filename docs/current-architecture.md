@@ -4,9 +4,9 @@ Snapshot of the VeraLux Engineering Console as implemented through Phase 8F (rel
 
 ## System purpose
 
-A **governed AI engineering control plane**: tasks and runs, model-assisted worker plan drafts, deterministic worker plan execution (only repo file-write boundary), quality gates, governance/policy/replay/evidence, human approval, and release lifecycle records (PR, merge, deploy, health, checklist, sign-off).
+It is a **governed AI engineering control plane** with an Autonomous Engineer orchestration layer: tasks and runs, model-assisted worker plan drafts, deterministic worker plan execution (only repo file-write boundary), quality gates, governance/policy/replay/evidence, human approval, and release lifecycle records (PR, merge, deploy, health, checklist, sign-off).
 
-It is **not** autonomous coding, not a multi-repo IDE, and not auto-deploy by default.
+Autonomous Engineer V1 plans, executes, and retries **inside** those primitives. It is not unrestricted coding, not a multi-repo IDE, and not auto-deploy. Human gates remain for PR/merge/deploy/sign-off.
 
 ## Stack
 
@@ -25,8 +25,9 @@ It is **not** autonomous coding, not a multi-repo IDE, and not auto-deploy by de
 | Database | `db/` | Schema, client, init, bootstrap admin |
 | Security | `security/` | Auth config, sessions, CSRF, route guards, roles |
 | Tasks / runs | `task-manager/`, `run-manager/` | CRUD, run lifecycle fields |
-| Workspace | `workspace/` | Git checkout, diff, controlled git for PR/merge |
-| Orchestrator | `orchestrator/` | Start run, approval actions, worker plan submit |
+| Workspace | `workspace/` | Git checkout, **per-run isolated worktrees**, diff, controlled git for PR/merge |
+| Orchestrator | `orchestrator/` | Start run, approval actions, worker plan submit; Autonomous Engineer loop for AE-mode runs |
+| Autonomous Engineer | `autonomous-engineer/` | Investigate → (clarify) → plan → validate → execute → QC → diagnose/replan → completion |
 | Worker plan | `worker-plan/` | Validate, execute UTF-8 file ops only |
 | Model router | `model-router/` | Draft generation, providers, prompts |
 | Quality gates | `quality-gates/` | Run repo `npm test` / build / lint when present |
@@ -63,12 +64,14 @@ flowchart TB
   end
 
   subgraph execution [Execution]
-    RUN[Start run / branch]
-    DRAFT[Model worker plan draft]
+    AE[Autonomous loop]
+    RUN[Start run / isolated worktree]
+    DRAFT[Worker plan draft]
     WP[Validate and execute worker plan]
     QG[Quality gates]
+    DIAG[Diagnose and replan if QC fails]
     GOV[Governance risk]
-    AR[Approval report]
+    AR[Approval report / delivery candidate]
   end
 
   subgraph human [Human governance]
@@ -99,7 +102,10 @@ flowchart TB
   R --> FI --> CI
   R --> T
   CA --> T
-  T --> RUN --> DRAFT --> WP --> QG --> GOV --> AR
+  T --> RUN --> AE
+  AE --> DRAFT --> WP --> QG
+  QG --> DIAG --> AE
+  QG --> GOV --> AR
   AR --> AP
   AP --> RS
   AP --> DR
@@ -116,6 +122,7 @@ flowchart TB
 |-------|--------|
 | `engineer_registered_repos`, `engineer_package_scripts`, `engineer_test_profiles` | Repo registration |
 | `engineering_tasks`, `engineering_runs` | Work tracking |
+| `engineer_autonomous_run_states`, `engineer_run_worktrees` | Autonomous Engineer V1 |
 | `quality_gate_results`, `approval_reports` | Run outcomes |
 | `engineer_worker_plans`, `engineer_worker_operations`, `engineer_worker_plan_drafts` | Plans |
 | `engineer_audit_events` | Append-only audit |

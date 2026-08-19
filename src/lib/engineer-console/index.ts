@@ -32,3 +32,4 @@ export * from "./model-router/repo-context-collector";
 export * from "./model-router/worker-plan-draft-generator";
 export * from "./model-router/model-provider-config";
 export * from "./model-router/json-output-parser";
+export * from "./autonomous-engineer";

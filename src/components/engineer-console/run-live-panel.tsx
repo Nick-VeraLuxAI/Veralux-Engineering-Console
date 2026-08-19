@@ -64,6 +64,10 @@ import { RunExpertSummary } from "./run-expert-summary";
 import { RunWorkspaceShell, RunWorkspaceViewPanel } from "./run-workspace-shell";
 import { RunIssueCenter } from "./run-issue-center";
 import { OperatorHelp } from "./operator-help";
+import {
+  AutonomousEngineerPanel,
+  type AutonomousProgressPayload,
+} from "./autonomous-engineer-panel";
 
 interface RunDetailPayload {
   run: EngineeringRun;
@@ -74,6 +78,7 @@ interface RunDetailPayload {
   approvalReport: ApprovalReport | null;
   workerPlanDraft?: WorkerPlanDraftPayload | null;
   uxSummary: RunWorkflowSummary;
+  autonomous?: AutonomousProgressPayload | null;
 }
 
 type HistoryMode = "push" | "replace" | "none";
@@ -105,7 +110,7 @@ export function RunLivePanel({
   const [activeView, setActiveView] = useState<RunWorkspaceViewId>(DEFAULT_RUN_WORKSPACE_VIEW);
   const [pendingTargetId, setPendingTargetId] = useState<string | null>(null);
   const historyModeRef = useRef<HistoryMode>("none");
-  const terminal = ["completed", "failed"].includes(data.run.status);
+  const terminal = ["completed", "failed", "exhausted", "aborted"].includes(data.run.status);
 
   useEffect(() => {
     setWorkspaceReady(true);
@@ -389,9 +394,13 @@ export function RunLivePanel({
             </div>
           </div>
 
-          <Surface
-            as="section"
-            id={RUN_PANEL_IDS.runState}
+            {data.autonomous ? (
+              <AutonomousEngineerPanel runId={runId} payload={data.autonomous} />
+            ) : null}
+
+            <Surface
+              as="section"
+              id={RUN_PANEL_IDS.runState}
             className="scroll-mt-28"
             tabIndex={-1}
           >
@@ -439,6 +448,15 @@ export function RunLivePanel({
                   Worker plan execution and Hermes dispatch are disabled for Vera-prepared runs
                   until a future controlled execution phase. Complete the Vera execution approval
                   gate above first; this panel does not execute code.
+                </p>
+              </Surface>
+            ) : data.autonomous ? (
+              <Surface padding="md" variant="inset">
+                <p className="font-medium text-white">Autonomous mode — worker plan is the mutation substrate</p>
+                <p className="mt-2 text-sm text-[var(--muted)]">
+                  Generate/submit worker plan and manual QC retry are not required. The autonomous
+                  loop validates and executes worker plans and runs allowlisted QC. Legacy controls
+                  remain below for audit only.
                 </p>
               </Surface>
             ) : (

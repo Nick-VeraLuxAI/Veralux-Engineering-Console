@@ -1,0 +1,79 @@
+import { execSync } from "child_process";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { closeEngineerConsoleDb, resetEngineerConsoleDbForTests } from "../db/client";
+import { initializeEngineerConsoleDatabase } from "../db/init";
+import { createTask } from "../task-manager/task-manager";
+import { createRun } from "../run-manager/run-manager";
+import { createIsolatedRunWorktree } from "../workspace/run-worktree";
+import { getChangedFiles } from "../workspace/git-workspace";
+
+let tmpDb: string;
+let repoRoot: string;
+let worktreeRoot: string;
+
+beforeEach(() => {
+  tmpDb = path.join(os.tmpdir(), `ec-wt-${Date.now()}.db`);
+  process.env.ENGINEER_CONSOLE_DB_PATH = tmpDb;
+  worktreeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ec-wt-root-"));
+  process.env.ENGINEER_CONSOLE_WORKTREE_ROOT = worktreeRoot;
+  resetEngineerConsoleDbForTests();
+  initializeEngineerConsoleDatabase();
+  repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ec-wt-repo-"));
+  execSync("git init", { cwd: repoRoot, stdio: "ignore" });
+  execSync('git config user.email "test@test.com"', { cwd: repoRoot, stdio: "ignore" });
+  execSync('git config user.name "Test"', { cwd: repoRoot, stdio: "ignore" });
+  fs.writeFileSync(path.join(repoRoot, "README.md"), "root\n");
+  execSync("git add .", { cwd: repoRoot, stdio: "ignore" });
+  execSync('git commit -m "init"', { cwd: repoRoot, stdio: "ignore" });
+});
+
+afterEach(() => {
+  closeEngineerConsoleDb();
+  resetEngineerConsoleDbForTests();
+  if (fs.existsSync(tmpDb)) fs.unlinkSync(tmpDb);
+  if (fs.existsSync(worktreeRoot)) fs.rmSync(worktreeRoot, { recursive: true, force: true });
+  if (fs.existsSync(repoRoot)) fs.rmSync(repoRoot, { recursive: true, force: true });
+  delete process.env.ENGINEER_CONSOLE_DB_PATH;
+  delete process.env.ENGINEER_CONSOLE_WORKTREE_ROOT;
+});
+
+describe("concurrent run worktrees", () => {
+  it("isolates mutations across two concurrent worktrees", async () => {
+    const task = createTask({ title: "iso", targetRepoPath: repoRoot });
+    const runA = createRun(task.id);
+    const runB = createRun(task.id);
+    const branchBefore = execSync("git rev-parse --abbrev-ref HEAD", {
+      cwd: repoRoot,
+      encoding: "utf8",
+    }).trim();
+
+    const [wtA, wtB] = await Promise.all([
+      createIsolatedRunWorktree({ runId: runA.id, taskId: task.id, repoPath: repoRoot }),
+      createIsolatedRunWorktree({ runId: runB.id, taskId: task.id, repoPath: repoRoot }),
+    ]);
+
+    expect(wtA.worktreePath).not.toBe(wtB.worktreePath);
+    expect(wtA.branchName).not.toBe(wtB.branchName);
+    fs.mkdirSync(path.join(wtA.worktreePath, "src"), { recursive: true });
+    fs.mkdirSync(path.join(wtB.worktreePath, "src"), { recursive: true });
+    fs.writeFileSync(path.join(wtA.worktreePath, "src/a.txt"), "A");
+    fs.writeFileSync(path.join(wtB.worktreePath, "src/b.txt"), "B");
+
+    const changedA = await getChangedFiles(wtA.worktreePath);
+    const changedB = await getChangedFiles(wtB.worktreePath);
+    expect(changedA).toContain("src/a.txt");
+    expect(changedA).not.toContain("src/b.txt");
+    expect(changedB).toContain("src/b.txt");
+    expect(changedB).not.toContain("src/a.txt");
+    expect(fs.existsSync(path.join(repoRoot, "src/a.txt"))).toBe(false);
+    expect(fs.existsSync(path.join(repoRoot, "src/b.txt"))).toBe(false);
+    const branchAfter = execSync("git rev-parse --abbrev-ref HEAD", {
+      cwd: repoRoot,
+      encoding: "utf8",
+    }).trim();
+    expect(branchAfter).toBe(branchBefore);
+  });
+});

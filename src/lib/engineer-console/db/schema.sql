@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS engineer_worker_plans (
   execution_status TEXT NOT NULL DEFAULT 'pending',
   execution_errors_json TEXT NOT NULL DEFAULT '[]',
   executed_operations_json TEXT NOT NULL DEFAULT '[]',
+  iteration_number INTEGER,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
@@ -954,3 +955,48 @@ CREATE INDEX IF NOT EXISTS idx_engineer_operator_sessions_operator_id
 
 CREATE INDEX IF NOT EXISTS idx_engineer_operator_sessions_expires_at
   ON engineer_operator_sessions (expires_at);
+
+-- Autonomous Engineer V1: durable, rehydratable orchestration state (not Vera governance JSON)
+CREATE TABLE IF NOT EXISTS engineer_autonomous_run_states (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL UNIQUE,
+  version INTEGER NOT NULL DEFAULT 1,
+  mode TEXT NOT NULL DEFAULT 'autonomous_engineer_v1',
+  current_state TEXT NOT NULL,
+  iteration_number INTEGER NOT NULL DEFAULT 0,
+  failure_class TEXT,
+  delivery_candidate_status TEXT,
+  state_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_autonomous_run_states_run_id
+  ON engineer_autonomous_run_states (run_id);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_autonomous_run_states_current_state
+  ON engineer_autonomous_run_states (current_state);
+
+-- Autonomous Engineer V1: per-run isolated git worktrees (never the director working tree)
+CREATE TABLE IF NOT EXISTS engineer_run_worktrees (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL UNIQUE,
+  repo_path TEXT NOT NULL,
+  worktree_path TEXT NOT NULL UNIQUE,
+  branch_name TEXT NOT NULL,
+  base_revision TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  dirty_paths_json TEXT NOT NULL DEFAULT '[]',
+  cleanup_blocked_reason TEXT,
+  cleanup_recorded_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_run_worktrees_run_id
+  ON engineer_run_worktrees (run_id);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_run_worktrees_status
+  ON engineer_run_worktrees (status);
