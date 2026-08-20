@@ -7,6 +7,12 @@ Prior: `nemotron-nano-faithful-runtime-requalification.md`, `nemotron-nano-ae-in
 Weights: **same** NVFP4 (`/models/nano-30b-a3b-nvfp4`)  
 Non-goals honored: no SkillOpt, no Super-as-worker, no AE redesign, no semantic ceiling raise (ledger primary=8, jobs=6), no push/PR.
 
+### Status / Final AE Verdict
+
+- **Final AE Verdict:** `ROBUST ENGINEERING PATH READY FOR FULL REQUALIFICATION`
+- **SkillOpt:** `NOT NEEDED YET`
+- Tip commit `3511321`: ledger r1 delivery ready / jobs ready@1; CONTROL rollback retained; no push/PR.
+
 ---
 
 ## 1. Canonical Console Nano service recipe

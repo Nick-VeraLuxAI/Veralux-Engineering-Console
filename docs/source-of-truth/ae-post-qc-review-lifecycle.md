@@ -6,6 +6,12 @@ Date: 2026-08-20
 Trigger specimen: faithful ledger `fb5eab66-0f61-47dc-b244-565263548f69`  
 Related: `nemotron-nano-faithful-runtime-requalification.md`, `nemotron-nano-production-faithful-runtime.md`
 
+### Status / Final AE Verdict
+
+- **Final AE Verdict:** `ROBUST ENGINEERING PATH READY FOR FULL REQUALIFICATION`
+- **SkillOpt:** `NOT NEEDED YET`
+- Tip commit `3511321`: ledger r1 delivery ready / jobs ready@1; CONTROL rollback retained; no push/PR.
+
 ---
 
 ## 1. Exact blocking finding (fb5eab66)
@@ -127,8 +133,6 @@ Under promoted faithful (primary 8, post-review ≤2):
 | Promoted ledger r1 `4c94c025…` | QC PASS → reviews clean → **delivery ready** (no post-QC BUDGET_EXHAUSTED) |
 | Promoted ledger r2 `d3779d98…` | Exhausted on primary QC thrash (never reached post-QC review path) |
 | Jobs `d275ea7c…` | ready @ ≤6 (observed 1) — no regression |
-
-SkillOpt: **NOT NEEDED YET**
 
 ---
 
