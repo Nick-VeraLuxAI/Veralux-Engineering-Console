@@ -11,6 +11,7 @@ export const DEFAULT_AUTONOMOUS_BUDGETS: AutonomousBudgetConfig = {
   max_investigation_reads: 80,
   max_context_bytes: 200_000,
   max_plan_repairs: 8,
+  max_post_review_repairs: 2,
 };
 
 function envInt(name: string, fallback: number): number {
@@ -48,6 +49,10 @@ export function resolveAutonomousBudgets(
     max_plan_repairs: envInt(
       "ENGINEER_CONSOLE_AE_MAX_PLAN_REPAIRS",
       DEFAULT_AUTONOMOUS_BUDGETS.max_plan_repairs ?? 8,
+    ),
+    max_post_review_repairs: envInt(
+      "ENGINEER_CONSOLE_AE_MAX_POST_REVIEW_REPAIRS",
+      DEFAULT_AUTONOMOUS_BUDGETS.max_post_review_repairs ?? 2,
     ),
   };
 

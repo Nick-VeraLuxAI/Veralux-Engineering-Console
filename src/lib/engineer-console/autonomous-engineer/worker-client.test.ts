@@ -19,7 +19,7 @@ describe("autonomous worker client", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("sends Nemotron thinking-disabled JSON requests on the live local route", async () => {
+  it("CONTROL rollback (flag false) sends think-off JSON on the live local route", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -48,7 +48,7 @@ describe("autonomous worker client", () => {
     process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_ENABLED = "true";
     process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL = "http://127.0.0.1:8081/v1";
     process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MODEL = "Nemotron-Nano-30B-A3B-NVFP4";
-    delete process.env.ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION;
+    process.env.ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION = "false";
     try {
       const result = await invokeAutonomousWorker({
         role: "planning",

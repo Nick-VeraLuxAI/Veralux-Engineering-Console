@@ -64,6 +64,11 @@ export interface AutonomousBudgetConfig {
   max_context_bytes: number;
   /** Optional bound on pre-execution PLAN_REPAIR attempts (defaults via resolveMaxPlanRepairs). */
   max_plan_repairs?: number;
+  /**
+   * Bounded repairs after QC PASS when material review defects remain.
+   * Does not raise primary semantic max_iterations (default 2).
+   */
+  max_post_review_repairs?: number;
 }
 
 export interface AutonomousBudgetUsage {
@@ -78,6 +83,8 @@ export interface AutonomousBudgetUsage {
   contextBytes: number;
   /** Pre-execution plan repairs that must not burn semantic iterations. */
   planRepairs: number;
+  /** Post-QC review repairs (bounded; does not burn semantic iterations). */
+  postReviewRepairs: number;
 }
 
 export interface AutonomousAuthorityEnvelope {
@@ -292,10 +299,16 @@ export interface AutonomousDocument {
   diagnosis: DiagnosisResult | null;
   /** Compact within-run harness failure signature history (WP5). */
   failureSignatureHistory?: FailureSignatureRecord[];
-  /** Last planning charge kind (PLAN_REPAIR does not burn semantic iterations). */
+  /** Last planning charge kind (PLAN_REPAIR / POST_REVIEW_REPAIR do not burn semantic iterations). */
   lastIterationChargeKind?: import("./plan-repair").IterationChargeKind | null;
   /** Persisted plan-repair audit trail. */
   planRepairHistory?: import("./plan-repair").PlanRepairRecord[];
+  /** True when diagnosing/planning after QC PASS with material review defects. */
+  awaitingPostReviewRepair?: boolean;
+  /** Finding ledger for post-QC review ping-pong prevention. */
+  reviewFindingLedger?: import("./post-review-repair").ReviewFindingRecord[];
+  /** FAITHFUL | DEGRADED | CONTROL — recorded when Nano runtime mode is resolved. */
+  nanoRuntimeMode?: "FAITHFUL" | "DEGRADED" | "CONTROL" | null;
   worktreeId: string | null;
   startedAt: string;
   updatedAt: string;

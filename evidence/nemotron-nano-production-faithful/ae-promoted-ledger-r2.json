@@ -1,0 +1,294 @@
+{
+  "at": "2026-08-20T21:52:27.004Z",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8082/v1",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "bad_legacy_ledger",
+      "class": "bad_code_remediation",
+      "title": "Legacy ledger reliability",
+      "objective": "Directors need the payment ledger under src/ledger to apply payments correctly, record outcomes, and never silently treat failures as success. Improve the existing ledger so production can trust applyPayment, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+      "elapsedMs": 249815,
+      "taskId": "ab74a401-a6cf-47f0-ae1f-270d406d928f",
+      "runId": "d3779d98-e844-468a-84fd-b9bb9c1cb7e3",
+      "result": {
+        "runId": "d3779d98-e844-468a-84fd-b9bb9c1cb7e3",
+        "state": "exhausted",
+        "failureClass": "BUDGET_EXHAUSTED",
+        "deliveryCandidateStatus": "blocked",
+        "paused": false,
+        "message": "Budget exhausted after diagnosis."
+      },
+      "currentState": "exhausted",
+      "iterationNumber": 8,
+      "deliveryCandidateStatus": "blocked",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "2fa247ac-f07c-4de0-ab2c-ba92b5295649",
+          "strategy": "Fix escaped newlines in ledger.js and add comprehensive payment ledger tests covering success and failure cases",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "workerPlanId": "263ad580-08a8-4e4f-a678-03ae50297b98",
+          "strategy": "Fix ledger.js syntax and add regression tests ensuring applyPayment behaves correctly for success and failure cases without silently treating errors as success.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "workerPlanId": "86f24627-67ff-4f02-ab47-e91c0e4a3d22",
+          "strategy": "Factor amount validation into a dedicated helper and adjust ledger.test.js to consistently reject negative and zero amounts, ensuring applyPayment throws the expected \"amount must be positive\" error.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "workerPlanId": "067a746b-cc49-49a5-8946-1118afaea7ba",
+          "strategy": "Add named export for Status, fix usage of Status constants, remove circular import, and add comprehensive regression tests for success and failure paths.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "workerPlanId": "f63b2685-a029-4b00-94e5-ef0087114021",
+          "strategy": "Eliminate duplicate Status identifier and add comprehensive payment ledger tests covering success and failure cases",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "workerPlanId": "d76647f1-0562-4a51-a77c-a1e98f660474",
+          "strategy": "Centralize payment amount validation and add comprehensive tests to ensure correct rejection of negative and zero amounts",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 7,
+          "workerPlanId": "b04ccdee-0ba3-47d2-8153-a982442cf1ab",
+          "strategy": "Fix stray '#' syntax error in ledger.test.js and add comprehensive payment ledger tests covering success and failure cases.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 8,
+          "workerPlanId": "8db16512-2274-4e26-9cb2-6f271e59a327",
+          "strategy": "Fix ES module default import in ledger.js and add comprehensive regression tests for applyPayment covering success and failure scenarios",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 1,
+          "hypothesis": "Fix escaped newlines in ledger.js and add comprehensive payment ledger tests covering success and failure cases",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "hypothesis": "Fix ledger.js syntax and add regression tests ensuring applyPayment behaves correctly for success and failure cases without silently treating errors as success.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "hypothesis": "Factor amount validation into a dedicated helper and adjust ledger.test.js to consistently reject negative and zero amounts, ensuring applyPayment throws the expected \"amount must be positive\" error.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "hypothesis": "Add named export for Status, fix usage of Status constants, remove circular import, and add comprehensive regression tests for success and failure paths.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "hypothesis": "Eliminate duplicate Status identifier and add comprehensive payment ledger tests covering success and failure cases",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "hypothesis": "Centralize payment amount validation and add comprehensive tests to ensure correct rejection of negative and zero amounts",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 7,
+          "hypothesis": "Fix stray '#' syntax error in ledger.test.js and add comprehensive payment ledger tests covering success and failure cases.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 8,
+          "hypothesis": "Fix ES module default import in ledger.js and add comprehensive regression tests for applyPayment covering success and failure scenarios",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "usage": {
+        "iterations": 8,
+        "plans": 8,
+        "modelCalls": 20,
+        "changedFiles": 3,
+        "changedBytes": 15865,
+        "runtimeMs": 249811,
+        "investigationReads": 2,
+        "contextBytes": 128,
+        "planRepairs": 1,
+        "postReviewRepairs": 0
+      },
+      "planRepairHistory": [
+        {
+          "at": "2026-08-20T21:48:37.469Z",
+          "semanticIteration": 0,
+          "kind": "invalid_content",
+          "reason": "src/ledger/ledger.js: file content appears to contain literal \\n escapes instead of real newlines.; src/ledger/ledger.test.js: file content appears to contain literal \\n escapes instead of real newlines.",
+          "evidence": [
+            "src/ledger/ledger.js: file content appears to contain literal \\n escapes instead of real newlines.; src/ledger/ledger.test.js: file content appears to contain literal \\n escapes instead of real newlines."
+          ]
+        }
+      ],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 1,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 1,
+        "objectiveQcPassed": false
+      },
+      "plans": [
+        {
+          "id": "8db16512-2274-4e26-9cb2-6f271e59a327",
+          "summary": "Fix ES module default import in ledger.js and add comprehensive regression tests for applyPayment covering success and failure scenarios",
+          "iterationNumber": 8,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "b04ccdee-0ba3-47d2-8153-a982442cf1ab",
+          "summary": "Fix stray '#' syntax error in ledger.test.js and add comprehensive payment ledger tests covering success and failure cases.",
+          "iterationNumber": 7,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "d76647f1-0562-4a51-a77c-a1e98f660474",
+          "summary": "Centralize payment amount validation and add comprehensive tests to ensure correct rejection of negative and zero amounts",
+          "iterationNumber": 6,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "f63b2685-a029-4b00-94e5-ef0087114021",
+          "summary": "Eliminate duplicate Status identifier and add comprehensive payment ledger tests covering success and failure cases",
+          "iterationNumber": 5,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "067a746b-cc49-49a5-8946-1118afaea7ba",
+          "summary": "Add named export for Status, fix usage of Status constants, remove circular import, and add comprehensive regression tests for success and failure paths.",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "86f24627-67ff-4f02-ab47-e91c0e4a3d22",
+          "summary": "Factor amount validation into a dedicated helper and adjust ledger.test.js to consistently reject negative and zero amounts, ensuring applyPayment throws the expected \"amount must be positive\" error.",
+          "iterationNumber": 3,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "263ad580-08a8-4e4f-a678-03ae50297b98",
+          "summary": "Fix ledger.js syntax and add regression tests ensuring applyPayment behaves correctly for success and failure cases without silently treating errors as success.",
+          "iterationNumber": 2,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "2fa247ac-f07c-4de0-ab2c-ba92b5295649",
+          "summary": "Fix escaped newlines in ledger.js and add comprehensive payment ledger tests covering success and failure cases",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/d3779d98-e844-468a-84fd-b9bb9c1cb7e3",
+        "branchName": "engineer/ab74a401/d3779d98-20260820214817",
+        "baseRevision": "1b0b60d83895e0e0d386763e72e945bdff36cac6",
+        "status": "active"
+      },
+      "score": {
+        "pass": false,
+        "notes": [
+          "failures not clearly recorded"
+        ],
+        "robustScorecard": {
+          "functional_correctness": "FAIL",
+          "error_handling": "PASS",
+          "tests_negative_path": "PASS",
+          "scope_discipline": "PASS",
+          "no_workaround_stack": "PASS"
+        },
+        "badCodeScorecard": {
+          "identified_underlying_defect": "PASS",
+          "repaired_design_not_hack": "FAIL",
+          "removed_obsolete_patterns": "PASS",
+          "regression_coverage": "PASS",
+          "left_subsystem_healthier": "FAIL"
+        }
+      },
+      "humanCodingInterventions": 0
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "scorePass": 0,
+    "deliveryReady": 0
+  }
+}

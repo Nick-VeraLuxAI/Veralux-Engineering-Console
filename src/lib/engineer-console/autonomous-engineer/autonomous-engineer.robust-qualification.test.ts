@@ -128,6 +128,8 @@ function baseDoc(task: EngineeringTask, prefixes: string[]): AutonomousDocument 
       runtimeMs: 1,
       investigationReads: 1,
       contextBytes: 10,
+      planRepairs: 0,
+      postReviewRepairs: 0,
     },
     strategy: null,
     observations: [],

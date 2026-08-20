@@ -51,10 +51,19 @@ import {
   snapshotQcResults,
 } from "./qc-baseline";
 import {
+  buildReviewGroundingPrompt,
   mergeWorkerAdversarialReview,
   reviewsHaveActionableDefects,
   runAutonomousReviews,
 } from "./reviews";
+import {
+  findingIdFromSummary,
+  markFindingsRepairAttempted,
+  resolveMaxPostReviewRepairs,
+  trackPostReviewFindings,
+  wouldExceedPostReviewRepairs,
+} from "./post-review-repair";
+import { resolveNanoRuntimeMode } from "./nano-faithful-invocation";
 import {
   coerceWorkerPlanToWorktree,
   listAuthorizedWorktreeFiles,
@@ -381,14 +390,24 @@ export async function executeAutonomousLoop(
   }
 
   const loopGuard =
-    document.budget.max_iterations * 4 + resolveMaxPlanRepairs(document.budget) * 2 + 8;
+    document.budget.max_iterations * 4 +
+    resolveMaxPlanRepairs(document.budget) * 2 +
+    resolveMaxPostReviewRepairs(document.budget) * 2 +
+    8;
   let steps = 0;
   if (typeof document.usage.planRepairs !== "number") {
     document.usage.planRepairs = 0;
   }
+  if (typeof document.usage.postReviewRepairs !== "number") {
+    document.usage.postReviewRepairs = 0;
+  }
   if (!document.planRepairHistory) {
     document.planRepairHistory = [];
   }
+  if (!document.reviewFindingLedger) {
+    document.reviewFindingLedger = [];
+  }
+  document.nanoRuntimeMode = resolveNanoRuntimeMode();
 
   while (!isTerminalAutonomousState(document.currentState) && steps < loopGuard) {
     steps += 1;
@@ -540,7 +559,21 @@ export async function executeAutonomousLoop(
     if (document.currentState === "planning") {
       // Semantic iterations are charged only after a valid plan is accepted for execution.
       // Pre-execution failures are PLAN_REPAIR (bounded by max_plan_repairs / modelCalls / plans).
-      if (wouldExceedBudget(document.budget, document.usage, "iterations", 1)) {
+      // Post-QC review reopen uses POST_REVIEW_REPAIR (does not require another semantic iteration).
+      const postReviewPlanning = Boolean(document.awaitingPostReviewRepair);
+      if (postReviewPlanning) {
+        if (wouldExceedPostReviewRepairs(document.budget, document.usage, 1)) {
+          document = applyTerminal(
+            document,
+            "exhausted",
+            "BUDGET_EXHAUSTED",
+            `Post-review repair budget exhausted (${document.usage.postReviewRepairs}/${resolveMaxPostReviewRepairs(document.budget)}).`,
+          );
+          persistAndSync(runId, document, task.id);
+          updateTask(task.id, { status: "failed" });
+          return terminalResult(runId, document, "Post-review repair budget exhausted.");
+        }
+      } else if (wouldExceedBudget(document.budget, document.usage, "iterations", 1)) {
         document = applyTerminal(
           document,
           "exhausted",
@@ -796,10 +829,30 @@ export async function executeAutonomousLoop(
         continue;
       }
 
-      // Valid plan executed (or attempted) → charge ENGINEERING_ITERATION (WP3/WP5).
+      // Valid plan executed (or attempted) → charge ENGINEERING_ITERATION or POST_REVIEW_REPAIR.
+      const postReviewCharge = Boolean(document.awaitingPostReviewRepair);
       document.iterationNumber = nextIterationNumber;
-      document.usage.iterations += 1;
-      document.lastIterationChargeKind = "ENGINEERING_ITERATION";
+      if (postReviewCharge) {
+        document.usage.postReviewRepairs = (document.usage.postReviewRepairs ?? 0) + 1;
+        document.lastIterationChargeKind = "POST_REVIEW_REPAIR";
+        document.awaitingPostReviewRepair = false;
+        const openSummaries = document.unresolvedDefects
+          .filter((d) => d.source === "review")
+          .map((d) => d.summary);
+        document.reviewFindingLedger = markFindingsRepairAttempted(
+          document.reviewFindingLedger ?? [],
+          openSummaries,
+        );
+        document.decisions.push({
+          at: nowIso(deps),
+          kind: "post_review_repair",
+          summary: `POST_REVIEW_REPAIR ${document.usage.postReviewRepairs}/${resolveMaxPostReviewRepairs(document.budget)}; semantic iterations unchanged at ${document.usage.iterations}`,
+          rationale: "QC had passed; repairing material review defects without burning primary engineering iterations.",
+        });
+      } else {
+        document.usage.iterations += 1;
+        document.lastIterationChargeKind = "ENGINEERING_ITERATION";
+      }
       document.usage.plans += 1;
 
       const qc = getQualityGateResultsForRun(runId);
@@ -1038,6 +1091,8 @@ export async function executeAutonomousLoop(
         why: document.diagnosis?.whyPreviousFailed,
         chargeKind: document.lastIterationChargeKind ?? null,
         planRepairs: document.usage.planRepairs ?? 0,
+        postReviewRepairs: document.usage.postReviewRepairs ?? 0,
+        awaitingPostReviewRepair: Boolean(document.awaitingPostReviewRepair),
       });
       // After PLAN_REPAIR, do not burn/require a new semantic iteration to replan (WP3).
       if (document.lastIterationChargeKind === "PLAN_REPAIR") {
@@ -1051,6 +1106,18 @@ export async function executeAutonomousLoop(
           persistAndSync(runId, document, task.id);
           updateTask(task.id, { status: "failed" });
           return terminalResult(runId, document, "Plan-repair budget exhausted after diagnosis.");
+        }
+      } else if (document.awaitingPostReviewRepair) {
+        if (wouldExceedPostReviewRepairs(document.budget, document.usage, 1)) {
+          document = applyTerminal(
+            document,
+            "exhausted",
+            "BUDGET_EXHAUSTED",
+            `No remaining post-review repair budget after diagnosis (${document.usage.postReviewRepairs}/${resolveMaxPostReviewRepairs(document.budget)}).`,
+          );
+          persistAndSync(runId, document, task.id);
+          updateTask(task.id, { status: "failed" });
+          return terminalResult(runId, document, "Post-review repair budget exhausted after diagnosis.");
         }
       } else if (wouldExceedBudget(document.budget, document.usage, "iterations", 1)) {
         document = applyTerminal(
@@ -1089,43 +1156,69 @@ export async function executeAutonomousLoop(
         qcPassed: document.qcDelta?.objectiveQcPassed ?? true,
         fileContents,
       });
+      const grounding = {
+        fileContents,
+        objective: document.originalObjective,
+        requirements:
+          document.interpretedObjective?.requirements ?? document.requirements,
+        acceptanceCriteria:
+          document.interpretedObjective?.acceptanceCriteria ?? document.acceptanceCriteria,
+        qcPassed: document.qcDelta?.objectiveQcPassed ?? true,
+        resolvedFindingIds: (document.reviewFindingLedger ?? [])
+          .filter((row) => row.status === "RESOLVED")
+          .map((row) => row.findingId),
+      };
       const workerReview = await maybeInvokeWorker(
         document,
         "review",
-        [
-          "Perform an adversarial senior review. Fail closed on material defects.",
-          `Changed files: ${changedFiles.join(", ")}`,
-          `File contents:\n${Object.entries(fileContents)
-            .map(([file, content]) => `--- ${file} ---\n${content}`)
-            .join("\n\n")
-            .slice(0, 12_000)}`,
-          `Diff:\n${diffSummary.slice(0, 3000)}`,
-          `Heuristic reviews: ${JSON.stringify(reviews)}`,
-        ].join("\n"),
+        buildReviewGroundingPrompt({
+          document,
+          changedFiles,
+          diffSummary,
+          fileContents,
+          heuristicReviews: reviews,
+        }),
         Boolean(deps.generatePlan),
       );
-      reviews = mergeWorkerAdversarialReview(reviews, workerReview);
+      reviews = mergeWorkerAdversarialReview(reviews, workerReview, grounding);
       document.reviews = reviews;
       if (reviewsHaveActionableDefects(reviews)) {
-        document.unresolvedDefects = reviews.flatMap((review) =>
-          review.actionableDefects.map((summary) => ({
-            id: `${review.review}-${document.iterationNumber}`,
-            source: "review" as const,
-            severity: "blocker" as const,
-            summary,
-            actionable: true,
-          })),
-        );
+        const actionable = reviews.flatMap((review) => review.actionableDefects);
+        const tracked = trackPostReviewFindings({
+          ledger: document.reviewFindingLedger ?? [],
+          actionableDefects: actionable,
+          iteration: document.iterationNumber,
+        });
+        document.reviewFindingLedger = tracked.ledger;
+        document.unresolvedDefects = tracked.openMaterial.map((summary) => ({
+          id: `${findingIdFromSummary(summary)}-${document.iterationNumber}`,
+          source: "review" as const,
+          severity: "blocker" as const,
+          summary,
+          actionable: true,
+        }));
+        // Post-QC material defects use POST_REVIEW_REPAIR budget (not primary semantic iters).
+        if (document.qcDelta?.objectiveQcPassed) {
+          document.awaitingPostReviewRepair = true;
+        }
         document.diagnosis = diagnoseIterationFailure({
           document,
           failureClass: "ENGINEERING_FAILURE",
-          qcSummary: reviews.flatMap((review) => review.actionableDefects).join("; "),
+          qcSummary: actionable.join("; "),
         });
         document = transitionAutonomousState(runId, "diagnosing", document).document;
         syncRun(runId, document);
         continue;
       }
+      // Clear open review defects; mark ledger resolutions.
+      const cleared = trackPostReviewFindings({
+        ledger: document.reviewFindingLedger ?? [],
+        actionableDefects: [],
+        iteration: document.iterationNumber,
+      });
+      document.reviewFindingLedger = cleared.ledger;
       document.unresolvedDefects = [];
+      document.awaitingPostReviewRepair = false;
       document = transitionAutonomousState(runId, "evaluating_completion", document).document;
       syncRun(runId, document);
       continue;
@@ -1158,6 +1251,9 @@ export async function executeAutonomousLoop(
       }
 
       document.deliveryCandidateStatus = "ready";
+      document.failureClass = null;
+      document.unresolvedDefects = [];
+      document.awaitingPostReviewRepair = false;
       document = transitionAutonomousState(runId, "waiting_for_approval", document).document;
       persistAndSync(runId, document, task.id);
       updateTask(task.id, { status: "waiting_for_approval" });

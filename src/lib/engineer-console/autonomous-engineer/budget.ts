@@ -22,10 +22,17 @@ export function emptyBudgetUsage(): AutonomousBudgetUsage {
     investigationReads: 0,
     contextBytes: 0,
     planRepairs: 0,
+    postReviewRepairs: 0,
   };
 }
 
-const USAGE_TO_BUDGET: Record<keyof AutonomousBudgetUsage, keyof AutonomousBudgetConfig> = {
+/** Dimensions checked via USAGE_TO_BUDGET (plan/post-review repairs are separate). */
+type DirectBudgetUsageKey = Exclude<
+  keyof AutonomousBudgetUsage,
+  "planRepairs" | "postReviewRepairs"
+>;
+
+const USAGE_TO_BUDGET: Record<DirectBudgetUsageKey, keyof AutonomousBudgetConfig> = {
   iterations: "max_iterations",
   plans: "max_plans",
   modelCalls: "max_model_calls",
@@ -39,7 +46,7 @@ const USAGE_TO_BUDGET: Record<keyof AutonomousBudgetUsage, keyof AutonomousBudge
 export function checkBudget(
   budget: AutonomousBudgetConfig,
   usage: AutonomousBudgetUsage,
-  dimension: keyof AutonomousBudgetUsage,
+  dimension: DirectBudgetUsageKey,
   increment = 0,
 ): void {
   const maxKey = USAGE_TO_BUDGET[dimension];
@@ -53,7 +60,7 @@ export function checkBudget(
 export function wouldExceedBudget(
   budget: AutonomousBudgetConfig,
   usage: AutonomousBudgetUsage,
-  dimension: keyof AutonomousBudgetUsage,
+  dimension: DirectBudgetUsageKey,
   increment = 0,
 ): boolean {
   const maxKey = USAGE_TO_BUDGET[dimension];
@@ -68,6 +75,10 @@ export function remainingBudget(
     typeof budget.max_plan_repairs === "number" && budget.max_plan_repairs > 0
       ? budget.max_plan_repairs
       : Math.max(budget.max_plans, 8);
+  const maxPostReview =
+    typeof budget.max_post_review_repairs === "number" && budget.max_post_review_repairs > 0
+      ? budget.max_post_review_repairs
+      : 2;
   return {
     iterations: Math.max(0, budget.max_iterations - usage.iterations),
     plans: Math.max(0, budget.max_plans - usage.plans),
@@ -78,5 +89,6 @@ export function remainingBudget(
     investigationReads: Math.max(0, budget.max_investigation_reads - usage.investigationReads),
     contextBytes: Math.max(0, budget.max_context_bytes - usage.contextBytes),
     planRepairs: Math.max(0, maxPlanRepairs - (usage.planRepairs ?? 0)),
+    postReviewRepairs: Math.max(0, maxPostReview - (usage.postReviewRepairs ?? 0)),
   };
 }

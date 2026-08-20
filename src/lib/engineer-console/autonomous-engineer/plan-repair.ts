@@ -4,7 +4,10 @@
  */
 import type { AutonomousAuthorityEnvelope, AutonomousBudgetConfig, AutonomousBudgetUsage } from "./types";
 
-export type IterationChargeKind = "PLAN_REPAIR" | "ENGINEERING_ITERATION";
+export type IterationChargeKind =
+  | "PLAN_REPAIR"
+  | "ENGINEERING_ITERATION"
+  | "POST_REVIEW_REPAIR";
 
 export type PlanRepairKind =
   | "unauthorized_path"

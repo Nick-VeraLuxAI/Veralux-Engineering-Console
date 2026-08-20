@@ -59,6 +59,7 @@ function doc(): AutonomousDocument {
       investigationReads: 1,
       contextBytes: 10,
       planRepairs: 0,
+      postReviewRepairs: 0,
     },
     iterationNumber: 1,
     priorAttempts: [],

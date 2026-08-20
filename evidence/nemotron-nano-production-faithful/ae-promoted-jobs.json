@@ -1,0 +1,159 @@
+{
+  "at": "2026-08-20T21:48:06.597Z",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8082/v1",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "idempotent_job_runner",
+      "class": "failure_recovery",
+      "title": "Job apply resume",
+      "objective": "Directors need a small job apply helper under src/jobs that can apply a job by id once, survive retries after a partial failure, and never double-apply the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+      "elapsedMs": 50033,
+      "taskId": "975335fb-16d1-471c-a00d-b8eb5f13eccf",
+      "runId": "d275ea7c-a5cd-4015-8332-55b1eef98a25",
+      "result": {
+        "runId": "d275ea7c-a5cd-4015-8332-55b1eef98a25",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "fadf563c-71f7-47fd-960b-17c202a6cec4",
+          "strategy": "Complete job apply helper in src/jobs/jobs.js to be idempotent, retry‑safe, and fully tested.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 2,
+        "changedBytes": 3879,
+        "runtimeMs": 48005,
+        "investigationReads": 2,
+        "contextBytes": 118,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need a small job apply helper under src/jobs that can apply a job by id once, survive retries after a partial failure, and never double-apply the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/jobs/jobs.js",
+            "Changed src/jobs/jobs.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 2",
+            "src/jobs/jobs.js      | 41 +++++++++++++++++++++++-----\n src/jobs/jobs.test.js | 75 ++++++++++++++++++++++++++++++++++++++++++++++++++-\n 2 files changed, 109 insertions(+), 7 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "The module implements idempotent applyJob with pending tracking and cleanup on failure, satisfying the idempotency and duplicate‑apply requirements.",
+            "Tests cover successful apply, repeated call after success, failure handling without double‑apply, retry after failure, and partial‑failure resilience.",
+            "All acceptance criteria are met: idempotent apply, recoverable partial failure state, required test matrix, and no PR is created."
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "fadf563c-71f7-47fd-960b-17c202a6cec4",
+          "summary": "Complete job apply helper in src/jobs/jobs.js to be idempotent, retry‑safe, and fully tested.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/d275ea7c-a5cd-4015-8332-55b1eef98a25",
+        "branchName": "engineer/975335fb/d275ea7c-20260820214716",
+        "baseRevision": "d977f576f3316e69313a4dd37a58923d18793ae8",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "functional_correctness": "PASS",
+          "failure_recovery": "PASS",
+          "idempotency": "PASS",
+          "vertical_slice_complete": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "scorePass": 1,
+    "deliveryReady": 1
+  }
+}

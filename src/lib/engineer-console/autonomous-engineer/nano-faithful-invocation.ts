@@ -1,10 +1,12 @@
 /**
- * Temporary NVIDIA-faithful Nano invocation envelope for AE requalification.
- * Behind ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION=true — default remains CONTROL (think-off).
+ * NVIDIA-faithful Nano invocation envelope for AE (promoted Console runtime).
+ * Rollback: ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION=false → CONTROL (think-off).
+ * Default: faithful ON; DEGRADED when serve cannot host the faithful recipe.
  */
 import type { AutonomousWorkerRole } from "./worker-schemas";
 
 export type NanoFaithfulSamplingMode = "reasoning" | "tool" | "think_off";
+export type NanoRuntimeMode = "FAITHFUL" | "DEGRADED" | "CONTROL";
 
 export interface NanoFaithfulInvocationProfile {
   enabled: boolean;
@@ -14,6 +16,7 @@ export interface NanoFaithfulInvocationProfile {
   maxTokens: number;
   samplingMode: NanoFaithfulSamplingMode;
   truncateHistoryThinking: boolean;
+  runtimeMode: NanoRuntimeMode;
 }
 
 export interface NanoInvocationTelemetry {
@@ -32,6 +35,7 @@ export interface NanoInvocationTelemetry {
   reasoningParser: string | null;
   toolParser: string | null;
   generationBudgetExhausted: boolean;
+  runtimeMode: NanoRuntimeMode;
 }
 
 const REASONING_ROLES: AutonomousWorkerRole[] = [
@@ -47,10 +51,25 @@ const PLAN_ROLES: AutonomousWorkerRole[] = ["planning", "replan"];
 const FAITHFUL_REASONING_MAX_TOKENS = 10_000;
 const FAITHFUL_NON_PLAN_MAX_TOKENS = 4_096;
 
+/** Minimum max_model_len to consider the serve stack faithful-capable. */
+export const FAITHFUL_MIN_MODEL_LEN = 65_536;
+
+function parseTriState(raw: string | undefined): "true" | "false" | "unset" {
+  if (raw == null || raw.trim() === "") return "unset";
+  const v = raw.trim().toLowerCase();
+  if (v === "false" || v === "0" || v === "off" || v === "no") return "false";
+  if (v === "true" || v === "1" || v === "on" || v === "yes") return "true";
+  return "unset";
+}
+
+/**
+ * Promoted default: faithful ON unless explicitly rolled back with false.
+ * Set ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION=false for CONTROL behavior.
+ */
 export function isNanoFaithfulInvocationEnabled(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  return env.ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION?.trim() === "true";
+  return parseTriState(env.ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION) !== "false";
 }
 
 export function isNanoFaithfulContinuousToolsEnabled(
@@ -62,20 +81,65 @@ export function isNanoFaithfulContinuousToolsEnabled(
   );
 }
 
+export function resolveConfiguredMaxModelLen(
+  env: NodeJS.ProcessEnv = process.env,
+): number | null {
+  const raw = env.ENGINEER_CONSOLE_AE_NANO_MAX_MODEL_LEN?.trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * FAITHFUL vs DEGRADED vs CONTROL detection for evidence/telemetry.
+ * - CONTROL: faithful flag explicitly off
+ * - DEGRADED: faithful intended but serve context too small / forced degraded
+ * - FAITHFUL: intended and serve knobs look capable (or max-model-len unset but not forced degraded)
+ */
+export function resolveNanoRuntimeMode(
+  env: NodeJS.ProcessEnv = process.env,
+): NanoRuntimeMode {
+  if (!isNanoFaithfulInvocationEnabled(env)) return "CONTROL";
+  const forced = env.ENGINEER_CONSOLE_AE_NANO_RUNTIME_MODE?.trim().toUpperCase();
+  if (forced === "DEGRADED") return "DEGRADED";
+  if (forced === "CONTROL") return "CONTROL";
+  if (forced === "FAITHFUL") return "FAITHFUL";
+  const maxLen = resolveConfiguredMaxModelLen(env);
+  if (maxLen != null && maxLen < FAITHFUL_MIN_MODEL_LEN) return "DEGRADED";
+  // CONTROL-era serve (8081 / 8k) without explicit max-model-len → DEGRADED, not pretend-faithful.
+  const base = env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL || "";
+  if (maxLen == null && /:8081(?:\/|$)/.test(base)) return "DEGRADED";
+  return "FAITHFUL";
+}
+
+function controlProfile(role: AutonomousWorkerRole): NanoFaithfulInvocationProfile {
+  return {
+    enabled: false,
+    enableThinking: false,
+    temperature: 0.1,
+    topP: undefined,
+    maxTokens: PLAN_ROLES.includes(role) ? 2048 : 768,
+    samplingMode: "think_off",
+    truncateHistoryThinking: false,
+    runtimeMode: "CONTROL",
+  };
+}
+
 export function resolveNanoFaithfulProfile(
   role: AutonomousWorkerRole,
   options: { toolSelection?: boolean } = {},
   env: NodeJS.ProcessEnv = process.env,
 ): NanoFaithfulInvocationProfile {
-  if (!isNanoFaithfulInvocationEnabled(env)) {
+  const mode = resolveNanoRuntimeMode(env);
+  if (mode === "CONTROL") {
+    return controlProfile(role);
+  }
+
+  // DEGRADED: keep CONTROL sampling envelope but mark mode for evidence (do not pretend faithful).
+  if (mode === "DEGRADED") {
     return {
-      enabled: false,
-      enableThinking: false,
-      temperature: 0.1,
-      topP: undefined,
-      maxTokens: PLAN_ROLES.includes(role) ? 2048 : 768,
-      samplingMode: "think_off",
-      truncateHistoryThinking: false,
+      ...controlProfile(role),
+      runtimeMode: "DEGRADED",
     };
   }
 
@@ -88,6 +152,7 @@ export function resolveNanoFaithfulProfile(
       maxTokens: FAITHFUL_REASONING_MAX_TOKENS,
       samplingMode: "tool",
       truncateHistoryThinking: true,
+      runtimeMode: "FAITHFUL",
     };
   }
 
@@ -104,6 +169,7 @@ export function resolveNanoFaithfulProfile(
       maxTokens: FAITHFUL_NON_PLAN_MAX_TOKENS,
       samplingMode: "think_off",
       truncateHistoryThinking: true,
+      runtimeMode: "FAITHFUL",
     };
   }
 
@@ -119,6 +185,7 @@ export function resolveNanoFaithfulProfile(
       : FAITHFUL_NON_PLAN_MAX_TOKENS,
     samplingMode: "reasoning",
     truncateHistoryThinking: true,
+    runtimeMode: "FAITHFUL",
   };
 }
 
@@ -176,6 +243,7 @@ export function buildNanoInvocationTelemetry(input: {
   const reasoningTokens =
     input.usage?.completion_tokens_details?.reasoning_tokens ??
     (typeof input.reasoningLen === "number" ? null : null);
+  const faithful = input.profile.runtimeMode === "FAITHFUL";
   return {
     trajectoryId: input.trajectoryId ?? null,
     role: input.role,
@@ -189,8 +257,9 @@ export function buildNanoInvocationTelemetry(input: {
     temperature: input.profile.temperature,
     topP: input.profile.topP ?? null,
     enableThinking: input.profile.enableThinking,
-    reasoningParser: input.profile.enabled ? "nano_v3" : null,
-    toolParser: input.profile.enabled ? "qwen3_coder" : null,
+    reasoningParser: faithful ? "nano_v3" : null,
+    toolParser: faithful ? "qwen3_coder" : null,
     generationBudgetExhausted: isGenerationBudgetExhausted(finishReason),
+    runtimeMode: input.profile.runtimeMode,
   };
 }

@@ -4,19 +4,29 @@ import {
   isGenerationBudgetExhausted,
   isNanoFaithfulInvocationEnabled,
   resolveNanoFaithfulProfile,
+  resolveNanoRuntimeMode,
 } from "./nano-faithful-invocation";
 import { classifyAutonomousFailure } from "./failure-classification";
 
 describe("nano faithful invocation", () => {
-  it("defaults off (CONTROL)", () => {
-    expect(isNanoFaithfulInvocationEnabled({})).toBe(false);
+  it("defaults ON (promoted); explicit false is CONTROL rollback", () => {
+    expect(isNanoFaithfulInvocationEnabled({})).toBe(true);
+    expect(resolveNanoRuntimeMode({})).toBe("FAITHFUL");
     const p = resolveNanoFaithfulProfile("planning", {}, {});
-    expect(p.enableThinking).toBe(false);
-    expect(p.temperature).toBe(0.1);
-    expect(p.maxTokens).toBe(2048);
+    expect(p.enableThinking).toBe(true);
+    expect(p.temperature).toBe(1.0);
+    expect(p.maxTokens).toBe(10_000);
+
+    const off = { ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION: "false" };
+    expect(isNanoFaithfulInvocationEnabled(off)).toBe(false);
+    const control = resolveNanoFaithfulProfile("planning", {}, off);
+    expect(control.enableThinking).toBe(false);
+    expect(control.temperature).toBe(0.1);
+    expect(control.maxTokens).toBe(2048);
+    expect(control.runtimeMode).toBe("CONTROL");
   });
 
-  it("enables NVIDIA reasoning sampling for planning when flagged", () => {
+  it("enables NVIDIA reasoning sampling for planning when faithful", () => {
     const env = { ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION: "true" };
     const p = resolveNanoFaithfulProfile("planning", {}, env);
     expect(p.enabled).toBe(true);
@@ -58,5 +68,20 @@ describe("nano faithful invocation", () => {
     expect(
       classifyAutonomousFailure({ modelOutputUnusable: true }),
     ).toBe("MODEL_OUTPUT_FAILURE");
+  });
+
+  it("exposes DEGRADED when max_model_len is undersized", () => {
+    const env = {
+      ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION: "true",
+      ENGINEER_CONSOLE_AE_NANO_MAX_MODEL_LEN: "8192",
+    };
+    expect(resolveNanoRuntimeMode(env)).toBe("DEGRADED");
+  });
+
+  it("exposes DEGRADED for CONTROL 8081 URL when max_model_len unset", () => {
+    const env = {
+      ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL: "http://127.0.0.1:8081/v1",
+    };
+    expect(resolveNanoRuntimeMode(env)).toBe("DEGRADED");
   });
 });

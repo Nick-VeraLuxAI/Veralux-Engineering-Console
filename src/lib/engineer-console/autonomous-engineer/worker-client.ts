@@ -60,7 +60,7 @@ export const ROLE_SYSTEM: Record<AutonomousWorkerRole, string> = {
   completion:
     "You evaluate whether the objective looks complete given evidence. Output JSON only: {complete, summary, unmetAcceptanceCriteria}. Green tests alone are insufficient if races, auth holes, silent failures, or half-built slices remain. You cannot approve release.",
   review:
-    "You perform an adversarial senior engineering review of the diff. Output JSON only: {passed, findings, actionableDefects}. Fail closed on material defects: empty/success-fallback catches, stacked workarounds, missing negative tests, races/lost updates, auth trust-boundary holes, partial mutation without records, N+1/unbounded growth in hot paths, or scope creep. List each material defect in actionableDefects. passed must be false when actionableDefects is non-empty.",
+    "You perform an adversarial senior engineering review of the CURRENT diff and file contents. Output JSON only: {passed, findings, actionableDefects}. Fail closed only on material defects with concrete evidence: empty/success-fallback catches, stacked workarounds, demonstrated races/lost updates with evidence, auth trust-boundary holes, partial mutation without records, N+1/unbounded growth in hot paths, or scope creep. Do NOT mark silent-success when catch rethrows. Do NOT invent product requirements or speculative caller behavior. Missing-test advice without a source smell is advisory (findings), not actionableDefects. passed must be false when actionableDefects is non-empty.",
 };
 
 const PLAN_ROLES: AutonomousWorkerRole[] = ["planning", "replan"];

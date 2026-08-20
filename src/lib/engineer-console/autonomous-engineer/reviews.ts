@@ -139,10 +139,77 @@ export function runAutonomousReviews(input: {
   return [requirements, diffQuality, regressionRisk, scope, engineeringQuality];
 }
 
+export type ReviewVerdictKind = "PASS" | "BLOCKING_DEFECT" | "ADVISORY";
+
+export interface AdversarialDefectAssessment {
+  material: boolean;
+  severity: "blocker" | "advisory";
+  verdict: ReviewVerdictKind;
+  evidence: string[];
+  requiresRepair: boolean;
+  reason: string;
+  confidence: "low" | "medium" | "high";
+  classification?: "REAL_MATERIAL" | "ADVISORY" | "DUPLICATE" | "INVENTED" | "MISREAD" | "TOO_LATE";
+}
+
+export interface ReviewGroundingContext {
+  fileContents?: Record<string, string>;
+  objective?: string;
+  requirements?: string[];
+  acceptanceCriteria?: string[];
+  qcPassed?: boolean;
+  resolvedFindingIds?: string[];
+}
+
+/** Catch blocks that rethrow (not silent success). */
+const CATCH_RETHROW =
+  /catch\s*(?:\([^)]*\))?\s*\{[\s\S]{0,400}?\bthrow\b/m;
+
+/** Actual silent/success-fallback catch shapes in sources. */
+const CATCH_SILENT_OR_SUCCESS =
+  /catch\s*(?:\([^)]*\))?\s*\{\s*(?:return\s+(?:true|null|undefined|\[\]|\{\})\s*;?\s*)?\}/m;
+
+function sourcesHaveRethrowingCatch(fileContents: Record<string, string> | undefined): boolean {
+  return Object.values(fileContents ?? {}).some((content) => CATCH_RETHROW.test(content));
+}
+
+function sourcesHaveSilentSuccessCatch(fileContents: Record<string, string> | undefined): boolean {
+  return Object.values(fileContents ?? {}).some((content) => {
+    if (CATCH_RETHROW.test(content)) return false;
+    return (
+      ENGINEERING_QUALITY_PATTERNS.some(
+        (rule) =>
+          (rule.id === "empty_catch" ||
+            rule.id === "success_fallback_catch" ||
+            rule.id === "silent_console_catch") &&
+          rule.pattern.test(content),
+      ) || CATCH_SILENT_OR_SUCCESS.test(content)
+    );
+  });
+}
+
+function claimAnchoredToRequirements(
+  text: string,
+  requirements: string[] | undefined,
+  acceptanceCriteria: string[] | undefined,
+): boolean {
+  const corpus = [...(requirements ?? []), ...(acceptanceCriteria ?? [])].join(" ").toLowerCase();
+  if (!corpus.trim()) return true; // no corpus → do not invent anchoring failure
+  const tokens = text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 4)
+    .slice(0, 12);
+  if (tokens.length === 0) return false;
+  const hits = tokens.filter((t) => corpus.includes(t)).length;
+  return hits >= Math.min(2, tokens.length);
+}
+
 /** Merge live worker adversarial review defects into the authoritative review set. */
 export function mergeWorkerAdversarialReview(
   reviews: AutonomousReviewFinding[],
   worker: { passed?: unknown; findings?: unknown; actionableDefects?: unknown } | null,
+  grounding?: ReviewGroundingContext,
 ): AutonomousReviewFinding[] {
   if (!worker || typeof worker.passed !== "boolean") return reviews;
   const findings = Array.isArray(worker.findings)
@@ -153,7 +220,10 @@ export function mergeWorkerAdversarialReview(
     : [];
   // Only gate on material engineering defects. Advisory perfectionism / invented product
   // requirements / generic "consider race testing" become findings, not delivery blockers.
-  const assessed = rawDefects.map((defect) => ({ defect, assessment: assessAdversarialDefect(defect) }));
+  const assessed = rawDefects.map((defect) => ({
+    defect,
+    assessment: assessAdversarialDefect(defect, grounding),
+  }));
   const materialDefects = assessed.filter((item) => item.assessment.material).map((item) => item.defect);
   const advisory = assessed.filter((item) => !item.assessment.material);
   const adversarial: AutonomousReviewFinding = {
@@ -172,9 +242,13 @@ export function mergeWorkerAdversarialReview(
   return [...reviews.filter((review) => review.review !== "worker_adversarial"), adversarial];
 }
 
-/** Non-race material engineering defects (unchanged fail-closed bar). */
+/** Non-race material engineering defects (unchanged fail-closed bar for real smells). */
 const MATERIAL_NON_RACE =
   /(?:empty catch|success[- ]?fallback|fail open|swallowed(?:\s+error)?|silent (?:null|success|fail)|WORKAROUND|\bHACK\b|from ['"]vitest['"]|does not export expect|private key|AE_REVIEW_BLOCK|trust boundar|auth hole|partial mutat(?:ion)? without|N\+1(?:\s+query)?|sql inject|path traversal)/i;
+
+/** Claims that often misread rethrowing catches as silent success. */
+const SILENT_SUCCESS_CLAIM =
+  /silent\s+success|silently\s+treat|swallowed(?:\s+error)?|success[- ]?fallback|callers?\s+may\s+swallow/i;
 
 /** Race/concurrency keywords alone are insufficient — need concrete evidence. */
 const RACE_KEYWORD =
@@ -201,27 +275,25 @@ const RACE_CONCRETE_EVIDENCE = [
   /double[- ](?:apply|exec|spend)\s+(?:under|via|when|because)/i,
 ];
 
-export interface AdversarialDefectAssessment {
-  material: boolean;
-  severity: "blocker" | "advisory";
-  evidence: string[];
-  requiresRepair: boolean;
-  reason: string;
-}
-
 /**
- * Structured materiality gate (WP1).
- * Broad keyword filters (`race` / `concurrent`) must NOT solely block.
+ * Structured materiality gate (WP1) with optional current-state grounding.
+ * Broad keyword filters (`race` / `concurrent` / speculative silent-success) must NOT solely block.
  */
-export function assessAdversarialDefect(summary: string): AdversarialDefectAssessment {
+export function assessAdversarialDefect(
+  summary: string,
+  grounding?: ReviewGroundingContext,
+): AdversarialDefectAssessment {
   const text = summary.trim();
   if (!text) {
     return {
       material: false,
       severity: "advisory",
+      verdict: "ADVISORY",
       evidence: [],
       requiresRepair: false,
       reason: "empty defect summary",
+      confidence: "high",
+      classification: "ADVISORY",
     };
   }
 
@@ -230,9 +302,12 @@ export function assessAdversarialDefect(summary: string): AdversarialDefectAsses
     return {
       material: false,
       severity: "advisory",
+      verdict: "ADVISORY",
       evidence: [],
       requiresRepair: false,
       reason: "structured non-material marker",
+      confidence: "high",
+      classification: "ADVISORY",
     };
   }
   if (/\brequires_repair\s*[:=]\s*true\b/i.test(text) && /\bmaterial\s*[:=]\s*true\b/i.test(text)) {
@@ -241,20 +316,111 @@ export function assessAdversarialDefect(summary: string): AdversarialDefectAsses
       return {
         material: true,
         severity: "blocker",
+        verdict: "BLOCKING_DEFECT",
         evidence: structuredEvidence.length ? structuredEvidence : [text],
         requiresRepair: true,
         reason: "structured material marker with evidence",
+        confidence: "high",
+        classification: "REAL_MATERIAL",
+      };
+    }
+  }
+
+  // Ground silent-success / swallowed-error claims against final sources (fb5eab66 class).
+  if (SILENT_SUCCESS_CLAIM.test(text) && grounding?.fileContents) {
+    if (sourcesHaveRethrowingCatch(grounding.fileContents) && !sourcesHaveSilentSuccessCatch(grounding.fileContents)) {
+      return {
+        material: false,
+        severity: "advisory",
+        verdict: "ADVISORY",
+        evidence: ["catch block rethrows after recording failure"],
+        requiresRepair: false,
+        reason: "misread: sources rethrow on store/mutation errors (not silent success)",
+        confidence: "high",
+        classification: "MISREAD",
+      };
+    }
+    if (!sourcesHaveSilentSuccessCatch(grounding.fileContents)) {
+      return {
+        material: false,
+        severity: "advisory",
+        verdict: "ADVISORY",
+        evidence: [],
+        requiresRepair: false,
+        reason: "invented silent-success risk without empty/success-fallback catch in diff",
+        confidence: "high",
+        classification: "INVENTED",
+      };
+    }
+  }
+
+  // "Missing negative tests …" without a real smell in sources → advisory test-gap advice.
+  if (
+    /missing\s+negative\s+tests/i.test(text) &&
+    grounding?.fileContents &&
+    !sourcesHaveSilentSuccessCatch(grounding.fileContents) &&
+    !MATERIAL_NON_RACE.test(text.replace(SILENT_SUCCESS_CLAIM, " "))
+  ) {
+    const stillSilentClaim = SILENT_SUCCESS_CLAIM.test(text);
+    if (stillSilentClaim && sourcesHaveRethrowingCatch(grounding.fileContents)) {
+      return {
+        material: false,
+        severity: "advisory",
+        verdict: "ADVISORY",
+        evidence: ["rethrow path present"],
+        requiresRepair: false,
+        reason: "advisory test-gap; silent-success claim contradicted by rethrow",
+        confidence: "high",
+        classification: "MISREAD",
       };
     }
   }
 
   if (MATERIAL_NON_RACE.test(text)) {
+    // Requirement anchoring: speculative caller-behavior claims outside objective stay advisory
+    // unless sources actually contain the smell.
+    if (
+      /callers?\s+may\s+swallow/i.test(text) &&
+      grounding?.fileContents &&
+      !sourcesHaveSilentSuccessCatch(grounding.fileContents)
+    ) {
+      return {
+        material: false,
+        severity: "advisory",
+        verdict: "ADVISORY",
+        evidence: [],
+        requiresRepair: false,
+        reason: "speculative caller behavior not grounded in changed sources",
+        confidence: "medium",
+        classification: "INVENTED",
+      };
+    }
+    if (
+      grounding &&
+      !claimAnchoredToRequirements(text, grounding.requirements, grounding.acceptanceCriteria) &&
+      /missing\s+negative\s+tests|consider|recommend/i.test(text) &&
+      !sourcesHaveSilentSuccessCatch(grounding.fileContents)
+    ) {
+      return {
+        material: false,
+        severity: "advisory",
+        verdict: "ADVISORY",
+        evidence: [],
+        requiresRepair: false,
+        reason: "finding not anchored to requirements/AC and no source smell",
+        confidence: "medium",
+        classification: "ADVISORY",
+      };
+    }
     return {
       material: true,
       severity: "blocker",
+      verdict: "BLOCKING_DEFECT",
       evidence: [text],
       requiresRepair: true,
       reason: "non-race material engineering defect",
+      confidence: "high",
+      classification: "REAL_MATERIAL",
     };
   }
 
@@ -263,9 +429,12 @@ export function assessAdversarialDefect(summary: string): AdversarialDefectAsses
       return {
         material: false,
         severity: "advisory",
+        verdict: "ADVISORY",
         evidence: [],
         requiresRepair: false,
         reason: "generic race/concurrency advice without concrete evidence",
+        confidence: "high",
+        classification: "ADVISORY",
       };
     }
     const matchedEvidence = RACE_CONCRETE_EVIDENCE.filter((re) => re.test(text)).map((re) => re.source);
@@ -273,34 +442,79 @@ export function assessAdversarialDefect(summary: string): AdversarialDefectAsses
       return {
         material: true,
         severity: "blocker",
+        verdict: "BLOCKING_DEFECT",
         evidence: matchedEvidence,
         requiresRepair: true,
         reason: "race/concurrency claim with concrete evidence",
+        confidence: "high",
+        classification: "REAL_MATERIAL",
       };
     }
     // Keyword-only race claim → advisory (does not reopen delivery).
     return {
       material: false,
       severity: "advisory",
+      verdict: "ADVISORY",
       evidence: [],
       requiresRepair: false,
       reason: "race/concurrency keyword without concrete evidence",
+      confidence: "high",
+      classification: "ADVISORY",
     };
   }
 
   return {
     material: false,
     severity: "advisory",
+    verdict: "ADVISORY",
     evidence: [],
     requiresRepair: false,
     reason: "non-material advisory finding",
+    confidence: "medium",
+    classification: "ADVISORY",
   };
 }
 
-export function isMaterialAdversarialDefect(summary: string): boolean {
-  return assessAdversarialDefect(summary).material;
+export function isMaterialAdversarialDefect(
+  summary: string,
+  grounding?: ReviewGroundingContext,
+): boolean {
+  return assessAdversarialDefect(summary, grounding).material;
 }
 
 export function reviewsHaveActionableDefects(reviews: AutonomousReviewFinding[]): boolean {
   return reviews.some((review) => review.actionableDefects.length > 0);
+}
+
+/** Build current-state grounding blob for the live worker review prompt. */
+export function buildReviewGroundingPrompt(input: {
+  document: AutonomousDocument;
+  changedFiles: string[];
+  diffSummary: string;
+  fileContents: Record<string, string>;
+  heuristicReviews: AutonomousReviewFinding[];
+}): string {
+  const resolved = (input.document.reviewFindingLedger ?? [])
+    .filter((row) => row.status === "RESOLVED")
+    .map((row) => row.findingId);
+  return [
+    "Perform an adversarial senior review grounded in CURRENT state only.",
+    "Output JSON only: {passed, findings, actionableDefects}.",
+    "Each actionableDefect must be material with concrete evidence from the supplied files/diff.",
+    "Classify severity as PASS | BLOCKING_DEFECT | ADVISORY. Only BLOCKING_DEFECT goes in actionableDefects.",
+    "Do not invent silent-success when catch rethrows. Do not invent product requirements.",
+    "Anchor material findings to objective requirements/acceptance criteria when claiming gaps.",
+    `Objective: ${input.document.originalObjective}`,
+    `Requirements: ${(input.document.interpretedObjective?.requirements ?? input.document.requirements).join("; ")}`,
+    `Acceptance criteria: ${(input.document.interpretedObjective?.acceptanceCriteria ?? input.document.acceptanceCriteria).join("; ")}`,
+    `QC objectiveQcPassed: ${input.document.qcDelta?.objectiveQcPassed ?? true}`,
+    `Resolved finding ids: ${resolved.join(", ") || "(none)"}`,
+    `Changed files: ${input.changedFiles.join(", ")}`,
+    `File contents:\n${Object.entries(input.fileContents)
+      .map(([file, content]) => `--- ${file} ---\n${content}`)
+      .join("\n\n")
+      .slice(0, 12_000)}`,
+    `Diff:\n${input.diffSummary.slice(0, 3000)}`,
+    `Heuristic reviews: ${JSON.stringify(input.heuristicReviews)}`,
+  ].join("\n");
 }
