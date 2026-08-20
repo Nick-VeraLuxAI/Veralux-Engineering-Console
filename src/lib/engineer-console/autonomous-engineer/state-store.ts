@@ -119,6 +119,7 @@ export function createAutonomousState(input: CreateAutonomousStateInput): Autono
     deliveryCandidateStatus: "not_ready",
     reviews: [],
     diagnosis: null,
+    failureSignatureHistory: [],
     worktreeId: null,
     startedAt: now,
     updatedAt: now,

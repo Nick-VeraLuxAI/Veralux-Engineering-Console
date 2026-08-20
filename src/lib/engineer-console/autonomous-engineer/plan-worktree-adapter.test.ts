@@ -132,6 +132,7 @@ describe("coerceWorkerPlanToWorktree", () => {
     fs.writeFileSync(path.join(tmp, "src/lib/huge.ts"), "x".repeat(8000));
     const snippets = readAuthorizedWorktreeSnippets(tmp, ["src/lib/"]);
     expect(snippets.map((s) => s.path)).toContain("src/lib/bad.ts");
+    expect(snippets.map((s) => s.path)).not.toContain("src/lib/bad.test.ts");
     expect(snippets.find((s) => s.path === "src/lib/bad.ts")?.content).toContain("broken");
     // Prefer smaller modules first; huge file may be omitted under total budget.
     expect(snippets.every((s) => s.content.length <= 1800)).toBe(true);

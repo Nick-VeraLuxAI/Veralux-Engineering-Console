@@ -18,6 +18,24 @@ import { assertExecutorCannotSelfAuthorize, isPathAuthorized } from "./authority
 import { BudgetExhaustedError, checkBudget, wouldExceedBudget } from "./budget";
 import { evaluateCompletion } from "./completion-evaluator";
 import { diagnoseIterationFailure } from "./diagnosis";
+import {
+  authoritativeDiagnosisHint,
+  buildPriorAttemptDigest,
+  checkDiagnosisConsistency,
+  detectFailureSignaturesInPlan,
+  detectFailureSignaturesInText,
+  ensureFailureSignatureHistory,
+  formatTestExemplarBlock,
+  mergeStructuredDiagnosis,
+  readAuthorizedTestExemplars,
+  readRepoTestGroundingFacts,
+  recordFailureSignatures,
+  shouldBlockRepeatedHarnessStrategy,
+  sliceOwnedFailureEvidence,
+  validateChangedTestHarness,
+  validatePlanHarnessGuards,
+  type FailureSignature,
+} from "./feedback-convergence";
 import { classifyAutonomousFailure, isTerminalFailureClass } from "./failure-classification";
 import { defaultInvestigationOperations, runInvestigation } from "./investigation";
 import { interpretObjective } from "./objective-interpreter";
@@ -123,17 +141,26 @@ async function generatePlanForIteration(
     return deps.generatePlan({ runId, document, repoPath });
   }
 
-  const diagnosisHint = document.diagnosis
-    ? [
-        `Previous iteration failed: ${document.diagnosis.whyPreviousFailed}`,
-        `Suggested strategy: ${document.diagnosis.suggestedStrategy}`,
-        "Produce a revised worker plan that addresses the failure. Do not repeat the failed hypothesis.",
-      ]
-    : [];
+  const diagnosisHint = authoritativeDiagnosisHint(document);
+  const grounding = readRepoTestGroundingFacts(repoPath);
+  const priorDigest = buildPriorAttemptDigest({
+    priorAttempts: document.priorAttempts,
+    failedHypotheses: document.failedHypotheses,
+    qcObservations: document.qcObservations,
+    failureSignatures: ensureFailureSignatureHistory(document),
+  });
 
   if (document.workerModel?.route === "live_default_worker") {
     const existingFiles = listAuthorizedWorktreeFiles(repoPath, document.authorizedPathPrefixes);
     const snippets = readAuthorizedWorktreeSnippets(repoPath, document.authorizedPathPrefixes);
+    const focusPaths = [
+      ...(document.diagnosis?.filesToInspect ?? []),
+      ...existingFiles.filter((file) => /\.(js|ts|mjs|cjs)$/.test(file)).slice(0, 4),
+    ];
+    const exemplars = readAuthorizedTestExemplars(repoPath, document.authorizedPathPrefixes, {
+      maxFiles: 3,
+      focusPaths,
+    });
     const snippetBlock =
       snippets.length === 0
         ? "(no existing source snippets under authorized prefixes)"
@@ -163,12 +190,15 @@ async function generatePlanForIteration(
             `Allowed path prefixes: ${document.authorizedPathPrefixes.join(", ") || "(repo src/)"}`,
             `Existing files under those prefixes (truncated): ${existingFiles.slice(0, 24).join(", ") || "(none)"}`,
             `package.json scripts: ${packageScripts}`,
+            grounding.factsBlock,
+            priorDigest,
             "Use update_file for paths that already exist and create_file only for new paths. Include complete file contents.",
             "When authorized existing modules are defective, incomplete, or unsafe, repair them with update_file (complete corrected contents). Do not stack WORKAROUND/HACK conditionals or silent catch fallbacks. Prefer create_file only for genuinely new helpers/tests. Do not rewrite or append to unrelated large modules. Pre-existing Super/AirLLM QC failures are out of scope.",
             "Match the existing test runner from package.json scripts. If test uses node --test / node:test, write ONLY: import test from 'node:test'; import assert from 'node:assert/strict'; and use test('name', () => { assert.equal(...) }). Do NOT import expect/describe/it from 'node:test' (those exports are invalid). Use Vitest only when package.json already runs vitest. Never import vitest from non-test production sources.",
             "Include happy, negative, and failure-path coverage the objective implies. If a test expectation conflicts with correct fail-closed behavior, fix the test.",
             `Investigation: ${document.observations.map((obs) => obs.summary).join("\n").slice(0, 2500)}`,
             `Authorized source snippets (read these before mutating):\n${snippetBlock}`,
+            `Known-good test exemplars (1–3, proximity-ranked; match this harness style):\n${formatTestExemplarBlock(exemplars)}`,
             "Return worker plan JSON with runId matching the run, allowedFiles, and file operations with full content.",
           ].join("\n"),
         },
@@ -518,6 +548,29 @@ export async function executeAutonomousLoop(
             failureClass: "VALIDATION_FAILURE" as const,
           });
         }
+        const grounding = readRepoTestGroundingFacts(repoPath);
+        const harnessFindings = validatePlanHarnessGuards(plan, grounding);
+        if (harnessFindings.length > 0) {
+          const signatures = [...new Set(harnessFindings.map((f) => f.signature))];
+          document.failureSignatureHistory = recordFailureSignatures(
+            ensureFailureSignatureHistory(document),
+            signatures,
+            document.iterationNumber,
+          );
+          throw Object.assign(new Error(harnessFindings.map((f) => f.message).join("; ")), {
+            failureClass: "VALIDATION_FAILURE" as const,
+          });
+        }
+        const planSignatures = detectFailureSignaturesInPlan(plan, grounding);
+        const repeatBlock = shouldBlockRepeatedHarnessStrategy(
+          ensureFailureSignatureHistory(document),
+          planSignatures,
+        );
+        if (repeatBlock.block) {
+          throw Object.assign(new Error(repeatBlock.message), {
+            failureClass: "VALIDATION_FAILURE" as const,
+          });
+        }
         const escaped = (plan.operations ?? []).filter(
           (op) => !isPathAuthorized(document.authorityEnvelope, op.path),
         );
@@ -711,8 +764,73 @@ export async function executeAutonomousLoop(
         return terminalResult(runId, document, "INFRASTRUCTURE_FAILURE");
       }
 
+      // WP7: fast pre-QC harness validation on changed tests (observation → diagnosis → replan).
+      const groundingFacts = readRepoTestGroundingFacts(repoPath);
+      const preQcFindings = validateChangedTestHarness(repoPath, changedFiles, groundingFacts);
+      if (preQcFindings.length > 0) {
+        const failureClass = classifyAutonomousFailure({ qualityGatesFailed: true });
+        const harnessSummary = preQcFindings.map((f) => f.message).join("; ");
+        const signatures = [...new Set(preQcFindings.map((f) => f.signature))] as FailureSignature[];
+        document.failureSignatureHistory = recordFailureSignatures(
+          ensureFailureSignatureHistory(document),
+          signatures,
+          document.iterationNumber,
+        );
+        document.observations.push({
+          at: nowIso(deps),
+          operation: "fast_pre_qc",
+          summary: `Fast pre-QC harness validation failed: ${harnessSummary}`.slice(0, 500),
+          detail: harnessSummary,
+          paths: preQcFindings.map((f) => f.path),
+        });
+        document.priorAttempts.push({
+          iteration: document.iterationNumber,
+          workerPlanId: submission.workerPlanId,
+          strategy: document.strategy ?? plan.summary,
+          outcome: "failed",
+          failureClass,
+          summary: harnessSummary,
+          qcSummary: harnessSummary,
+        });
+        document.failedHypotheses.push({
+          iteration: document.iterationNumber,
+          hypothesis: plan.summary,
+          whyFailed: harnessSummary,
+        });
+        document.failureClass = failureClass;
+        document.diagnosis = diagnoseIterationFailure({
+          document,
+          failureClass,
+          qcSummary: harnessSummary,
+          evidenceText: harnessSummary,
+        });
+        await invokeEvidenceGroundedDiagnosis(
+          document,
+          failureClass,
+          harnessSummary,
+          harnessSummary,
+          Boolean(deps.generatePlan),
+        );
+        auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
+          iteration: document.iterationNumber,
+          failureClass,
+          workerPlanId: submission.workerPlanId,
+          preQc: true,
+        });
+        document = transitionAutonomousState(runId, "diagnosing", document).document;
+        syncRun(runId, document);
+        continue;
+      }
+
       if (qcIterationShouldFail(delta)) {
         const failureClass = classifyAutonomousFailure({ qualityGatesFailed: true });
+        const ownedEvidence = sliceOwnedFailureEvidence(delta.ownedIterationFailures);
+        const signatures = detectFailureSignaturesInText(ownedEvidence);
+        document.failureSignatureHistory = recordFailureSignatures(
+          ensureFailureSignatureHistory(document),
+          signatures,
+          document.iterationNumber,
+        );
         document.priorAttempts.push({
           iteration: document.iterationNumber,
           workerPlanId: submission.workerPlanId,
@@ -732,23 +850,13 @@ export async function executeAutonomousLoop(
           document,
           failureClass,
           qcSummary,
+          evidenceText: ownedEvidence,
         });
-        await maybeInvokeWorker(
+        await invokeEvidenceGroundedDiagnosis(
           document,
-          "diagnosis",
-          [
-            `Failure class: ${failureClass}`,
-            qcSummary,
-            `Owned failures only (fix these, not pre-existing Super/AirLLM): ${
-              delta.ownedIterationFailures
-                .map((item) => `${item.identity.name}${item.identity.rawEvidence ? ` :: ${item.identity.rawEvidence.slice(0, 180)}` : ""}`)
-                .join("; ") || "(none)"
-            }`,
-            "Do not rewrite large existing modules. Add or repair a small helper. Pre-existing failures are out of scope.",
-            "If evidence mentions node:test does not provide export named 'expect', rewrite tests to: import test from 'node:test'; import assert from 'node:assert/strict' (no expect).",
-            "If evidence mentions assert.throwsAsync is not a function, use await assert.rejects(async () => ...).",
-            "If evidence mentions require is not defined in ES module scope, use import — never require() in type:module packages.",
-          ].join("\n"),
+          failureClass,
+          qcSummary,
+          ownedEvidence,
           Boolean(deps.generatePlan),
         );
         auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
@@ -972,6 +1080,70 @@ function recordWorkerInvocation(
   ].slice(-24);
 }
 
+async function invokeEvidenceGroundedDiagnosis(
+  document: AutonomousDocument,
+  failureClass: AutonomousFailureClass,
+  qcSummary: string,
+  ownedEvidence: string,
+  generatePlanInjected: boolean,
+): Promise<void> {
+  const prompt = [
+    `Failure class: ${failureClass}`,
+    qcSummary,
+    `Owned QC evidence (quote from this; do not invent Vitest expect if absent):\n${ownedEvidence}`,
+    "Output structured diagnosis fields. Match the supplied QC evidence exactly.",
+    "Do not rewrite large existing modules. Add or repair a small helper. Pre-existing failures are out of scope.",
+    "If evidence mentions node:test does not provide export named 'expect', rewrite tests to: import test from 'node:test'; import assert from 'node:assert/strict' (no expect).",
+    "If evidence mentions assert.throwsAsync is not a function, use await assert.rejects(async () => ...).",
+    "If evidence mentions require is not defined in ES module scope, use import — never require() in type:module packages.",
+  ].join("\n");
+
+  const parsed = await maybeInvokeWorker(document, "diagnosis", prompt, generatePlanInjected);
+  if (document.diagnosis && parsed) {
+    document.diagnosis = mergeStructuredDiagnosis(document.diagnosis, parsed);
+  }
+
+  let consistency = checkDiagnosisConsistency(document.diagnosis, ownedEvidence);
+  if (!consistency.authoritative && document.workerModel?.route === "live_default_worker") {
+    // WP4: one retry with stronger grounding, then fall back to deterministic QC summary.
+    const retryPrompt = [
+      prompt,
+      "PRIOR DIAGNOSIS WAS REJECTED as inconsistent with QC evidence.",
+      `Unsupported claims: ${consistency.unsupportedClaims.join("; ")}`,
+      "Re-diagnose using ONLY the owned QC evidence above. Do not mention expect/Vitest unless those strings appear in the evidence.",
+    ].join("\n");
+    const retried = await maybeInvokeWorker(document, "diagnosis", retryPrompt, generatePlanInjected);
+    if (document.diagnosis && retried) {
+      document.diagnosis = mergeStructuredDiagnosis(document.diagnosis, retried);
+    }
+    consistency = checkDiagnosisConsistency(document.diagnosis, ownedEvidence);
+  }
+
+  if (!consistency.authoritative) {
+    const deterministic = diagnoseIterationFailure({
+      document,
+      failureClass,
+      qcSummary,
+      evidenceText: ownedEvidence,
+    });
+    document.diagnosis = {
+      ...deterministic,
+      authoritative: false,
+      contradictory_evidence: consistency.unsupportedClaims.join("; ") || "Worker diagnosis contradicted QC",
+      summary: "Deterministic QC diagnosis (worker diagnosis non-authoritative).",
+    };
+    document.strategy = document.diagnosis.suggestedStrategy;
+    document.decisions.push({
+      at: new Date().toISOString(),
+      kind: "diagnosis_consistency",
+      summary: "Rejected inconsistent worker diagnosis; using deterministic QC summary for replan.",
+      rationale: consistency.reasons.join("; "),
+    });
+  } else if (document.diagnosis) {
+    document.diagnosis = { ...document.diagnosis, authoritative: true };
+  }
+}
+
 async function maybeInvokeWorker(
   document: AutonomousDocument,
   role: "interpretation" | "investigation" | "diagnosis" | "completion" | "review",
@@ -987,14 +1159,17 @@ async function maybeInvokeWorker(
       const why = result.parsed.whyPreviousFailed;
       const strategy = result.parsed.suggestedStrategy;
       if (typeof why === "string" && typeof strategy === "string") {
-        document.diagnosis = {
-          ...document.diagnosis,
-          whyPreviousFailed: why,
-          suggestedStrategy: strategy,
-          filesToInspect: Array.isArray(result.parsed.filesToInspect)
-            ? result.parsed.filesToInspect.filter((item): item is string => typeof item === "string")
-            : document.diagnosis.filesToInspect,
-        };
+        document.diagnosis = mergeStructuredDiagnosis(
+          {
+            ...document.diagnosis,
+            whyPreviousFailed: why,
+            suggestedStrategy: strategy,
+            filesToInspect: Array.isArray(result.parsed.filesToInspect)
+              ? result.parsed.filesToInspect.filter((item): item is string => typeof item === "string")
+              : document.diagnosis.filesToInspect,
+          },
+          result.parsed,
+        );
         document.strategy = strategy;
       }
     }

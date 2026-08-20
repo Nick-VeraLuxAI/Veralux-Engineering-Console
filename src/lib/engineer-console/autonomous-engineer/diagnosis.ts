@@ -3,6 +3,11 @@ import type {
   AutonomousFailureClass,
   DiagnosisResult,
 } from "./types";
+import {
+  buildDeterministicDiagnosisFromEvidence,
+  detectFailureSignaturesInText,
+  type StructuredDiagnosisFields,
+} from "./feedback-convergence";
 
 export function diagnoseIterationFailure(input: {
   document: AutonomousDocument;
@@ -10,6 +15,7 @@ export function diagnoseIterationFailure(input: {
   qcSummary?: string;
   validationErrors?: string[];
   executionErrors?: string[];
+  evidenceText?: string;
 }): DiagnosisResult {
   const lastAttempt = input.document.priorAttempts[input.document.priorAttempts.length - 1];
   const why =
@@ -19,9 +25,21 @@ export function diagnoseIterationFailure(input: {
     lastAttempt?.summary ||
     "Previous iteration did not satisfy quality gates or validation.";
 
+  const evidenceText = input.evidenceText || why;
+  const signatures = detectFailureSignaturesInText(evidenceText);
+
+  if (signatures.length > 0 || (input.evidenceText && input.evidenceText.length > 0)) {
+    return buildDeterministicDiagnosisFromEvidence({
+      failureClass: input.failureClass,
+      evidenceText,
+      qcSummary: input.qcSummary ?? why,
+      failedHypothesis: lastAttempt?.strategy ?? input.document.strategy ?? undefined,
+      signatures,
+    });
+  }
+
   const filesToInspect = [
     ...input.document.qcObservations.flatMap((obs) => (obs.failedCommands.length > 0 ? ["package.json"] : [])),
-    ...(lastAttempt ? [] : []),
   ];
 
   const suggestedStrategy =
@@ -30,6 +48,17 @@ export function diagnoseIterationFailure(input: {
       : input.failureClass === "MODEL_OUTPUT_FAILURE"
         ? "Regenerate a parseable worker plan JSON; do not execute invalid output."
         : "Keep the same objective, change the implementation hypothesis, and produce a new validated worker plan.";
+
+  const structured: StructuredDiagnosisFields = {
+    observed_failure: why.slice(0, 220),
+    evidence_quote_or_signature: evidenceText.slice(0, 280),
+    affected_file_or_gate: "npm test",
+    root_cause_hypothesis: suggestedStrategy,
+    confidence: "medium",
+    contradictory_evidence: "(none)",
+    recommended_strategy_change: suggestedStrategy,
+    avoid_repeating: "Do not repeat the failed hypothesis without new evidence.",
+  };
 
   return {
     advisory: true,
@@ -40,5 +69,7 @@ export function diagnoseIterationFailure(input: {
     suggestedStrategy,
     filesToInspect: [...new Set(filesToInspect)].slice(0, 12),
     doNotMutate: true,
+    authoritative: true,
+    ...structured,
   };
 }

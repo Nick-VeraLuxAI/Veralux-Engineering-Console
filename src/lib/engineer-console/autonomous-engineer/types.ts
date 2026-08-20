@@ -207,6 +207,23 @@ export interface DiagnosisResult {
   suggestedStrategy: string;
   filesToInspect: string[];
   doNotMutate: true;
+  /** Evidence-grounded fields (WP3). Optional for backward compatibility. */
+  observed_failure?: string;
+  evidence_quote_or_signature?: string;
+  affected_file_or_gate?: string;
+  root_cause_hypothesis?: string;
+  confidence?: "low" | "medium" | "high";
+  contradictory_evidence?: string;
+  recommended_strategy_change?: string;
+  avoid_repeating?: string;
+  /** WP4: false when diagnosis claims contradict QC evidence. */
+  authoritative?: boolean;
+}
+
+export interface FailureSignatureRecord {
+  signature: string;
+  iterations: number[];
+  count: number;
 }
 
 export interface AutonomousWorkerInvocationTrace {
@@ -267,6 +284,8 @@ export interface AutonomousDocument {
   deliveryCandidateStatus: DeliveryCandidateStatus;
   reviews: AutonomousReviewFinding[];
   diagnosis: DiagnosisResult | null;
+  /** Compact within-run harness failure signature history (WP5). */
+  failureSignatureHistory?: FailureSignatureRecord[];
   worktreeId: string | null;
   startedAt: string;
   updatedAt: string;

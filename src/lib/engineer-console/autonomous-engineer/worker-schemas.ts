@@ -68,6 +68,28 @@ export function validateAutonomousWorkerSchema(
       requireString(parsed, "whyPreviousFailed", errors);
       requireString(parsed, "suggestedStrategy", errors);
       if (parsed.filesToInspect !== undefined) requireStringArray(parsed, "filesToInspect", errors);
+      // Structured evidence-grounded fields are optional for backward compatibility.
+      for (const key of [
+        "observed_failure",
+        "evidence_quote_or_signature",
+        "affected_file_or_gate",
+        "root_cause_hypothesis",
+        "contradictory_evidence",
+        "recommended_strategy_change",
+        "avoid_repeating",
+      ]) {
+        if (parsed[key] !== undefined && typeof parsed[key] !== "string") {
+          errors.push(`${key} must be a string when present`);
+        }
+      }
+      if (
+        parsed.confidence !== undefined &&
+        parsed.confidence !== "low" &&
+        parsed.confidence !== "medium" &&
+        parsed.confidence !== "high"
+      ) {
+        errors.push("confidence must be low|medium|high when present");
+      }
       break;
     case "completion":
       if (typeof parsed.complete !== "boolean") errors.push("complete must be a boolean");
