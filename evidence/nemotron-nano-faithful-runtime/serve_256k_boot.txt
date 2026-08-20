@@ -1,0 +1,4 @@
+(APIServer pid=1) INFO 08-20 21:07:23 [utils.py:238] non-default args: {'model_tag': '/models/nano-30b-a3b-nvfp4', 'enable_auto_tool_choice': True, 'tool_call_parser': 'qwen3_coder', 'host': '0.0.0.0', 'port': 8082, 'model': '/models/nano-30b-a3b-nvfp4', 'trust_remote_code': True, 'max_model_len': 262144, 'served_model_name': ['Nemotron-Nano-30B-A3B-NVFP4'], 'reasoning_parser': 'nano_v3', 'reasoning_parser_plugin': '/models/nano-30b-a3b-nvfp4/nano_v3_reasoning_parser.py', 'gpu_memory_utilization': 0.82, 'kv_cache_dtype': 'fp8', 'max_num_batched_tokens': 2048, 'max_num_seqs': 1}
+(EngineCore_DP0 pid=523) INFO 08-20 21:07:54 [gpu_worker.py:424] Available KV cache memory: 6.36 GiB
+(EngineCore_DP0 pid=523) INFO 08-20 21:07:54 [kv_cache_utils.py:1314] GPU KV cache size: 442,656 tokens
+(EngineCore_DP0 pid=523) INFO 08-20 21:07:54 [kv_cache_utils.py:1319] Maximum concurrency for 262,144 tokens per request: 7.94x

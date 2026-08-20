@@ -127,11 +127,17 @@ export function classifyPreExecutionPlanFailure(input: {
 
   if (
     input.failureClass === "MODEL_OUTPUT_FAILURE" ||
+    input.failureClass === "GENERATION_BUDGET_EXHAUSTED" ||
     /not a worker plan|malformed|parse|JSON|schema|invalid op|run_shell|operations/i.test(message)
   ) {
     return {
       chargeKind: "PLAN_REPAIR",
-      planRepairKind: input.failureClass === "MODEL_OUTPUT_FAILURE" ? "model_output" : "malformed_plan",
+      planRepairKind:
+        input.failureClass === "GENERATION_BUDGET_EXHAUSTED"
+          ? "model_output"
+          : input.failureClass === "MODEL_OUTPUT_FAILURE"
+            ? "model_output"
+            : "malformed_plan",
       reason: message,
       evidence,
     };

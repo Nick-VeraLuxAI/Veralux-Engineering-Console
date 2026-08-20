@@ -1,0 +1,33 @@
+{
+  "name": "abc_jobs_A_control_8081",
+  "base": "http://127.0.0.1:8081/v1",
+  "elapsed_s": 7.34,
+  "finish_reason": "length",
+  "usage": {
+    "prompt_tokens": 200,
+    "total_tokens": 2248,
+    "completion_tokens": 2048,
+    "prompt_tokens_details": null
+  },
+  "has_reasoning_field": false,
+  "reasoning_preview": "",
+  "content_preview": "{\n  \"runId\": \"jobs-hard\",\n  \"summary\": \"Build an idempotent async job runner with persistence, duplicate protection, and resume support, including comprehensive tests.\",\n  \"allowedFiles\": [\n    \"src/jobs/worker.js\",\n    \"src/jobs/store.js\",\n    \"src/jobs/apply.js\",\n    \"tests/worker.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"create_file\",\n      \"path\": \"src/jobs/store.js\",\n      \"content\": \"import fs from 'node:fs/promises';\\nimport path from 'node:path';\\n\\nconst STORE_PATH = path.resolve(process.cwd(), 'data', 'jobs-store.json');\\n\\n/**\\n * Simple JSON file-based store with atomic ",
+  "think_tags_in_content": false,
+  "parse_error": "Unterminated string starting at: line 26 column 18 (char 4012)",
+  "plan_summary": null,
+  "request": {
+    "temperature": 0.1,
+    "top_p": null,
+    "max_tokens": 2048,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    }
+  },
+  "score": {
+    "parse": false,
+    "semantic": "FAIL",
+    "notes": [
+      "unparseable"
+    ]
+  }
+}

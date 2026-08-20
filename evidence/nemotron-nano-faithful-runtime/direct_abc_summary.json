@@ -1,0 +1,184 @@
+{
+  "results": [
+    {
+      "name": "ab_inf_A_control_8081",
+      "finish_reason": "stop",
+      "score": {
+        "parse": true,
+        "semantic": "PASS",
+        "notes": [
+          "uses Number.isFinite"
+        ],
+        "snippet": "function isFiniteNumber(x) {\n  return typeof x === 'number' && Number.isFinite(x);\n}\n\nmodule.exports = { isFiniteNumber };\n\nimport { test } from 'node:test';\nimport assert from 'node:assert';\nimport { isFiniteNumber } from './isFiniteNumber.js';\n\n// Test cases for finite numbers\nassert.strictEqual(isFiniteNumber(0), true, '0 should be finite');\nassert.strictEqual(isFiniteNumber(42), true, 'positiv"
+      },
+      "has_reasoning_field": false,
+      "think_tags_in_content": false,
+      "elapsed_s": 2.13,
+      "error": null,
+      "usage": {
+        "prompt_tokens": 137,
+        "total_tokens": 713,
+        "completion_tokens": 576,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "name": "ab_inf_B_faithful_8082",
+      "finish_reason": "stop",
+      "score": {
+        "parse": true,
+        "semantic": "PASS",
+        "notes": [
+          "uses Number.isFinite"
+        ],
+        "snippet": "/**\n * Returns true if the provided value is a finite number.\n * @param {*} x - The value to check.\n * @returns {boolean} True if x is a finite number, otherwise false.\n */\nexport function isFiniteNumber(x) {\n  return typeof x === 'number' && Number.isFinite(x);\n}\n\n// Import the function under test and the node:test assertion library\nimport { strict as assert } from 'node:assert';\nimport { isFinit"
+      },
+      "has_reasoning_field": true,
+      "think_tags_in_content": false,
+      "elapsed_s": 23.89,
+      "error": null,
+      "usage": {
+        "prompt_tokens": 137,
+        "total_tokens": 1668,
+        "completion_tokens": 1531,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "name": "abc_jobs_A_control_8081",
+      "finish_reason": "length",
+      "score": {
+        "parse": false,
+        "semantic": "FAIL",
+        "notes": [
+          "unparseable"
+        ]
+      },
+      "has_reasoning_field": false,
+      "think_tags_in_content": false,
+      "elapsed_s": 7.34,
+      "error": null,
+      "usage": {
+        "prompt_tokens": 200,
+        "total_tokens": 2248,
+        "completion_tokens": 2048,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "name": "abc_jobs_B_faithful_8082",
+      "finish_reason": "stop",
+      "score": {
+        "parse": true,
+        "semantic": "PASS",
+        "notes": [
+          "async_await=Y",
+          "assert_rejects=Y",
+          "no_throwsAsync=Y",
+          "no_require=Y",
+          "pending_or_status=Y",
+          "dup_guard=Y"
+        ]
+      },
+      "has_reasoning_field": true,
+      "think_tags_in_content": false,
+      "elapsed_s": 11.65,
+      "error": null,
+      "usage": {
+        "prompt_tokens": 200,
+        "total_tokens": 3467,
+        "completion_tokens": 3267,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "name": "abc_jobs_C_continuous_tools_8082",
+      "finish_reason": "stop",
+      "score": {
+        "parse": true,
+        "semantic": "PASS",
+        "notes": [
+          "async_await=Y",
+          "assert_rejects=Y",
+          "no_throwsAsync=Y",
+          "no_require=Y",
+          "pending_or_status=Y",
+          "dup_guard=Y"
+        ]
+      },
+      "has_reasoning_field": true,
+      "think_tags_in_content": false,
+      "elapsed_s": 32.62,
+      "error": null,
+      "usage": null
+    },
+    {
+      "name": "abc_jobs_A_control_8081",
+      "finish_reason": "length",
+      "score": {
+        "parse": false,
+        "semantic": "FAIL",
+        "notes": [
+          "unparseable"
+        ]
+      },
+      "has_reasoning_field": false,
+      "think_tags_in_content": false,
+      "elapsed_s": 7.34,
+      "error": null,
+      "usage": {
+        "prompt_tokens": 200,
+        "total_tokens": 2248,
+        "completion_tokens": 2048,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "name": "abc_jobs_B_faithful_8082",
+      "finish_reason": "stop",
+      "score": {
+        "parse": true,
+        "semantic": "PASS",
+        "notes": [
+          "async_await=Y",
+          "assert_rejects=Y",
+          "no_throwsAsync=Y",
+          "no_require=Y",
+          "pending_or_status=Y",
+          "dup_guard=Y"
+        ]
+      },
+      "has_reasoning_field": true,
+      "think_tags_in_content": false,
+      "elapsed_s": 11.65,
+      "error": null,
+      "usage": {
+        "prompt_tokens": 200,
+        "total_tokens": 3467,
+        "completion_tokens": 3267,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "name": "abc_jobs_C_continuous_tools_8082",
+      "finish_reason": "stop",
+      "score": {
+        "parse": true,
+        "semantic": "PASS",
+        "notes": [
+          "async_await=Y",
+          "assert_rejects=Y",
+          "no_throwsAsync=Y",
+          "no_require=Y",
+          "pending_or_status=Y",
+          "dup_guard=Y"
+        ]
+      },
+      "has_reasoning_field": true,
+      "think_tags_in_content": false,
+      "elapsed_s": 32.62,
+      "error": null,
+      "usage": null
+    }
+  ]
+}

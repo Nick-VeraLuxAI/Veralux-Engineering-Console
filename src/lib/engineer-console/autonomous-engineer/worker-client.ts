@@ -14,6 +14,12 @@ import {
   validateAutonomousWorkerSchema,
   type AutonomousWorkerRole,
 } from "./worker-schemas";
+import {
+  buildNanoInvocationTelemetry,
+  extractNanoFinalContent,
+  resolveNanoFaithfulProfile,
+  type NanoInvocationTelemetry,
+} from "./nano-faithful-invocation";
 
 export type { AutonomousWorkerRole } from "./worker-schemas";
 
@@ -36,6 +42,8 @@ export interface AutonomousWorkerResult {
   schemaErrors: string[];
   schemaValid: boolean;
   repairAttempted: boolean;
+  telemetry?: NanoInvocationTelemetry | null;
+  generationBudgetExhausted?: boolean;
 }
 
 export const ROLE_SYSTEM: Record<AutonomousWorkerRole, string> = {
@@ -64,7 +72,7 @@ function localChatCompletionsUrl(): { url: string; requestPath: string } {
 }
 
 function maxTokensForRole(role: AutonomousWorkerRole): number {
-  // Local Nano max_model_len is 8192; large planning prompts must leave headroom for completion.
+  // CONTROL: Local Nano max_model_len is 8192; large planning prompts must leave headroom for completion.
   return PLAN_ROLES.includes(role) ? 2048 : 768;
 }
 
@@ -88,6 +96,8 @@ async function completeLocalStructuredJson(
   schemaErrors: string[];
   schemaValid: boolean;
   repairAttempted: boolean;
+  telemetry: NanoInvocationTelemetry | null;
+  generationBudgetExhausted: boolean;
 }> {
   const local = getLocalModelCodingConfig();
   if (!local.enabled || !local.model) {
@@ -97,40 +107,82 @@ async function completeLocalStructuredJson(
   const { url, requestPath } = localChatCompletionsUrl();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (local.apiKey) headers.Authorization = `Bearer ${local.apiKey}`;
+  const profile = resolveNanoFaithfulProfile(role);
+  const contextMaxModelLen = Number(process.env.ENGINEER_CONSOLE_AE_NANO_MAX_MODEL_LEN || "") || null;
+  const trajectoryId = process.env.ENGINEER_CONSOLE_AE_NANO_TRAJECTORY_ID?.trim() || null;
 
   async function once(messages: Array<{ role: string; content: string }>): Promise<{
     rawResponse: string;
     parsed: Record<string, unknown> | null;
     parseErrors: string[];
+    telemetry: NanoInvocationTelemetry;
+    generationBudgetExhausted: boolean;
   }> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), local.timeoutMs);
     try {
+      const body: Record<string, unknown> = {
+        model: local.model,
+        messages,
+        temperature: profile.enabled ? profile.temperature : 0.1,
+        max_tokens: profile.enabled ? profile.maxTokens : maxTokensForRole(role),
+        chat_template_kwargs: {
+          enable_thinking: profile.enableThinking,
+          ...(profile.truncateHistoryThinking
+            ? { truncate_history_thinking: true }
+            : {}),
+        },
+      };
+      if (profile.enabled && typeof profile.topP === "number") {
+        body.top_p = profile.topP;
+      }
       const response = await fetch(url, {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          model: local.model,
-          messages,
-          temperature: 0.1,
-          max_tokens: maxTokensForRole(role),
-          chat_template_kwargs: { enable_thinking: false },
-        }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
       const payload = (await response.json()) as {
-        choices?: Array<{ message?: { content?: string | null } }>;
+        choices?: Array<{
+          finish_reason?: string | null;
+          message?: {
+            content?: string | null;
+            reasoning?: string | null;
+            reasoning_content?: string | null;
+          };
+        }>;
+        usage?: {
+          prompt_tokens?: number;
+          completion_tokens?: number;
+          completion_tokens_details?: { reasoning_tokens?: number };
+        };
         error?: { message?: string };
       };
       if (!response.ok) {
         throw new Error(payload.error?.message || `Local worker HTTP ${response.status}`);
       }
-      const rawResponse = payload.choices?.[0]?.message?.content?.trim() ?? "";
+      const choice = payload.choices?.[0];
+      const message = choice?.message ?? {};
+      const extracted = extractNanoFinalContent(message);
+      const rawResponse = extracted.finalContent;
       const parsed = parseJsonModelOutput(rawResponse);
+      const finishReason = choice?.finish_reason ?? null;
+      const telemetry = buildNanoInvocationTelemetry({
+        role,
+        profile,
+        usage: payload.usage,
+        finishReason,
+        reasoningLen: extracted.reasoningContent?.length ?? null,
+        finalLen: rawResponse.length,
+        contextMaxModelLen,
+        trajectoryId,
+      });
       return {
         rawResponse,
         parsed: parsed.success ? parsedObject(parsed.parsed) : null,
         parseErrors: parsed.errors,
+        telemetry,
+        generationBudgetExhausted: telemetry.generationBudgetExhausted,
       };
     } finally {
       clearTimeout(timeout);
@@ -144,10 +196,15 @@ async function completeLocalStructuredJson(
   let parsed = first.parsed;
   let parseErrors = first.parseErrors;
   let rawResponse = first.rawResponse;
+  let telemetry = first.telemetry;
+  let generationBudgetExhausted = first.generationBudgetExhausted;
   let schema = validateAutonomousWorkerSchema(role, parsed);
   let repairAttempted = false;
 
-  if (!parsed || parseErrors.length > 0 || !schema.valid) {
+  if (
+    !generationBudgetExhausted &&
+    (!parsed || parseErrors.length > 0 || !schema.valid)
+  ) {
     repairAttempted = true;
     const repairUser = [
       "Your previous output was not valid structured JSON for this role.",
@@ -164,6 +221,8 @@ async function completeLocalStructuredJson(
     parsed = repaired.parsed;
     parseErrors = repaired.parseErrors;
     rawResponse = repaired.rawResponse;
+    telemetry = repaired.telemetry;
+    generationBudgetExhausted = repaired.generationBudgetExhausted;
     schema = validateAutonomousWorkerSchema(role, parsed);
   }
 
@@ -177,6 +236,8 @@ async function completeLocalStructuredJson(
     schemaErrors: schema.errors,
     schemaValid: schema.valid,
     repairAttempted,
+    telemetry,
+    generationBudgetExhausted,
   };
 }
 
@@ -206,6 +267,8 @@ export async function invokeAutonomousWorker(
       schemaErrors: [],
       schemaValid: false,
       repairAttempted: false,
+      telemetry: null,
+      generationBudgetExhausted: false,
     };
   }
 
@@ -231,6 +294,8 @@ export async function invokeAutonomousWorker(
       schemaErrors: schema.errors,
       schemaValid: schema.valid,
       repairAttempted: false,
+      telemetry: null,
+      generationBudgetExhausted: false,
     };
   }
 
@@ -248,5 +313,7 @@ export async function invokeAutonomousWorker(
     schemaErrors: result.schemaErrors,
     schemaValid: result.schemaValid,
     repairAttempted: result.repairAttempted,
+    telemetry: result.telemetry,
+    generationBudgetExhausted: result.generationBudgetExhausted,
   };
 }

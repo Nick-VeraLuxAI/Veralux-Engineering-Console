@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-bedee645b081c1c0",
+  "object": "chat.completion",
+  "created": 1787260141,
+  "model": "Nemotron-Nano-30B-A3B-NVFP4",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"runId\": \"ab-inf\",\n  \"summary\": \"Add isFiniteNumber utility and test\",\n  \"allowedFiles\": [\n    \"src/util/isFiniteNumber.js\",\n    \"src/util/isFiniteNumber.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"create_file\",\n      \"path\": \"src/util/isFiniteNumber.js\",\n      \"content\": \"function isFiniteNumber(x) {\\n  return typeof x === 'number' && Number.isFinite(x);\\n}\\n\\nmodule.exports = { isFiniteNumber };\\n\",\n      \"reason\": \"Create utility function that checks for finite numbers\"\n    },\n    {\n      \"type\": \"create_file\",\n      \"path\": \"src/util/isFiniteNumber.test.js\",\n      \"content\": \"import { test } from 'node:test';\\nimport assert from 'node:assert';\\nimport { isFiniteNumber } from './isFiniteNumber.js';\\n\\n// Test cases for finite numbers\\nassert.strictEqual(isFiniteNumber(0), true, '0 should be finite');\\nassert.strictEqual(isFiniteNumber(42), true, 'positive integer should be finite');\\nassert.strictEqual(isFiniteNumber(-3.14), true, '-3.14 should be finite');\\nassert.strictEqual(isFiniteNumber(0.000001), true, 'small positive number should be finite');\\nassert.strictEqual(isFiniteNumber(-0), true, '-0 should be finite');\\n\\n// Test cases for non-finite numbers\\nassert.strictEqual(isFiniteNumber(NaN), false, 'NaN should not be finite');\\nassert.strictEqual(isFiniteNumber(Infinity), false, 'Infinity should not be finite');\\nassert.strictEqual(isFiniteNumber(-Infinity), false, '-Infinity should not be finite');\\n\\n// Test cases for non-number values\\nassert.strictEqual(isFiniteNumber('123'), false, 'string should not be finite');\\nassert.strictEqual(isFiniteNumber(null), false, 'null should not be finite');\\nassert.strictEqual(isFiniteNumber(undefined), false, 'undefined should not be finite');\\nassert.strictEqual(isFiniteNumber({}), false, 'object should not be finite');\\nassert.strictEqual(isFiniteNumber([]), false, 'array should not be finite');\\n\\nconsole.log('All tests passed.');\\n\",\n      \"reason\": \"Create comprehensive test suite using node:test and assert\"\n    }\n  ]\n}",
+        "refusal": null,
+        "annotations": null,
+        "audio": null,
+        "function_call": null,
+        "tool_calls": [],
+        "reasoning": null
+      },
+      "logprobs": null,
+      "finish_reason": "stop",
+      "stop_reason": null,
+      "token_ids": null
+    }
+  ],
+  "service_tier": null,
+  "system_fingerprint": null,
+  "usage": {
+    "prompt_tokens": 137,
+    "total_tokens": 713,
+    "completion_tokens": 576,
+    "prompt_tokens_details": null
+  },
+  "prompt_logprobs": null,
+  "prompt_token_ids": null,
+  "kv_transfer_params": null
+}

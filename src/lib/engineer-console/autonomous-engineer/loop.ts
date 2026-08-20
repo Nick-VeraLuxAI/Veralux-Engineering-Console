@@ -218,6 +218,14 @@ async function generatePlanForIteration(
     }
     document.usage.modelCalls += 1;
     recordWorkerInvocation(document, live);
+    if (live.generationBudgetExhausted) {
+      throw Object.assign(
+        new Error(
+          `GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=${live.telemetry?.maxTokens ?? "?"}`,
+        ),
+        { failureClass: "GENERATION_BUDGET_EXHAUSTED" as const },
+      );
+    }
     const parsed = live.parsed as unknown as WorkerPlan | null;
     if (
       !live.schemaValid ||

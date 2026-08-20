@@ -17,6 +17,7 @@ export * from "./qc-baseline";
 export * from "./worker-route";
 export * from "./worker-schemas";
 export * from "./worker-client";
+export * from "./nano-faithful-invocation";
 export * from "./loop";
 export * from "./start-autonomous-run";
 export * from "./clarification";
