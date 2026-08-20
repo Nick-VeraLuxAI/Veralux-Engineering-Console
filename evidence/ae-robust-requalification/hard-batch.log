@@ -1,0 +1,25 @@
+{"specimen":"bad_legacy_ledger_v1","hardClass":"bad_legacy_ledger","variant":1,"runId":"bcff226e-60f9-4dba-b581-a90919d0ce8d","maxIterations":8,"status":"starting"}
+{"specimen":"bad_legacy_ledger_v1","runId":"bcff226e-60f9-4dba-b581-a90919d0ce8d","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":7,"elapsedMs":186468,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/bad_legacy_ledger_v1-bcff226e.json"}
+{"specimen":"bad_legacy_ledger_v2","hardClass":"bad_legacy_ledger","variant":2,"runId":"57f97331-534a-432d-9c09-8e820ed33ac3","maxIterations":8,"status":"starting"}
+{"specimen":"bad_legacy_ledger_v2","runId":"57f97331-534a-432d-9c09-8e820ed33ac3","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":4,"elapsedMs":133136,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/bad_legacy_ledger_v2-57f97331.json"}
+{"specimen":"bad_legacy_ledger_v3","hardClass":"bad_legacy_ledger","variant":3,"runId":"211f958b-ae98-4ec9-8a28-fda59e3a2d92","maxIterations":8,"status":"starting"}
+{"specimen":"bad_legacy_ledger_v3","runId":"211f958b-ae98-4ec9-8a28-fda59e3a2d92","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":43362,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/bad_legacy_ledger_v3-211f958b.json"}
+{"specimen":"idempotent_job_runner_v1","hardClass":"idempotent_job_runner","variant":1,"runId":"cb0beaa5-5a7e-45ff-8935-7c70a3575f1b","maxIterations":6,"status":"starting"}
+{"specimen":"idempotent_job_runner_v1","runId":"cb0beaa5-5a7e-45ff-8935-7c70a3575f1b","delivery":"blocked","primaryFailureCategory":"PRIMARY_QC_NONCONVERGENCE","scorePass":true,"iterations":6,"elapsedMs":216975,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/idempotent_job_runner_v1-cb0beaa5.json"}
+{"specimen":"idempotent_job_runner_v2","hardClass":"idempotent_job_runner","variant":2,"runId":"d173c98e-d509-40d8-a744-26fd8664fca8","maxIterations":6,"status":"starting"}
+{"specimen":"idempotent_job_runner_v2","runId":"d173c98e-d509-40d8-a744-26fd8664fca8","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":false,"iterations":1,"elapsedMs":95310,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/idempotent_job_runner_v2-d173c98e.json"}
+{"specimen":"idempotent_job_runner_v3","hardClass":"idempotent_job_runner","variant":3,"runId":"f7f74db8-f237-494a-b6ed-29dc42684825","maxIterations":6,"status":"starting"}
+{"specimen":"idempotent_job_runner_v3","runId":"f7f74db8-f237-494a-b6ed-29dc42684825","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":42791,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/idempotent_job_runner_v3-f7f74db8.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/batch-2026-08-20T22-29-11-754Z.json",
+  "summary": {
+    "total": 6,
+    "validRuns": 6,
+    "scorePass": 5,
+    "deliveryReady": 5,
+    "byFailure": {
+      "SUCCESS": 5,
+      "PRIMARY_QC_NONCONVERGENCE": 1
+    }
+  }
+}

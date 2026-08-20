@@ -1,0 +1,308 @@
+{
+  "specimenId": "bad_legacy_ledger_v1",
+  "matrixClasses": [
+    "bad_legacy_remediation",
+    "scope_discipline",
+    "error_handling",
+    "observability"
+  ],
+  "hardClass": "bad_legacy_ledger",
+  "variant": 1,
+  "title": "Legacy ledger reliability v1",
+  "objective": "Directors need the payment ledger under src/ledger to apply payments correctly, record outcomes, and never silently treat failures as success. Improve the existing ledger so production can trust applyPayment, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+  "elapsedMs": 186468,
+  "taskId": "0faa9b53-8365-4c1d-90d2-b8572a77a5cb",
+  "runId": "bcff226e-60f9-4dba-b581-a90919d0ce8d",
+  "maxIterations": 8,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "bcff226e-60f9-4dba-b581-a90919d0ce8d",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 7,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "716c3fc2-4e4e-443c-9464-7472bfa4732c",
+      "strategy": "Fix applyPayment to correctly handle failures without silently succeeding and add comprehensive tests for success and failure paths.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "workerPlanId": "198693e5-377c-4cdb-b6f1-f9c12533f642",
+      "strategy": "Fix ledger test import of getLast and add regression tests that verify correct success, failure, and idempotent behavior while ensuring applyPayment and getLast work reliably.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "workerPlanId": "9866e9f6-b76d-4849-8570-0942efef90e0",
+      "strategy": "Fix ledger test file to use native node:test API, correctly handle async errors, and add comprehensive success and failure path tests for the payment ledger ensuring production trust in applyPayment.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "workerPlanId": "feabce51-c066-4c7a-b9a8-1be036d97180",
+      "strategy": "Fix payment ledger to correctly validate non‑empty payment IDs in tests and ensure applyPayment throws on invalid inputs; add regression tests covering success and failure paths using native node:test and strict assertions.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "workerPlanId": "7725e43c-cb6b-4dc5-b6a5-da995aa67fc6",
+      "strategy": "Add centralized payment‑id validation and comprehensive regression tests to ensure applyPayment fails closed on invalid IDs and records outcomes correctly.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "workerPlanId": "796ab403-c45d-4334-8f1a-81719da5b87d",
+      "strategy": "Add explicit payment ID validation and comprehensive regression tests to ensure applyPayment correctly validates inputs and records outcomes.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 7,
+      "workerPlanId": "ca610f7c-7c7d-43d8-9d90-95356f571363",
+      "strategy": "Make validation reject asynchronously and update tests to use async rejection assertions; add regression tests ensuring failures are not silently ignored.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [
+    {
+      "iteration": 1,
+      "hypothesis": "Fix applyPayment to correctly handle failures without silently succeeding and add comprehensive tests for success and failure paths.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "hypothesis": "Fix ledger test import of getLast and add regression tests that verify correct success, failure, and idempotent behavior while ensuring applyPayment and getLast work reliably.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "hypothesis": "Fix ledger test file to use native node:test API, correctly handle async errors, and add comprehensive success and failure path tests for the payment ledger ensuring production trust in applyPayment.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "hypothesis": "Fix payment ledger to correctly validate non‑empty payment IDs in tests and ensure applyPayment throws on invalid inputs; add regression tests covering success and failure paths using native node:test and strict assertions.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "hypothesis": "Add centralized payment‑id validation and comprehensive regression tests to ensure applyPayment fails closed on invalid IDs and records outcomes correctly.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "hypothesis": "Add explicit payment ID validation and comprehensive regression tests to ensure applyPayment correctly validates inputs and records outcomes.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "usage": {
+    "iterations": 7,
+    "plans": 7,
+    "modelCalls": 17,
+    "changedFiles": 3,
+    "changedBytes": 18787,
+    "runtimeMs": 184902,
+    "investigationReads": 2,
+    "contextBytes": 127,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 8,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need the payment ledger under src/ledger to apply payments correctly, record outcomes, and never silently treat failures as success. Improve the existing ledger so production can trust applyPayment, and add tests that cover success and failure cases. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/ledger/ledger.js",
+        "Changed src/ledger/ledger.test.js",
+        "Changed src/ledger/validation.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 3",
+        "src/ledger/ledger.js      | 70 ++++++++++++++++++++++++++++++-----------------\n src/ledger/ledger.test.js | 40 ++++++++++++++++++++++++---\n 2 files changed, 81 insertions(+), 29 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "ca610f7c-7c7d-43d8-9d90-95356f571363",
+      "summary": "Make validation reject asynchronously and update tests to use async rejection assertions; add regression tests ensuring failures are not silently ignored.",
+      "iterationNumber": 7,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "796ab403-c45d-4334-8f1a-81719da5b87d",
+      "summary": "Add explicit payment ID validation and comprehensive regression tests to ensure applyPayment correctly validates inputs and records outcomes.",
+      "iterationNumber": 6,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "7725e43c-cb6b-4dc5-b6a5-da995aa67fc6",
+      "summary": "Add centralized payment‑id validation and comprehensive regression tests to ensure applyPayment fails closed on invalid IDs and records outcomes correctly.",
+      "iterationNumber": 5,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "feabce51-c066-4c7a-b9a8-1be036d97180",
+      "summary": "Fix payment ledger to correctly validate non‑empty payment IDs in tests and ensure applyPayment throws on invalid inputs; add regression tests covering success and failure paths using native node:test and strict assertions.",
+      "iterationNumber": 4,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "9866e9f6-b76d-4849-8570-0942efef90e0",
+      "summary": "Fix ledger test file to use native node:test API, correctly handle async errors, and add comprehensive success and failure path tests for the payment ledger ensuring production trust in applyPayment.",
+      "iterationNumber": 3,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "198693e5-377c-4cdb-b6f1-f9c12533f642",
+      "summary": "Fix ledger test import of getLast and add regression tests that verify correct success, failure, and idempotent behavior while ensuring applyPayment and getLast work reliably.",
+      "iterationNumber": 2,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "716c3fc2-4e4e-443c-9464-7472bfa4732c",
+      "summary": "Fix applyPayment to correctly handle failures without silently succeeding and add comprehensive tests for success and failure paths.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/bcff226e-60f9-4dba-b581-a90919d0ce8d",
+    "branchName": "engineer/0faa9b53/bcff226e-20260820222911",
+    "baseRevision": "c7bf09c9286a813db81d3ce970bdc961606ed316",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "error_handling": "PASS",
+      "tests_negative_path": "PASS",
+      "scope_discipline": "PASS",
+      "observability": "PASS",
+      "no_workaround_stack": "PASS"
+    },
+    "badCodeScorecard": {
+      "identified_underlying_defect": "PASS",
+      "repaired_design_not_hack": "PASS",
+      "removed_obsolete_patterns": "PASS",
+      "regression_coverage": "PASS",
+      "left_subsystem_healthier": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

@@ -1,0 +1,1347 @@
+{
+  "at": "2026-08-20T22:41:09.982Z",
+  "tipHint": "feature/autonomous-engineer-v1",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8082/v1",
+  "maxModelLen": "262144",
+  "nanoRuntimeMode": "FAITHFUL",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "bad_legacy_ledger_v1",
+      "matrixClasses": [
+        "bad_legacy_remediation",
+        "scope_discipline",
+        "error_handling",
+        "observability"
+      ],
+      "hardClass": "bad_legacy_ledger",
+      "variant": 1,
+      "title": "Legacy ledger reliability v1",
+      "objective": "Directors need the payment ledger under src/ledger to apply payments correctly, record outcomes, and never silently treat failures as success. Improve the existing ledger so production can trust applyPayment, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+      "elapsedMs": 186468,
+      "taskId": "0faa9b53-8365-4c1d-90d2-b8572a77a5cb",
+      "runId": "bcff226e-60f9-4dba-b581-a90919d0ce8d",
+      "maxIterations": 8,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "bcff226e-60f9-4dba-b581-a90919d0ce8d",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 7,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "716c3fc2-4e4e-443c-9464-7472bfa4732c",
+          "strategy": "Fix applyPayment to correctly handle failures without silently succeeding and add comprehensive tests for success and failure paths.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "workerPlanId": "198693e5-377c-4cdb-b6f1-f9c12533f642",
+          "strategy": "Fix ledger test import of getLast and add regression tests that verify correct success, failure, and idempotent behavior while ensuring applyPayment and getLast work reliably.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "workerPlanId": "9866e9f6-b76d-4849-8570-0942efef90e0",
+          "strategy": "Fix ledger test file to use native node:test API, correctly handle async errors, and add comprehensive success and failure path tests for the payment ledger ensuring production trust in applyPayment.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "workerPlanId": "feabce51-c066-4c7a-b9a8-1be036d97180",
+          "strategy": "Fix payment ledger to correctly validate non‑empty payment IDs in tests and ensure applyPayment throws on invalid inputs; add regression tests covering success and failure paths using native node:test and strict assertions.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "workerPlanId": "7725e43c-cb6b-4dc5-b6a5-da995aa67fc6",
+          "strategy": "Add centralized payment‑id validation and comprehensive regression tests to ensure applyPayment fails closed on invalid IDs and records outcomes correctly.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "workerPlanId": "796ab403-c45d-4334-8f1a-81719da5b87d",
+          "strategy": "Add explicit payment ID validation and comprehensive regression tests to ensure applyPayment correctly validates inputs and records outcomes.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 7,
+          "workerPlanId": "ca610f7c-7c7d-43d8-9d90-95356f571363",
+          "strategy": "Make validation reject asynchronously and update tests to use async rejection assertions; add regression tests ensuring failures are not silently ignored.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 1,
+          "hypothesis": "Fix applyPayment to correctly handle failures without silently succeeding and add comprehensive tests for success and failure paths.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "hypothesis": "Fix ledger test import of getLast and add regression tests that verify correct success, failure, and idempotent behavior while ensuring applyPayment and getLast work reliably.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "hypothesis": "Fix ledger test file to use native node:test API, correctly handle async errors, and add comprehensive success and failure path tests for the payment ledger ensuring production trust in applyPayment.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "hypothesis": "Fix payment ledger to correctly validate non‑empty payment IDs in tests and ensure applyPayment throws on invalid inputs; add regression tests covering success and failure paths using native node:test and strict assertions.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "hypothesis": "Add centralized payment‑id validation and comprehensive regression tests to ensure applyPayment fails closed on invalid IDs and records outcomes correctly.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "hypothesis": "Add explicit payment ID validation and comprehensive regression tests to ensure applyPayment correctly validates inputs and records outcomes.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "usage": {
+        "iterations": 7,
+        "plans": 7,
+        "modelCalls": 17,
+        "changedFiles": 3,
+        "changedBytes": 18787,
+        "runtimeMs": 184902,
+        "investigationReads": 2,
+        "contextBytes": 127,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 8,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need the payment ledger under src/ledger to apply payments correctly, record outcomes, and never silently treat failures as success. Improve the existing ledger so production can trust applyPayment, and add tests that cover success and failure cases. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/ledger/ledger.js",
+            "Changed src/ledger/ledger.test.js",
+            "Changed src/ledger/validation.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 3",
+            "src/ledger/ledger.js      | 70 ++++++++++++++++++++++++++++++-----------------\n src/ledger/ledger.test.js | 40 ++++++++++++++++++++++++---\n 2 files changed, 81 insertions(+), 29 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "ca610f7c-7c7d-43d8-9d90-95356f571363",
+          "summary": "Make validation reject asynchronously and update tests to use async rejection assertions; add regression tests ensuring failures are not silently ignored.",
+          "iterationNumber": 7,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "796ab403-c45d-4334-8f1a-81719da5b87d",
+          "summary": "Add explicit payment ID validation and comprehensive regression tests to ensure applyPayment correctly validates inputs and records outcomes.",
+          "iterationNumber": 6,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "7725e43c-cb6b-4dc5-b6a5-da995aa67fc6",
+          "summary": "Add centralized payment‑id validation and comprehensive regression tests to ensure applyPayment fails closed on invalid IDs and records outcomes correctly.",
+          "iterationNumber": 5,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "feabce51-c066-4c7a-b9a8-1be036d97180",
+          "summary": "Fix payment ledger to correctly validate non‑empty payment IDs in tests and ensure applyPayment throws on invalid inputs; add regression tests covering success and failure paths using native node:test and strict assertions.",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "9866e9f6-b76d-4849-8570-0942efef90e0",
+          "summary": "Fix ledger test file to use native node:test API, correctly handle async errors, and add comprehensive success and failure path tests for the payment ledger ensuring production trust in applyPayment.",
+          "iterationNumber": 3,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "198693e5-377c-4cdb-b6f1-f9c12533f642",
+          "summary": "Fix ledger test import of getLast and add regression tests that verify correct success, failure, and idempotent behavior while ensuring applyPayment and getLast work reliably.",
+          "iterationNumber": 2,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "716c3fc2-4e4e-443c-9464-7472bfa4732c",
+          "summary": "Fix applyPayment to correctly handle failures without silently succeeding and add comprehensive tests for success and failure paths.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/bcff226e-60f9-4dba-b581-a90919d0ce8d",
+        "branchName": "engineer/0faa9b53/bcff226e-20260820222911",
+        "baseRevision": "c7bf09c9286a813db81d3ce970bdc961606ed316",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "functional_correctness": "PASS",
+          "error_handling": "PASS",
+          "tests_negative_path": "PASS",
+          "scope_discipline": "PASS",
+          "observability": "PASS",
+          "no_workaround_stack": "PASS"
+        },
+        "badCodeScorecard": {
+          "identified_underlying_defect": "PASS",
+          "repaired_design_not_hack": "PASS",
+          "removed_obsolete_patterns": "PASS",
+          "regression_coverage": "PASS",
+          "left_subsystem_healthier": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "bad_legacy_ledger_v2",
+      "matrixClasses": [
+        "bad_legacy_remediation",
+        "scope_discipline"
+      ],
+      "hardClass": "bad_legacy_ledger",
+      "variant": 2,
+      "title": "Legacy charge recorder reliability v2",
+      "objective": "Directors need the charge recorder under src/ledger to record charges correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust recordCharge, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+      "elapsedMs": 133136,
+      "taskId": "3cce56cb-ab2d-4f90-afd5-c1286347c84c",
+      "runId": "57f97331-534a-432d-9c09-8e820ed33ac3",
+      "maxIterations": 8,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "57f97331-534a-432d-9c09-8e820ed33ac3",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 4,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "ab1c0412-f613-44e5-8e2c-19b7a9243e01",
+          "strategy": "Fix recordCharge to strictly validate inputs, record outcomes explicitly, and throw on any failure instead of silently succeeding. Add comprehensive tests covering success and all failure paths, using only the built‑in node:test and node:assert/strict APIs.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "workerPlanId": "20b0f4c4-ac6f-497d-9ddc-cfac87a65979",
+          "strategy": "Fix recordCharge implementation to validate inputs strictly, record outcomes explicitly, and ensure failures are not silently ignored; add comprehensive regression tests covering success and failure paths.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "workerPlanId": "91370a7e-146e-46cb-b818-e54a3c631305",
+          "strategy": "Add comprehensive test coverage for success and all failure paths while tightening input validation in recordCharge to ensure failures are never silently ignored.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "workerPlanId": "75d3dded-686f-49af-bbef-17b264a0e07b",
+          "strategy": "Fix afterEach import in charges.test.js and add comprehensive success and failure tests for recordCharge.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 1,
+          "hypothesis": "Fix recordCharge to strictly validate inputs, record outcomes explicitly, and throw on any failure instead of silently succeeding. Add comprehensive tests covering success and all failure paths, using only the built‑in node:test and node:assert/strict APIs.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "hypothesis": "Fix recordCharge implementation to validate inputs strictly, record outcomes explicitly, and ensure failures are not silently ignored; add comprehensive regression tests covering success and failure paths.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "hypothesis": "Add comprehensive test coverage for success and all failure paths while tightening input validation in recordCharge to ensure failures are never silently ignored.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "usage": {
+        "iterations": 4,
+        "plans": 4,
+        "modelCalls": 12,
+        "changedFiles": 2,
+        "changedBytes": 11769,
+        "runtimeMs": 129626,
+        "investigationReads": 2,
+        "contextBytes": 128,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 8,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need the charge recorder under src/ledger to record charges correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust recordCharge, and add tests that cover success and failure cases. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/ledger/charges.js",
+            "Changed src/ledger/charges.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 2",
+            "src/ledger/charges.js      | 59 ++++++++++++++++++++++++-------------------\n src/ledger/charges.test.js | 62 +++++++++++++++++++++++++++++++++++++++++++---\n 2 files changed, 93 insertions(+), 28 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "recordCharge currently stores only successful charges; failure cases throw errors but do not create a stored outcome entry, which means failure outcomes are not persisted.",
+            "Unit tests validate rejection of invalid inputs and duplicate IDs, but they do not assert that a failure results in a recorded outcome (e.g., a status field indicating FAIL).",
+            "The test suite covers both success and error‑raising paths, satisfying the requirement for tests that cover success and at least one failure path.",
+            "No silent‑success behavior is introduced; failures are explicitly re‑thrown rather than being swallowed."
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "75d3dded-686f-49af-bbef-17b264a0e07b",
+          "summary": "Fix afterEach import in charges.test.js and add comprehensive success and failure tests for recordCharge.",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "91370a7e-146e-46cb-b818-e54a3c631305",
+          "summary": "Add comprehensive test coverage for success and all failure paths while tightening input validation in recordCharge to ensure failures are never silently ignored.",
+          "iterationNumber": 3,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "20b0f4c4-ac6f-497d-9ddc-cfac87a65979",
+          "summary": "Fix recordCharge implementation to validate inputs strictly, record outcomes explicitly, and ensure failures are not silently ignored; add comprehensive regression tests covering success and failure paths.",
+          "iterationNumber": 2,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "ab1c0412-f613-44e5-8e2c-19b7a9243e01",
+          "summary": "Fix recordCharge to strictly validate inputs, record outcomes explicitly, and throw on any failure instead of silently succeeding. Add comprehensive tests covering success and all failure paths, using only the built‑in node:test and node:assert/strict APIs.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/57f97331-534a-432d-9c09-8e820ed33ac3",
+        "branchName": "engineer/3cce56cb/57f97331-20260820223218",
+        "baseRevision": "0cc03a3d283e38929e2e5fa4701bc09f5703c064",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "functional_correctness": "PASS",
+          "error_handling": "PASS",
+          "tests_negative_path": "PASS",
+          "scope_discipline": "PASS",
+          "observability": "PASS",
+          "no_workaround_stack": "PASS"
+        },
+        "badCodeScorecard": {
+          "identified_underlying_defect": "PASS",
+          "repaired_design_not_hack": "PASS",
+          "removed_obsolete_patterns": "PASS",
+          "regression_coverage": "PASS",
+          "left_subsystem_healthier": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "bad_legacy_ledger_v3",
+      "matrixClasses": [
+        "bad_legacy_remediation"
+      ],
+      "hardClass": "bad_legacy_ledger",
+      "variant": 3,
+      "title": "Legacy invoice settler reliability v3",
+      "objective": "Directors need the invoice settler under src/ledger to settle invoices correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust settleInvoice, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+      "elapsedMs": 43362,
+      "taskId": "ea53b12f-e1bf-4247-87f9-7601527d368c",
+      "runId": "211f958b-ae98-4ec9-8a28-fda59e3a2d92",
+      "maxIterations": 8,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "211f958b-ae98-4ec9-8a28-fda59e3a2d92",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "72489a4d-ddc5-4a2b-955e-094802eea2b5",
+          "strategy": "Rewrote settleInvoice to enforce strict validation, record outcomes, and throw on failure; added comprehensive tests covering success and failure paths.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 2,
+        "changedBytes": 3578,
+        "runtimeMs": 42832,
+        "investigationReads": 2,
+        "contextBytes": 129,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 8,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need the invoice settler under src/ledger to settle invoices correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust settleInvoice, and add tests that cover success and failure cases. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/ledger/invoices.js",
+            "Changed src/ledger/invoices.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 2",
+            "src/ledger/invoices.js      | 81 ++++++++++++++++++++++++++++++---------------\n src/ledger/invoices.test.js | 39 ++++++++++++++++++++--\n 2 files changed, 91 insertions(+), 29 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "requirements: All material requirements satisfied; settlement records outcomes and never silently treats failures as success.",
+            "diff_quality: Changes confined to src/ledger/invoices.js and corresponding test updates.",
+            "regression_risk: Quality gates remain passed; no new runtime risk.",
+            "engineering_quality: No deterministic engineering blockers detected in changes."
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "72489a4d-ddc5-4a2b-955e-094802eea2b5",
+          "summary": "Rewrote settleInvoice to enforce strict validation, record outcomes, and throw on failure; added comprehensive tests covering success and failure paths.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/211f958b-ae98-4ec9-8a28-fda59e3a2d92",
+        "branchName": "engineer/ea53b12f/211f958b-20260820223431",
+        "baseRevision": "3c9a26682ea14c752adfddfb2c6ad8d18fda84dc",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "functional_correctness": "PASS",
+          "error_handling": "PASS",
+          "tests_negative_path": "PASS",
+          "scope_discipline": "PASS",
+          "observability": "PASS",
+          "no_workaround_stack": "PASS"
+        },
+        "badCodeScorecard": {
+          "identified_underlying_defect": "PASS",
+          "repaired_design_not_hack": "PASS",
+          "removed_obsolete_patterns": "PASS",
+          "regression_coverage": "PASS",
+          "left_subsystem_healthier": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "idempotent_job_runner_v1",
+      "matrixClasses": [
+        "partial_feature",
+        "failure_recovery"
+      ],
+      "hardClass": "idempotent_job_runner",
+      "variant": 1,
+      "title": "Job apply resume v1",
+      "objective": "Directors need a small job apply helper under src/jobs that can apply a job by id once, survive retries after a partial failure, and never double-apply the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+      "elapsedMs": 216975,
+      "taskId": "0ffd078c-c2c5-4ee6-9f61-50075d985810",
+      "runId": "cb0beaa5-5a7e-45ff-8935-7c70a3575f1b",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "cb0beaa5-5a7e-45ff-8935-7c70a3575f1b",
+        "state": "exhausted",
+        "failureClass": "BUDGET_EXHAUSTED",
+        "deliveryCandidateStatus": "blocked",
+        "paused": false,
+        "message": "Budget exhausted after diagnosis."
+      },
+      "currentState": "exhausted",
+      "iterationNumber": 6,
+      "deliveryCandidateStatus": "blocked",
+      "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "c4db750c-ec2c-4938-bd88-342c60ae0d56",
+          "strategy": "Fix literal escaped newlines in jobs.js and implement idempotent applyJob with retry‑safe behavior and full test coverage.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "workerPlanId": "d79293cc-d050-4700-9803-0f7ff158d8f5",
+          "strategy": "Rewrite src/jobs/jobs.js to safely coerce work() results into promises, preserve idempotent apply behavior, and keep pending promises across retries. Update src/jobs/jobs.test.js with async test functions, proper await/return usage, and added coverage for retry‑after‑failure scenarios. All changes are confined to src/jobs/ and resolve the 'work(...).then is not a function' error.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "workerPlanId": "3fbab50b-742a-48ba-8e85-18c58a6221b3",
+          "strategy": "Correct async test handling in jobs.test.js and ensure idempotent applyJob behavior covers happy path, failure, and retry scenarios.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "workerPlanId": "cc076474-48c1-4b11-9e6c-b286edd1d597",
+          "strategy": "Fix job apply helper to correctly propagate synchronous errors and maintain pending state, ensuring idempotent behavior and eliminating the uncaught 'boom' failure.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "workerPlanId": "fe8d9713-9db7-42b8-ae33-2229df2bb21e",
+          "strategy": "Provide a complete idempotent job apply helper with comprehensive tests",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "workerPlanId": "991c6d26-3c3e-4345-b488-29e78557be02",
+          "strategy": "Eliminate duplicate named export of 'store', complete a tested vertical slice for idempotent applyJob that survives retries and never double-applies, and add regression coverage.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 1,
+          "hypothesis": "Fix literal escaped newlines in jobs.js and implement idempotent applyJob with retry‑safe behavior and full test coverage.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "hypothesis": "Rewrite src/jobs/jobs.js to safely coerce work() results into promises, preserve idempotent apply behavior, and keep pending promises across retries. Update src/jobs/jobs.test.js with async test functions, proper await/return usage, and added coverage for retry‑after‑failure scenarios. All changes are confined to src/jobs/ and resolve the 'work(...).then is not a function' error.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "hypothesis": "Correct async test handling in jobs.test.js and ensure idempotent applyJob behavior covers happy path, failure, and retry scenarios.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "hypothesis": "Fix job apply helper to correctly propagate synchronous errors and maintain pending state, ensuring idempotent behavior and eliminating the uncaught 'boom' failure.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "hypothesis": "Provide a complete idempotent job apply helper with comprehensive tests",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "hypothesis": "Eliminate duplicate named export of 'store', complete a tested vertical slice for idempotent applyJob that survives retries and never double-applies, and add regression coverage.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "usage": {
+        "iterations": 6,
+        "plans": 6,
+        "modelCalls": 19,
+        "changedFiles": 2,
+        "changedBytes": 18700,
+        "runtimeMs": 216972,
+        "investigationReads": 2,
+        "contextBytes": 121,
+        "planRepairs": 1,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [
+        {
+          "at": "2026-08-20T22:35:41.744Z",
+          "semanticIteration": 0,
+          "kind": "invalid_content",
+          "reason": "src/jobs/jobs.js: file content appears to contain literal \\n escapes instead of real newlines.",
+          "evidence": [
+            "src/jobs/jobs.js: file content appears to contain literal \\n escapes instead of real newlines."
+          ]
+        }
+      ],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 1,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 1,
+        "objectiveQcPassed": false
+      },
+      "plans": [
+        {
+          "id": "991c6d26-3c3e-4345-b488-29e78557be02",
+          "summary": "Eliminate duplicate named export of 'store', complete a tested vertical slice for idempotent applyJob that survives retries and never double-applies, and add regression coverage.",
+          "iterationNumber": 6,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "fe8d9713-9db7-42b8-ae33-2229df2bb21e",
+          "summary": "Provide a complete idempotent job apply helper with comprehensive tests",
+          "iterationNumber": 5,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "cc076474-48c1-4b11-9e6c-b286edd1d597",
+          "summary": "Fix job apply helper to correctly propagate synchronous errors and maintain pending state, ensuring idempotent behavior and eliminating the uncaught 'boom' failure.",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "3fbab50b-742a-48ba-8e85-18c58a6221b3",
+          "summary": "Correct async test handling in jobs.test.js and ensure idempotent applyJob behavior covers happy path, failure, and retry scenarios.",
+          "iterationNumber": 3,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "d79293cc-d050-4700-9803-0f7ff158d8f5",
+          "summary": "Rewrite src/jobs/jobs.js to safely coerce work() results into promises, preserve idempotent apply behavior, and keep pending promises across retries. Update src/jobs/jobs.test.js with async test functions, proper await/return usage, and added coverage for retry‑after‑failure scenarios. All changes are confined to src/jobs/ and resolve the 'work(...).then is not a function' error.",
+          "iterationNumber": 2,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "c4db750c-ec2c-4938-bd88-342c60ae0d56",
+          "summary": "Fix literal escaped newlines in jobs.js and implement idempotent applyJob with retry‑safe behavior and full test coverage.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/cb0beaa5-5a7e-45ff-8935-7c70a3575f1b",
+        "branchName": "engineer/0ffd078c/cb0beaa5-20260820223514",
+        "baseRevision": "257e06242ff64af4db2dac0720f8414c6ccab7bc",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "functional_correctness": "PASS",
+          "failure_recovery": "PASS",
+          "idempotency": "PASS",
+          "vertical_slice_complete": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "idempotent_job_runner_v2",
+      "matrixClasses": [
+        "failure_recovery"
+      ],
+      "hardClass": "idempotent_job_runner",
+      "variant": 2,
+      "title": "Task runner resume v2",
+      "objective": "Directors need a small task runner under src/jobs that can run a task by id once, survive retries after a partial failure, and never double-run the same task id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+      "elapsedMs": 95310,
+      "taskId": "475b682d-7a79-4dbc-af04-fab9d3b90eea",
+      "runId": "d173c98e-d509-40d8-a744-26fd8664fca8",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "d173c98e-d509-40d8-a744-26fd8664fca8",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "235bbe43-4ca7-4c38-b91c-e826d1dfe638",
+          "strategy": "Implement deterministic task runner under src/jobs that executes each task id once, blocks double execution, recovers from partial failures, and includes comprehensive tests",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 7,
+        "changedFiles": 2,
+        "changedBytes": 1106,
+        "runtimeMs": 94379,
+        "investigationReads": 2,
+        "contextBytes": 122,
+        "planRepairs": 1,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [
+        {
+          "at": "2026-08-20T22:39:57.787Z",
+          "semanticIteration": 0,
+          "kind": "invalid_content",
+          "reason": "src/jobs/tasks.js: file content appears to contain literal \\n escapes instead of real newlines.; src/jobs/tasks.test.js: file content appears to contain literal \\n escapes instead of real newlines.",
+          "evidence": [
+            "src/jobs/tasks.js: file content appears to contain literal \\n escapes instead of real newlines.; src/jobs/tasks.test.js: file content appears to contain literal \\n escapes instead of real newlines."
+          ]
+        }
+      ],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need a small task runner under src/jobs that can run a task by id once, survive retries after a partial failure, and never double-run the same task id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/jobs/tasks.js",
+            "Changed src/jobs/tasks.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 2",
+            "src/jobs/tasks.js      | 22 ++++++++++++++++------\n src/jobs/tasks.test.js | 23 ++++++++++++++++++++---\n 2 files changed, 36 insertions(+), 9 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "RunTask can lead to duplicate executions under concurrent calls because the check-and-add operation on store.running is not atomic, violating the 'never double-run' requirement.",
+            "Partial failure handling clears only runtime state but does not persist the completed state, risking re-execution after restart.",
+            "Tests do not verify true resumable retry semantics across process boundaries or restart scenarios.",
+            "Advisory (non-blocking): Concurrent execution may cause two separate runTask calls to start the same task id, breaking the 'never double-run' guarantee (evidence: non-atomic check and add in store.running) [race/concurrency keyword without concrete evidence]",
+            "Advisory (non-blocking): Partial failure handling clears only runtime state but does not persist completed state, risking re-execution after restart (evidence: missing persistence layer for store.completed) [non-material advisory finding]"
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "235bbe43-4ca7-4c38-b91c-e826d1dfe638",
+          "summary": "Implement deterministic task runner under src/jobs that executes each task id once, blocks double execution, recovers from partial failures, and includes comprehensive tests",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/d173c98e-d509-40d8-a744-26fd8664fca8",
+        "branchName": "engineer/475b682d/d173c98e-20260820223851",
+        "baseRevision": "2c9a1d3df2fa1751c94ee92e39afcc658f757215",
+        "status": "active"
+      },
+      "score": {
+        "pass": false,
+        "notes": [
+          "no duplicate guard",
+          "no duplicate test"
+        ],
+        "robustScorecard": {
+          "functional_correctness": "FAIL",
+          "failure_recovery": "PASS",
+          "idempotency": "FAIL",
+          "vertical_slice_complete": "PARTIAL"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "idempotent_job_runner_v3",
+      "matrixClasses": [
+        "failure_recovery"
+      ],
+      "hardClass": "idempotent_job_runner",
+      "variant": 3,
+      "title": "Work commit resume v3",
+      "objective": "Directors need a small work commit helper under src/jobs that can commit work by id once, survive retries after a partial failure, and never double-commit the same work id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+      "elapsedMs": 42791,
+      "taskId": "4c362c5f-c1a9-4655-9fc7-207485943046",
+      "runId": "f7f74db8-f237-494a-b6ed-29dc42684825",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "f7f74db8-f237-494a-b6ed-29dc42684825",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "d3b45f3d-a285-433c-bffa-3534956dfc2a",
+          "strategy": "Complete src/jobs/work.js and its test to implement an idempotent commitWork helper that guards against double commits, handles failures, and supports retries.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 2,
+        "changedBytes": 1570,
+        "runtimeMs": 41082,
+        "investigationReads": 2,
+        "contextBytes": 121,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need a small work commit helper under src/jobs that can commit work by id once, survive retries after a partial failure, and never double-commit the same work id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/jobs/work.js",
+            "Changed src/jobs/work.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 2",
+            "src/jobs/work.js      | 19 ++++++++++++++-----\n src/jobs/work.test.js | 38 ++++++++++++++++++++++++++++++++++++++\n 2 files changed, 52 insertions(+), 5 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "d3b45f3d-a285-433c-bffa-3534956dfc2a",
+          "summary": "Complete src/jobs/work.js and its test to implement an idempotent commitWork helper that guards against double commits, handles failures, and supports retries.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/f7f74db8-f237-494a-b6ed-29dc42684825",
+        "branchName": "engineer/4c362c5f/f7f74db8-20260820224027",
+        "baseRevision": "d984189615385ce61076b7cebfc4903c7ccbcd6d",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "functional_correctness": "PASS",
+          "failure_recovery": "PASS",
+          "idempotency": "PASS",
+          "vertical_slice_complete": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "validRuns": 6,
+    "scorePass": 5,
+    "deliveryReady": 5,
+    "byFailure": {
+      "SUCCESS": 5,
+      "PRIMARY_QC_NONCONVERGENCE": 1
+    }
+  }
+}

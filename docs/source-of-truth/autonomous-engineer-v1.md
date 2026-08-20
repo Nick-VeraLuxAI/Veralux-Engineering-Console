@@ -4,7 +4,7 @@ Status: **RELEASE QUALIFIED** for governed autonomous loop control-plane behavio
 
 **Faithful production + post-QC lifecycle (tip `3511321`):** production faithful Nano path promoted; post-QC review → repair lifecycle implemented. Final AE Verdict: `ROBUST ENGINEERING PATH READY FOR FULL REQUALIFICATION`. SkillOpt: `NOT NEEDED YET`. See `nemotron-nano-production-faithful-runtime.md` and `ae-post-qc-review-lifecycle.md`.
 
-**Robust Code & Bad-Code Remediation:** **NOT ROBUST CODE QUALIFIED** (this qualification pass). Live Nano 30B proved selective strong outcomes (fail-closed auth remediation delivered; Console dogfood helper delivered after context/token headroom fixes) but did **not** consistently produce senior-grade remediations across deliberately bad legacy / failure-recovery specimens: repeated invalid `node:test` / `node:assert` APIs (`expect` from `node:test`, `require` in ESM, `assert.throwsAsync`) exhausted budgets without delivery. Evidence: `test-results/ae-v1-robust-live-qual-composite.json` and `scripts/runtime/autonomous-engineer/live-robust-qual.ts`.
+**Robust Code & Bad-Code Remediation:** **NOT ROBUST CODE QUALIFIED** (full FAITHFUL requalification @ `f8fbf72`). Hard classes clear ≥2/3 (ledger **3/3**, jobs **2/3**), and most matrix classes deliver, but state/concurrency failed delivery and agent-bad-code left residual dead scaffolding. See `autonomous-engineer-robust-requalification.md`. Prior CONTROL-era composite: `test-results/ae-v1-robust-live-qual-composite.json`.
 
 ## Canonical control plane
 
