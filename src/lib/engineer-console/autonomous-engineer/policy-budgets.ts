@@ -10,6 +10,7 @@ export const DEFAULT_AUTONOMOUS_BUDGETS: AutonomousBudgetConfig = {
   max_runtime_ms: 30 * 60 * 1000,
   max_investigation_reads: 80,
   max_context_bytes: 200_000,
+  max_plan_repairs: 8,
 };
 
 function envInt(name: string, fallback: number): number {
@@ -43,6 +44,10 @@ export function resolveAutonomousBudgets(
     max_context_bytes: envInt(
       "ENGINEER_CONSOLE_AE_MAX_CONTEXT_BYTES",
       DEFAULT_AUTONOMOUS_BUDGETS.max_context_bytes,
+    ),
+    max_plan_repairs: envInt(
+      "ENGINEER_CONSOLE_AE_MAX_PLAN_REPAIRS",
+      DEFAULT_AUTONOMOUS_BUDGETS.max_plan_repairs ?? 8,
     ),
   };
 

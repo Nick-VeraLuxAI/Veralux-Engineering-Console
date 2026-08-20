@@ -429,6 +429,9 @@ async function runSpecimen(specimen: SpecimenDef): Promise<Record<string, unknow
       : null,
     priorAttempts: state?.document.priorAttempts,
     failedHypotheses: state?.document.failedHypotheses,
+    usage: state?.document.usage ?? null,
+    planRepairHistory: state?.document.planRepairHistory ?? [],
+    lastIterationChargeKind: state?.document.lastIterationChargeKind ?? null,
     reviews: state?.document.reviews,
     unresolvedDefects: state?.document.unresolvedDefects,
     qcDelta: state?.document.qcDelta

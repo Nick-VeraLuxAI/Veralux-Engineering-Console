@@ -1,0 +1,226 @@
+{
+  "at": "2026-08-20T17:30:54.734Z",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8081/v1",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "idempotent_job_runner",
+      "class": "failure_recovery",
+      "title": "Job apply resume",
+      "objective": "Directors need a small job apply helper under src/jobs that can apply a job by id once, survive retries after a partial failure, and never double-apply the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+      "elapsedMs": 65301,
+      "taskId": "1fa98d42-26ad-4139-b6d2-fd215cc51362",
+      "runId": "567581ec-1919-4f77-9b35-705645cc66f9",
+      "result": {
+        "runId": "567581ec-1919-4f77-9b35-705645cc66f9",
+        "state": "exhausted",
+        "failureClass": "BUDGET_EXHAUSTED",
+        "deliveryCandidateStatus": "blocked",
+        "paused": false,
+        "message": "Budget exhausted after diagnosis."
+      },
+      "currentState": "exhausted",
+      "iterationNumber": 6,
+      "deliveryCandidateStatus": "blocked",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "diagnosis"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "80e4a143-30d2-47b9-bba1-65a153e8121d",
+          "strategy": "Complete src/jobs/jobs.js to implement idempotent applyJob with retry safety and add src/jobs/jobs.test.js with full happy, retry, and duplicate-path tests.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "workerPlanId": "79badaca-b2ec-400b-ba38-379e9243fbc3",
+          "strategy": "Fix applyJob to return a proper promise so that .then works and tests pass",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "workerPlanId": "45915625-9d2f-4062-9a97-0d74ecdad849",
+          "strategy": "Replace .then with await in applyJob to fix TypeError in ESM context, ensure idempotent behavior, add retry safety and regression tests",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "workerPlanId": "8bb2f863-0b55-4f5f-848e-13a12e45c561",
+          "strategy": "Fix applyJob test to properly await the returned promise and ensure idempotent behavior; update jobs.js to correctly handle pending state and retries",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "workerPlanId": "f2dc8da8-cdfb-409f-b365-d75bb13ed150",
+          "strategy": "Fix applyJob promise handling in ESM context and add comprehensive tests for idempotent apply, retry safety, and double-apply prevention.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "workerPlanId": "a696244e-289b-48ac-9db1-e63cb3940259",
+          "strategy": "Rewrite src/jobs/jobs.test.js to use ES module syntax with node:test and node:assert/strict, fix test to properly await applyJob, and add coverage for idempotent apply, retry safety, and double-apply prevention. Ensure test file uses only import syntax and matches package.json test runner.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 1,
+          "hypothesis": "Complete src/jobs/jobs.js to implement idempotent applyJob with retry safety and add src/jobs/jobs.test.js with full happy, retry, and duplicate-path tests.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "hypothesis": "Fix applyJob to return a proper promise so that .then works and tests pass",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "hypothesis": "Replace .then with await in applyJob to fix TypeError in ESM context, ensure idempotent behavior, add retry safety and regression tests",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "hypothesis": "Fix applyJob test to properly await the returned promise and ensure idempotent behavior; update jobs.js to correctly handle pending state and retries",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "hypothesis": "Fix applyJob promise handling in ESM context and add comprehensive tests for idempotent apply, retry safety, and double-apply prevention.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "hypothesis": "Rewrite src/jobs/jobs.test.js to use ES module syntax with node:test and node:assert/strict, fix test to properly await applyJob, and add coverage for idempotent apply, retry safety, and double-apply prevention. Ensure test file uses only import syntax and matches package.json test runner.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "usage": {
+        "iterations": 6,
+        "plans": 6,
+        "modelCalls": 15,
+        "changedFiles": 2,
+        "changedBytes": 18138,
+        "runtimeMs": 65299,
+        "investigationReads": 2,
+        "contextBytes": 118,
+        "planRepairs": 0
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 1,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 1,
+        "objectiveQcPassed": false
+      },
+      "plans": [
+        {
+          "id": "a696244e-289b-48ac-9db1-e63cb3940259",
+          "summary": "Rewrite src/jobs/jobs.test.js to use ES module syntax with node:test and node:assert/strict, fix test to properly await applyJob, and add coverage for idempotent apply, retry safety, and double-apply prevention. Ensure test file uses only import syntax and matches package.json test runner.",
+          "iterationNumber": 6,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "f2dc8da8-cdfb-409f-b365-d75bb13ed150",
+          "summary": "Fix applyJob promise handling in ESM context and add comprehensive tests for idempotent apply, retry safety, and double-apply prevention.",
+          "iterationNumber": 5,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "8bb2f863-0b55-4f5f-848e-13a12e45c561",
+          "summary": "Fix applyJob test to properly await the returned promise and ensure idempotent behavior; update jobs.js to correctly handle pending state and retries",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "45915625-9d2f-4062-9a97-0d74ecdad849",
+          "summary": "Replace .then with await in applyJob to fix TypeError in ESM context, ensure idempotent behavior, add retry safety and regression tests",
+          "iterationNumber": 3,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "79badaca-b2ec-400b-ba38-379e9243fbc3",
+          "summary": "Fix applyJob to return a proper promise so that .then works and tests pass",
+          "iterationNumber": 2,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "80e4a143-30d2-47b9-bba1-65a153e8121d",
+          "summary": "Complete src/jobs/jobs.js to implement idempotent applyJob with retry safety and add src/jobs/jobs.test.js with full happy, retry, and duplicate-path tests.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/567581ec-1919-4f77-9b35-705645cc66f9",
+        "branchName": "engineer/1fa98d42/567581ec-20260820172949",
+        "baseRevision": "dcddf4b4b42a7840ac08399e42d690217515a3a9",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "functional_correctness": "PASS",
+          "failure_recovery": "PASS",
+          "idempotency": "PASS",
+          "vertical_slice_complete": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "scorePass": 1,
+    "deliveryReady": 0
+  }
+}

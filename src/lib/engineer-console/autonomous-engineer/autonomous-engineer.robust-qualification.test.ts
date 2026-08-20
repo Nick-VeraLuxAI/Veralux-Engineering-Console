@@ -343,8 +343,8 @@ describe("AE robust qualification — controlled scenarios", () => {
     });
     const blocked = mergeWorkerAdversarialReview(base, {
       passed: false,
-      findings: ["lost update"],
-      actionableDefects: ["Race under concurrent transfer"],
+      findings: ["lost update under concurrent apply"],
+      actionableDefects: ["Race: shared transfer state mutated without revision check under concurrent transfer"],
     });
     const incomplete = evaluateCompletion({
       document,

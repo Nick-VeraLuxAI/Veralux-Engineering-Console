@@ -61,9 +61,12 @@ export interface AutonomousBudgetConfig {
   max_runtime_ms: number;
   max_investigation_reads: number;
   max_context_bytes: number;
+  /** Optional bound on pre-execution PLAN_REPAIR attempts (defaults via resolveMaxPlanRepairs). */
+  max_plan_repairs?: number;
 }
 
 export interface AutonomousBudgetUsage {
+  /** Semantic ENGINEERING_ITERATION count only (valid plan executed + QC/review/completion). */
   iterations: number;
   plans: number;
   modelCalls: number;
@@ -72,6 +75,8 @@ export interface AutonomousBudgetUsage {
   runtimeMs: number;
   investigationReads: number;
   contextBytes: number;
+  /** Pre-execution plan repairs that must not burn semantic iterations. */
+  planRepairs: number;
 }
 
 export interface AutonomousAuthorityEnvelope {
@@ -286,6 +291,10 @@ export interface AutonomousDocument {
   diagnosis: DiagnosisResult | null;
   /** Compact within-run harness failure signature history (WP5). */
   failureSignatureHistory?: FailureSignatureRecord[];
+  /** Last planning charge kind (PLAN_REPAIR does not burn semantic iterations). */
+  lastIterationChargeKind?: import("./plan-repair").IterationChargeKind | null;
+  /** Persisted plan-repair audit trail. */
+  planRepairHistory?: import("./plan-repair").PlanRepairRecord[];
   worktreeId: string | null;
   startedAt: string;
   updatedAt: string;

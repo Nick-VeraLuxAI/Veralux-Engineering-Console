@@ -335,13 +335,9 @@ export function detectHarnessSignaturesInContent(
       message: `${filePath}: invented define(...) runner API; use test() from node:test.`,
     });
   }
-  // Serialization corruption: entire file is one line of literal \n escapes (tests or sources).
-  if (
-    /\.(js|mjs|cjs|ts|tsx)$/.test(filePath) &&
-    content.includes("\\n") &&
-    !content.includes("\n") &&
-    content.length > 40
-  ) {
+  // Serialization corruption: entire file uses literal \n escapes as statement separators
+  // (not legitimate "hello\nworld" string escapes, and not real newlines after JSON decode).
+  if (/\.(js|mjs|cjs|ts|tsx)$/.test(filePath) && hasLiteralEscapedNewlineCorruption(content)) {
     findings.push({
       path: filePath,
       signature: "LITERAL_ESCAPED_NEWLINES",
@@ -349,6 +345,33 @@ export function detectHarnessSignaturesInContent(
     });
   }
   return findings;
+}
+
+/**
+ * Detect whole-file escaped-newline corruption after JSON decode.
+ * Reject: single physical line where `\\n` separates statements.
+ * Allow: real newlines; legitimate string escapes like `"hello\\nworld"`.
+ */
+export function hasLiteralEscapedNewlineCorruption(content: string): boolean {
+  if (!content || content.length < 40) return false;
+  // Valid real newlines already present → not whole-file escape corruption.
+  if (content.includes("\n") || content.includes("\r")) return false;
+  if (!content.includes("\\n")) return false;
+
+  const parts = content.split("\\n");
+  if (parts.length < 3) {
+    // One or two escapes — typically a legitimate string escape on a one-liner.
+    return false;
+  }
+
+  const STATEMENT_START =
+    /^\s*(?:import\s|export\s|const\s|let\s|var\s|function\s|class\s|return\s|if\s*\(|for\s*\(|while\s*\(|switch\s*\(|try\s*\{|await\s|async\s|type\s|interface\s|describe\s*\(|it\s*\(|test\s*\(|expect\s*\(|assert\.|}|{\s*$)/;
+  const statementy = parts.filter((part) => {
+    const trimmed = part.trim();
+    if (!trimmed) return false;
+    return STATEMENT_START.test(trimmed) || /;\s*$/.test(trimmed);
+  });
+  return statementy.length >= 2;
 }
 
 /** Minimal deterministic harness guards on plan operations (WP6). */

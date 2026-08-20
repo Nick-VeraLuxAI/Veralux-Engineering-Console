@@ -152,26 +152,153 @@ export function mergeWorkerAdversarialReview(
     ? worker.actionableDefects.filter((item): item is string => typeof item === "string")
     : [];
   // Only gate on material engineering defects. Advisory perfectionism / invented product
-  // requirements become findings, not delivery blockers.
-  const materialDefects = rawDefects.filter((defect) => isMaterialAdversarialDefect(defect));
-  const advisory = rawDefects.filter((defect) => !isMaterialAdversarialDefect(defect));
+  // requirements / generic "consider race testing" become findings, not delivery blockers.
+  const assessed = rawDefects.map((defect) => ({ defect, assessment: assessAdversarialDefect(defect) }));
+  const materialDefects = assessed.filter((item) => item.assessment.material).map((item) => item.defect);
+  const advisory = assessed.filter((item) => !item.assessment.material);
   const adversarial: AutonomousReviewFinding = {
     review: "worker_adversarial",
     passed: materialDefects.length === 0,
     findings: [
       ...findings,
-      ...advisory.map((defect) => `Advisory (non-blocking): ${defect}`),
+      ...advisory.map(
+        (item) =>
+          `Advisory (non-blocking): ${item.defect}` +
+          (item.assessment.reason ? ` [${item.assessment.reason}]` : ""),
+      ),
     ].filter(Boolean),
     actionableDefects: materialDefects,
   };
   return [...reviews.filter((review) => review.review !== "worker_adversarial"), adversarial];
 }
 
-const MATERIAL_ADVERSARIAL =
-  /(?:\brace\b|lost update|double[- ](?:apply|exec|spend)|empty catch|success[- ]?fallback|fail open|swallowed(?:\s+error)?|silent (?:null|success|fail)|WORKAROUND|\bHACK\b|from ['"]vitest['"]|does not export expect|private key|AE_REVIEW_BLOCK|trust boundar|auth hole|partial mutat(?:ion)? without|N\+1(?:\s+query)?|sql inject|path traversal)/i;
+/** Non-race material engineering defects (unchanged fail-closed bar). */
+const MATERIAL_NON_RACE =
+  /(?:empty catch|success[- ]?fallback|fail open|swallowed(?:\s+error)?|silent (?:null|success|fail)|WORKAROUND|\bHACK\b|from ['"]vitest['"]|does not export expect|private key|AE_REVIEW_BLOCK|trust boundar|auth hole|partial mutat(?:ion)? without|N\+1(?:\s+query)?|sql inject|path traversal)/i;
+
+/** Race/concurrency keywords alone are insufficient — need concrete evidence. */
+const RACE_KEYWORD =
+  /\b(?:race(?:\s+condition)?s?|concurrent(?:ly)?|concurrency|lost\s+update|double[- ](?:apply|exec|spend))\b/i;
+
+/** Advisory-only race phrasing (invented / overstated test-gap advice). */
+const RACE_ADVISORY_ONLY =
+  /(?:consider|recommend|suggest|should|could|might|missing)\b[\s\S]{0,80}\brace(?:\s+condition)?s?\b|\brace(?:\s+condition)?s?\b[\s\S]{0,40}\b(?:test(?:ing)?|coverage|consider)\b|no\s+race\s+test|add\s+race\s+test|race\s+testing/i;
+
+/** Concrete race/concurrency evidence that may block. */
+const RACE_CONCRETE_EVIDENCE = [
+  /unsafe\s+shared\s+state/i,
+  /non[- ]atomic\s+(?:mutation|update|write|read)/i,
+  /shared\s+\w[\w.]*\s+(?:mutated|updated|written)\s+without/i,
+  /without\s+(?:a\s+)?(?:lock|mutex|synchroniz|revision|version\s+check|atomic|compare[- ]and[- ]swap|CAS)\b/i,
+  /missing\s+(?:sync|lock|mutex|atomic|revision|version)\b/i,
+  /reproducible\s+race/i,
+  /failing\s+adversarial\s+test/i,
+  /demonstrated\s+race/i,
+  /TOCTOU|check[- ]then[- ]act/i,
+  /contract\s+requir(?:es|ing)\s+concurren/i,
+  /security\s+impact[\s\S]{0,100}(?:impl(?:ementation)?|evidence|code|diff|mutation)/i,
+  /lost\s+update\s+under\s+concurrent/i,
+  /double[- ](?:apply|exec|spend)\s+(?:under|via|when|because)/i,
+];
+
+export interface AdversarialDefectAssessment {
+  material: boolean;
+  severity: "blocker" | "advisory";
+  evidence: string[];
+  requiresRepair: boolean;
+  reason: string;
+}
+
+/**
+ * Structured materiality gate (WP1).
+ * Broad keyword filters (`race` / `concurrent`) must NOT solely block.
+ */
+export function assessAdversarialDefect(summary: string): AdversarialDefectAssessment {
+  const text = summary.trim();
+  if (!text) {
+    return {
+      material: false,
+      severity: "advisory",
+      evidence: [],
+      requiresRepair: false,
+      reason: "empty defect summary",
+    };
+  }
+
+  // Prefer structured markers when the worker emits them.
+  if (/\brequires_repair\s*[:=]\s*false\b/i.test(text) || /\bmaterial\s*[:=]\s*false\b/i.test(text)) {
+    return {
+      material: false,
+      severity: "advisory",
+      evidence: [],
+      requiresRepair: false,
+      reason: "structured non-material marker",
+    };
+  }
+  if (/\brequires_repair\s*[:=]\s*true\b/i.test(text) && /\bmaterial\s*[:=]\s*true\b/i.test(text)) {
+    const structuredEvidence = [...text.matchAll(/evidence\s*[:=]\s*([^;|]+)/gi)].map((m) => m[1].trim());
+    if (structuredEvidence.length > 0 || RACE_CONCRETE_EVIDENCE.some((re) => re.test(text))) {
+      return {
+        material: true,
+        severity: "blocker",
+        evidence: structuredEvidence.length ? structuredEvidence : [text],
+        requiresRepair: true,
+        reason: "structured material marker with evidence",
+      };
+    }
+  }
+
+  if (MATERIAL_NON_RACE.test(text)) {
+    return {
+      material: true,
+      severity: "blocker",
+      evidence: [text],
+      requiresRepair: true,
+      reason: "non-race material engineering defect",
+    };
+  }
+
+  if (RACE_KEYWORD.test(text)) {
+    if (RACE_ADVISORY_ONLY.test(text) && !RACE_CONCRETE_EVIDENCE.some((re) => re.test(text))) {
+      return {
+        material: false,
+        severity: "advisory",
+        evidence: [],
+        requiresRepair: false,
+        reason: "generic race/concurrency advice without concrete evidence",
+      };
+    }
+    const matchedEvidence = RACE_CONCRETE_EVIDENCE.filter((re) => re.test(text)).map((re) => re.source);
+    if (matchedEvidence.length > 0) {
+      return {
+        material: true,
+        severity: "blocker",
+        evidence: matchedEvidence,
+        requiresRepair: true,
+        reason: "race/concurrency claim with concrete evidence",
+      };
+    }
+    // Keyword-only race claim → advisory (does not reopen delivery).
+    return {
+      material: false,
+      severity: "advisory",
+      evidence: [],
+      requiresRepair: false,
+      reason: "race/concurrency keyword without concrete evidence",
+    };
+  }
+
+  return {
+    material: false,
+    severity: "advisory",
+    evidence: [],
+    requiresRepair: false,
+    reason: "non-material advisory finding",
+  };
+}
 
 export function isMaterialAdversarialDefect(summary: string): boolean {
-  return MATERIAL_ADVERSARIAL.test(summary);
+  return assessAdversarialDefect(summary).material;
 }
 
 export function reviewsHaveActionableDefects(reviews: AutonomousReviewFinding[]): boolean {

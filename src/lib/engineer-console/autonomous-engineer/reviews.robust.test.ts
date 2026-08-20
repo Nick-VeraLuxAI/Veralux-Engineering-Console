@@ -58,6 +58,7 @@ function doc(): AutonomousDocument {
       changedBytes: 10,
       investigationReads: 1,
       contextBytes: 10,
+      planRepairs: 0,
     },
     iterationNumber: 1,
     priorAttempts: [],
@@ -187,5 +188,23 @@ describe("engineering quality + adversarial review merge", () => {
     expect(adversarial?.passed).toBe(true);
     expect(adversarial?.actionableDefects).toEqual([]);
     expect(adversarial?.findings.join(" ")).toMatch(/Advisory/);
+  });
+
+  it("does not reopen delivery on keyword-only race advice after QC pass", () => {
+    const base = runAutonomousReviews({
+      document: doc(),
+      changedFiles: ["src/a.ts"],
+      diffSummary: "ok",
+      qcPassed: true,
+      fileContents: { "src/a.ts": "export const a = 1;\n" },
+    });
+    const merged = mergeWorkerAdversarialReview(base, {
+      passed: false,
+      findings: ["consider concurrent race conditions"],
+      actionableDefects: ["Missing race condition tests for concurrent apply"],
+    });
+    const adversarial = merged.find((review) => review.review === "worker_adversarial");
+    expect(adversarial?.passed).toBe(true);
+    expect(adversarial?.actionableDefects).toEqual([]);
   });
 });

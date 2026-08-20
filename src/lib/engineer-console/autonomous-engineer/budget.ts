@@ -21,6 +21,7 @@ export function emptyBudgetUsage(): AutonomousBudgetUsage {
     runtimeMs: 0,
     investigationReads: 0,
     contextBytes: 0,
+    planRepairs: 0,
   };
 }
 
@@ -63,6 +64,10 @@ export function remainingBudget(
   budget: AutonomousBudgetConfig,
   usage: AutonomousBudgetUsage,
 ): AutonomousBudgetUsage {
+  const maxPlanRepairs =
+    typeof budget.max_plan_repairs === "number" && budget.max_plan_repairs > 0
+      ? budget.max_plan_repairs
+      : Math.max(budget.max_plans, 8);
   return {
     iterations: Math.max(0, budget.max_iterations - usage.iterations),
     plans: Math.max(0, budget.max_plans - usage.plans),
@@ -72,5 +77,6 @@ export function remainingBudget(
     runtimeMs: Math.max(0, budget.max_runtime_ms - usage.runtimeMs),
     investigationReads: Math.max(0, budget.max_investigation_reads - usage.investigationReads),
     contextBytes: Math.max(0, budget.max_context_bytes - usage.contextBytes),
+    planRepairs: Math.max(0, maxPlanRepairs - (usage.planRepairs ?? 0)),
   };
 }

@@ -40,6 +40,12 @@ import { classifyAutonomousFailure, isTerminalFailureClass } from "./failure-cla
 import { defaultInvestigationOperations, runInvestigation } from "./investigation";
 import { interpretObjective } from "./objective-interpreter";
 import {
+  classifyPreExecutionPlanFailure,
+  resolveMaxPlanRepairs,
+  wouldExceedPlanRepairs,
+  type PlanRepairRecord,
+} from "./plan-repair";
+import {
   compareQcToBaseline,
   qcIterationShouldFail,
   snapshotQcResults,
@@ -366,8 +372,15 @@ export async function executeAutonomousLoop(
     persistAutonomousDocument(runId, document);
   }
 
-  const loopGuard = document.budget.max_iterations * 4 + 8;
+  const loopGuard =
+    document.budget.max_iterations * 4 + resolveMaxPlanRepairs(document.budget) * 2 + 8;
   let steps = 0;
+  if (typeof document.usage.planRepairs !== "number") {
+    document.usage.planRepairs = 0;
+  }
+  if (!document.planRepairHistory) {
+    document.planRepairHistory = [];
+  }
 
   while (!isTerminalAutonomousState(document.currentState) && steps < loopGuard) {
     steps += 1;
@@ -517,6 +530,8 @@ export async function executeAutonomousLoop(
     }
 
     if (document.currentState === "planning") {
+      // Semantic iterations are charged only after a valid plan is accepted for execution.
+      // Pre-execution failures are PLAN_REPAIR (bounded by max_plan_repairs / modelCalls / plans).
       if (wouldExceedBudget(document.budget, document.usage, "iterations", 1)) {
         document = applyTerminal(
           document,
@@ -528,11 +543,21 @@ export async function executeAutonomousLoop(
         updateTask(task.id, { status: "failed" });
         return terminalResult(runId, document, "Iteration budget exhausted.");
       }
-      document.iterationNumber += 1;
-      document.usage.iterations += 1;
+      if (wouldExceedPlanRepairs(document.budget, document.usage, 1) &&
+          document.lastIterationChargeKind === "PLAN_REPAIR") {
+        document = applyTerminal(
+          document,
+          "exhausted",
+          "BUDGET_EXHAUSTED",
+          `Plan-repair budget exhausted (${document.usage.planRepairs}/${resolveMaxPlanRepairs(document.budget)}).`,
+        );
+        persistAndSync(runId, document, task.id);
+        updateTask(task.id, { status: "failed" });
+        return terminalResult(runId, document, "Plan-repair budget exhausted.");
+      }
       document.strategy =
         document.diagnosis?.suggestedStrategy ??
-        `Iteration ${document.iterationNumber}: implement interpreted requirements via worker plan.`;
+        `Iteration ${document.iterationNumber + 1}: implement interpreted requirements via worker plan.`;
 
       let plan: WorkerPlan;
       try {
@@ -546,6 +571,7 @@ export async function executeAutonomousLoop(
         if (truncated.length > 0) {
           throw Object.assign(new Error(truncated.join("; ")), {
             failureClass: "VALIDATION_FAILURE" as const,
+            planRepairKind: "truncating_update" as const,
           });
         }
         const grounding = readRepoTestGroundingFacts(repoPath);
@@ -555,10 +581,11 @@ export async function executeAutonomousLoop(
           document.failureSignatureHistory = recordFailureSignatures(
             ensureFailureSignatureHistory(document),
             signatures,
-            document.iterationNumber,
+            document.iterationNumber + 1,
           );
           throw Object.assign(new Error(harnessFindings.map((f) => f.message).join("; ")), {
             failureClass: "VALIDATION_FAILURE" as const,
+            planRepairKind: "harness_incompat" as const,
           });
         }
         const planSignatures = detectFailureSignaturesInPlan(plan, grounding);
@@ -569,6 +596,7 @@ export async function executeAutonomousLoop(
         if (repeatBlock.block) {
           throw Object.assign(new Error(repeatBlock.message), {
             failureClass: "VALIDATION_FAILURE" as const,
+            planRepairKind: "harness_incompat" as const,
           });
         }
         const escaped = (plan.operations ?? []).filter(
@@ -577,9 +605,18 @@ export async function executeAutonomousLoop(
         if (escaped.length > 0) {
           throw Object.assign(
             new Error(
-              `Worker plan paths outside authorized prefixes: ${escaped.map((op) => op.path).join(", ")}`,
+              classifyPreExecutionPlanFailure({
+                failureClass: "VALIDATION_FAILURE",
+                message: `Worker plan paths outside authorized prefixes: ${escaped.map((op) => op.path).join(", ")}`,
+                unauthorizedPaths: escaped.map((op) => op.path),
+                authority: document.authorityEnvelope,
+              }).reason,
             ),
-            { failureClass: "VALIDATION_FAILURE" as const },
+            {
+              failureClass: "VALIDATION_FAILURE" as const,
+              planRepairKind: "unauthorized_path" as const,
+              unauthorizedPaths: escaped.map((op) => op.path),
+            },
           );
         }
       } catch (error) {
@@ -598,16 +635,73 @@ export async function executeAutonomousLoop(
           updateTask(task.id, { status: "failed" });
           return terminalResult(runId, document, document.escalationReason ?? "Planning failed.");
         }
+        const errMsg = error instanceof Error ? error.message : String(error);
+        const unauthorizedPaths = (error as { unauthorizedPaths?: string[] }).unauthorizedPaths;
+        const classification = classifyPreExecutionPlanFailure({
+          failureClass,
+          message: errMsg,
+          unauthorizedPaths,
+          authority: document.authorityEnvelope,
+        });
+        // PLAN_REPAIR: do not burn semantic engineering iterations (WP3).
+        if (classification.chargeKind === "PLAN_REPAIR") {
+          if (wouldExceedPlanRepairs(document.budget, document.usage, 1)) {
+            document = applyTerminal(
+              document,
+              "exhausted",
+              "BUDGET_EXHAUSTED",
+              `Plan-repair budget exhausted (${document.usage.planRepairs}/${resolveMaxPlanRepairs(document.budget)}): ${classification.reason}`,
+            );
+            persistAndSync(runId, document, task.id);
+            updateTask(task.id, { status: "failed" });
+            return terminalResult(runId, document, "Plan-repair budget exhausted.");
+          }
+          document.usage.planRepairs = (document.usage.planRepairs ?? 0) + 1;
+          document.lastIterationChargeKind = "PLAN_REPAIR";
+          const repairRecord: PlanRepairRecord = {
+            at: nowIso(deps),
+            semanticIteration: document.iterationNumber,
+            kind: classification.planRepairKind ?? "invalid_op",
+            reason: classification.reason,
+            evidence: classification.evidence,
+          };
+          document.planRepairHistory = [...(document.planRepairHistory ?? []), repairRecord];
+          document.failureClass = failureClass;
+          document.diagnosis = diagnoseIterationFailure({
+            document,
+            failureClass,
+            validationErrors: [classification.reason],
+          });
+          document.decisions.push({
+            at: nowIso(deps),
+            kind: "plan_repair",
+            summary: `PLAN_REPAIR (${repairRecord.kind}): semantic iterations unchanged at ${document.usage.iterations}`,
+            rationale: classification.reason.slice(0, 500),
+          });
+          await maybeInvokeWorker(
+            document,
+            "diagnosis",
+            `PLAN_REPAIR (does not burn semantic iterations)\nFailure class: ${failureClass}\n${classification.reason}`,
+            Boolean(deps.generatePlan),
+          );
+          document = transitionAutonomousState(runId, "diagnosing", document).document;
+          syncRun(runId, document);
+          continue;
+        }
+        // Unexpected non-repair planning failure: charge as engineering iteration.
+        document.iterationNumber += 1;
+        document.usage.iterations += 1;
+        document.lastIterationChargeKind = "ENGINEERING_ITERATION";
         document.failureClass = failureClass;
         document.diagnosis = diagnoseIterationFailure({
           document,
           failureClass,
-          validationErrors: [error instanceof Error ? error.message : String(error)],
+          validationErrors: [errMsg],
         });
         await maybeInvokeWorker(
           document,
           "diagnosis",
-          `Failure class: ${failureClass}\n${error instanceof Error ? error.message : String(error)}`,
+          `Failure class: ${failureClass}\n${errMsg}`,
           Boolean(deps.generatePlan),
         );
         document = transitionAutonomousState(runId, "diagnosing", document).document;
@@ -615,20 +709,90 @@ export async function executeAutonomousLoop(
         continue;
       }
 
-      document.usage.plans += 1;
+      // Defer ENGINEERING_ITERATION charge until orchestrator validation accepts the plan.
       document = transitionAutonomousState(runId, "validating", { ...document, strategy: plan.summary }).document;
       syncRun(runId, document, { agentMessage: plan.summary });
       document = transitionAutonomousState(runId, "executing", document).document;
       persistAndSync(runId, document, task.id);
 
+      const nextIterationNumber = document.iterationNumber + 1;
       const submission = await submitAndExecuteWorkerPlan(runId, plan, {
         iterationMode: true,
-        iterationNumber: document.iterationNumber,
+        iterationNumber: nextIterationNumber,
         repoPathOverride: repoPath,
       });
 
       document.previousPlanId = document.currentPlanId;
       document.currentPlanId = submission.workerPlanId;
+
+      if (!submission.validation.valid) {
+        const failureClass = classifyAutonomousFailure({
+          workerPlanValidationFailed: true,
+          workerPlanParseFailed: submission.validation.errors.some((err) => err.code === "PARSE_FAILED"),
+        });
+        const validationMsg = submission.validation.errors.map((err) => err.message).join("; ");
+        const classification = classifyPreExecutionPlanFailure({
+          failureClass,
+          message: validationMsg,
+          authority: document.authorityEnvelope,
+        });
+        if (wouldExceedPlanRepairs(document.budget, document.usage, 1)) {
+          document = applyTerminal(
+            document,
+            "exhausted",
+            "BUDGET_EXHAUSTED",
+            `Plan-repair budget exhausted on orchestrator validation: ${classification.reason}`,
+          );
+          persistAndSync(runId, document, task.id);
+          updateTask(task.id, { status: "failed" });
+          return terminalResult(runId, document, "Plan-repair budget exhausted.");
+        }
+        document.usage.planRepairs = (document.usage.planRepairs ?? 0) + 1;
+        document.lastIterationChargeKind = "PLAN_REPAIR";
+        document.planRepairHistory = [
+          ...(document.planRepairHistory ?? []),
+          {
+            at: nowIso(deps),
+            semanticIteration: document.iterationNumber,
+            kind: classification.planRepairKind ?? "invalid_op",
+            reason: classification.reason,
+            evidence: classification.evidence,
+          },
+        ];
+        document.failureClass = failureClass;
+        document.diagnosis = diagnoseIterationFailure({
+          document,
+          failureClass,
+          validationErrors: [classification.reason],
+        });
+        document.decisions.push({
+          at: nowIso(deps),
+          kind: "plan_repair",
+          summary: `PLAN_REPAIR (orchestrator validation): semantic iterations unchanged at ${document.usage.iterations}`,
+          rationale: classification.reason.slice(0, 500),
+        });
+        await maybeInvokeWorker(
+          document,
+          "diagnosis",
+          `PLAN_REPAIR\nFailure class: ${failureClass}\n${classification.reason}`,
+          Boolean(deps.generatePlan),
+        );
+        auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
+          iteration: document.iterationNumber,
+          failureClass,
+          workerPlanId: submission.workerPlanId,
+          chargeKind: "PLAN_REPAIR",
+        });
+        document = transitionAutonomousState(runId, "diagnosing", document).document;
+        syncRun(runId, document);
+        continue;
+      }
+
+      // Valid plan executed (or attempted) → charge ENGINEERING_ITERATION (WP3/WP5).
+      document.iterationNumber = nextIterationNumber;
+      document.usage.iterations += 1;
+      document.lastIterationChargeKind = "ENGINEERING_ITERATION";
+      document.usage.plans += 1;
 
       const qc = getQualityGateResultsForRun(runId);
       const failedCommands = qc.filter((gate) => gate.status === "failed").map((gate) => gate.command);
@@ -662,46 +826,6 @@ export async function executeAutonomousLoop(
       document.usage.changedFiles = Math.max(document.usage.changedFiles, changedFiles.length);
       const changedBytes = (plan.operations ?? []).reduce((sum, op) => sum + (op.content?.length ?? 0), 0);
       document.usage.changedBytes += changedBytes;
-
-      if (!submission.validation.valid) {
-        const failureClass = classifyAutonomousFailure({
-          workerPlanValidationFailed: true,
-          workerPlanParseFailed: submission.validation.errors.some((err) => err.code === "PARSE_FAILED"),
-        });
-        document.priorAttempts.push({
-          iteration: document.iterationNumber,
-          workerPlanId: submission.workerPlanId,
-          strategy: document.strategy ?? plan.summary,
-          outcome: "failed",
-          failureClass,
-          summary: submission.validation.errors.map((err) => err.message).join("; "),
-        });
-        document.failedHypotheses.push({
-          iteration: document.iterationNumber,
-          hypothesis: plan.summary,
-          whyFailed: submission.validation.errors.map((err) => err.message).join("; "),
-        });
-        document.failureClass = failureClass;
-        document.diagnosis = diagnoseIterationFailure({
-          document,
-          failureClass,
-          validationErrors: submission.validation.errors.map((err) => err.message),
-        });
-        await maybeInvokeWorker(
-          document,
-          "diagnosis",
-          `Failure class: ${failureClass}\n${submission.validation.errors.map((err) => err.message).join("; ")}`,
-          Boolean(deps.generatePlan),
-        );
-        auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
-          iteration: document.iterationNumber,
-          failureClass,
-          workerPlanId: submission.workerPlanId,
-        });
-        document = transitionAutonomousState(runId, "diagnosing", document).document;
-        syncRun(runId, document);
-        continue;
-      }
 
       if (!submission.execution?.success) {
         const failureClass = classifyAutonomousFailure({ workerPlanExecutionFailed: true });
@@ -904,8 +1028,23 @@ export async function executeAutonomousLoop(
         iteration: document.iterationNumber,
         diagnosis: document.diagnosis?.summary,
         why: document.diagnosis?.whyPreviousFailed,
+        chargeKind: document.lastIterationChargeKind ?? null,
+        planRepairs: document.usage.planRepairs ?? 0,
       });
-      if (wouldExceedBudget(document.budget, document.usage, "iterations", 1)) {
+      // After PLAN_REPAIR, do not burn/require a new semantic iteration to replan (WP3).
+      if (document.lastIterationChargeKind === "PLAN_REPAIR") {
+        if (wouldExceedPlanRepairs(document.budget, document.usage, 1)) {
+          document = applyTerminal(
+            document,
+            "exhausted",
+            "BUDGET_EXHAUSTED",
+            `No remaining plan-repair budget after diagnosis (${document.usage.planRepairs}/${resolveMaxPlanRepairs(document.budget)}).`,
+          );
+          persistAndSync(runId, document, task.id);
+          updateTask(task.id, { status: "failed" });
+          return terminalResult(runId, document, "Plan-repair budget exhausted after diagnosis.");
+        }
+      } else if (wouldExceedBudget(document.budget, document.usage, "iterations", 1)) {
         document = applyTerminal(
           document,
           "exhausted",

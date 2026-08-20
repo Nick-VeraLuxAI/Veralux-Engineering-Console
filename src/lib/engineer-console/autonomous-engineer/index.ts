@@ -10,6 +10,7 @@ export * from "./investigation";
 export * from "./objective-interpreter";
 export * from "./diagnosis";
 export * from "./feedback-convergence";
+export * from "./plan-repair";
 export * from "./completion-evaluator";
 export * from "./reviews";
 export * from "./qc-baseline";
