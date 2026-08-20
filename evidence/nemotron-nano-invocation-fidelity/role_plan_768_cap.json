@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "label": "role_plan_768_cap",
+    "finish": "length",
+    "usage": {
+      "prompt_tokens": 61,
+      "total_tokens": 829,
+      "completion_tokens": 768,
+      "prompt_tokens_details": null
+    },
+    "final_len": 2624,
+    "final": "{\n  \"plan\": [\n    {\n      \"name\": \"update_file\",\n      \"args\": {\n        \"path\": \"src/jobs/jobs.test.js\",\n        \"content\": \"const assert = require('assert');\\\\nconst { getJobById, updateJobStatus } = require('../jobs/jobs');\\\\n\\\\ndescribe('assert.equal tests for jobs module', function () {\\\\n  it('should equal expected job object', function () {\\\\n    const expected = { id: 1, status: 'pending' };\\\\n    const actual = getJobById(1);\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal status string', function () {\\\\n    const expected = 'completed';\\\\n    const actual = updateJobStatus({ id: 2, status: 'completed' });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal numeric value', function () {\\\\n    const expected = 42;\\\\n    const actual = updateJobStatus({ id: 3, status: 'running' });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal boolean value', function () {\\\\n    const expected = true;\\\\n    const actual = updateJobStatus({ id: 4, status: 'paused' });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal null value', function () {\\\\n    const expected = null;\\\\n    const actual = updateJobStatus({ id: 5, status: null });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal undefined value', function () {\\\\n    const expected = undefined;\\\\n    const actual = updateJobStatus({ id: 6, status: undefined });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal e",
+    "has_think": false
+  },
+  "response": {
+    "id": "chatcmpl-a48ef9b3ac228a01",
+    "object": "chat.completion",
+    "created": 1787254905,
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"plan\": [\n    {\n      \"name\": \"update_file\",\n      \"args\": {\n        \"path\": \"src/jobs/jobs.test.js\",\n        \"content\": \"const assert = require('assert');\\\\nconst { getJobById, updateJobStatus } = require('../jobs/jobs');\\\\n\\\\ndescribe('assert.equal tests for jobs module', function () {\\\\n  it('should equal expected job object', function () {\\\\n    const expected = { id: 1, status: 'pending' };\\\\n    const actual = getJobById(1);\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal status string', function () {\\\\n    const expected = 'completed';\\\\n    const actual = updateJobStatus({ id: 2, status: 'completed' });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal numeric value', function () {\\\\n    const expected = 42;\\\\n    const actual = updateJobStatus({ id: 3, status: 'running' });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal boolean value', function () {\\\\n    const expected = true;\\\\n    const actual = updateJobStatus({ id: 4, status: 'paused' });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal null value', function () {\\\\n    const expected = null;\\\\n    const actual = updateJobStatus({ id: 5, status: null });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal undefined value', function () {\\\\n    const expected = undefined;\\\\n    const actual = updateJobStatus({ id: 6, status: undefined });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal empty string', function () {\\\\n    const expected = '';\\\\n    const actual = updateJobStatus({ id: 7, status: '' });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal zero value', function () {\\\\n    const expected = 0;\\\\n    const actual = updateJobStatus({ id: 8, status: 0 });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal false value', function () {\\\\n    const expected = false;\\\\n    const actual = updateJobStatus({ id: 9, status: false });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal NaN value (should fail)', function () {\\\\n    const expected = NaN;\\\\n    const actual = updateJobStatus({ id: 10, status: NaN });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal infinity value', function () {\\\\n    const expected = Infinity;\\\\n    const actual = updateJobStatus({ id: 11, status: Infinity });\\\\n    assert.equal(actual, expected);\\\\n  });\\\\n\\\\n  it('should equal negative zero', function () {\\\\n    const expected = -0;\\\\n    const actual = updateJobStatus({ id: 12, status: -0 });\\\\n    assert.equal(actual, expected);\\\\n ",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "tool_calls": [],
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "length",
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "prompt_tokens": 61,
+      "total_tokens": 829,
+      "completion_tokens": 768,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "kv_transfer_params": null
+  }
+}

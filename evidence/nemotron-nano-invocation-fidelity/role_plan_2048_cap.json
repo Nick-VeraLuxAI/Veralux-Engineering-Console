@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "label": "role_plan_2048_cap",
+    "finish": "stop",
+    "usage": {
+      "prompt_tokens": 61,
+      "total_tokens": 1471,
+      "completion_tokens": 1410,
+      "prompt_tokens_details": null
+    },
+    "final_len": 4679,
+    "final": "{\n  \"plan\": [\n    {\n      \"runId\": \"t1\",\n      \"allowedFiles\": [\n        \"src/jobs/jobs.test.js\"\n      ],\n      \"operations\": [\n        {\n      \"op\": \"update_file\",\n      \"srcText\": \"const assert = require('assert');\\nconst jobs = require('../jobs');\\n\\n// Test 1: Basic equality\\nassert.equal(jobs.calculateTotal(10, 2), 20, 'Should multiply correctly');\\n\\n// Test 2: Zero value\\nassert.equal(jobs.getDiscount(0), 0, 'Should return 0 for zero discount');\\n\\n// Test 3: Negative input\\nassert.equal(jobs.processNumber(-5), -5, 'Should handle negative numbers');\\n\\n// Test 4: String comparison\\nassert.equal(jobs.formatName('John', 'Doe'), 'John Doe', 'Should concatenate names');\\n\\n// Test 5: Empty string\\nassert.equal(jobs.trimString('  test  '), 'test', 'Should trim whitespace');\\n\\n// Test 6: Special characters\\nassert.equal(jobs.validateInput('a@b.c'), true, 'Should accept special chars');\\n\\n// Test 7: Null handling\\nassert.equal(jobs.handleNull(), null, 'Should return null for null input');\\n\\n// Test 8: Undefined behavior\\nassert.equal(jobs.getValue(), undefined, 'Should return undefined for missing value');\\n\\n// Test 9: Array equality\\nassert.deepStrictEqual(jobs.getItems(), ['a', 'b'], 'Should return correct array');\\n\\n// Test 10: Object comparison\\nassert.deepStrictEqual(jobs.getConfig(), {debug: true}, 'Should return correct config');\\n\\n// Test 11: Boolean check\\nassert.equal(jobs.isValid(true), true, 'Should accept boolean true');\\n\\n// Test 12: False boolean\\nassert",
+    "has_think": false
+  },
+  "response": {
+    "id": "chatcmpl-90ff7be9979ad1f7",
+    "object": "chat.completion",
+    "created": 1787254907,
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"plan\": [\n    {\n      \"runId\": \"t1\",\n      \"allowedFiles\": [\n        \"src/jobs/jobs.test.js\"\n      ],\n      \"operations\": [\n        {\n      \"op\": \"update_file\",\n      \"srcText\": \"const assert = require('assert');\\nconst jobs = require('../jobs');\\n\\n// Test 1: Basic equality\\nassert.equal(jobs.calculateTotal(10, 2), 20, 'Should multiply correctly');\\n\\n// Test 2: Zero value\\nassert.equal(jobs.getDiscount(0), 0, 'Should return 0 for zero discount');\\n\\n// Test 3: Negative input\\nassert.equal(jobs.processNumber(-5), -5, 'Should handle negative numbers');\\n\\n// Test 4: String comparison\\nassert.equal(jobs.formatName('John', 'Doe'), 'John Doe', 'Should concatenate names');\\n\\n// Test 5: Empty string\\nassert.equal(jobs.trimString('  test  '), 'test', 'Should trim whitespace');\\n\\n// Test 6: Special characters\\nassert.equal(jobs.validateInput('a@b.c'), true, 'Should accept special chars');\\n\\n// Test 7: Null handling\\nassert.equal(jobs.handleNull(), null, 'Should return null for null input');\\n\\n// Test 8: Undefined behavior\\nassert.equal(jobs.getValue(), undefined, 'Should return undefined for missing value');\\n\\n// Test 9: Array equality\\nassert.deepStrictEqual(jobs.getItems(), ['a', 'b'], 'Should return correct array');\\n\\n// Test 10: Object comparison\\nassert.deepStrictEqual(jobs.getConfig(), {debug: true}, 'Should return correct config');\\n\\n// Test 11: Boolean check\\nassert.equal(jobs.isValid(true), true, 'Should accept boolean true');\\n\\n// Test 12: False boolean\\nassert.equal(jobs.isValid(false), false, 'Should accept boolean false');\\n\\n// Test 13: Mixed types\\nassert.equal(jobs.convertType(10), 10, 'Should preserve number type');\\n\\n// Test 14: Large number\\nassert.equal(jobs.calculateTotal(1000000, 2), 2000000, 'Should handle large numbers');\\n\\n// Test 15: Decimal precision\\nassert.equal(jobs.roundNumber(3.14159), 3.14, 'Should round to 2 decimals');\\n\\n// Test 16: Negative decimal\\nassert.equal(jobs.roundNumber(-2.718), -2.72, 'Should round negative decimals');\\n\\n// Test 17: Zero decimal\\nassert.equal(jobs.roundNumber(0), 0, 'Should handle zero');\\n\\n// Test 18: String to number\\nassert.equal(jobs.toNumber('42'), 42, 'Should convert string to number');\\n\\n// Test 19: Invalid string\\nassert.equal(isNaN(jobs.toNumber('abc')), true, 'Should detect invalid string');\\n\\n// Test 20: Date comparison\\nassert.equal(jobs.isDate(new Date()), true, 'Should recognize Date object');\\n\\n// Test 21: String date\\nassert.equal(jobs.parseDate('2023-01-01'), new Date('2023-01-01').getTime(), 'Should parse date string');\\n\\n// Test 22: Error handling\\nassert.throws(jobs.divideByZero, 'Cannot divide by zero', 'Should throw error for zero division');\\n\\n// Test 23: Async function\\nassert.equal(await jobs.asyncProcess(), 'done', 'Should resolve async function');\\n\\n// Test 24: Rejected promise\\nassert.rejects(jobs.rejectPromise(), Error, 'Should reject promise with error');\\n\\n// Test 25: Loop iteration\\nassert.equal(jobs.loopTest(3), 6, 'Should sum first 3 numbers');\\n\\n// Test 26: Empty array\\nassert.deepStrictEqual(jobs.filterEmpty([]), [], 'Should return empty array');\\n\\n// Test 27: Single element\\nassert.equal(jobs.filterSingle([5]), 5, 'Should keep single element');\\n\\n// Test 28: Multiple elements\\nassert.deepStrictEqual(jobs.filterMultiple([1,2,3]), [1,2,3], 'Should keep all elements');\\n\\n// Test 29: String length\\nassert.equal(jobs.getLength('hello'), 5, 'Should return string length');\\n\\n// Test 30: Empty string length\\nassert.equal(jobs.getLength(''), 0, 'Should return 0 for empty string');\\n\\n// Test 31: Special character length\\nassert.equal(jobs.getLength('a@b!c#'), 6, 'Should count special characters');\\n\\n// Test 32: Unicode length\\nassert.equal(jobs.getLength('caf\u00e9'), 4, 'Should handle Unicode characters');\\n\\n// Test 33: Case sensitivity\\nassert.equal(jobs.toLowerCase('HELLO'), 'hello', 'Should convert to lowercase');\\n\\n// Test 34: Uppercase conversion\\nassert.equal(jobs.toUpperCase('world'), 'WORLD', 'Should convert to uppercase');\\n\\n// Test 35: Trim whitespace\\nassert.equal(jobs.trim('  test  '), 'test', 'Should trim whitespace');\\n\\n// Test 36: Multiple spaces\\nassert.equal(jobs.trim('  a   b  '), 'a   b', 'Should preserve internal spaces');\\n\\n// Test 37: No leading/trailing\\nassert.equal(jobs.trim('no spaces'), 'no spaces', 'Should not modify without spaces');\\n\\n// Test 38: Numeric string\\nassert.equal(jobs.parseInt('123'), 123, 'Should parse numeric string');\\n\\n// Test 39: Hex string\\nassert.equal(jobs.parseInt('0xFF'), 255, 'Should parse hex string');\\n\\n// Test 40: Invalid hex\\nassert.equal(isNaN(jobs.parseInt('invalid')), true, 'Should detect invalid hex');\\n\"\n    }\n  ]\n}",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "tool_calls": [],
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "prompt_tokens": 61,
+      "total_tokens": 1471,
+      "completion_tokens": 1410,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "kv_transfer_params": null
+  }
+}

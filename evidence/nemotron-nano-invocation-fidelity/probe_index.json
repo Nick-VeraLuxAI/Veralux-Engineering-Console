@@ -1,0 +1,217 @@
+[
+  {
+    "label": "p01_think_off_768",
+    "elapsed_s": 0.09,
+    "http_status": 200,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 23,
+      "total_tokens": 26,
+      "completion_tokens": 3,
+      "prompt_tokens_details": null
+    },
+    "content_len": 6,
+    "content_preview": "Hello!",
+    "reasoning_content_present": false,
+    "reasoning_content_len": null,
+    "reasoning_preview": null,
+    "tool_calls": [],
+    "message_keys": [
+      "annotations",
+      "audio",
+      "content",
+      "function_call",
+      "reasoning",
+      "refusal",
+      "role",
+      "tool_calls"
+    ],
+    "request": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 0.1,
+      "max_tokens": 768,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    },
+    "messages_roles": [
+      "user"
+    ],
+    "prompt_chars": 32
+  },
+  {
+    "label": "p02_think_on_768",
+    "elapsed_s": 0.74,
+    "http_status": 200,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 23,
+      "total_tokens": 217,
+      "completion_tokens": 194,
+      "prompt_tokens_details": null
+    },
+    "content_len": 787,
+    "content_preview": "Hmm, the user just asked me to say hello in one short sentence. That's super simple! \n\nI wonder if they're testing me or just greeting me. Maybe they're new to chatting with AI and want to see how I respond. Or perhaps they're in a hurry and need a quick hello. \n\nThe instruction is clear: one short sentence, no more, no less. I should keep it friendly but minimal. \"Hello!\" feels perfect - it's warm, universal, and exactly one short sentence. \n\nI'm not overcomplicating it because they said \"one short sentence.\" No need for extra words. Just a clean, cheerful greeting. \n\n*checks again* Yep, \"Hel",
+    "reasoning_content_present": false,
+    "reasoning_content_len": null,
+    "reasoning_preview": null,
+    "tool_calls": [],
+    "message_keys": [
+      "annotations",
+      "audio",
+      "content",
+      "function_call",
+      "reasoning",
+      "refusal",
+      "role",
+      "tool_calls"
+    ],
+    "request": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "max_tokens": 768,
+      "chat_template_kwargs": {
+        "enable_thinking": true
+      }
+    },
+    "messages_roles": [
+      "user"
+    ],
+    "prompt_chars": 32
+  },
+  {
+    "label": "p03_think_on_4096_code",
+    "elapsed_s": 1.47,
+    "http_status": 200,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 45,
+      "total_tokens": 446,
+      "completion_tokens": 401,
+      "prompt_tokens_details": null
+    },
+    "content_len": 1731,
+    "content_preview": "The user wants a correct TypeScript function isFiniteNumber(x: unknown): boolean that returns false for Infinity and NaN. They want only the function. So we need to output exactly the function code, nothing else.\n\nImplementation: Need to check if x is a number and not NaN/Infinity/-Infinity? Actually Infinity is also a number but they want false for Infinity. So function should return false for Infinity, NaN, and also maybe non-numbers? Typically type unknown means could be anything, so we need to coerce to number? Use typeof x === 'number' && !Number.isNaN(x) && !Number.isFinite(x)?? Actually",
+    "reasoning_content_present": false,
+    "reasoning_content_len": null,
+    "reasoning_preview": null,
+    "tool_calls": [],
+    "message_keys": [
+      "annotations",
+      "audio",
+      "content",
+      "function_call",
+      "reasoning",
+      "refusal",
+      "role",
+      "tool_calls"
+    ],
+    "request": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "max_tokens": 4096,
+      "chat_template_kwargs": {
+        "enable_thinking": true
+      }
+    },
+    "messages_roles": [
+      "user"
+    ],
+    "prompt_chars": 138
+  },
+  {
+    "label": "p04_ae_json_plan_think_off_2048",
+    "elapsed_s": 0.65,
+    "http_status": 200,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 160,
+      "total_tokens": 330,
+      "completion_tokens": 170,
+      "prompt_tokens_details": null
+    },
+    "content_len": 615,
+    "content_preview": "{\n  \"runId\": \"probe-ae-1\",\n  \"summary\": \"Add src/math/isFiniteNumber.ts with isFiniteNumber function that returns false for Infinity and NaN.\",\n  \"allowedFiles\": [\n    \"src/math/isFiniteNumber.ts\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"create_file\",\n      \"path\": \"src/math/isFiniteNumber.ts\",\n      \"content\": \"export function isFiniteNumber(x: unknown): boolean {\\n  // Check for Infinity or NaN\\n  return x !== Infinity && x !== -Infinity && !Number.isNaN(x);\\n}\",\n      \"reason\": \"Implement the required function that returns false for Infinity and NaN while handling non-number inputs safel",
+    "reasoning_content_present": false,
+    "reasoning_content_len": null,
+    "reasoning_preview": null,
+    "tool_calls": [],
+    "message_keys": [
+      "annotations",
+      "audio",
+      "content",
+      "function_call",
+      "reasoning",
+      "refusal",
+      "role",
+      "tool_calls"
+    ],
+    "request": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 0.1,
+      "max_tokens": 2048,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    },
+    "messages_roles": [
+      "system",
+      "user"
+    ],
+    "prompt_chars": 615
+  },
+  {
+    "label": "p05_faithful_json_plan_think_on_6144",
+    "elapsed_s": 3.09,
+    "http_status": 200,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 160,
+      "total_tokens": 1020,
+      "completion_tokens": 860,
+      "prompt_tokens_details": null
+    },
+    "content_len": 3553,
+    "content_preview": "We need to output a JSON object with fields: runId, summary, allowedFiles, operations:[...]\n\nThe runId should match the run, which is \"probe-ae-1\". Allowed path prefixes: src/math/, so allowedFiles should likely include something like \"src/math/isFiniteNumber.ts\"? They want allowedFiles list. We can include \"src/math/isFiniteNumber.ts\". Also maybe include package.json? Not required; only allowed path prefixes is src/math/. But we can include that file. Probably allowedFiles includes \"src/math/isFiniteNumber.ts\". Provide operations to create that file with content implementing isFiniteNumber(x:",
+    "reasoning_content_present": false,
+    "reasoning_content_len": null,
+    "reasoning_preview": null,
+    "tool_calls": [],
+    "message_keys": [
+      "annotations",
+      "audio",
+      "content",
+      "function_call",
+      "reasoning",
+      "refusal",
+      "role",
+      "tool_calls"
+    ],
+    "request": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "max_tokens": 6144,
+      "chat_template_kwargs": {
+        "enable_thinking": true
+      }
+    },
+    "messages_roles": [
+      "system",
+      "user"
+    ],
+    "prompt_chars": 615
+  },
+  {
+    "label": "p06_tool_call_think_on",
+    "error": "HTTP Error 400: Bad Request",
+    "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 12, in call\n  File \"/usr/lib/python3.12/urllib/request.py\", line 215, in urlopen\n    return opener.open(url, data, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 521, in open\n    response = meth(req, response)\n               ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 630, in http_response\n    response = self.parent.error(\n               ^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 559, in error\n    return self._call_chain(*args)\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 492, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/r"
+  },
+  {
+    "label": "p07_tool_call_think_off",
+    "error": "HTTP Error 400: Bad Request",
+    "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 12, in call\n  File \"/usr/lib/python3.12/urllib/request.py\", line 215, in urlopen\n    return opener.open(url, data, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 521, in open\n    response = meth(req, response)\n               ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 630, in http_response\n    response = self.parent.error(\n               ^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 559, in error\n    return self._call_chain(*args)\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 492, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/r"
+  }
+]

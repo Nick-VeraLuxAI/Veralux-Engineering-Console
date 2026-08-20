@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "label": "p01_think_off_768",
+    "elapsed_s": 0.09,
+    "http_status": 200,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 23,
+      "total_tokens": 26,
+      "completion_tokens": 3,
+      "prompt_tokens_details": null
+    },
+    "content_len": 6,
+    "content_preview": "Hello!",
+    "reasoning_content_present": false,
+    "reasoning_content_len": null,
+    "reasoning_preview": null,
+    "tool_calls": [],
+    "message_keys": [
+      "annotations",
+      "audio",
+      "content",
+      "function_call",
+      "reasoning",
+      "refusal",
+      "role",
+      "tool_calls"
+    ],
+    "request": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 0.1,
+      "max_tokens": 768,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    },
+    "messages_roles": [
+      "user"
+    ],
+    "prompt_chars": 32
+  },
+  "request_messages": [
+    {
+      "role": "user",
+      "content": "Say hello in one short sentence."
+    }
+  ],
+  "response": {
+    "id": "chatcmpl-ad6a9ef427526077",
+    "object": "chat.completion",
+    "created": 1787254766,
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Hello!",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "tool_calls": [],
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "prompt_tokens": 23,
+      "total_tokens": 26,
+      "completion_tokens": 3,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "kv_transfer_params": null
+  }
+}

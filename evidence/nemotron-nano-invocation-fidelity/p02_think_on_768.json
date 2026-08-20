@@ -1,0 +1,85 @@
+{
+  "summary": {
+    "label": "p02_think_on_768",
+    "elapsed_s": 0.74,
+    "http_status": 200,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 23,
+      "total_tokens": 217,
+      "completion_tokens": 194,
+      "prompt_tokens_details": null
+    },
+    "content_len": 787,
+    "content_preview": "Hmm, the user just asked me to say hello in one short sentence. That's super simple! \n\nI wonder if they're testing me or just greeting me. Maybe they're new to chatting with AI and want to see how I respond. Or perhaps they're in a hurry and need a quick hello. \n\nThe instruction is clear: one short sentence, no more, no less. I should keep it friendly but minimal. \"Hello!\" feels perfect - it's warm, universal, and exactly one short sentence. \n\nI'm not overcomplicating it because they said \"one short sentence.\" No need for extra words. Just a clean, cheerful greeting. \n\n*checks again* Yep, \"Hel",
+    "reasoning_content_present": false,
+    "reasoning_content_len": null,
+    "reasoning_preview": null,
+    "tool_calls": [],
+    "message_keys": [
+      "annotations",
+      "audio",
+      "content",
+      "function_call",
+      "reasoning",
+      "refusal",
+      "role",
+      "tool_calls"
+    ],
+    "request": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 1.0,
+      "top_p": 1.0,
+      "max_tokens": 768,
+      "chat_template_kwargs": {
+        "enable_thinking": true
+      }
+    },
+    "messages_roles": [
+      "user"
+    ],
+    "prompt_chars": 32
+  },
+  "request_messages": [
+    {
+      "role": "user",
+      "content": "Say hello in one short sentence."
+    }
+  ],
+  "response": {
+    "id": "chatcmpl-bd2e28246f104e98",
+    "object": "chat.completion",
+    "created": 1787254766,
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Hmm, the user just asked me to say hello in one short sentence. That's super simple! \n\nI wonder if they're testing me or just greeting me. Maybe they're new to chatting with AI and want to see how I respond. Or perhaps they're in a hurry and need a quick hello. \n\nThe instruction is clear: one short sentence, no more, no less. I should keep it friendly but minimal. \"Hello!\" feels perfect - it's warm, universal, and exactly one short sentence. \n\nI'm not overcomplicating it because they said \"one short sentence.\" No need for extra words. Just a clean, cheerful greeting. \n\n*checks again* Yep, \"Hello!\" is exactly one short sentence. It's also the most natural way to say hello in English. \n\nOkay, keeping it as requested. No additions, no explanations. Just the hello.\n</think>\nHello!",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "tool_calls": [],
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "prompt_tokens": 23,
+      "total_tokens": 217,
+      "completion_tokens": 194,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "kv_transfer_params": null
+  }
+}
