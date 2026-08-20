@@ -11,6 +11,8 @@ import type { RunStatus } from "../types";
 import type { WorkerPlan } from "../worker-plan/worker-plan-types";
 import { getChangedFiles, getDiffSummary } from "../workspace/git-workspace";
 import { createIsolatedRunWorktree } from "../workspace/run-worktree";
+import fs from "fs";
+import path from "path";
 import { auditAutonomousEvent } from "./audit";
 import { assertExecutorCannotSelfAuthorize, isPathAuthorized } from "./authority";
 import { BudgetExhaustedError, checkBudget, wouldExceedBudget } from "./budget";
@@ -779,11 +781,23 @@ export async function executeAutonomousLoop(
     if (document.currentState === "reviewing") {
       const changedFiles = await getChangedFiles(repoPath);
       const diffSummary = await getDiffSummary(repoPath, { changedFiles });
+      const fileContents: Record<string, string> = {};
+      for (const relative of changedFiles.slice(0, 40)) {
+        try {
+          const absolute = path.join(repoPath, relative);
+          if (fs.existsSync(absolute)) {
+            fileContents[relative] = fs.readFileSync(absolute, "utf8").slice(0, 8_000);
+          }
+        } catch {
+          // Skip unreadable paths; review still has path-level checks.
+        }
+      }
       const reviews = runAutonomousReviews({
         document,
         changedFiles,
         diffSummary,
         qcPassed: document.qcDelta?.objectiveQcPassed ?? true,
+        fileContents,
       });
       document.reviews = reviews;
       await maybeInvokeWorker(
@@ -811,6 +825,7 @@ export async function executeAutonomousLoop(
         syncRun(runId, document);
         continue;
       }
+      document.unresolvedDefects = [];
       document = transitionAutonomousState(runId, "evaluating_completion", document).document;
       syncRun(runId, document);
       continue;

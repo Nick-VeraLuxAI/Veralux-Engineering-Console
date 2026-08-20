@@ -1,6 +1,6 @@
 # Autonomous Engineer V1 — source of truth
 
-Status: **COMPLETE** — live local Nano 30B (`Nemotron-Nano-30B-A3B-NVFP4` via vLLM on `http://127.0.0.1:8081/v1`) ran a governed Engineering Console dogfood to `waiting_for_approval` / delivery-candidate ready, and Playwright proved director task creation, live progress, clarification pause/resume on the same run, and the delivery-candidate package on this branch.
+Status: **RELEASE QUALIFIED** — final torture qualification on branch `feature/autonomous-engineer-v1` @ `580215a` plus post-qual defect fixes (review-defect clearance + content review blockers). Live local Nano 30B (`Nemotron-Nano-30B-A3B-NVFP4` via vLLM on `http://127.0.0.1:8081/v1`, Docker `nemotron-nano-vera-8081`) completed a governed Engineering Console dogfood to `waiting_for_approval` / delivery-candidate ready; structured contract, clarification pause/resume, false-completion resistance, and Playwright director UX were proven on this branch.
 
 ## Canonical control plane
 
@@ -41,11 +41,32 @@ Delivery candidate is allowed when objective-specific verification passes, check
 - Super/AirLLM is forbidden as the AE worker. This host’s live worker is Docker `nemotron-nano-vera-8081` serving `Nemotron-Nano-30B-A3B-NVFP4` (OpenAI-compatible `/v1/chat/completions`, thinking disabled). Console port 8082 is not required by current AE routing.
 - Model output is structured JSON only. It never writes files, never shells, and never approves release. Mutations remain worker-plan execute.
 
-## Live V1 proof (this closure)
+## Release qualification proof (torture)
 
-- Dogfood run `a35c5a88-785b-494b-869f-9964674ad5db`: director-level QC-sentence helper objective; Nano investigation/interpretation/planning/review/completion; isolated worktree `qc-baseline-helper.ts` + Vitest; QC new=0 / pre-existing=157; delivery candidate ready; `waiting_for_approval`; no PR.
-- Semantic retry: live contract specimen `materiallyDifferentReplan: true`, plus earlier live dogfood iterations that diagnosed and replanned before the successful run.
-- Browser: Playwright `tests/e2e/autonomous-engineer-v1.spec.ts` against this branch on `:3030` — create-task, progress, clarification pause/resume (`bar` on the same run), delivery-candidate UI.
+Scorecard: all required scenarios **PASS** (stop/cancel **PASS** via `abortAutonomousRun`). Controlled suite: `autonomous-engineer.qualification.test.ts` + existing AE unit/integration (59 tests green).
+
+| Scenario | Evidence |
+|---|---|
+| Normal autonomous build | Live dogfood `75367bc0-a3e8-49cd-aeec-4eeff07bf9d4` — Nano 30B, 1 iteration, new=0, `waiting_for_approval` / delivery ready; worktree `deliveryHelper.ts`; director root untouched |
+| Semantic self-repair | Live contract `test-results/ae-v1-live-nano-contract.json` — diagnosis+replan accepted, `materiallyDifferentReplan: true`; integration fail→repair |
+| Clarification discipline | Live pause `409b1c97-…` asked only foo/bar; same-run resume with `bar`; Playwright clarification UI |
+| Baseline-aware QC | Unit + qualification fooling case (similar TS line stays NEW, not PRE_EXISTING) |
+| Restart / rehydration | Qualification interrupt-after-iter-fail → resume same worktree/budgets |
+| Concurrent isolation | Integration + qualification dual-run worktrees |
+| Authority enforcement | Governance objective + prompt-injection bait blocked; 0 protected transitions |
+| Budget exhaustion | `max_iterations=2` → `EXHAUSTED`, no iter 3 |
+| Malformed-model recovery | Schema reject shell/prose/missing fields; no best-effort mutate |
+| Current-state context | Iter 2 sees iter 1 worktree content |
+| Evidence / audit integrity | Distinct plan ids / QC / worktrees per run |
+| False-completion resistance | Live Nano claimed `complete:true`; code evaluator kept `complete:false` |
+| Review-defect repair loop | Content blocker → replan → clear → deliver (also fixed uncleared `unresolvedDefects`) |
+| Failure-state director UX | Playwright create-task + delivery; screenshots exhausted/governance/delivery/waiting with seven director questions |
+| Stop/cancel | `abortAutonomousRun` → aborted/withdrawn; resume stays terminal |
+
+Defects found and fixed during qualification (minimal):
+
+1. Successful reviews did not clear `unresolvedDefects`, so review-repair loops could never deliver.
+2. Review lacked a content-level fixable defect signal; added private-key / `AE_REVIEW_BLOCK` scan with worktree file reads.
 
 ## Director experience
 
@@ -91,3 +112,4 @@ Super remains optional, advisory, gated, and non-authoritative. It is not the de
 - Headed/browser proof uses the Console on this branch (not port 3000). Playwright spec is `tests/e2e/autonomous-engineer-v1.spec.ts` with live run ids.
 - Generic `npm test` blobs after a mutation are treated as owned `CHANGED_FAILURE` so objective tests can iterate when names cannot be parsed; specific TS/lint/test identities stay pre-existing when unchanged.
 - Repo-wide `npm test` / `tsc` still report pre-existing Super/AirLLM and unrelated test typing failures. Those are not AE V1 repair fuel.
+- Live Nano can still exhaust budgets on hard/ambiguous specimen repos; fail-closed `EXHAUSTED`/`blocked` is correct V1 behavior (not a false delivery).
