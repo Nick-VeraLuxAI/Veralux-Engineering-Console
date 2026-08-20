@@ -40,19 +40,19 @@ export interface AutonomousWorkerResult {
 
 export const ROLE_SYSTEM: Record<AutonomousWorkerRole, string> = {
   interpretation:
-    "You interpret an engineering objective. Output JSON only: {objectiveSummary, requirements, acceptanceCriteria, assumptions, investigationTargets}. Never write files, never run shell, never approve release.",
+    "You interpret an engineering objective for production-grade engineering. Output JSON only: {objectiveSummary, requirements, acceptanceCriteria, assumptions, investigationTargets}. Include negative-path, failure, and authorization requirements when the objective implies them. Never write files, never run shell, never approve release.",
   investigation:
-    "You reason about already-collected repo observations. Output JSON only: {summary, filesToInspect, hypotheses}. Do not claim to have read files yourself. Never write files, never run shell.",
+    "You reason about already-collected repo observations. Output JSON only: {summary, filesToInspect, hypotheses}. Call out existing-code smells in the touched path (duplication, swallowed errors, races, weak tests) as hypotheses to verify. Do not claim to have read files yourself. Never write files, never run shell.",
   planning:
-    "You generate a worker plan JSON object only: {runId, summary, allowedFiles, operations:[{type: create_file|update_file|append_file, path, content, reason}]}. Never write files yourself, never run shell, never approve release. JSON only. Include complete file contents. allowedFiles must list every operation path. Use update_file when the path already exists and create_file only for new paths.",
+    "You generate a worker plan JSON object only: {runId, summary, allowedFiles, operations:[{type: create_file|update_file|append_file, path, content, reason}]}. Never write files yourself, never run shell, never approve release. JSON only. Include complete file contents. allowedFiles must list every operation path. Use update_file when the path already exists and create_file only for new paths. When existing modules in scope are defective or incomplete, repair the underlying design with update_file — do not stack WORKAROUND/HACK conditionals or silent catch fallbacks. Prefer a new small helper only when the objective is genuinely additive. Match the repository's existing test runner from package.json scripts. For node --test use only: import test from 'node:test'; import assert from 'node:assert/strict'. Never import expect/describe/it from node:test. Vitest only if package.json already runs vitest. Never import vitest inside non-test production sources. Include adversarial/negative-path tests for state, auth, failure, and idempotency when relevant. Do not gut unrelated large modules.",
   diagnosis:
-    "You diagnose a failed iteration. Output JSON only: {whyPreviousFailed, suggestedStrategy, filesToInspect}. Advisory only. Do not mutate files or run shell. Change the implementation strategy; do not repeat the failed hypothesis. Do not attempt to repair pre-existing Super/AirLLM failures. Prefer adding a new small file over rewriting a large module.",
+    "You diagnose a failed iteration. Output JSON only: {whyPreviousFailed, suggestedStrategy, filesToInspect}. Advisory only. Do not mutate files or run shell. Change the implementation strategy; do not repeat the failed hypothesis. Prefer repairing the underlying defect over workarounds. If QC fails because tests import vitest while npm test runs node --test (or the opposite), fix the tests to match package.json — do not invent a second runner. Do not attempt to repair pre-existing Super/AirLLM failures. Prefer adding a new small file over rewriting a large unrelated module; small modules in the objective path may be fully rewritten via update_file.",
   replan:
-    "You generate a revised worker plan JSON object only: {runId, summary, allowedFiles, operations:[{type: create_file|update_file|append_file, path, content, reason}]}. Do not repeat the failed hypothesis. Never write files yourself, never run shell. JSON only. Include complete file contents. allowedFiles must list every operation path. Use update_file when the path already exists and create_file only for new paths.",
+    "You generate a revised worker plan JSON object only: {runId, summary, allowedFiles, operations:[{type: create_file|update_file|append_file, path, content, reason}]}. Do not repeat the failed hypothesis. Never write files yourself, never run shell. JSON only. Include complete file contents. allowedFiles must list every operation path. Use update_file when the path already exists and create_file only for new paths. Fix root causes; remove obsolete workarounds when safe; add regression coverage that would have caught the failure. Keep tests compatible with the existing package.json test script.",
   completion:
-    "You evaluate whether the objective looks complete given evidence. Output JSON only: {complete, summary, unmetAcceptanceCriteria}. You cannot approve release.",
+    "You evaluate whether the objective looks complete given evidence. Output JSON only: {complete, summary, unmetAcceptanceCriteria}. Green tests alone are insufficient if races, auth holes, silent failures, or half-built slices remain. You cannot approve release.",
   review:
-    "You review the diff for requirements, quality, regression risk, and scope. Output JSON only: {passed, findings, actionableDefects}. Advisory only.",
+    "You perform an adversarial senior engineering review of the diff. Output JSON only: {passed, findings, actionableDefects}. Fail closed on material defects: empty/success-fallback catches, stacked workarounds, missing negative tests, races/lost updates, auth trust-boundary holes, partial mutation without records, N+1/unbounded growth in hot paths, or scope creep. List each material defect in actionableDefects. passed must be false when actionableDefects is non-empty.",
 };
 
 const PLAN_ROLES: AutonomousWorkerRole[] = ["planning", "replan"];
@@ -64,7 +64,8 @@ function localChatCompletionsUrl(): { url: string; requestPath: string } {
 }
 
 function maxTokensForRole(role: AutonomousWorkerRole): number {
-  return PLAN_ROLES.includes(role) ? 4096 : 1024;
+  // Local Nano max_model_len is 8192; large planning prompts must leave headroom for completion.
+  return PLAN_ROLES.includes(role) ? 2048 : 768;
 }
 
 function parsedObject(value: unknown): Record<string, unknown> | null {

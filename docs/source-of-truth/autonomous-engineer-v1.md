@@ -1,6 +1,8 @@
 # Autonomous Engineer V1 — source of truth
 
-Status: **RELEASE QUALIFIED** — final torture qualification on branch `feature/autonomous-engineer-v1` @ `580215a` plus post-qual defect fixes (review-defect clearance + content review blockers). Live local Nano 30B (`Nemotron-Nano-30B-A3B-NVFP4` via vLLM on `http://127.0.0.1:8081/v1`, Docker `nemotron-nano-vera-8081`) completed a governed Engineering Console dogfood to `waiting_for_approval` / delivery-candidate ready; structured contract, clarification pause/resume, false-completion resistance, and Playwright director UX were proven on this branch.
+Status: **RELEASE QUALIFIED** for governed autonomous loop control-plane behavior on branch `feature/autonomous-engineer-v1` @ `ff56c7b` (torture qualification + review-defect clearance).  
+
+**Robust Code & Bad-Code Remediation:** **NOT ROBUST CODE QUALIFIED** (this qualification pass). Live Nano 30B proved selective strong outcomes (fail-closed auth remediation delivered; Console dogfood helper delivered after context/token headroom fixes) but did **not** consistently produce senior-grade remediations across deliberately bad legacy / failure-recovery specimens: repeated invalid `node:test` / `node:assert` APIs (`expect` from `node:test`, `require` in ESM, `assert.throwsAsync`) exhausted budgets without delivery. Evidence: `test-results/ae-v1-robust-live-qual-composite.json` and `scripts/runtime/autonomous-engineer/live-robust-qual.ts`.
 
 ## Canonical control plane
 
@@ -113,3 +115,4 @@ Super remains optional, advisory, gated, and non-authoritative. It is not the de
 - Generic `npm test` blobs after a mutation are treated as owned `CHANGED_FAILURE` so objective tests can iterate when names cannot be parsed; specific TS/lint/test identities stay pre-existing when unchanged.
 - Repo-wide `npm test` / `tsc` still report pre-existing Super/AirLLM and unrelated test typing failures. Those are not AE V1 repair fuel.
 - Live Nano can still exhaust budgets on hard/ambiguous specimen repos; fail-closed `EXHAUSTED`/`blocked` is correct V1 behavior (not a false delivery).
+- **Robust engineering (not yet qualified):** planning prompts must stay within local model context (`max_model_len` ≈ 8192); planning `max_tokens` is capped for headroom. Worker adversarial review gates only **material** defects (invented product requirements are advisory). Engineering-quality heuristics block empty/success-fallback catches, WORKAROUND markers, vitest-in-production, and `expect` imports from `node:test`. Even with these, Nano may still fail to converge on correct test-harness APIs for non-Vitest specimen repos within budget — that is why robust-code qualification remains open.

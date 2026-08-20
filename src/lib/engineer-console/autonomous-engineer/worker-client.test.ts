@@ -66,7 +66,7 @@ describe("autonomous worker client", () => {
         max_tokens?: number;
       };
       expect(body.chat_template_kwargs).toEqual({ enable_thinking: false });
-      expect(body.max_tokens).toBe(4096);
+      expect(body.max_tokens).toBe(2048);
     } finally {
       process.env = previous;
     }

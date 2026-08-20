@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   coerceWorkerPlanToWorktree,
   listAuthorizedWorktreeFiles,
+  readAuthorizedWorktreeSnippets,
   truncatingUpdateErrors,
 } from "./plan-worktree-adapter";
 import type { WorkerPlan } from "../worker-plan/worker-plan-types";
@@ -121,5 +122,18 @@ describe("coerceWorkerPlanToWorktree", () => {
     fs.mkdirSync(path.join(tmp, "src/lib"), { recursive: true });
     fs.writeFileSync(path.join(tmp, "src/lib/a.ts"), "a\n");
     expect(listAuthorizedWorktreeFiles(tmp, ["src/lib/"])).toEqual(["src/lib/a.ts"]);
+  });
+
+  it("reads authorized source snippets for remediation planning", () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ae-plan-"));
+    fs.mkdirSync(path.join(tmp, "src/lib"), { recursive: true });
+    fs.writeFileSync(path.join(tmp, "src/lib/bad.ts"), "export function broken() { return 1 }\n");
+    fs.writeFileSync(path.join(tmp, "src/lib/bad.test.ts"), "ignored\n");
+    fs.writeFileSync(path.join(tmp, "src/lib/huge.ts"), "x".repeat(8000));
+    const snippets = readAuthorizedWorktreeSnippets(tmp, ["src/lib/"]);
+    expect(snippets.map((s) => s.path)).toContain("src/lib/bad.ts");
+    expect(snippets.find((s) => s.path === "src/lib/bad.ts")?.content).toContain("broken");
+    // Prefer smaller modules first; huge file may be omitted under total budget.
+    expect(snippets.every((s) => s.content.length <= 1800)).toBe(true);
   });
 });

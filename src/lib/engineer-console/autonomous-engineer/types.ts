@@ -183,8 +183,16 @@ export interface CompletionEvaluation {
   withinAuthority: boolean;
 }
 
+export type AutonomousReviewKind =
+  | "requirements"
+  | "diff_quality"
+  | "regression_risk"
+  | "scope"
+  | "engineering_quality"
+  | "worker_adversarial";
+
 export interface AutonomousReviewFinding {
-  review: "requirements" | "diff_quality" | "regression_risk" | "scope";
+  review: AutonomousReviewKind;
   passed: boolean;
   findings: string[];
   actionableDefects: string[];

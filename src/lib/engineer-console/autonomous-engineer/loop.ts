@@ -26,10 +26,15 @@ import {
   qcIterationShouldFail,
   snapshotQcResults,
 } from "./qc-baseline";
-import { reviewsHaveActionableDefects, runAutonomousReviews } from "./reviews";
+import {
+  mergeWorkerAdversarialReview,
+  reviewsHaveActionableDefects,
+  runAutonomousReviews,
+} from "./reviews";
 import {
   coerceWorkerPlanToWorktree,
   listAuthorizedWorktreeFiles,
+  readAuthorizedWorktreeSnippets,
   truncatingUpdateErrors,
 } from "./plan-worktree-adapter";
 import { invokeAutonomousWorker } from "./worker-client";
@@ -127,27 +132,54 @@ async function generatePlanForIteration(
     : [];
 
   if (document.workerModel?.route === "live_default_worker") {
-    const live = await invokeAutonomousWorker(
-      {
-        role: document.diagnosis ? "replan" : "planning",
-        system: "",
-        user: [
-          `Run ID: ${runId}`,
-          `Objective: ${document.originalObjective}`,
-          `Requirements: ${(document.requirements ?? []).join("; ")}`,
-          `Constraints: ${[...document.constraints, ...diagnosisHint].join("; ")}`,
-          `Allowed path prefixes: ${document.authorizedPathPrefixes.join(", ") || "(repo src/)"}`,
-          `Existing files under those prefixes: ${
-            listAuthorizedWorktreeFiles(repoPath, document.authorizedPathPrefixes).join(", ") || "(none)"
-          }`,
-          "Use update_file for paths that already exist and create_file only for new paths. Include complete file contents.",
-          "Prefer create_file for a new small helper and a Vitest test file (import { describe, it, expect } from \"vitest\"). Do not rewrite or append to entire large existing modules. Pre-existing Super/AirLLM QC failures are out of scope.",
-          `Investigation: ${document.observations.map((obs) => obs.summary).join("\n")}`,
-          "Return worker plan JSON with runId matching the run, allowedFiles, and file operations with full content.",
-        ].join("\n"),
-      },
-      { generatePlanInjected: false },
-    );
+    const existingFiles = listAuthorizedWorktreeFiles(repoPath, document.authorizedPathPrefixes);
+    const snippets = readAuthorizedWorktreeSnippets(repoPath, document.authorizedPathPrefixes);
+    const snippetBlock =
+      snippets.length === 0
+        ? "(no existing source snippets under authorized prefixes)"
+        : snippets
+            .map((snippet) => `--- ${snippet.path} ---\n${snippet.content}`)
+            .join("\n\n");
+    let packageScripts = "(package.json unreadable)";
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(repoPath, "package.json"), "utf8")) as {
+        scripts?: Record<string, string>;
+      };
+      packageScripts = JSON.stringify(pkg.scripts ?? {});
+    } catch {
+      // keep fallback
+    }
+    let live: Awaited<ReturnType<typeof invokeAutonomousWorker>>;
+    try {
+      live = await invokeAutonomousWorker(
+        {
+          role: document.diagnosis ? "replan" : "planning",
+          system: "",
+          user: [
+            `Run ID: ${runId}`,
+            `Objective: ${document.originalObjective}`,
+            `Requirements: ${(document.requirements ?? []).join("; ")}`,
+            `Constraints: ${[...document.constraints, ...diagnosisHint].join("; ")}`,
+            `Allowed path prefixes: ${document.authorizedPathPrefixes.join(", ") || "(repo src/)"}`,
+            `Existing files under those prefixes (truncated): ${existingFiles.slice(0, 24).join(", ") || "(none)"}`,
+            `package.json scripts: ${packageScripts}`,
+            "Use update_file for paths that already exist and create_file only for new paths. Include complete file contents.",
+            "When authorized existing modules are defective, incomplete, or unsafe, repair them with update_file (complete corrected contents). Do not stack WORKAROUND/HACK conditionals or silent catch fallbacks. Prefer create_file only for genuinely new helpers/tests. Do not rewrite or append to unrelated large modules. Pre-existing Super/AirLLM QC failures are out of scope.",
+            "Match the existing test runner from package.json scripts. If test uses node --test / node:test, write ONLY: import test from 'node:test'; import assert from 'node:assert/strict'; and use test('name', () => { assert.equal(...) }). Do NOT import expect/describe/it from 'node:test' (those exports are invalid). Use Vitest only when package.json already runs vitest. Never import vitest from non-test production sources.",
+            "Include happy, negative, and failure-path coverage the objective implies. If a test expectation conflicts with correct fail-closed behavior, fix the test.",
+            `Investigation: ${document.observations.map((obs) => obs.summary).join("\n").slice(0, 2500)}`,
+            `Authorized source snippets (read these before mutating):\n${snippetBlock}`,
+            "Return worker plan JSON with runId matching the run, allowedFiles, and file operations with full content.",
+          ].join("\n"),
+        },
+        { generatePlanInjected: false },
+      );
+    } catch (error) {
+      throw Object.assign(
+        new Error(error instanceof Error ? error.message : String(error)),
+        { failureClass: "MODEL_OUTPUT_FAILURE" as const },
+      );
+    }
     document.usage.modelCalls += 1;
     recordWorkerInvocation(document, live);
     const parsed = live.parsed as unknown as WorkerPlan | null;
@@ -713,6 +745,9 @@ export async function executeAutonomousLoop(
                 .join("; ") || "(none)"
             }`,
             "Do not rewrite large existing modules. Add or repair a small helper. Pre-existing failures are out of scope.",
+            "If evidence mentions node:test does not provide export named 'expect', rewrite tests to: import test from 'node:test'; import assert from 'node:assert/strict' (no expect).",
+            "If evidence mentions assert.throwsAsync is not a function, use await assert.rejects(async () => ...).",
+            "If evidence mentions require is not defined in ES module scope, use import — never require() in type:module packages.",
           ].join("\n"),
           Boolean(deps.generatePlan),
         );
@@ -792,20 +827,30 @@ export async function executeAutonomousLoop(
           // Skip unreadable paths; review still has path-level checks.
         }
       }
-      const reviews = runAutonomousReviews({
+      let reviews = runAutonomousReviews({
         document,
         changedFiles,
         diffSummary,
         qcPassed: document.qcDelta?.objectiveQcPassed ?? true,
         fileContents,
       });
-      document.reviews = reviews;
-      await maybeInvokeWorker(
+      const workerReview = await maybeInvokeWorker(
         document,
         "review",
-        `Changed files: ${changedFiles.join(", ")}\nDiff:\n${diffSummary.slice(0, 4000)}\nHeuristic reviews: ${JSON.stringify(reviews)}`,
+        [
+          "Perform an adversarial senior review. Fail closed on material defects.",
+          `Changed files: ${changedFiles.join(", ")}`,
+          `File contents:\n${Object.entries(fileContents)
+            .map(([file, content]) => `--- ${file} ---\n${content}`)
+            .join("\n\n")
+            .slice(0, 12_000)}`,
+          `Diff:\n${diffSummary.slice(0, 3000)}`,
+          `Heuristic reviews: ${JSON.stringify(reviews)}`,
+        ].join("\n"),
         Boolean(deps.generatePlan),
       );
+      reviews = mergeWorkerAdversarialReview(reviews, workerReview);
+      document.reviews = reviews;
       if (reviewsHaveActionableDefects(reviews)) {
         document.unresolvedDefects = reviews.flatMap((review) =>
           review.actionableDefects.map((summary) => ({
@@ -932,8 +977,8 @@ async function maybeInvokeWorker(
   role: "interpretation" | "investigation" | "diagnosis" | "completion" | "review",
   user: string,
   generatePlanInjected: boolean,
-): Promise<void> {
-  if (!document.workerModel || document.workerModel.route !== "live_default_worker") return;
+): Promise<Record<string, unknown> | null> {
+  if (!document.workerModel || document.workerModel.route !== "live_default_worker") return null;
   const result = await invokeAutonomousWorker({ role, system: "", user }, { generatePlanInjected });
   document.usage.modelCalls += 1;
   recordWorkerInvocation(document, result);
@@ -965,7 +1010,12 @@ async function maybeInvokeWorker(
       at: new Date().toISOString(),
       kind: `worker_${role}`,
       summary: summary.slice(0, 400),
-      rationale: "Live default worker structured JSON (advisory; cannot mutate or approve).",
+      rationale:
+        role === "review"
+          ? "Live worker adversarial review; actionableDefects gate delivery via mergeWorkerAdversarialReview."
+          : "Live default worker structured JSON (advisory for non-review roles; cannot mutate or approve).",
     });
+    return result.parsed;
   }
+  return null;
 }

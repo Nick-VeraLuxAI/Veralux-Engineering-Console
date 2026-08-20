@@ -6,6 +6,60 @@ const CONTENT_REVIEW_BLOCKERS = [
   /AE_REVIEW_BLOCK/,
 ];
 
+/** Deterministic smells that block delivery when present in changed sources. */
+const ENGINEERING_QUALITY_PATTERNS: Array<{ id: string; pattern: RegExp; message: string }> = [
+  {
+    id: "empty_catch",
+    pattern: /catch\s*(?:\([^)]*\))?\s*\{\s*\}/m,
+    message: "Empty catch swallows errors; record failure or rethrow.",
+  },
+  {
+    id: "success_fallback_catch",
+    pattern: /catch\s*(?:\([^)]*\))?\s*\{\s*return\s+(?:true|null|undefined|\[\]|\{\})\s*;?\s*\}/m,
+    message: "Catch returns success/empty fallback; fail closed or surface the error.",
+  },
+  {
+    id: "silent_console_catch",
+    pattern: /catch\s*(?:\([^)]*\))?\s*\{\s*console\.(?:log|warn|error)\([^)]*\)\s*;?\s*\}/m,
+    message: "Catch only logs; persist a structured failure record for callers.",
+  },
+  {
+    id: "vitest_in_production",
+    pattern: /from\s+['"]vitest['"]|require\(['"]vitest['"]\)/,
+    message: "Production source imports vitest; keep vitest imports in *.test.* files only.",
+  },
+  {
+    id: "invalid_node_test_expect",
+    pattern: /import\s*\{[^}]*\bexpect\b[^}]*\}\s*from\s*['"]node:test['"]/,
+    message: "node:test does not export expect; use node:assert/strict (or Vitest only if package.json runs vitest).",
+  },
+  {
+    id: "workaround_stack",
+    pattern: /\/\/\s*(?:WORKAROUND|HACK|TEMP)\b/i,
+    message: "Workaround/HACK marker in delivery path; repair the underlying defect instead.",
+  },
+];
+
+function engineeringQualityDefects(fileContents: Record<string, string>): string[] {
+  const defects: string[] = [];
+  for (const [file, content] of Object.entries(fileContents)) {
+    if (!/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(file)) continue;
+    const isTest = file.includes(".test.") || file.includes("__tests__/");
+    for (const rule of ENGINEERING_QUALITY_PATTERNS) {
+      if (isTest && rule.id !== "invalid_node_test_expect" && rule.id !== "workaround_stack") {
+        continue;
+      }
+      if (!isTest && rule.id === "invalid_node_test_expect") {
+        continue;
+      }
+      if (rule.pattern.test(content)) {
+        defects.push(`${file}: ${rule.message}`);
+      }
+    }
+  }
+  return defects;
+}
+
 export function runAutonomousReviews(input: {
   document: AutonomousDocument;
   changedFiles: string[];
@@ -71,7 +125,53 @@ export function runAutonomousReviews(input: {
     actionableDefects: outOfScope.map((file) => `Out of authorized scope: ${file}`),
   };
 
-  return [requirements, diffQuality, regressionRisk, scope];
+  const qualityDefects = engineeringQualityDefects(input.fileContents ?? {});
+  const engineeringQuality: AutonomousReviewFinding = {
+    review: "engineering_quality",
+    passed: qualityDefects.length === 0,
+    findings:
+      qualityDefects.length === 0
+        ? ["No deterministic engineering-quality blockers in changed sources."]
+        : qualityDefects,
+    actionableDefects: qualityDefects,
+  };
+
+  return [requirements, diffQuality, regressionRisk, scope, engineeringQuality];
+}
+
+/** Merge live worker adversarial review defects into the authoritative review set. */
+export function mergeWorkerAdversarialReview(
+  reviews: AutonomousReviewFinding[],
+  worker: { passed?: unknown; findings?: unknown; actionableDefects?: unknown } | null,
+): AutonomousReviewFinding[] {
+  if (!worker || typeof worker.passed !== "boolean") return reviews;
+  const findings = Array.isArray(worker.findings)
+    ? worker.findings.filter((item): item is string => typeof item === "string")
+    : [];
+  const rawDefects = Array.isArray(worker.actionableDefects)
+    ? worker.actionableDefects.filter((item): item is string => typeof item === "string")
+    : [];
+  // Only gate on material engineering defects. Advisory perfectionism / invented product
+  // requirements become findings, not delivery blockers.
+  const materialDefects = rawDefects.filter((defect) => isMaterialAdversarialDefect(defect));
+  const advisory = rawDefects.filter((defect) => !isMaterialAdversarialDefect(defect));
+  const adversarial: AutonomousReviewFinding = {
+    review: "worker_adversarial",
+    passed: materialDefects.length === 0,
+    findings: [
+      ...findings,
+      ...advisory.map((defect) => `Advisory (non-blocking): ${defect}`),
+    ].filter(Boolean),
+    actionableDefects: materialDefects,
+  };
+  return [...reviews.filter((review) => review.review !== "worker_adversarial"), adversarial];
+}
+
+const MATERIAL_ADVERSARIAL =
+  /(?:\brace\b|lost update|double[- ](?:apply|exec|spend)|empty catch|success[- ]?fallback|fail open|swallowed(?:\s+error)?|silent (?:null|success|fail)|WORKAROUND|\bHACK\b|from ['"]vitest['"]|does not export expect|private key|AE_REVIEW_BLOCK|trust boundar|auth hole|partial mutat(?:ion)? without|N\+1(?:\s+query)?|sql inject|path traversal)/i;
+
+export function isMaterialAdversarialDefect(summary: string): boolean {
+  return MATERIAL_ADVERSARIAL.test(summary);
 }
 
 export function reviewsHaveActionableDefects(reviews: AutonomousReviewFinding[]): boolean {

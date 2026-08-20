@@ -35,6 +35,49 @@ export function listAuthorizedWorktreeFiles(
   return acc;
 }
 
+/** Bounded source snippets for planning — required to repair existing modules instead of guessing. */
+export function readAuthorizedWorktreeSnippets(
+  repoPath: string,
+  prefixes: string[],
+  options: { maxFiles?: number; maxBytesPerFile?: number; maxTotalBytes?: number } = {},
+): Array<{ path: string; content: string }> {
+  // Keep defaults small enough for ~8k-token local workers after prompts/overhead.
+  const maxFiles = options.maxFiles ?? 4;
+  const maxBytesPerFile = options.maxBytesPerFile ?? 1_800;
+  const maxTotalBytes = options.maxTotalBytes ?? 6_000;
+  const files = listAuthorizedWorktreeFiles(repoPath, prefixes, Math.max(maxFiles * 3, 24));
+  const snippets: Array<{ path: string; content: string }> = [];
+  let total = 0;
+  // Prefer smaller modules (easier to remediate) over giant orchestrators.
+  const ranked = files
+    .filter((relative) => /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(relative))
+    .filter((relative) => !/\.test\.(ts|tsx|js|jsx)$/.test(relative) && !relative.includes("__tests__/"))
+    .map((relative) => {
+      const absolute = path.join(repoPath, relative);
+      try {
+        return { relative, size: fs.statSync(absolute).size };
+      } catch {
+        return { relative, size: Number.MAX_SAFE_INTEGER };
+      }
+    })
+    .sort((a, b) => a.size - b.size)
+    .map((entry) => entry.relative);
+  for (const relative of ranked) {
+    if (snippets.length >= maxFiles || total >= maxTotalBytes) break;
+    const absolute = path.join(repoPath, relative);
+    try {
+      if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) continue;
+      const raw = fs.readFileSync(absolute, "utf8");
+      const content = raw.slice(0, Math.min(maxBytesPerFile, maxTotalBytes - total));
+      snippets.push({ path: relative, content });
+      total += content.length;
+    } catch {
+      // Skip unreadable paths; planning still receives the path list.
+    }
+  }
+  return snippets;
+}
+
 /**
  * Live models often pick create vs update incorrectly. Coerce to the worktree
  * without weakening the worker-plan schema: operations stay typed and validated.
