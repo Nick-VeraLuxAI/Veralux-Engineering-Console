@@ -25,14 +25,19 @@ import {
   detectFailureSignaturesInPlan,
   detectFailureSignaturesInText,
   ensureFailureSignatureHistory,
+  findSymbolDependencyNeighborhood,
   formatSubjectCallModeBlock,
   formatTestExemplarBlock,
+  formatUnboundDependencyHint,
+  findProductionFilesUsingUnboundSymbol,
   mergeStructuredDiagnosis,
+  parseUnboundIdentifierFindings,
   readAuthorizedTestExemplars,
   readRepoTestGroundingFacts,
   readSubjectCallModes,
   recordFailureSignatures,
   shouldBlockRepeatedHarnessStrategy,
+  shouldBlockTestThrashWhileProductionUnbound,
   sliceOwnedFailureEvidence,
   validateChangedTestHarness,
   validatePlanHarnessGuards,
@@ -166,12 +171,32 @@ async function generatePlanForIteration(
     qcObservations: document.qcObservations,
     failureSignatures: ensureFailureSignatureHistory(document),
   });
+  const diagnosisEvidence = [
+    document.diagnosis?.evidence_quote_or_signature,
+    document.diagnosis?.whyPreviousFailed,
+    document.diagnosis?.observed_failure,
+    document.qcObservations[document.qcObservations.length - 1]?.summary,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const unboundFindings = parseUnboundIdentifierFindings(diagnosisEvidence);
+  const primaryUnbound = unboundFindings.find((u) => !u.isHookGlobal);
+  const dependencyNeighborhood = primaryUnbound
+    ? findSymbolDependencyNeighborhood(
+        repoPath,
+        document.authorizedPathPrefixes,
+        primaryUnbound.symbol,
+      )
+    : null;
+  const unboundHint = formatUnboundDependencyHint(unboundFindings, dependencyNeighborhood);
 
   if (document.workerModel?.route === "live_default_worker") {
     const existingFiles = listAuthorizedWorktreeFiles(repoPath, document.authorizedPathPrefixes);
     const snippets = readAuthorizedWorktreeSnippets(repoPath, document.authorizedPathPrefixes);
     const focusPaths = [
       ...(document.diagnosis?.filesToInspect ?? []),
+      ...(primaryUnbound?.productionFiles ?? []),
+      ...(dependencyNeighborhood?.candidateModules ?? []),
       ...existingFiles.filter((file) => /\.(js|ts|mjs|cjs)$/.test(file)).slice(0, 4),
     ];
     const exemplars = readAuthorizedTestExemplars(repoPath, document.authorizedPathPrefixes, {
@@ -211,11 +236,13 @@ async function generatePlanForIteration(
             grounding.factsBlock,
             formatSubjectCallModeBlock(subjectModes),
             priorDigest,
+            unboundHint,
             "Use update_file for paths that already exist and create_file only for new paths. Include complete file contents.",
             "When acceptance criteria require removing unused dead helpers/shims and the path is authorized/safe, include delete_file with a non-empty reason (content may be empty). Do not delete unrelated files.",
             "When authorized existing modules are defective, incomplete, or unsafe, repair them with update_file (complete corrected contents). Do not stack WORKAROUND/HACK conditionals or silent catch fallbacks. Prefer create_file only for genuinely new helpers/tests. Do not rewrite or append to unrelated large modules. Pre-existing Super/AirLLM QC failures are out of scope.",
             "Match the existing test runner from package.json scripts. If test uses node --test / node:test, write ONLY: import test from 'node:test'; import assert from 'node:assert/strict'; and use test('name', () => { assert.equal(...) }). Do NOT import expect/describe/it from 'node:test' (those exports are invalid). Use Vitest only when package.json already runs vitest. Never import vitest from non-test production sources.",
             "For negative-path tests: sync subjects → assert.throws(() => ...); async/Promise subjects → await assert.rejects(async () => ...). Read subject call modes above before writing reject/throw tests.",
+            "If QC shows ReferenceError '<name> is not defined' with a stack frame in a non-test src file, import or define that name in the production file first. Sibling modules under the authorized prefix may already export it — wire the import; do not only add a test fixture.",
             "Include happy, negative, and failure-path coverage the objective implies. If a test expectation conflicts with correct fail-closed behavior, fix the test.",
             `Investigation: ${document.observations.map((obs) => obs.summary).join("\n").slice(0, 2500)}`,
             `Authorized source snippets (read these before mutating):\n${snippetBlock}`,
@@ -649,6 +676,41 @@ export async function executeAutonomousLoop(
             planRepairKind: "harness_incompat" as const,
           });
         }
+        const thrashEvidence = [
+          document.diagnosis?.evidence_quote_or_signature,
+          document.diagnosis?.whyPreviousFailed,
+          document.diagnosis?.observed_failure,
+        ]
+          .filter(Boolean)
+          .join("\n");
+        const thrashUnbound = parseUnboundIdentifierFindings(thrashEvidence);
+        const thrashPrimary = thrashUnbound.find((u) => !u.isHookGlobal);
+        const thrashNeighborhood = thrashPrimary
+          ? findSymbolDependencyNeighborhood(
+              repoPath,
+              document.authorizedPathPrefixes,
+              thrashPrimary.symbol,
+            )
+          : null;
+        const productionStillUnbound = thrashPrimary
+          ? findProductionFilesUsingUnboundSymbol(
+              repoPath,
+              document.authorizedPathPrefixes,
+              thrashPrimary.symbol,
+            )
+          : [];
+        const thrashBlock = shouldBlockTestThrashWhileProductionUnbound({
+          plan,
+          unbound: thrashUnbound,
+          neighborhood: thrashNeighborhood,
+          productionFilesStillUnbound: productionStillUnbound,
+        });
+        if (thrashBlock.block) {
+          throw Object.assign(new Error(thrashBlock.message), {
+            failureClass: "VALIDATION_FAILURE" as const,
+            planRepairKind: "harness_incompat" as const,
+          });
+        }
         const escaped = (plan.operations ?? []).filter(
           (op) => !isPathAuthorized(document.authorityEnvelope, op.path),
         );
@@ -1000,6 +1062,7 @@ export async function executeAutonomousLoop(
           failureClass,
           qcSummary: harnessSummary,
           evidenceText: harnessSummary,
+          repoPath,
         });
         await invokeEvidenceGroundedDiagnosis(
           document,
@@ -1007,6 +1070,7 @@ export async function executeAutonomousLoop(
           harnessSummary,
           harnessSummary,
           Boolean(deps.generatePlan),
+          repoPath,
         );
         auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
           iteration: document.iterationNumber,
@@ -1048,6 +1112,7 @@ export async function executeAutonomousLoop(
           failureClass,
           qcSummary,
           evidenceText: ownedEvidence,
+          repoPath,
         });
         await invokeEvidenceGroundedDiagnosis(
           document,
@@ -1055,6 +1120,7 @@ export async function executeAutonomousLoop(
           qcSummary,
           ownedEvidence,
           Boolean(deps.generatePlan),
+          repoPath,
         );
         auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
           iteration: document.iterationNumber,
@@ -1357,17 +1423,26 @@ async function invokeEvidenceGroundedDiagnosis(
   qcSummary: string,
   ownedEvidence: string,
   generatePlanInjected: boolean,
+  repoPath?: string,
 ): Promise<void> {
+  const unbound = parseUnboundIdentifierFindings(ownedEvidence).filter((u) => !u.isHookGlobal);
+  const neighborhood =
+    repoPath && unbound[0]
+      ? findSymbolDependencyNeighborhood(repoPath, document.authorizedPathPrefixes, unbound[0].symbol)
+      : null;
+  const unboundHint = formatUnboundDependencyHint(unbound, neighborhood);
   const prompt = [
     `Failure class: ${failureClass}`,
     qcSummary,
     `Owned QC evidence (quote from this; do not invent Vitest expect if absent):\n${ownedEvidence}`,
+    unboundHint,
     "Output structured diagnosis fields. Match the supplied QC evidence exactly.",
     "Do not rewrite large existing modules. Add or repair a small helper. Pre-existing failures are out of scope.",
     "If evidence mentions node:test does not provide export named 'expect', rewrite tests to: import test from 'node:test'; import assert from 'node:assert/strict' (no expect).",
     "If evidence mentions assert.throwsAsync is not a function, use await assert.rejects(async () => ...) for async subjects.",
     "If evidence shows assert.rejects / Function.rejects with a synchronous subject TypeError (TEST_ASSERTION_MODE_MISMATCH), switch to assert.throws(() => ...).",
     "If evidence mentions require is not defined in ES module scope, use import — never require() in type:module packages.",
+    "If evidence shows ReferenceError '<name> is not defined' with a stack frame in a non-test production file, the primary fix is importing/defining that name in the production file — not adding a test-only fixture, and not rewriting beforeEach while production remains unbound.",
   ].join("\n");
 
   const parsed = await maybeInvokeWorker(document, "diagnosis", prompt, generatePlanInjected);
@@ -1397,6 +1472,7 @@ async function invokeEvidenceGroundedDiagnosis(
       failureClass,
       qcSummary,
       evidenceText: ownedEvidence,
+      repoPath,
     });
     document.diagnosis = {
       ...deterministic,

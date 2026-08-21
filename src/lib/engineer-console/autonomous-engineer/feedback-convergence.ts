@@ -22,9 +22,41 @@ export const FAILURE_SIGNATURES = [
   "LITERAL_ESCAPED_NEWLINES",
   "INVENTED_TEST_RUNNER_API",
   "TEST_ASSERTION_MODE_MISMATCH",
+  /** Production (or non-hook) identifier referenced but not defined/imported. */
+  "UNBOUND_IDENTIFIER",
 ] as const;
 
 export type FailureSignature = (typeof FAILURE_SIGNATURES)[number];
+
+/** Test-runner / assertion globals — not treated as missing module imports. */
+const HOOK_OR_RUNNER_GLOBALS = new Set([
+  "beforeEach",
+  "afterEach",
+  "beforeAll",
+  "afterAll",
+  "describe",
+  "it",
+  "expect",
+  "test",
+  "vi",
+  "jest",
+]);
+
+export interface UnboundIdentifierFinding {
+  symbol: string;
+  productionFiles: string[];
+  testFiles: string[];
+  /** Prefer first production stack frame; else first test frame. */
+  primaryFile: string | null;
+  isHookGlobal: boolean;
+  evidenceQuote: string;
+}
+
+export interface DependencyNeighborhood {
+  symbol: string;
+  candidateModules: string[];
+  hint: string;
+}
 
 export interface RepoTestGroundingFacts {
   moduleType: "module" | "commonjs" | "unknown";
@@ -77,9 +109,282 @@ export interface HarnessGuardFinding {
 
 const TEST_PATH_RE = /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs)$|\/__tests__\//;
 const EVIDENCE_SLICE_CHARS = 520;
+/** Keep enough room for ReferenceError + stack frames past TAP location noise. */
+const EVIDENCE_UNBOUND_SLICE_CHARS = 900;
 
 function isTestPath(relative: string): boolean {
   return TEST_PATH_RE.test(relative) || relative.includes("__tests__/");
+}
+
+function normalizeEvidencePath(raw: string): string | null {
+  let cleaned = raw.replace(/\\/g, "/");
+  const fileUrl = cleaned.match(/file:\/\/\/?(.+\.(?:js|mjs|cjs|ts|tsx|jsx))/i);
+  if (fileUrl) cleaned = fileUrl[1];
+  const srcIdx = cleaned.search(/(?:^|\/)(src\/\S+\.(?:js|mjs|cjs|ts|tsx|jsx))/i);
+  if (srcIdx >= 0) {
+    const match = cleaned.slice(srcIdx).match(/src\/\S+\.(?:js|mjs|cjs|ts|tsx|jsx)/i);
+    return match ? match[0].replace(/^\//, "") : null;
+  }
+  const bare = cleaned.match(/([\w./-]+\.(?:js|mjs|cjs|ts|tsx|jsx))/);
+  return bare ? bare[1].replace(/^\.\//, "") : null;
+}
+
+/**
+ * Parse ReferenceError / "is not defined" failures and attribute stack frames
+ * to production vs test files (primary causal file prefers production).
+ */
+export function parseUnboundIdentifierFindings(evidenceText: string): UnboundIdentifierFinding[] {
+  const text = evidenceText || "";
+  if (!text) return [];
+  const findings: UnboundIdentifierFinding[] = [];
+  const seen = new Set<string>();
+
+  const patterns: RegExp[] = [
+    /ReferenceError:\s*([A-Za-z_$][\w$]*)\s+is not defined/g,
+    /(?:error|Error):\s*['"]([A-Za-z_$][\w$]*)\s+is not defined['"]/g,
+    /\b([A-Za-z_$][\w$]*)\s+is not defined\b/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(text)) !== null) {
+      const symbol = match[1];
+      if (!symbol || seen.has(symbol)) continue;
+      // Skip noise tokens from prose.
+      if (["Error", "TypeError", "RangeError", "undefined", "null"].includes(symbol)) continue;
+      seen.add(symbol);
+
+      const aroundStart = Math.max(0, match.index - 80);
+      const aroundEnd = Math.min(text.length, match.index + 700);
+      const window = text.slice(aroundStart, aroundEnd);
+      const productionFiles: string[] = [];
+      const testFiles: string[] = [];
+      for (const frame of window.matchAll(
+        /(?:at\s+\S+\s+\()?((?:file:\/\/\/?)?[^\s)]+\.(?:js|mjs|cjs|ts|tsx|jsx)):(\d+)/g,
+      )) {
+        const normalized = normalizeEvidencePath(frame[1]);
+        if (!normalized) continue;
+        if (isTestPath(normalized)) {
+          if (!testFiles.includes(normalized)) testFiles.push(normalized);
+        } else if (!productionFiles.includes(normalized)) {
+          productionFiles.push(normalized);
+        }
+      }
+      // TAP location lines without "at".
+      for (const loc of window.matchAll(
+        /(?:location|file):\s*['"]?((?:file:\/\/\/?)?[^\s'"]+\.(?:js|mjs|cjs|ts|tsx|jsx))/gi,
+      )) {
+        const normalized = normalizeEvidencePath(loc[1]);
+        if (!normalized) continue;
+        if (isTestPath(normalized)) {
+          if (!testFiles.includes(normalized)) testFiles.push(normalized);
+        } else if (!productionFiles.includes(normalized)) {
+          productionFiles.push(normalized);
+        }
+      }
+
+      findings.push({
+        symbol,
+        productionFiles,
+        testFiles,
+        primaryFile: productionFiles[0] ?? testFiles[0] ?? null,
+        isHookGlobal: HOOK_OR_RUNNER_GLOBALS.has(symbol),
+        evidenceQuote: window.slice(0, 280),
+      });
+    }
+  }
+  return findings;
+}
+
+/** Scan authorized production sources for uses of an unbound symbol without a local binding/import. */
+export function findProductionFilesUsingUnboundSymbol(
+  repoPath: string,
+  prefixes: string[],
+  symbol: string,
+): string[] {
+  const hits: string[] = [];
+  const files = listAuthorizedWorktreeFiles(repoPath, prefixes, 48).filter(
+    (relative) => /\.(js|mjs|cjs|ts)$/.test(relative) && !isTestPath(relative),
+  );
+  for (const relative of files) {
+    try {
+      const content = fs.readFileSync(path.join(repoPath, relative), "utf8");
+      const used =
+        new RegExp(String.raw`\b${symbol}\s*\.`).test(content) ||
+        new RegExp(String.raw`\b${symbol}\s*\(`).test(content);
+      if (!used) continue;
+      const definedOrImported =
+        new RegExp(String.raw`\bimport\b[^;]*\b${symbol}\b`).test(content) ||
+        new RegExp(String.raw`from\s+['"][^'"]*${symbol}[^'"]*['"]`).test(content) ||
+        new RegExp(String.raw`\b(?:const|let|var|function|class)\s+${symbol}\b`).test(content);
+      if (!definedOrImported) hits.push(relative);
+    } catch {
+      // skip
+    }
+  }
+  return hits;
+}
+
+/** Bounded sibling-module neighborhood for an unbound symbol (no hard-coded names). */
+export function findSymbolDependencyNeighborhood(
+  repoPath: string,
+  prefixes: string[],
+  symbol: string,
+  options: { maxCandidates?: number } = {},
+): DependencyNeighborhood {
+  const maxCandidates = options.maxCandidates ?? 4;
+  const candidates: string[] = [];
+  const files = listAuthorizedWorktreeFiles(repoPath, prefixes, 64).filter(
+    (relative) => /\.(js|mjs|cjs|ts)$/.test(relative) && !isTestPath(relative),
+  );
+  const lower = symbol.toLowerCase();
+  for (const relative of files) {
+    const base = path.basename(relative).replace(/\.(js|mjs|cjs|ts)$/, "");
+    if (base.toLowerCase() === lower || base.toLowerCase().includes(lower)) {
+      candidates.push(relative);
+      continue;
+    }
+    try {
+      const content = fs.readFileSync(path.join(repoPath, relative), "utf8");
+      const exportsSymbol =
+        new RegExp(String.raw`export\s+(?:default\s+)?(?:const|let|var|function|class)\s+${symbol}\b`).test(
+          content,
+        ) ||
+        new RegExp(String.raw`export\s*\{[^}]*\b${symbol}\b`).test(content) ||
+        (base.toLowerCase() === lower && /export\s+default\b/.test(content));
+      if (exportsSymbol) candidates.push(relative);
+    } catch {
+      // skip
+    }
+    if (candidates.length >= maxCandidates) break;
+  }
+  const unique = [...new Set(candidates)].slice(0, maxCandidates);
+  const hint =
+    unique.length > 0
+      ? `Unbound '${symbol}' — sibling module candidate(s): ${unique.join(", ")}. Import or wire that dependency in the production file from the stack; do not only add a test fixture.`
+      : `Unbound '${symbol}' — no sibling module found; define it in the production file from the stack (or import the correct module). Do not thrash test hooks while this production ReferenceError persists.`;
+  return { symbol, candidateModules: unique, hint };
+}
+
+/**
+ * Prefer production UNBOUND_IDENTIFIER over hook thrash when both appear.
+ * Hook-only unbound (beforeEach) still yields VITEST_HOOK_UNDER_NODE_TEST.
+ */
+export function prioritizeFailureSignatures(
+  signatures: FailureSignature[],
+  unbound: UnboundIdentifierFinding[],
+): FailureSignature[] {
+  const productionUnbound = unbound.filter((u) => !u.isHookGlobal);
+  const ordered: FailureSignature[] = [];
+  if (productionUnbound.length > 0) {
+    ordered.push("UNBOUND_IDENTIFIER");
+  }
+  for (const sig of signatures) {
+    if (sig === "UNBOUND_IDENTIFIER") continue;
+    // Defer hook thrash when a production unbound identifier is the primary causal failure.
+    if (sig === "VITEST_HOOK_UNDER_NODE_TEST" && productionUnbound.length > 0) continue;
+    if (!ordered.includes(sig)) ordered.push(sig);
+  }
+  if (productionUnbound.length === 0 && signatures.includes("VITEST_HOOK_UNDER_NODE_TEST")) {
+    if (!ordered.includes("VITEST_HOOK_UNDER_NODE_TEST")) ordered.push("VITEST_HOOK_UNDER_NODE_TEST");
+  }
+  if (productionUnbound.length > 0 && !ordered.includes("UNBOUND_IDENTIFIER")) {
+    ordered.unshift("UNBOUND_IDENTIFIER");
+  }
+  return ordered.length > 0 ? ordered : signatures;
+}
+
+/**
+ * Block test-hook rewrites when a production unbound ReferenceError is still open
+ * and the plan does not touch the implicated production file / dependency.
+ */
+export function shouldBlockTestThrashWhileProductionUnbound(input: {
+  plan: WorkerPlan;
+  unbound: UnboundIdentifierFinding[];
+  neighborhood?: DependencyNeighborhood | null;
+  /** Extra production files known to still reference the unbound symbol. */
+  productionFilesStillUnbound?: string[];
+}): { block: boolean; message: string } {
+  const productionHits = input.unbound.filter((u) => !u.isHookGlobal);
+  if (productionHits.length === 0 && !(input.productionFilesStillUnbound?.length)) {
+    return { block: false, message: "" };
+  }
+
+  const ops = input.plan.operations ?? [];
+  if (ops.length === 0) return { block: false, message: "" };
+
+  const mutated = ops.map((op) => op.path.replace(/\\/g, "/"));
+  const onlyTests = mutated.every((p) => isTestPath(p));
+  const touchesHooks = ops.some((op) => {
+    const content = op.content ?? "";
+    return (
+      isTestPath(op.path) &&
+      (/\bbeforeEach\b/.test(content) ||
+        /\bafterEach\b/.test(content) ||
+        /test\.beforeEach/.test(content) ||
+        /from\s+['"]node:test['"]/.test(content))
+    );
+  });
+
+  const mustTouch = new Set<string>([
+    ...productionHits.flatMap((h) => h.productionFiles),
+    ...(input.productionFilesStillUnbound ?? []),
+  ]);
+  if (mustTouch.size === 0 && productionHits[0]?.primaryFile) {
+    mustTouch.add(productionHits[0].primaryFile);
+  }
+
+  const symbols = [
+    ...productionHits.map((h) => h.symbol),
+    ...(input.neighborhood ? [input.neighborhood.symbol] : []),
+  ];
+  const uniqueSymbols = [...new Set(symbols.filter(Boolean))];
+
+  const touchesProductionFix = ops.some((op) => {
+    const p = op.path.replace(/\\/g, "/");
+    if (isTestPath(p)) return false;
+    const content = op.content ?? "";
+    const pathRelevant =
+      mustTouch.size === 0 ||
+      [...mustTouch].some((file) => p === file || p.endsWith(file) || file.endsWith(p));
+    if (!pathRelevant && mustTouch.size > 0) return false;
+    return uniqueSymbols.some(
+      (sym) =>
+        new RegExp(String.raw`\bimport\b[^;]*\b${sym}\b`).test(content) ||
+        new RegExp(String.raw`\b(?:const|let|var|function|class)\s+${sym}\b`).test(content) ||
+        new RegExp(String.raw`from\s+['"][^'"]*${sym}[^'"]*['"]`).test(content),
+    );
+  });
+
+  if (onlyTests && touchesHooks && !touchesProductionFix && (mustTouch.size > 0 || uniqueSymbols.length > 0)) {
+    const sym = uniqueSymbols[0] ?? productionHits[0]?.symbol ?? "identifier";
+    const files = [...mustTouch].join(", ") || "(production source)";
+    return {
+      block: true,
+      message: `TEST_THRASH_GUARD: production ReferenceError '${sym} is not defined' in ${files} is still open; do not rewrite beforeEach/test hooks until the production file imports or defines '${sym}'.`,
+    };
+  }
+  return { block: false, message: "" };
+}
+
+export function formatUnboundDependencyHint(
+  unbound: UnboundIdentifierFinding[],
+  neighborhood: DependencyNeighborhood | null,
+): string {
+  const production = unbound.filter((u) => !u.isHookGlobal);
+  if (production.length === 0) return "";
+  const primary = production[0];
+  const lines = [
+    `Primary causal unbound identifier: '${primary.symbol}'`,
+    primary.primaryFile ? `Primary file (prefer production stack): ${primary.primaryFile}` : "",
+    primary.productionFiles.length
+      ? `Production stack files: ${primary.productionFiles.join(", ")}`
+      : "",
+    neighborhood?.hint ?? "",
+    "Do not treat this as a missing test fixture alone when the stack points at production source.",
+    "Do not rewrite beforeEach/lifecycle hooks while this production ReferenceError remains.",
+  ];
+  return lines.filter(Boolean).join("\n");
 }
 
 export function readRepoTestGroundingFacts(repoPath: string): RepoTestGroundingFacts {
@@ -332,6 +637,11 @@ export function sliceOwnedFailureEvidence(
   return items
     .map((item) => {
       const raw = item.identity.rawEvidence ?? "";
+      const unbound = parseUnboundIdentifierFindingBlocks(raw);
+      if (unbound) {
+        const slice = unbound.slice(0, Math.max(maxChars, EVIDENCE_UNBOUND_SLICE_CHARS));
+        return `${item.identity.name} :: ${slice}`;
+      }
       // Prefer lines with TypeError/ReferenceError/FAIL/file:line over noise.
       const preferred =
         raw
@@ -346,6 +656,31 @@ export function sliceOwnedFailureEvidence(
       return `${item.identity.name} :: ${slice}`;
     })
     .join("\n---\n");
+}
+
+/** Prefer ReferenceError blocks that include stack frames (production before TAP location-only). */
+function parseUnboundIdentifierFindingBlocks(raw: string): string | null {
+  if (!/is not defined|ReferenceError/i.test(raw)) return null;
+  const chunks: string[] = [];
+  const lines = raw.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    if (!/is not defined|ReferenceError/i.test(lines[i])) continue;
+    const block = lines.slice(Math.max(0, i - 2), Math.min(lines.length, i + 12)).join("\n");
+    chunks.push(block);
+  }
+  if (chunks.length === 0) return null;
+  // Prefer blocks that mention a non-test src/ frame.
+  chunks.sort((a, b) => {
+    const score = (text: string) => {
+      let s = 0;
+      if (/src\/\S+\.(?:js|ts)/.test(text) && !/\.test\.|\.spec\./.test(text)) s += 5;
+      if (/ReferenceError/.test(text)) s += 2;
+      if (/beforeEach|afterEach/.test(text)) s -= 1;
+      return s;
+    };
+    return score(b) - score(a);
+  });
+  return chunks.join("\n---\n");
 }
 
 export function detectFailureSignaturesInText(text: string): FailureSignature[] {
@@ -372,7 +707,17 @@ export function detectFailureSignaturesInText(text: string): FailureSignature[] 
   if (detectAssertionModeMismatchInEvidence(text)) {
     found.add("TEST_ASSERTION_MODE_MISMATCH");
   }
-  return [...found];
+
+  const unbound = parseUnboundIdentifierFindings(text);
+  if (unbound.some((u) => !u.isHookGlobal)) {
+    found.add("UNBOUND_IDENTIFIER");
+  }
+  // Hook-global ReferenceError under node:test is the vitest-hook class.
+  if (unbound.some((u) => u.isHookGlobal) && /node --test|node:test|ReferenceError/.test(text)) {
+    found.add("VITEST_HOOK_UNDER_NODE_TEST");
+  }
+
+  return prioritizeFailureSignatures([...found], unbound);
 }
 
 export function detectFailureSignaturesInPlan(
@@ -663,19 +1008,39 @@ export function buildDeterministicDiagnosisFromEvidence(input: {
   qcSummary?: string;
   failedHypothesis?: string;
   signatures?: FailureSignature[];
+  dependencyNeighborhood?: DependencyNeighborhood | null;
 }): DiagnosisResult & StructuredDiagnosisFields {
-  const evidence = input.evidenceText.slice(0, EVIDENCE_SLICE_CHARS) || input.qcSummary || "QC failed";
-  const signatures = input.signatures?.length
-    ? input.signatures
-    : detectFailureSignaturesInText(evidence);
+  const evidence = input.evidenceText.slice(0, EVIDENCE_UNBOUND_SLICE_CHARS) || input.qcSummary || "QC failed";
+  const unbound = parseUnboundIdentifierFindings(input.evidenceText || evidence);
+  const signatures = prioritizeFailureSignatures(
+    input.signatures?.length ? input.signatures : detectFailureSignaturesInText(evidence),
+    unbound,
+  );
   const primary = signatures[0];
+  const productionUnbound = unbound.find((u) => !u.isHookGlobal);
 
   let hypothesis = "Owned QC failure; repair to match package.json test runner and fail-closed production behavior.";
   let strategy =
     "Re-read package.json scripts and authorized test exemplars; fix the defect shown in QC evidence; add regression coverage.";
   let avoid = "Do not invent Vitest expect narratives unsupported by QC evidence.";
+  let affected = /src\/\S+\.(?:js|mjs|cjs|ts|tsx|jsx)/.exec(evidence)?.[0] ?? "npm test";
+  // Prefer production stack file over first TAP test location.
+  if (productionUnbound?.primaryFile) {
+    affected = productionUnbound.primaryFile;
+  }
 
-  if (primary === "ESM_REQUIRE_USAGE") {
+  if (primary === "UNBOUND_IDENTIFIER" && productionUnbound) {
+    const neigh = input.dependencyNeighborhood;
+    hypothesis = `Unbound identifier '${productionUnbound.symbol}' referenced in ${productionUnbound.primaryFile ?? "production source"} without a local definition or import.`;
+    strategy = [
+      `Wire '${productionUnbound.symbol}' in the production file from the stack (${productionUnbound.productionFiles.join(", ") || productionUnbound.primaryFile || "src/…"}): import the sibling module or define it locally.`,
+      neigh?.candidateModules.length
+        ? `Likely dependency neighborhood: ${neigh.candidateModules.join(", ")}.`
+        : "Search authorized sibling modules for an export matching the unbound symbol.",
+      "Do not only add a test fixture/mock. Do not rewrite beforeEach/test lifecycle hooks until the production ReferenceError is closed.",
+    ].join(" ");
+    avoid = `Do not thrash test hooks or add test-only fixtures while '${productionUnbound.symbol}' remains unbound in production`;
+  } else if (primary === "ESM_REQUIRE_USAGE") {
     hypothesis = "Tests or sources used require() under type:module ESM.";
     strategy = "Rewrite tests with import; never reintroduce require() in ESM packages.";
     avoid = "require() in ESM tests";
@@ -693,18 +1058,33 @@ export function buildDeterministicDiagnosisFromEvidence(input: {
     hypothesis = "Imported expect from node:test (unsupported).";
     strategy = "Use import test from 'node:test'; import assert from 'node:assert/strict'.";
     avoid = "expect from node:test";
+  } else if (primary === "VITEST_HOOK_UNDER_NODE_TEST") {
+    hypothesis = "Test used Vitest/Jest lifecycle globals under node:test without proper imports.";
+    strategy =
+      "Use import test from 'node:test' and test.beforeEach / test.afterEach (or drop hooks). Prefer fixing production ReferenceErrors first when stacks point at src non-test files.";
+    avoid = "bare beforeEach/afterEach under node --test";
   }
 
   const structured: StructuredDiagnosisFields = {
-    observed_failure: input.qcSummary || evidence.slice(0, 200),
-    evidence_quote_or_signature: evidence.slice(0, 280),
-    affected_file_or_gate: /src\/\S+/.exec(evidence)?.[0] ?? "npm test",
+    observed_failure:
+      productionUnbound && primary === "UNBOUND_IDENTIFIER"
+        ? `ReferenceError: ${productionUnbound.symbol} is not defined`
+        : input.qcSummary || evidence.slice(0, 200),
+    evidence_quote_or_signature:
+      productionUnbound?.evidenceQuote?.slice(0, 280) || evidence.slice(0, 280),
+    affected_file_or_gate: affected,
     root_cause_hypothesis: hypothesis,
     confidence: primary ? "high" : "medium",
     contradictory_evidence: "(none — deterministic summary from QC)",
     recommended_strategy_change: strategy,
     avoid_repeating: avoid,
   };
+
+  const filesToInspect = [
+    ...(structured.affected_file_or_gate !== "npm test" ? [structured.affected_file_or_gate] : []),
+    ...(productionUnbound?.productionFiles ?? []),
+    ...(input.dependencyNeighborhood?.candidateModules ?? []),
+  ];
 
   return {
     advisory: true,
@@ -713,7 +1093,7 @@ export function buildDeterministicDiagnosisFromEvidence(input: {
     failedHypothesis: input.failedHypothesis ?? "Previous change did not meet acceptance.",
     whyPreviousFailed: `${structured.observed_failure} | evidence: ${structured.evidence_quote_or_signature}`,
     suggestedStrategy: strategy,
-    filesToInspect: structured.affected_file_or_gate !== "npm test" ? [structured.affected_file_or_gate] : [],
+    filesToInspect: [...new Set(filesToInspect)].slice(0, 12),
     doNotMutate: true,
     ...structured,
   };

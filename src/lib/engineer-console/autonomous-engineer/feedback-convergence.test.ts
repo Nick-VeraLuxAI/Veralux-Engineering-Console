@@ -3,13 +3,18 @@ import os from "os";
 import path from "path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  buildDeterministicDiagnosisFromEvidence,
   buildPriorAttemptDigest,
   checkDiagnosisConsistency,
+  detectFailureSignaturesInText,
+  findSymbolDependencyNeighborhood,
+  parseUnboundIdentifierFindings,
   readAuthorizedTestExemplars,
   readRepoTestGroundingFacts,
   recordFailureSignatures,
   repeatedFailureWarningLevel,
   shouldBlockRepeatedHarnessStrategy,
+  shouldBlockTestThrashWhileProductionUnbound,
   validatePlanHarnessGuards,
   type FailureSignatureRecord,
 } from "./feedback-convergence";
@@ -195,5 +200,116 @@ describe("WP6/WP7 — fast harness guards", () => {
     const findings = validatePlanHarnessGuards(plan, facts);
     expect(findings.some((f) => f.signature === "ESM_REQUIRE_USAGE")).toBe(true);
     expect(findings.some((f) => f.signature === "INVALID_NODE_ASSERT_API")).toBe(true);
+  });
+});
+
+describe("Q1 — unbound identifier / dependency neighborhood / test thrash", () => {
+  it("attributes ReferenceError store to production stack and finds sibling module", () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ae-unbound-"));
+    write(tmp, "package.json", JSON.stringify({ type: "module", scripts: { test: "node --test src/ratelimit/rate.test.js" } }));
+    write(
+      tmp,
+      "src/ratelimit/rate.js",
+      "export function isAllowed(key) { return store.get(key); }\n",
+    );
+    write(
+      tmp,
+      "src/ratelimit/store.js",
+      "const store = new Map();\nexport default { get(k){return store.get(k);} set(k,v){store.set(k,v);} };\n",
+    );
+
+    const evidence = [
+      "node --test src/ratelimit/rate.test.js",
+      "error: 'store is not defined'",
+      "name: 'ReferenceError'",
+      "stack: |-",
+      "  isAllowed (file:///tmp/x/src/ratelimit/rate.js:14:18)",
+      "  TestContext.<anonymous> (file:///tmp/x/src/ratelimit/rate.test.js:11:18)",
+    ].join("\n");
+
+    const unbound = parseUnboundIdentifierFindings(evidence);
+    expect(unbound.some((u) => u.symbol === "store" && !u.isHookGlobal)).toBe(true);
+    expect(unbound[0].productionFiles.some((f) => f.includes("rate.js"))).toBe(true);
+
+    const sigs = detectFailureSignaturesInText(evidence);
+    expect(sigs[0]).toBe("UNBOUND_IDENTIFIER");
+
+    const neighborhood = findSymbolDependencyNeighborhood(tmp, ["src/ratelimit/"], "store");
+    expect(neighborhood.candidateModules.some((c) => c.includes("store.js"))).toBe(true);
+
+    const diagnosis = buildDeterministicDiagnosisFromEvidence({
+      failureClass: "ENGINEERING_FAILURE",
+      evidenceText: evidence,
+      dependencyNeighborhood: neighborhood,
+    });
+    expect(diagnosis.affected_file_or_gate).toMatch(/rate\.js/);
+    expect(diagnosis.suggestedStrategy).toMatch(/import|Wire/i);
+    expect(diagnosis.suggestedStrategy).toMatch(/Do not only add a test fixture/i);
+    expect(diagnosis.filesToInspect.some((f) => f.includes("rate.js"))).toBe(true);
+  });
+
+  it("blocks test-hook thrash while production unbound ReferenceError remains", () => {
+    const evidence = [
+      "ReferenceError: cache is not defined",
+      "isAllowed (file:///x/src/quota/quota.js:10:5)",
+      "TestContext (file:///x/src/quota/quota.test.js:4:1)",
+    ].join("\n");
+    const unbound = parseUnboundIdentifierFindings(evidence);
+    const plan: WorkerPlan = {
+      runId: "r1",
+      summary: "rewrite beforeEach",
+      allowedFiles: ["src/quota/quota.test.js"],
+      operations: [
+        {
+          type: "update_file",
+          path: "src/quota/quota.test.js",
+          content:
+            "import test from 'node:test';\ntest.beforeEach(() => {});\ntest('x', () => {});\n",
+          reason: "hooks",
+        },
+      ],
+    };
+    const blocked = shouldBlockTestThrashWhileProductionUnbound({
+      plan,
+      unbound,
+      productionFilesStillUnbound: ["src/quota/quota.js"],
+    });
+    expect(blocked.block).toBe(true);
+    expect(blocked.message).toMatch(/TEST_THRASH_GUARD/);
+  });
+
+  it("does not block when production file imports the unbound symbol", () => {
+    const evidence = "ReferenceError: cache is not defined\nisAllowed (file:///x/src/quota/quota.js:10:5)";
+    const unbound = parseUnboundIdentifierFindings(evidence);
+    const plan: WorkerPlan = {
+      runId: "r1",
+      summary: "wire import",
+      allowedFiles: ["src/quota/quota.js", "src/quota/quota.test.js"],
+      operations: [
+        {
+          type: "update_file",
+          path: "src/quota/quota.js",
+          content: "import cache from './cache.js';\nexport function isAllowed(k){ return cache.get(k); }\n",
+          reason: "import",
+        },
+      ],
+    };
+    const blocked = shouldBlockTestThrashWhileProductionUnbound({
+      plan,
+      unbound,
+      productionFilesStillUnbound: ["src/quota/quota.js"],
+    });
+    expect(blocked.block).toBe(false);
+  });
+
+  it("prefers production UNBOUND_IDENTIFIER over VITEST_HOOK when both present", () => {
+    const evidence = [
+      "node --test src/ratelimit/rate.test.js",
+      "ReferenceError: beforeEach is not defined",
+      "ReferenceError: store is not defined",
+      "isAllowed (file:///x/src/ratelimit/rate.js:14:18)",
+    ].join("\n");
+    const sigs = detectFailureSignaturesInText(evidence);
+    expect(sigs[0]).toBe("UNBOUND_IDENTIFIER");
   });
 });

@@ -1,0 +1,117 @@
+{
+  "runId": "7e55f8d7-3669-44ad-b961-cbdc66b7535b",
+  "specimen": "rate_limit_feature",
+  "delivery": "blocked",
+  "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+  "finalDefect": "ReferenceError: store is not defined in src/ratelimit/rate.js (isAllowed) while store.js exists and tests import store",
+  "dependencyContract": {
+    "production": "rate.js uses store.get/set without import or local binding",
+    "sibling": "store.js exports default Map facade",
+    "tests": "rate.test.js imports store from ./store.js and calls store.clear()",
+    "correctFix": "import store from './store.js' (or equivalent) in rate.js \u2014 NOT hard-coded; generalizable as wire unbound production symbol to sibling export"
+  },
+  "rootClasses": [
+    "IMPORT_DEPENDENCY_MISS",
+    "DIAGNOSIS_MISS",
+    "PLAN_TO_OPERATION_LOSS",
+    "TEST_THRASH",
+    "REPEATED_STRATEGY_WITHOUT_PROGRESS",
+    "QC_EVIDENCE_COMPRESSION",
+    "CURRENT_STATE_VISIBILITY_MISS"
+  ],
+  "primaryRootClass": "IMPORT_DEPENDENCY_MISS",
+  "qcVsDiagnosisVsReplan": {
+    "RAW_QC": "TAP stack clearly shows isAllowed in rate.js:14 \u2014 store unbound",
+    "DIAGNOSIS_INPUT": "owned evidence often truncated/first-path attributed to rate.test.js; after iter3 VITEST_HOOK hijacked primary",
+    "REPLAN_INPUT": "strategies chased test fixtures/beforeEach; iter3 summary claimed store import but ops omitted it"
+  },
+  "failurePrioritization": "FAILED \u2014 secondary beforeEach ReferenceError outranked persistent production unbound identifier",
+  "planRepairNewline": "CORRECT \u2014 leave alone",
+  "harnessScoreFalsePositive": true,
+  "iterations": [
+    {
+      "iter": 0,
+      "charge": "PLAN_REPAIR",
+      "strategy": "Fix literal \\n escapes in rateLimiter.js / rate.test.js",
+      "raw_qc": "N/A (pre-execution harness invalid_content)",
+      "diagnosis_input": "literal \\n PLAN_REPAIR evidence",
+      "diagnosis_class": "CORRECT",
+      "replan_input": "Replace \\n with real newlines",
+      "ops": "PLAN_REPAIR rewrite content",
+      "outcome": "semantic path opens; files become rate.js + rate.test.js",
+      "notes": "Leave \\n PLAN_REPAIR alone \u2014 already correct"
+    },
+    {
+      "iter": 1,
+      "charge": "ENGINEERING_ITERATION",
+      "strategy": "Fix escaped newline literals in rate-limit source and test files",
+      "raw_qc": "ReferenceError: store is not defined @ rate.js:14 (isAllowed); 5 failing tests",
+      "diagnosis_input": "store is not defined \u2014 attributed to rate.test.js line 5 (MISATTRIBUTE)",
+      "diagnosis_class": "PARTIAL",
+      "replan_input": "Add missing store fixture to tests",
+      "ops": "create rate.js (uses store, NO import) + rate.test.js",
+      "outcome": "QC fail changed=1",
+      "notes": "IMPORT_DEPENDENCY_MISS introduced; DIAGNOSIS_MISS on file attribution"
+    },
+    {
+      "iter": 2,
+      "charge": "ENGINEERING_ITERATION",
+      "strategy": "Add missing store fixture to satisfy referenced variable in tests",
+      "raw_qc": "ReferenceError: store is not defined @ rate.js (still)",
+      "diagnosis_input": "undefined variable store",
+      "diagnosis_class": "PARTIAL",
+      "replan_input": "Define/import store fixture before use in test",
+      "ops": "create store.js; update rate.test.js to import store; rate.js UNCHANGED (still no import)",
+      "outcome": "QC fail",
+      "notes": "PLAN_TO_OPERATION_LOSS / IMPORT_DEPENDENCY_MISS \u2014 sibling module created but not wired into production"
+    },
+    {
+      "iter": 3,
+      "charge": "ENGINEERING_ITERATION",
+      "strategy": "Fix undefined store reference\u2026 ensure store import works",
+      "raw_qc": "ReferenceError: beforeEach is not defined (NEW) \u2014 masks store unbound",
+      "diagnosis_input": "truncated evidence: beforeEach ReferenceError (VITEST_HOOK); worker diagnosis rejected once",
+      "diagnosis_class": "MISDIRECTED",
+      "replan_input": "Add beforeEach setup / node:test hooks",
+      "ops": "update rate.js (still no store import) + rate.test.js with bare beforeEach()",
+      "outcome": "QC fail; introduces secondary harness failure",
+      "notes": "Strategy claimed store import; ops omitted import. TEST_THRASH begins."
+    },
+    {
+      "iter": 4,
+      "charge": "ENGINEERING_ITERATION",
+      "strategy": "Add clear() to store; 'fixing ReferenceError: beforeEach'",
+      "raw_qc": "beforeEach still unbound (and/or store)",
+      "diagnosis_input": "VITEST_HOOK_UNDER_NODE_TEST primary",
+      "diagnosis_class": "MISDIRECTED",
+      "replan_input": "store.clear for tests",
+      "ops": "update store.js only (add clear)",
+      "outcome": "QC fail",
+      "notes": "REPEATED_STRATEGY_WITHOUT_PROGRESS; production rate.js still unbound"
+    },
+    {
+      "iter": 5,
+      "charge": "ENGINEERING_ITERATION",
+      "strategy": "Rewrite rate.test.js with explicit beforeEach imports",
+      "raw_qc": "beforeEach / store failures persist",
+      "diagnosis_input": "VITEST_HOOK_UNDER_NODE_TEST",
+      "diagnosis_class": "MISDIRECTED",
+      "replan_input": "node:test beforeEach import rewrite",
+      "ops": "update rate.test.js only \u2014 still bare beforeEach()",
+      "outcome": "QC fail",
+      "notes": "TEST_THRASH; CURRENT_STATE_VISIBILITY_MISS on rate.js"
+    },
+    {
+      "iter": 6,
+      "charge": "ENGINEERING_ITERATION",
+      "strategy": "Migrate to test.beforeEach",
+      "raw_qc": "ReferenceError: store is not defined @ rate.js:14 \u2014 5 failing tests (final)",
+      "diagnosis_input": "store not defined (worker); filesToInspect=rate.test.js",
+      "diagnosis_class": "PARTIAL",
+      "replan_input": "Introduce mock/store helper before test runs",
+      "ops": "update rate.test.js to test.beforeEach; rate.js still missing import",
+      "outcome": "BUDGET_EXHAUSTED / PRIMARY_QC_NONCONVERGENCE",
+      "notes": "Harness score PASS false positive; delivery correctly blocked"
+    }
+  ]
+}

@@ -1,0 +1,267 @@
+{
+  "at": "2026-08-21T03:28:03.319Z",
+  "tipHint": "feature/autonomous-engineer-v1",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8082/v1",
+  "maxModelLen": "262144",
+  "nanoRuntimeMode": "FAITHFUL",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "rate_limit_feature",
+      "matrixClasses": [
+        "robust_new_feature"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Request rate window helper",
+      "objective": "Directors need a small rate-limit helper under src/ratelimit that tracks allow/deny for a caller key within a window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+      "elapsedMs": 222725,
+      "taskId": "5eba13d1-b2a8-4245-8c39-fcc9395ec55a",
+      "runId": "afde07e3-8c74-4f76-8e36-aafed19e94c5",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "afde07e3-8c74-4f76-8e36-aafed19e94c5",
+        "state": "exhausted",
+        "failureClass": "BUDGET_EXHAUSTED",
+        "deliveryCandidateStatus": "blocked",
+        "paused": false,
+        "message": "Budget exhausted after diagnosis."
+      },
+      "currentState": "exhausted",
+      "iterationNumber": 6,
+      "deliveryCandidateStatus": "blocked",
+      "primaryFailureCategory": "GENERATION_BUDGET_EXHAUSTED",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "2926650e-cb1e-4b71-90ec-4786ca441630",
+          "strategy": "Add a small rate-limit helper under src/ratelimit with input validation and tests covering allow and deny paths.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "workerPlanId": "6fc43baf-0b5b-4077-96a2-78145b7786cf",
+          "strategy": "Fix rate‑limiter implementation to correctly handle allow/deny, input validation, and align tests with the synchronous contract expected by the node:test runner",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "workerPlanId": "085080f8-b1a1-477c-a3c0-c69e57955e1d",
+          "strategy": "Fix rateLimiter input validation to throw TypeError for invalid windowMs (and maxCalls), matching test expectations and resolving the assertion failure.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "workerPlanId": "eb8f39f9-00ff-4b48-b52d-1c56c549836d",
+          "strategy": "Fix rateLimiter error handling to match test expectations and ensure allow/deny paths pass",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "workerPlanId": "b187e563-1e15-451c-a54e-72cd2e267795",
+          "strategy": "Fix test expectations to align with actual RateLimiter behavior: third call returns true and input validation for invalid windowMs throws RangeError instead of TypeError.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "workerPlanId": "7a471c6d-dfa5-40b3-94cd-2097f29685f3",
+          "strategy": "Adjust the rate test to expect RangeError for invalid windowMs and to correctly assert deny behavior after the call limit is reached.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 1,
+          "hypothesis": "Add a small rate-limit helper under src/ratelimit with input validation and tests covering allow and deny paths.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "hypothesis": "Fix rate‑limiter implementation to correctly handle allow/deny, input validation, and align tests with the synchronous contract expected by the node:test runner",
+          "whyFailed": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "hypothesis": "Fix rateLimiter input validation to throw TypeError for invalid windowMs (and maxCalls), matching test expectations and resolving the assertion failure.",
+          "whyFailed": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "hypothesis": "Fix rateLimiter error handling to match test expectations and ensure allow/deny paths pass",
+          "whyFailed": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "hypothesis": "Fix test expectations to align with actual RateLimiter behavior: third call returns true and input validation for invalid windowMs throws RangeError instead of TypeError.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "hypothesis": "Adjust the rate test to expect RangeError for invalid windowMs and to correctly assert deny behavior after the call limit is reached.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "usage": {
+        "iterations": 6,
+        "plans": 6,
+        "modelCalls": 16,
+        "changedFiles": 2,
+        "changedBytes": 9010,
+        "runtimeMs": 222575,
+        "investigationReads": 2,
+        "contextBytes": 127,
+        "planRepairs": 1,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [
+        {
+          "at": "2026-08-21T03:26:55.989Z",
+          "semanticIteration": 3,
+          "kind": "model_output",
+          "reason": "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000",
+          "evidence": [
+            "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000"
+          ]
+        }
+      ],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 1,
+        "preExisting": 1,
+        "changed": 0,
+        "owned": 1,
+        "objectiveQcPassed": false
+      },
+      "plans": [
+        {
+          "id": "7a471c6d-dfa5-40b3-94cd-2097f29685f3",
+          "summary": "Adjust the rate test to expect RangeError for invalid windowMs and to correctly assert deny behavior after the call limit is reached.",
+          "iterationNumber": 6,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "b187e563-1e15-451c-a54e-72cd2e267795",
+          "summary": "Fix test expectations to align with actual RateLimiter behavior: third call returns true and input validation for invalid windowMs throws RangeError instead of TypeError.",
+          "iterationNumber": 5,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "eb8f39f9-00ff-4b48-b52d-1c56c549836d",
+          "summary": "Fix rateLimiter error handling to match test expectations and ensure allow/deny paths pass",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "085080f8-b1a1-477c-a3c0-c69e57955e1d",
+          "summary": "Fix rateLimiter input validation to throw TypeError for invalid windowMs (and maxCalls), matching test expectations and resolving the assertion failure.",
+          "iterationNumber": 3,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "6fc43baf-0b5b-4077-96a2-78145b7786cf",
+          "summary": "Fix rate‑limiter implementation to correctly handle allow/deny, input validation, and align tests with the synchronous contract expected by the node:test runner",
+          "iterationNumber": 2,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "2926650e-cb1e-4b71-90ec-4786ca441630",
+          "summary": "Add a small rate-limit helper under src/ratelimit with input validation and tests covering allow and deny paths.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/afde07e3-8c74-4f76-8e36-aafed19e94c5",
+        "branchName": "engineer/5eba13d1/afde07e3-20260821032420",
+        "baseRevision": "8740e8c925ac29382e15dac690b1ce2344d78c03",
+        "status": "active"
+      },
+      "score": {
+        "pass": false,
+        "notes": [
+          "npm test failed"
+        ],
+        "robustScorecard": {
+          "functional_correctness": "FAIL",
+          "validation_error_handling": "PASS",
+          "tests_negative_path": "FAIL",
+          "maintainable_structure": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 0,
+    "deliveryReady": 0,
+    "byFailure": {
+      "GENERATION_BUDGET_EXHAUSTED": 1
+    }
+  }
+}

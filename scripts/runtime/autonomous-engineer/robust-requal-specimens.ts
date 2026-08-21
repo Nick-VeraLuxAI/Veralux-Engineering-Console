@@ -73,6 +73,108 @@ function pkg(name: string, testScript: string): string {
   );
 }
 
+/**
+ * Harness-only: fail closed when production sources reference a free identifier that
+ * matches a sibling module basename without importing it (classic greenfield false PASS).
+ */
+export function hasUnboundSiblingModuleRefs(dirAbs: string): string[] {
+  if (!fs.existsSync(dirAbs)) return [];
+  const files = fs.readdirSync(dirAbs).filter((f) => f.endsWith(".js") && !f.includes(".test."));
+  const bases = files.map((f) => f.replace(/\.js$/, ""));
+  const notes: string[] = [];
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(dirAbs, file), "utf8");
+    const imports = new Set<string>();
+    for (const match of content.matchAll(/from\s+['"]\.\/([^'"]+)['"]/g)) {
+      imports.add(match[1].replace(/\.js$/, ""));
+    }
+    for (const match of content.matchAll(/import\s+([A-Za-z_$][\w$]*)\s+from\s+['"]\.\/([^'"]+)['"]/g)) {
+      imports.add(match[1]);
+      imports.add(match[2].replace(/\.js$/, ""));
+    }
+    for (const base of bases) {
+      if (base === file.replace(/\.js$/, "")) continue;
+      // Identifier used as object (base.get / base.set) or call, without import of that sibling.
+      const used = new RegExp(String.raw`\b${base}\s*\.`).test(content) || new RegExp(String.raw`\b${base}\s*\(`).test(content);
+      const imported =
+        imports.has(base) ||
+        new RegExp(String.raw`from\s+['"]\.\/${base}(?:\.js)?['"]`).test(content) ||
+        new RegExp(String.raw`\b(?:const|let|var|function|class)\s+${base}\b`).test(content);
+      if (used && !imported) {
+        notes.push(`${file} references '${base}' without importing ./${base}.js`);
+      }
+    }
+  }
+  return notes;
+}
+
+function scoreRateLimitFeature(wt: string, dirRel: string): {
+  pass: boolean;
+  notes: string[];
+  robustScorecard: Record<string, ScoreMark>;
+} {
+  const dirAbs = path.join(wt, dirRel);
+  const files = fs.existsSync(dirAbs)
+    ? fs.readdirSync(dirAbs).filter((f) => f.endsWith(".js"))
+    : [];
+  const src = files
+    .filter((f) => !f.includes(".test."))
+    .map((f) => fs.readFileSync(path.join(dirAbs, f), "utf8"))
+    .join("\n");
+  const testSrc = files
+    .filter((f) => f.includes(".test."))
+    .map((f) => fs.readFileSync(path.join(dirAbs, f), "utf8"))
+    .join("\n");
+  const notes: string[] = [];
+  const hasLogic = /allow|deny|limit|window|count|bucket|quota|throttle|proceed|interval|timestamp|gate|rate/i.test(src);
+  const failClosed = /return\s+false|throw\s+/.test(src);
+  const denyTest = /deny|false|exceed|limit|quota|throttle|soon/i.test(testSrc);
+  const invalidTest = /invalid|null|undefined|missing|throw|RangeError|TypeError/i.test(testSrc);
+  // Stateful window/quota behavior (rejects constant allow()/deny() stubs).
+  const statefulTracking =
+    (/\bnew Map\b|\bnew Set\b/.test(src) && /\.get\s*\(|\.set\s*\(|\.has\s*\(/.test(src)) ||
+    /\bcount\s*(\+|=\s*)|\.length\b/.test(src);
+  const denyAsserted =
+    /strictEqual\s*\([^)]*\bfalse\b|\.equal\s*\([^)]*\bfalse\b|assert\.ok\s*\(\s*!/.test(testSrc);
+  const unbound = hasUnboundSiblingModuleRefs(dirAbs);
+  notes.push(...unbound);
+  if (!hasLogic) notes.push("no rate-limit logic");
+  if (!failClosed) notes.push("not fail-closed");
+  if (!denyTest) notes.push("no deny test");
+  if (!invalidTest) notes.push("no invalid-input test");
+  if (!statefulTracking) notes.push("no stateful window/quota tracking");
+  if (!denyAsserted) notes.push("tests do not assert a deny/false outcome");
+  // Require npm test green when package.json is present (closes false PASS on ReferenceError).
+  let testsPass = false;
+  try {
+    execSync("npm test", { cwd: wt, stdio: "ignore", timeout: 30_000 });
+    testsPass = true;
+  } catch {
+    notes.push("npm test failed");
+  }
+  const pass =
+    hasLogic &&
+    failClosed &&
+    denyTest &&
+    invalidTest &&
+    statefulTracking &&
+    denyAsserted &&
+    unbound.length === 0 &&
+    testsPass;
+  return {
+    pass,
+    notes,
+    robustScorecard: {
+      functional_correctness:
+        hasLogic && statefulTracking && testsPass && unbound.length === 0 ? "PASS" : "FAIL",
+      validation_error_handling: failClosed && invalidTest ? "PASS" : "FAIL",
+      tests_negative_path: denyTest && denyAsserted && testsPass ? "PASS" : "FAIL",
+      maintainable_structure:
+        src.length > 40 && !/HACK/i.test(src) && unbound.length === 0 ? "PASS" : "PARTIAL",
+    },
+  };
+}
+
 function ledgerSeed(repo: string, variant: number): void {
   // Final requal fresh surfaces (do not reuse prior solved applyPayment/recordCharge/settleInvoice seeds).
   const fn = variant === 1 ? "bookPayment" : variant === 2 ? "captureCharge" : "closeInvoice";
@@ -338,35 +440,127 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
       initGit(repo);
     },
     score(wt) {
-      const files = fs.readdirSync(path.join(wt, "src/ratelimit")).filter((f) => f.endsWith(".js"));
-      const src = files
-        .filter((f) => !f.includes(".test."))
-        .map((f) => fs.readFileSync(path.join(wt, "src/ratelimit", f), "utf8"))
-        .join("\n");
-      const testSrc = files
-        .filter((f) => f.includes(".test."))
-        .map((f) => fs.readFileSync(path.join(wt, "src/ratelimit", f), "utf8"))
-        .join("\n");
-      const notes: string[] = [];
-      const hasLogic = /allow|deny|limit|window|count/i.test(src);
-      const failClosed = /return\s+false|throw\s+/.test(src);
-      const denyTest = /deny|false|exceed|limit/i.test(testSrc);
-      const invalidTest = /invalid|null|undefined|missing|throw/i.test(testSrc);
-      if (!hasLogic) notes.push("no rate-limit logic");
-      if (!failClosed) notes.push("not fail-closed");
-      if (!denyTest) notes.push("no deny test");
-      if (!invalidTest) notes.push("no invalid-input test");
-      const pass = hasLogic && failClosed && denyTest && invalidTest;
-      return {
-        pass,
-        notes,
-        robustScorecard: {
-          functional_correctness: hasLogic ? "PASS" : "FAIL",
-          validation_error_handling: failClosed && invalidTest ? "PASS" : "FAIL",
-          tests_negative_path: denyTest ? "PASS" : "FAIL",
-          maintainable_structure: src.length > 40 && !/HACK/i.test(src) ? "PASS" : "PARTIAL",
-        },
-      };
+      return scoreRateLimitFeature(wt, "src/ratelimit");
+    },
+  },
+  {
+    id: "rate_limit_feature_v2",
+    matrixClasses: ["robust_new_feature"],
+    title: "Caller quota window helper",
+    maxIterations: 6,
+    objective:
+      "Directors need a small quota helper under src/quota that tracks allow/deny for a client id within a sliding window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+    acceptanceCriteria: [
+      "Helper allows then denies after quota within window",
+      "Invalid inputs fail closed",
+      "Tests cover allow, deny, and invalid input",
+      "No pull request is created",
+    ],
+    constraints: ["Stay inside src/quota/", "Do not change PR, merge, or deploy behavior"],
+    authorizedPathPrefixes: ["src/quota/"],
+    seed(repo) {
+      write(repo, "package.json", pkg("ae-q1-quota", "node --test src/quota/quota.test.js"));
+      write(repo, "src/quota/README.md", "# client quota window helper\n");
+      initGit(repo);
+    },
+    score(wt) {
+      return scoreRateLimitFeature(wt, "src/quota");
+    },
+  },
+  {
+    id: "rate_limit_feature_v3",
+    matrixClasses: ["robust_new_feature"],
+    title: "Throttle gate helper",
+    maxIterations: 6,
+    objective:
+      "Directors need a small throttle helper under src/throttle that decides whether a subject key may proceed inside a time window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+    acceptanceCriteria: [
+      "Helper allows then denies after threshold within window",
+      "Invalid inputs fail closed",
+      "Tests cover allow, deny, and invalid input",
+      "No pull request is created",
+    ],
+    constraints: ["Stay inside src/throttle/", "Do not change PR, merge, or deploy behavior"],
+    authorizedPathPrefixes: ["src/throttle/"],
+    seed(repo) {
+      write(repo, "package.json", pkg("ae-q1-throttle", "node --test src/throttle/gate.test.js"));
+      write(repo, "src/throttle/NOTES.md", "# throttle gate\n");
+      initGit(repo);
+    },
+    score(wt) {
+      return scoreRateLimitFeature(wt, "src/throttle");
+    },
+  },
+  {
+    id: "rate_limit_feature_v4",
+    matrixClasses: ["robust_new_feature"],
+    title: "Burst token bucket helper",
+    maxIterations: 6,
+    objective:
+      "Directors need a small burst-limit helper under src/burst that tracks whether an actor key may spend a token inside a refill window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+    acceptanceCriteria: [
+      "Helper allows then denies after burst capacity within window",
+      "Invalid inputs fail closed",
+      "Tests cover allow, deny, and invalid input",
+      "No pull request is created",
+    ],
+    constraints: ["Stay inside src/burst/", "Do not change PR, merge, or deploy behavior"],
+    authorizedPathPrefixes: ["src/burst/"],
+    seed(repo) {
+      write(repo, "package.json", pkg("ae-q1-burst", "node --test src/burst/bucket.test.js"));
+      write(repo, "src/burst/README.md", "# burst token bucket\n");
+      initGit(repo);
+    },
+    score(wt) {
+      return scoreRateLimitFeature(wt, "src/burst");
+    },
+  },
+  {
+    id: "rate_limit_feature_v5",
+    matrixClasses: ["robust_new_feature"],
+    title: "API call window counter",
+    maxIterations: 6,
+    objective:
+      "Directors need a small API call window counter under src/apicalls that tracks allow/deny for an account id within a fixed window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+    acceptanceCriteria: [
+      "Counter allows then denies after max calls within window",
+      "Invalid inputs fail closed",
+      "Tests cover allow, deny, and invalid input",
+      "No pull request is created",
+    ],
+    constraints: ["Stay inside src/apicalls/", "Do not change PR, merge, or deploy behavior"],
+    authorizedPathPrefixes: ["src/apicalls/"],
+    seed(repo) {
+      write(repo, "package.json", pkg("ae-q1-apicalls", "node --test src/apicalls/window.test.js"));
+      write(repo, "src/apicalls/SPEC.md", "# api call window counter\n");
+      initGit(repo);
+    },
+    score(wt) {
+      return scoreRateLimitFeature(wt, "src/apicalls");
+    },
+  },
+  {
+    id: "rate_limit_feature_v6",
+    matrixClasses: ["robust_new_feature"],
+    title: "Session request window helper",
+    maxIterations: 6,
+    objective:
+      "Directors need a small session request helper under src/sessionlimit that tracks allow/deny for a session id within a fixed millisecond window using an in-memory map of counts, validates inputs with thrown errors, covers allow then deny after the max, and stays maintainable. Do not open a PR or deploy.",
+    acceptanceCriteria: [
+      "Helper allows then denies after max requests within window",
+      "Invalid inputs fail closed with thrown errors",
+      "Tests assert allow true then deny false and invalid throws",
+      "No pull request is created",
+    ],
+    constraints: ["Stay inside src/sessionlimit/", "Do not change PR, merge, or deploy behavior"],
+    authorizedPathPrefixes: ["src/sessionlimit/"],
+    seed(repo) {
+      write(repo, "package.json", pkg("ae-q1-sessionlimit", "node --test src/sessionlimit/limit.test.js"));
+      write(repo, "src/sessionlimit/README.md", "# session request window\n");
+      initGit(repo);
+    },
+    score(wt) {
+      return scoreRateLimitFeature(wt, "src/sessionlimit");
     },
   },
   {

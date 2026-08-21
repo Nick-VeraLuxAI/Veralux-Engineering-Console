@@ -18,6 +18,29 @@ export function isMaterialCleanupCriterion(criterion: string): boolean {
   );
 }
 
+/** Material allow/deny window AC — reject constant stub helpers that only QC-green. */
+export function isMaterialRateLimitCriterion(criterion: string): boolean {
+  return /allow|deny|limit|window|quota|throttle|burst|rate/i.test(criterion);
+}
+
+function readAuthorizedJsContents(
+  repoPath: string | undefined,
+  prefixes: string[],
+): { tree: string[]; contents: Record<string, string> } {
+  const tree =
+    repoPath && fs.existsSync(repoPath) ? listAuthorizedWorktreeFiles(repoPath, prefixes, 96) : [];
+  const contents: Record<string, string> = {};
+  for (const relative of tree) {
+    if (!/\.(js|ts|mjs|cjs)$/.test(relative)) continue;
+    try {
+      contents[relative] = fs.readFileSync(path.join(repoPath!, relative), "utf8");
+    } catch {
+      // skip
+    }
+  }
+  return { tree, contents };
+}
+
 export function evaluateMaterialAcceptanceCriteria(input: {
   criteria: string[];
   repoPath?: string;
@@ -25,21 +48,58 @@ export function evaluateMaterialAcceptanceCriteria(input: {
   qcPassed: boolean;
 }): AcceptanceCriterionEvidence[] {
   const prefixes = input.authorizedPathPrefixes ?? ["src/"];
-  const tree =
-    input.repoPath && fs.existsSync(input.repoPath)
-      ? listAuthorizedWorktreeFiles(input.repoPath, prefixes, 96)
-      : [];
-  const contents: Record<string, string> = {};
-  for (const relative of tree) {
-    if (!/\.(js|ts|mjs|cjs)$/.test(relative)) continue;
-    try {
-      contents[relative] = fs.readFileSync(path.join(input.repoPath!, relative), "utf8");
-    } catch {
-      // skip
-    }
-  }
+  const { tree, contents } = readAuthorizedJsContents(input.repoPath, prefixes);
 
   return input.criteria.map((criterion) => {
+    if (isMaterialRateLimitCriterion(criterion) && !isMaterialCleanupCriterion(criterion)) {
+      if (!input.qcPassed) {
+        return {
+          criterion,
+          status: "UNVERIFIED" as const,
+          detail: "QC has not passed; rate-limit criterion remains unverified.",
+        };
+      }
+      if (!input.repoPath) {
+        return {
+          criterion,
+          status: "UNVERIFIED" as const,
+          detail: "No worktree path available to verify rate-limit AC.",
+        };
+      }
+      const prod = Object.entries(contents)
+        .filter(([file]) => !/\.(test|spec)\./.test(file) && !file.includes("__tests__/"))
+        .map(([, c]) => c)
+        .join("\n");
+      const tests = Object.entries(contents)
+        .filter(([file]) => /\.(test|spec)\./.test(file) || file.includes("__tests__/"))
+        .map(([, c]) => c)
+        .join("\n");
+      const stateful =
+        (/\bnew Map\b|\bnew Set\b/.test(prod) && /\.get\s*\(|\.set\s*\(|\.has\s*\(/.test(prod)) ||
+        /\bcount\s*(\+|=\s*)/.test(prod);
+      const denyAsserted =
+        /strictEqual\s*\([^)]*\bfalse\b|\.equal\s*\([^)]*\bfalse\b|assert\.ok\s*\(\s*!/.test(tests);
+      const unsatisfied: string[] = [];
+      if (/allow|deny|limit|window|quota|throttle|burst|rate/i.test(criterion) && !stateful) {
+        unsatisfied.push("no stateful window/quota tracking in production sources");
+      }
+      if (/deny|allow|limit|window/i.test(criterion) && !denyAsserted) {
+        unsatisfied.push("tests do not assert a deny/false outcome");
+      }
+      if (unsatisfied.length > 0) {
+        return {
+          criterion,
+          status: "UNSATISFIED" as const,
+          detail: unsatisfied.join("; "),
+        };
+      }
+      return {
+        criterion,
+        status: "SATISFIED" as const,
+        detail: "Stateful tracking and deny assertion verified in authorized tree.",
+      };
+    }
+
     if (!isMaterialCleanupCriterion(criterion)) {
       if (input.qcPassed) {
         return {
@@ -147,7 +207,10 @@ export function evaluateCompletion(input: {
   for (const row of acEvidence) {
     if (row.status === "UNSATISFIED") {
       unmetAcceptanceCriteria.push(`${row.criterion} [${row.status}: ${row.detail}]`);
-    } else if (row.status === "UNVERIFIED" && isMaterialCleanupCriterion(row.criterion)) {
+    } else if (
+      row.status === "UNVERIFIED" &&
+      (isMaterialCleanupCriterion(row.criterion) || isMaterialRateLimitCriterion(row.criterion))
+    ) {
       unmetAcceptanceCriteria.push(`${row.criterion} [${row.status}: ${row.detail}]`);
     }
   }

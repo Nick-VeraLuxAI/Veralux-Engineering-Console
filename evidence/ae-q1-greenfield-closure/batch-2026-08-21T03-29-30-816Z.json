@@ -1,0 +1,268 @@
+{
+  "at": "2026-08-21T03:33:11.203Z",
+  "tipHint": "feature/autonomous-engineer-v1",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8082/v1",
+  "maxModelLen": "262144",
+  "nanoRuntimeMode": "FAITHFUL",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "rate_limit_feature_v4",
+      "matrixClasses": [
+        "robust_new_feature"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Burst token bucket helper",
+      "objective": "Directors need a small burst-limit helper under src/burst that tracks whether an actor key may spend a token inside a refill window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+      "elapsedMs": 220353,
+      "taskId": "57d46791-7283-40dc-8b6e-e1dcf54a84ab",
+      "runId": "88c951d3-0396-4343-babd-11e38ecf2fdf",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "88c951d3-0396-4343-babd-11e38ecf2fdf",
+        "state": "exhausted",
+        "failureClass": "BUDGET_EXHAUSTED",
+        "deliveryCandidateStatus": "blocked",
+        "paused": false,
+        "message": "Budget exhausted after diagnosis."
+      },
+      "currentState": "exhausted",
+      "iterationNumber": 6,
+      "deliveryCandidateStatus": "blocked",
+      "primaryFailureCategory": "GENERATION_BUDGET_EXHAUSTED",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "03f07223-5145-454c-b0aa-64065aeb0d3d",
+          "strategy": "Add burst-limit helper with validation and tests",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "workerPlanId": "1290f598-185d-45bb-bb7a-49b71a7ffd78",
+          "strategy": "Add burst helper implementation with validation and comprehensive tests to src/burst",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "workerPlanId": "250ef9a9-e948-4e19-bc2b-517bc0cc1f8e",
+          "strategy": "Add comprehensive test coverage for burst helper allow/deny paths and validation, keeping implementation unchanged and ensuring a single repair pass to stay within token budget.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "workerPlanId": "885e8b8f-100f-4226-a6e5-1c7ffc92ccd1",
+          "strategy": "Rewrite bucket.test.js to use Node's native test API with proper assertions and comprehensive coverage of allow, deny, and validation paths.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "workerPlanId": "78f9ddbe-5a7e-4031-a819-a6356846a517",
+          "strategy": "Fix BurstHelper implementation to correctly validate actor keys and manage token spending within refill window, ensuring existing tests pass.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "workerPlanId": "7e9175a8-c7b8-41ec-a9ed-3ecf7dd2edb3",
+          "strategy": "Fix import path in bucket.test.js and add comprehensive tests covering allow, deny, and validation paths for BurstHelper.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 1,
+          "hypothesis": "Add burst-limit helper with validation and tests",
+          "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "hypothesis": "Add burst helper implementation with validation and comprehensive tests to src/burst",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "hypothesis": "Add comprehensive test coverage for burst helper allow/deny paths and validation, keeping implementation unchanged and ensuring a single repair pass to stay within token budget.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "hypothesis": "Rewrite bucket.test.js to use Node's native test API with proper assertions and comprehensive coverage of allow, deny, and validation paths.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "hypothesis": "Fix BurstHelper implementation to correctly validate actor keys and manage token spending within refill window, ensuring existing tests pass.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "hypothesis": "Fix import path in bucket.test.js and add comprehensive tests covering allow, deny, and validation paths for BurstHelper.",
+          "whyFailed": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "usage": {
+        "iterations": 6,
+        "plans": 6,
+        "modelCalls": 16,
+        "changedFiles": 2,
+        "changedBytes": 9327,
+        "runtimeMs": 220207,
+        "investigationReads": 2,
+        "contextBytes": 118,
+        "planRepairs": 1,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [
+        {
+          "at": "2026-08-21T03:31:46.416Z",
+          "semanticIteration": 2,
+          "kind": "model_output",
+          "reason": "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000",
+          "evidence": [
+            "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000"
+          ]
+        }
+      ],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 2,
+        "preExisting": 1,
+        "changed": 0,
+        "owned": 2,
+        "objectiveQcPassed": false
+      },
+      "plans": [
+        {
+          "id": "7e9175a8-c7b8-41ec-a9ed-3ecf7dd2edb3",
+          "summary": "Fix import path in bucket.test.js and add comprehensive tests covering allow, deny, and validation paths for BurstHelper.",
+          "iterationNumber": 6,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "78f9ddbe-5a7e-4031-a819-a6356846a517",
+          "summary": "Fix BurstHelper implementation to correctly validate actor keys and manage token spending within refill window, ensuring existing tests pass.",
+          "iterationNumber": 5,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "885e8b8f-100f-4226-a6e5-1c7ffc92ccd1",
+          "summary": "Rewrite bucket.test.js to use Node's native test API with proper assertions and comprehensive coverage of allow, deny, and validation paths.",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "250ef9a9-e948-4e19-bc2b-517bc0cc1f8e",
+          "summary": "Add comprehensive test coverage for burst helper allow/deny paths and validation, keeping implementation unchanged and ensuring a single repair pass to stay within token budget.",
+          "iterationNumber": 3,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "1290f598-185d-45bb-bb7a-49b71a7ffd78",
+          "summary": "Add burst helper implementation with validation and comprehensive tests to src/burst",
+          "iterationNumber": 2,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "03f07223-5145-454c-b0aa-64065aeb0d3d",
+          "summary": "Add burst-limit helper with validation and tests",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/88c951d3-0396-4343-babd-11e38ecf2fdf",
+        "branchName": "engineer/57d46791/88c951d3-20260821032930",
+        "baseRevision": "e85e3c51941547b43d7494df2fa198d659911ca2",
+        "status": "active"
+      },
+      "score": {
+        "pass": false,
+        "notes": [
+          "tests do not assert a deny/false outcome",
+          "npm test failed"
+        ],
+        "robustScorecard": {
+          "functional_correctness": "FAIL",
+          "validation_error_handling": "PASS",
+          "tests_negative_path": "FAIL",
+          "maintainable_structure": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 0,
+    "deliveryReady": 0,
+    "byFailure": {
+      "GENERATION_BUDGET_EXHAUSTED": 1
+    }
+  }
+}

@@ -6,6 +6,8 @@ import type {
 import {
   buildDeterministicDiagnosisFromEvidence,
   detectFailureSignaturesInText,
+  findSymbolDependencyNeighborhood,
+  parseUnboundIdentifierFindings,
   type StructuredDiagnosisFields,
 } from "./feedback-convergence";
 
@@ -16,6 +18,7 @@ export function diagnoseIterationFailure(input: {
   validationErrors?: string[];
   executionErrors?: string[];
   evidenceText?: string;
+  repoPath?: string;
 }): DiagnosisResult {
   const lastAttempt = input.document.priorAttempts[input.document.priorAttempts.length - 1];
   const why =
@@ -27,6 +30,15 @@ export function diagnoseIterationFailure(input: {
 
   const evidenceText = input.evidenceText || why;
   const signatures = detectFailureSignaturesInText(evidenceText);
+  const unbound = parseUnboundIdentifierFindings(evidenceText).filter((u) => !u.isHookGlobal);
+  const neighborhood =
+    input.repoPath && unbound[0]
+      ? findSymbolDependencyNeighborhood(
+          input.repoPath,
+          input.document.authorizedPathPrefixes ?? ["src/"],
+          unbound[0].symbol,
+        )
+      : null;
 
   if (signatures.length > 0 || (input.evidenceText && input.evidenceText.length > 0)) {
     return buildDeterministicDiagnosisFromEvidence({
@@ -35,6 +47,7 @@ export function diagnoseIterationFailure(input: {
       qcSummary: input.qcSummary ?? why,
       failedHypothesis: lastAttempt?.strategy ?? input.document.strategy ?? undefined,
       signatures,
+      dependencyNeighborhood: neighborhood,
     });
   }
 

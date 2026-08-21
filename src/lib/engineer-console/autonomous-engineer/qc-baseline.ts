@@ -184,6 +184,44 @@ function extractTestFailures(command: string, output: string): QcFailureIdentity
     }
   }
 
+  // node:test TAP: preserve ReferenceError + stack so diagnosis can attribute production frames.
+  if (identities.length === 0 && /not ok\s+\d+/i.test(output)) {
+    const tapBlocks = output.split(/(?=# Subtest:|not ok\s+\d+)/i);
+    for (const block of tapBlocks) {
+      if (!/not ok\s+\d+/i.test(block) && !/failureType:\s*['"]?testCodeFailure/i.test(block)) {
+        continue;
+      }
+      const nameMatch =
+        block.match(/not ok\s+\d+\s+-\s+(.+)/i) || block.match(/# Subtest:\s*(.+)/i);
+      const leaf = (nameMatch?.[1] ?? "tap-failure").trim().slice(0, 120);
+      const locMatch = block.match(/location:\s*['"]?([^\s'"]+\.(?:js|ts|mjs|cjs))/i);
+      const file = locMatch?.[1]?.replace(/^.*\/(src\/)/, "src/") ?? command;
+      const errMatch =
+        block.match(/name:\s*['"]?(ReferenceError|TypeError)['"]?[\s\S]{0,80}?error:\s*['"]([^'"]+)['"]/i) ||
+        block.match(/error:\s*['"]([^'"]*is not defined[^'"]*)['"]/i) ||
+        block.match(/ReferenceError:\s*([^\n]+)/i);
+      const errText = Array.isArray(errMatch) ? errMatch[errMatch.length - 1] : "tap failure";
+      const key = `test:${file}:${leaf}:${fingerprint(errText).slice(0, 12)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      // Keep stack frames in rawEvidence for UNBOUND_IDENTIFIER attribution.
+      const stackIdx = block.search(/stack:\s*\|-/i);
+      const evidence =
+        stackIdx >= 0
+          ? block.slice(Math.max(0, block.search(/error:|ReferenceError|name:/i)), stackIdx + 400)
+          : block.slice(0, 900);
+      identities.push({
+        key,
+        kind: "test",
+        command,
+        name: `${leaf}: ${errText}`.slice(0, 160),
+        location: file,
+        fingerprint: fingerprint(`${file} ${leaf} ${errText}`),
+        rawEvidence: normalizeWs(evidence).slice(0, 1200),
+      });
+    }
+  }
+
   if (identities.length === 0) {
     const assertion = /AssertionError[:\s]+(.+)/g;
     while ((match = assertion.exec(output)) !== null) {
