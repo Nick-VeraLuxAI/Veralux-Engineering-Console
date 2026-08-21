@@ -1,0 +1,25 @@
+{
+  "rep": "A2",
+  "mode": "A",
+  "max_tokens": 10000,
+  "rb": null,
+  "lat": 12.65,
+  "fr": "stop",
+  "prompt": 604,
+  "comp": 3540,
+  "r_chars": 10863,
+  "f_chars": 3207,
+  "r_tok_est": 2715,
+  "f_tok_est": 801,
+  "json_ok": true,
+  "err": null,
+  "ops": 2,
+  "src": 2528,
+  "paths": [
+    "src/lease/leaseHelper.js",
+    "src/lease/leaseHelper.test.js"
+  ],
+  "cls": "OK",
+  "final": "{\n  \"runId\": \"q1-budget-probe-lease2\",\n  \"summary\": \"Add lease helper under src/lease with grant/deny logic and tests\",\n  \"allowedFiles\": [\n    \"src/lease/leaseHelper.js\",\n    \"src/lease/leaseHelper.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"create_file\",\n      \"path\": \"src/lease/leaseHelper.js\",\n      \"content\": \"import { assert } from 'node:assert/strict';\\n\\nconst TTL_MS = 5000; // 5 seconds\\n\\n/** @type {Map<string, number>} */\\nconst activeLeases = new Map();\\n\\nfunction assertValidSubject(key) {\\n  if (typeof key !== 'string' || key.length === 0) {\\n    throw new Error('subject must be a non\u2011empty string');\\n  }\\n}\\n\\n/**\\n * Grants a lease for the given subject if none is active.\\n * @param {string} subject\\n * @returns {boolean} true if lease granted, false if already held.\\n * @throws {Error} on invalid subject.\\n */\\nexport function grantLease(subject) {\\n  assertValidSubject(subject);\\n  const now = Date.now();\\n  const existing = activeLeases.get(subject);\\n  if (existing && existing > now) {\\n    // lease still active\\n    return false;\\n  }\\n  // capacity check \u2013 we allow only one active lease per subject.\\n  activeLeases.set(subject, now + TTL_MS);\\n  return true;\\n}\\n\\n/**\\n * Revokes an active lease for the given subject.\\n * @param {string} subject\\n * @returns {boolean} true if lease was revoked, false if none existed.\\n * @throws {Error} on invalid subject.\\n */\\nexport function denyLease(subject) {\\n  assertValidSubject(subject);\\n  return activeLeases.delete(subject);\\n}\\n\\n/**\\n * Checks whether a lease is currently held for the subject.\\n * @param {string} subject\\n * @returns {boolean} true if lease is active.\\n * @throws {Error} on invalid subject.\\n */\\nexport function isLeaseHeld(subject) {\\n  assertValidSubject(subject);\\n  const expiry = activeLeases.get(subject);\\n  return expiry && expiry > Date.now();\\n}\\n\",\n      \"reason\": \"Implement lease tracking helper\"\n    },\n    {\n      \"type\": \"create_file\",\n      \"path\": \"src/lease/leaseHelper.test.js\",\n      \"content\": \"import test from 'node:test';\\nimport assert from 'node:assert/strict';\\nimport { grantLease, denyLease, isLeaseHeld } from './leaseHelper.js';\\n\\ntest('grant lease for valid subject', () => {\\n  assert.ok(grantLease('alpha'));\\n  assert.ok(isLeaseHeld('alpha'));\\n});\\n\\ntest('cannot grant duplicate lease while active', () => {\\n  // second grant immediately should fail\\n  assert.strictEqual(grantLease('alpha'), false);\\n});\\n\\ntest('deny lease revokes it', () => {\\n  assert.strictEqual(denyLease('alpha'), true);\\n  assert.strictEqual(isLeaseHeld('alpha'), false);\\n});\\n\\ntest('deny lease on non\u2011existent lease returns false', () => {\\n  assert.strictEqual(denyLease('beta'), false);\\n});\\n\\ntest('grant lease with invalid subject throws', () => {\\n  assert.throws(() => grantLease(null), Error);\\n  assert.throws(() => grantLease(42), Error);\\n  assert.throws(() => grantLease(''), Error);\\n});\\n\\ntest('deny lease with invalid subject throws', () => {\\n  assert.throws(() => denyLease(null), Error);\\n  assert.throws(() => denyLease(''), Error);\\n});\\n\",\n      \"reason\": \"Unit tests for lease helper covering grant, deny, and invalid input paths\"\n    }\n  ]\n}",
+  "reasoning_tail": "ant lease with invalid subject throws', () => {\n  assert.throws(() => grantLease(null), Error);\n  assert.throws(() => grantLease(42), Error);\n  assert.throws(() => grantLease(''), Error);\n});\n\ntest('deny lease with invalid subject throws', () => {\n  assert.throws(() => denyLease(null), Error);\n  assert.throws(() => denyLease(''), Error);\n});\n```\n\nNow construct JSON.\n\nMake sure to escape backslashes? Not needed. Include newline characters as raw? We'll just include raw newlines.\n\nNow final JSON.\n"
+}

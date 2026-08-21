@@ -1,0 +1,31 @@
+{
+  "chat_template_jinja": {
+    "path": "/models/nano-30b-a3b-nvfp4/chat_template.jinja",
+    "mentions_reasoning_budget": false,
+    "supports": [
+      "enable_thinking",
+      "truncate_history_thinking"
+    ],
+    "note": "Template opens <think> when enable_thinking; no reasoning_budget variable."
+  },
+  "README_budget_control": {
+    "mechanism": "client-side ThinkingBudgetClient (two-phase)",
+    "reasoning_budget_caps_only_reasoning": true,
+    "max_tokens_still_caps_reasoning_plus_final_in_single_shot": true,
+    "truncation_signal": "finish_reason=length when generation hits max_tokens",
+    "parser_separates_final": "yes via nano_v3 / reasoning_content + </think>",
+    "vllm_openai_endpoint_accepts_reasoning_budget_kwarg": false,
+    "evidence": "evidence/ae-q1-generation-budget/reasoning_budget_accept_probe.json"
+  },
+  "AE_before_change": {
+    "sets_reasoning_budget": false,
+    "faithful_plan_max_tokens": 10000,
+    "thinking": "ON 1.0/1.0"
+  },
+  "AE_after_change": {
+    "env": "ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET",
+    "default": "unset (legacy single-shot)",
+    "when_set_e_g_4000": "planning/replan two-phase NVIDIA pattern; thinking remains ON for phase-1",
+    "roles": "planning + replan only"
+  }
+}

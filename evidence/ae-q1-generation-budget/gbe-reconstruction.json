@@ -1,0 +1,275 @@
+{
+  "hypothesis": {
+    "AE_sets_reasoning_budget": false,
+    "reasoning_and_final_share_max_tokens": true,
+    "faithful_max_tokens_plan_roles": 10000
+  },
+  "runs": [
+    {
+      "specimen": "rate_limit_feature",
+      "runId": "afde07e3-8c74-4f76-8e36-aafed19e94c5",
+      "usage": {
+        "iterations": 6,
+        "plans": 6,
+        "modelCalls": 16,
+        "changedFiles": 2,
+        "changedBytes": 9010,
+        "runtimeMs": 222575,
+        "investigationReads": 2,
+        "contextBytes": 127,
+        "planRepairs": 1,
+        "postReviewRepairs": 0
+      },
+      "successful_plans_after_or_around": [
+        {
+          "iter": 1,
+          "plan_json_bytes": 1719,
+          "ops": 2,
+          "src_bytes": 1086
+        },
+        {
+          "iter": 2,
+          "plan_json_bytes": 2831,
+          "ops": 2,
+          "src_bytes": 2050
+        },
+        {
+          "iter": 3,
+          "plan_json_bytes": 1613,
+          "ops": 1,
+          "src_bytes": 1058
+        },
+        {
+          "iter": 4,
+          "plan_json_bytes": 1533,
+          "ops": 1,
+          "src_bytes": 1060
+        },
+        {
+          "iter": 5,
+          "plan_json_bytes": 3196,
+          "ops": 2,
+          "src_bytes": 2323
+        },
+        {
+          "iter": 6,
+          "plan_json_bytes": 1914,
+          "ops": 1,
+          "src_bytes": 1433
+        }
+      ],
+      "exhausted_calls": [
+        {
+          "role": "planning_or_replan",
+          "semanticIteration": 3,
+          "prompt_tokens": null,
+          "reasoning_tokens": null,
+          "final_content_tokens": null,
+          "completion_tokens": null,
+          "max_tokens": 10000,
+          "finish_reason": "length",
+          "JSON_completeness": "unknown_raw_not_persisted",
+          "worker_plan_operation_count": 0,
+          "file_content_bytes": 0,
+          "truncation_class": "A. THINKING_NOT_FINISHED (inferred)",
+          "inference_basis": [
+            "finish_reason=length under max_tokens=10000",
+            "no plan persisted for exhausted call",
+            "direct probe max_tokens=256 \u2192 reasoning_chars>0 final_chars=0 class A",
+            "forced two-phase rb=4000: phase1 finish=length then phase2 valid JSON",
+            "AE does not set reasoning_budget; reasoning+final share max_tokens"
+          ],
+          "repair_record": {
+            "at": "2026-08-21T03:26:55.989Z",
+            "semanticIteration": 3,
+            "kind": "model_output",
+            "reason": "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000",
+            "evidence": [
+              "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "specimen": "rate_limit_feature_v4",
+      "runId": "88c951d3-0396-4343-babd-11e38ecf2fdf",
+      "usage": {
+        "iterations": 6,
+        "plans": 6,
+        "modelCalls": 16,
+        "changedFiles": 2,
+        "changedBytes": 9327,
+        "runtimeMs": 220207,
+        "investigationReads": 2,
+        "contextBytes": 118,
+        "planRepairs": 1,
+        "postReviewRepairs": 0
+      },
+      "successful_plans_after_or_around": [
+        {
+          "iter": 1,
+          "plan_json_bytes": 2493,
+          "ops": 2,
+          "src_bytes": 1936
+        },
+        {
+          "iter": 2,
+          "plan_json_bytes": 2820,
+          "ops": 2,
+          "src_bytes": 2190
+        },
+        {
+          "iter": 3,
+          "plan_json_bytes": 2124,
+          "ops": 1,
+          "src_bytes": 1563
+        },
+        {
+          "iter": 4,
+          "plan_json_bytes": 1787,
+          "ops": 1,
+          "src_bytes": 1301
+        },
+        {
+          "iter": 5,
+          "plan_json_bytes": 1554,
+          "ops": 1,
+          "src_bytes": 1089
+        },
+        {
+          "iter": 6,
+          "plan_json_bytes": 1713,
+          "ops": 1,
+          "src_bytes": 1248
+        }
+      ],
+      "exhausted_calls": [
+        {
+          "role": "planning_or_replan",
+          "semanticIteration": 2,
+          "prompt_tokens": null,
+          "reasoning_tokens": null,
+          "final_content_tokens": null,
+          "completion_tokens": null,
+          "max_tokens": 10000,
+          "finish_reason": "length",
+          "JSON_completeness": "unknown_raw_not_persisted",
+          "worker_plan_operation_count": 0,
+          "file_content_bytes": 0,
+          "truncation_class": "A. THINKING_NOT_FINISHED (inferred)",
+          "inference_basis": [
+            "finish_reason=length under max_tokens=10000",
+            "no plan persisted for exhausted call",
+            "direct probe max_tokens=256 \u2192 reasoning_chars>0 final_chars=0 class A",
+            "forced two-phase rb=4000: phase1 finish=length then phase2 valid JSON",
+            "AE does not set reasoning_budget; reasoning+final share max_tokens"
+          ],
+          "repair_record": {
+            "at": "2026-08-21T03:31:46.416Z",
+            "semanticIteration": 2,
+            "kind": "model_output",
+            "reason": "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000",
+            "evidence": [
+              "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "specimen": "rate_limit_feature_v6",
+      "runId": "a8e94c44-cafd-4a8a-b9db-cb267397fd8d",
+      "usage": {
+        "iterations": 6,
+        "plans": 6,
+        "modelCalls": 19,
+        "changedFiles": 2,
+        "changedBytes": 12333,
+        "runtimeMs": 234672,
+        "investigationReads": 2,
+        "contextBytes": 131,
+        "planRepairs": 2,
+        "postReviewRepairs": 0
+      },
+      "successful_plans_after_or_around": [
+        {
+          "iter": 1,
+          "plan_json_bytes": 3308,
+          "ops": 2,
+          "src_bytes": 2634
+        },
+        {
+          "iter": 2,
+          "plan_json_bytes": 1119,
+          "ops": 1,
+          "src_bytes": 648
+        },
+        {
+          "iter": 3,
+          "plan_json_bytes": 1983,
+          "ops": 2,
+          "src_bytes": 1220
+        },
+        {
+          "iter": 4,
+          "plan_json_bytes": 3998,
+          "ops": 2,
+          "src_bytes": 2828
+        },
+        {
+          "iter": 5,
+          "plan_json_bytes": 3827,
+          "ops": 2,
+          "src_bytes": 2789
+        },
+        {
+          "iter": 6,
+          "plan_json_bytes": 3006,
+          "ops": 2,
+          "src_bytes": 2214
+        }
+      ],
+      "exhausted_calls": [
+        {
+          "role": "planning_or_replan",
+          "semanticIteration": 0,
+          "prompt_tokens": null,
+          "reasoning_tokens": null,
+          "final_content_tokens": null,
+          "completion_tokens": null,
+          "max_tokens": 10000,
+          "finish_reason": "length",
+          "JSON_completeness": "unknown_raw_not_persisted",
+          "worker_plan_operation_count": 0,
+          "file_content_bytes": 0,
+          "truncation_class": "A. THINKING_NOT_FINISHED (inferred)",
+          "inference_basis": [
+            "finish_reason=length under max_tokens=10000",
+            "no plan persisted for exhausted call",
+            "direct probe max_tokens=256 \u2192 reasoning_chars>0 final_chars=0 class A",
+            "forced two-phase rb=4000: phase1 finish=length then phase2 valid JSON",
+            "AE does not set reasoning_budget; reasoning+final share max_tokens"
+          ],
+          "repair_record": {
+            "at": "2026-08-21T03:39:50.710Z",
+            "semanticIteration": 0,
+            "kind": "model_output",
+            "reason": "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000",
+            "evidence": [
+              "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "truncation_legend": {
+    "A": "THINKING_NOT_FINISHED",
+    "B": "THINKING_FINISHED / FINAL JSON TRUNCATED",
+    "C": "FILE BODY TRUNCATED",
+    "D": "JSON STRUCTURE TRUNCATED",
+    "E": "TOOL CALL TRUNCATED",
+    "F": "UNKNOWN"
+  }
+}

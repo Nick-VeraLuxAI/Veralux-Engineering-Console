@@ -1,0 +1,34 @@
+{
+  "mode": "B_bounded_reasoning_4000",
+  "reasoning_budget": 4000,
+  "max_tokens": 10000,
+  "phase": "single_phase_complete",
+  "latency_s": 8.27,
+  "finish_reason": "stop",
+  "prompt_tokens": 268,
+  "completion_tokens": 2311,
+  "reasoning_tokens_reported": null,
+  "reasoning_tokens_derived": 1226,
+  "final_tokens_derived": 883,
+  "reasoning_chars": 4906,
+  "final_chars": 3532,
+  "truncation_class": "D",
+  "score": {
+    "json_ok": false,
+    "parse_err": "Invalid \\escape: line 12 column 991 (char 1256)",
+    "ops": 0,
+    "src_bytes": 0,
+    "paths": [],
+    "semantic": {
+      "has_lease_path": false,
+      "has_test": false,
+      "has_node_test": false,
+      "mentions_ttl_or_expire": false,
+      "has_deny_or_false_path": false,
+      "not_always_true_stub": true
+    },
+    "semantic_pass": false
+  },
+  "final_tail": "assert.doesNotThrow(() => helper.validateSubjectKey('validKey'));\\n});\\n\",\n      \"reason\": \"Covers grant, deny (implicit via delete), validation, and TTL checks with node:test assertions.\"\n    }\n  ]\n}",
+  "reasoning_tail": "ake sure we never import expect from node:test.\n\nNow ensure allowedFiles includes \"src/lease/lease.js\" and \"src/lease/lease.test.js\".\n\nCreate file operations with type create_file.\n\nNow produce JSON.\n"
+}

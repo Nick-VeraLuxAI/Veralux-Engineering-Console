@@ -1413,6 +1413,24 @@ function recordWorkerInvocation(
       schemaErrors: result.schemaErrors,
       repairAttempted: result.repairAttempted,
       accepted: result.schemaValid && result.parsed !== null,
+      generationBudgetExhausted: result.generationBudgetExhausted === true,
+      telemetry: result.telemetry
+        ? {
+            promptTokens: result.telemetry.promptTokens,
+            completionTokens: result.telemetry.completionTokens,
+            reasoningTokens: result.telemetry.reasoningTokens,
+            finalTokens: result.telemetry.finalTokens,
+            maxTokens: result.telemetry.maxTokens,
+            finishReason: result.telemetry.finishReason,
+            reasoningBudget: result.telemetry.reasoningBudget,
+            twoPhaseReasoning: result.telemetry.twoPhaseReasoning,
+            phase1FinishReason: result.telemetry.phase1FinishReason ?? null,
+            phase2FinishReason: result.telemetry.phase2FinishReason ?? null,
+            generationBudgetExhausted: result.telemetry.generationBudgetExhausted,
+            runtimeMode: result.telemetry.runtimeMode,
+            enableThinking: result.telemetry.enableThinking,
+          }
+        : null,
     },
   ].slice(-24);
 }

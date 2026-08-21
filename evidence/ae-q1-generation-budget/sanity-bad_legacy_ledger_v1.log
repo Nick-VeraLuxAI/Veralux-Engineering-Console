@@ -1,0 +1,14 @@
+{"specimen":"bad_legacy_ledger_v1","hardClass":"bad_legacy_ledger","variant":1,"runId":"42cdbbe3-b51f-4ad9-be9a-79759d1cf9ff","maxIterations":8,"status":"starting"}
+{"specimen":"bad_legacy_ledger_v1","runId":"42cdbbe3-b51f-4ad9-be9a-79759d1cf9ff","delivery":"blocked","primaryFailureCategory":"PRIMARY_QC_NONCONVERGENCE","scorePass":true,"iterations":8,"elapsedMs":216527,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-generation-budget/bad_legacy_ledger_v1-42cdbbe3.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-generation-budget/batch-2026-08-21T06-24-31-310Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 0,
+    "byFailure": {
+      "PRIMARY_QC_NONCONVERGENCE": 1
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{"specimen":"idempotent_job_runner_v2","hardClass":"idempotent_job_runner","variant":2,"runId":"c25703fb-3b42-4afe-9c21-064944308f75","maxIterations":6,"status":"starting"}
+{"specimen":"idempotent_job_runner_v2","runId":"c25703fb-3b42-4afe-9c21-064944308f75","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":false,"iterations":1,"elapsedMs":24767,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-generation-budget/idempotent_job_runner_v2-c25703fb.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-generation-budget/batch-2026-08-21T06-31-17-071Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 0,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}

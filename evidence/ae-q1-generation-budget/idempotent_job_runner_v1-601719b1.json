@@ -1,0 +1,235 @@
+{
+  "specimenId": "idempotent_job_runner_v1",
+  "matrixClasses": [
+    "partial_feature",
+    "failure_recovery"
+  ],
+  "hardClass": "idempotent_job_runner",
+  "variant": 1,
+  "title": "Job enqueue resume v1",
+  "objective": "Directors need a small job enqueue helper under src/jobs that can enqueue a job by id once, survive retries after a partial failure, and never double-enqueue the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+  "elapsedMs": 160587,
+  "taskId": "d19a0346-33ae-4688-8877-dee64d1cd0dc",
+  "runId": "601719b1-efe7-46b1-b634-6b6e70ab9f62",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "601719b1-efe7-46b1-b634-6b6e70ab9f62",
+    "state": "exhausted",
+    "failureClass": "BUDGET_EXHAUSTED",
+    "deliveryCandidateStatus": "blocked",
+    "paused": false,
+    "message": "Budget exhausted after diagnosis."
+  },
+  "currentState": "exhausted",
+  "iterationNumber": 6,
+  "deliveryCandidateStatus": "blocked",
+  "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "9d175612-6322-4945-90d9-0857b655dfa6",
+      "strategy": "Implement an idempotent job enqueue helper that can enqueue a job by id once, survive retries after a partial failure, and never double-enqueue the same job id. Added comprehensive tests covering happy path, idempotency, failure, and retry safety.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=2, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=2, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "workerPlanId": "0ef0288c-ddb7-496d-9a39-5d822e39d126",
+      "strategy": "Fix the idempotent enqueue test so that the job id is recorded in store.enqueued before verifying its presence; move the assertion after the enqueue call and avoid clearing enqueued prematurely",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "workerPlanId": "788c7609-b22d-4ce9-82d0-d1ecd5f6db0b",
+      "strategy": "Fix enqueueJob test imports and assertion usage to properly test idempotent behavior and eliminate test failures",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "workerPlanId": "779e9d5d-9932-42b5-aa9e-df949140b7ac",
+      "strategy": "Make enqueueJob async so that rejection assertions in queue.test.js resolve correctly, preserving idempotent enqueue behavior and proper applied counting.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "workerPlanId": "618b8f1a-c34a-42e7-8829-3afab96b3d40",
+      "strategy": "Corrected the failing test by fixing the expectation for idempotent enqueue behavior and added comprehensive coverage for success, retry, and failure scenarios.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "workerPlanId": "964a1be6-d735-41f3-9114-33f6e916a5a0",
+      "strategy": "Correct test imports and assertion usage for the idempotent enqueue helper; ensure async awaiting and proper undefined checks to eliminate test failures.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "failedHypotheses": [
+    {
+      "iteration": 1,
+      "hypothesis": "Implement an idempotent job enqueue helper that can enqueue a job by id once, survive retries after a partial failure, and never double-enqueue the same job id. Added comprehensive tests covering happy path, idempotency, failure, and retry safety.",
+      "whyFailed": "QC vs baseline: new=2, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "hypothesis": "Fix the idempotent enqueue test so that the job id is recorded in store.enqueued before verifying its presence; move the assertion after the enqueue call and avoid clearing enqueued prematurely",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "hypothesis": "Fix enqueueJob test imports and assertion usage to properly test idempotent behavior and eliminate test failures",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "hypothesis": "Make enqueueJob async so that rejection assertions in queue.test.js resolve correctly, preserving idempotent enqueue behavior and proper applied counting.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "hypothesis": "Corrected the failing test by fixing the expectation for idempotent enqueue behavior and added comprehensive coverage for success, retry, and failure scenarios.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "hypothesis": "Correct test imports and assertion usage for the idempotent enqueue helper; ensure async awaiting and proper undefined checks to eliminate test failures.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "usage": {
+    "iterations": 6,
+    "plans": 6,
+    "modelCalls": 15,
+    "changedFiles": 2,
+    "changedBytes": 9181,
+    "runtimeMs": 160584,
+    "investigationReads": 2,
+    "contextBytes": 121,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 1,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 1,
+    "objectiveQcPassed": false
+  },
+  "plans": [
+    {
+      "id": "964a1be6-d735-41f3-9114-33f6e916a5a0",
+      "summary": "Correct test imports and assertion usage for the idempotent enqueue helper; ensure async awaiting and proper undefined checks to eliminate test failures.",
+      "iterationNumber": 6,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "618b8f1a-c34a-42e7-8829-3afab96b3d40",
+      "summary": "Corrected the failing test by fixing the expectation for idempotent enqueue behavior and added comprehensive coverage for success, retry, and failure scenarios.",
+      "iterationNumber": 5,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "779e9d5d-9932-42b5-aa9e-df949140b7ac",
+      "summary": "Make enqueueJob async so that rejection assertions in queue.test.js resolve correctly, preserving idempotent enqueue behavior and proper applied counting.",
+      "iterationNumber": 4,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "788c7609-b22d-4ce9-82d0-d1ecd5f6db0b",
+      "summary": "Fix enqueueJob test imports and assertion usage to properly test idempotent behavior and eliminate test failures",
+      "iterationNumber": 3,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "0ef0288c-ddb7-496d-9a39-5d822e39d126",
+      "summary": "Fix the idempotent enqueue test so that the job id is recorded in store.enqueued before verifying its presence; move the assertion after the enqueue call and avoid clearing enqueued prematurely",
+      "iterationNumber": 2,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "9d175612-6322-4945-90d9-0857b655dfa6",
+      "summary": "Implement an idempotent job enqueue helper that can enqueue a job by id once, survive retries after a partial failure, and never double-enqueue the same job id. Added comprehensive tests covering happy path, idempotency, failure, and retry safety.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/601719b1-efe7-46b1-b634-6b6e70ab9f62",
+    "branchName": "engineer/d19a0346/601719b1-20260821062150",
+    "baseRevision": "bd67d933f65df1e01c5fbd075b2cfb0af5f7c271",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "failure_recovery": "PASS",
+      "idempotency": "PASS",
+      "vertical_slice_complete": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

@@ -36,6 +36,14 @@ export interface NanoInvocationTelemetry {
   toolParser: string | null;
   generationBudgetExhausted: boolean;
   runtimeMode: NanoRuntimeMode;
+  /** Explicit reasoning cap when two-phase budget control is active; null when unset. */
+  reasoningBudget: number | null;
+  /** Whether NVIDIA-style two-phase thinking→final continuation was used. */
+  twoPhaseReasoning: boolean;
+  /** Phase-1 finish_reason when two-phase ran. */
+  phase1FinishReason?: string | null;
+  /** Phase-2 finish_reason when two-phase ran. */
+  phase2FinishReason?: string | null;
 }
 
 const REASONING_ROLES: AutonomousWorkerRole[] = [
@@ -50,6 +58,27 @@ const PLAN_ROLES: AutonomousWorkerRole[] = ["planning", "replan"];
 /** NVIDIA coding/agentic default ~10k generation; leave headroom under experimental context. */
 const FAITHFUL_REASONING_MAX_TOKENS = 10_000;
 const FAITHFUL_NON_PLAN_MAX_TOKENS = 4_096;
+
+/**
+ * Optional explicit reasoning budget (NVIDIA ThinkingBudgetClient pattern).
+ * Unset = current single-shot max_tokens shares reasoning+final (legacy).
+ * When set (e.g. 4000), planning/replan use two-phase: cap thinking, reserve final headroom.
+ * Rollback: unset / empty / 0.
+ */
+export function resolveNanoReasoningBudget(
+  env: NodeJS.ProcessEnv = process.env,
+): number | null {
+  const raw = env.ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET?.trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.floor(n);
+}
+
+/** Roles that emit large final JSON plans and benefit from reserved final headroom. */
+export function roleUsesReasoningBudgetGate(role: AutonomousWorkerRole): boolean {
+  return PLAN_ROLES.includes(role);
+}
 
 /** Minimum max_model_len to consider the serve stack faithful-capable. */
 export const FAITHFUL_MIN_MODEL_LEN = 65_536;
@@ -238,12 +267,21 @@ export function buildNanoInvocationTelemetry(input: {
   finalLen?: number | null;
   contextMaxModelLen?: number | null;
   trajectoryId?: string | null;
+  reasoningBudget?: number | null;
+  twoPhaseReasoning?: boolean;
+  phase1FinishReason?: string | null;
+  phase2FinishReason?: string | null;
+  /** Override generationBudgetExhausted (e.g. two-phase recovered after phase-1 length). */
+  generationBudgetExhausted?: boolean;
 }): NanoInvocationTelemetry {
   const finishReason = input.finishReason ?? null;
   const reasoningTokens =
-    input.usage?.completion_tokens_details?.reasoning_tokens ??
-    (typeof input.reasoningLen === "number" ? null : null);
+    input.usage?.completion_tokens_details?.reasoning_tokens ?? null;
   const faithful = input.profile.runtimeMode === "FAITHFUL";
+  const exhausted =
+    typeof input.generationBudgetExhausted === "boolean"
+      ? input.generationBudgetExhausted
+      : isGenerationBudgetExhausted(finishReason);
   return {
     trajectoryId: input.trajectoryId ?? null,
     role: input.role,
@@ -259,7 +297,11 @@ export function buildNanoInvocationTelemetry(input: {
     enableThinking: input.profile.enableThinking,
     reasoningParser: faithful ? "nano_v3" : null,
     toolParser: faithful ? "qwen3_coder" : null,
-    generationBudgetExhausted: isGenerationBudgetExhausted(finishReason),
+    generationBudgetExhausted: exhausted,
     runtimeMode: input.profile.runtimeMode,
+    reasoningBudget: input.reasoningBudget ?? null,
+    twoPhaseReasoning: input.twoPhaseReasoning === true,
+    phase1FinishReason: input.phase1FinishReason ?? null,
+    phase2FinishReason: input.phase2FinishReason ?? null,
   };
 }

@@ -1,0 +1,17 @@
+{
+  "runs": [
+    {
+      "id": "246df52b-4704-493d-89c4-73110d53a45b",
+      "specimen": "rate_limit_feature_v3",
+      "category": "PRIMARY_QC_NONCONVERGENCE",
+      "mechanism": "Six semantic ENGINEERING_FAILURE iterations on throttle window semantics / assert harness thrash; no GENERATION_BUDGET_EXHAUSTED; distinct from budget allocation."
+    },
+    {
+      "id": "88295df6-9b04-4af9-bbd2-ea0e9feafcba",
+      "specimen": "rate_limit_feature_v5",
+      "category": "PRIMARY_QC_NONCONVERGENCE",
+      "mechanism": "Six-iteration QC thrash on AccountWindowCounter limit enforcement + INVALID_NODE_ASSERT_API signature early; semantic nonconvergence, not generation length."
+    }
+  ],
+  "separation": "QC nonconvergence residuals are semantic/harness strategy failures under FAITHFUL; not explained by reasoning-vs-final truncation."
+}

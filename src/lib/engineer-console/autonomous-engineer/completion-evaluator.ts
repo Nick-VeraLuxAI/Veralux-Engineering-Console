@@ -20,7 +20,9 @@ export function isMaterialCleanupCriterion(criterion: string): boolean {
 
 /** Material allow/deny window AC — reject constant stub helpers that only QC-green. */
 export function isMaterialRateLimitCriterion(criterion: string): boolean {
-  return /allow|deny|limit|window|quota|throttle|burst|rate/i.test(criterion);
+  return /allow|deny|limit|window|quota|throttle|burst|rate|lease|attempt|slot|grant|ttl/i.test(
+    criterion,
+  );
 }
 
 function readAuthorizedJsContents(

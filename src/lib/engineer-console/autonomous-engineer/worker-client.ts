@@ -18,6 +18,8 @@ import {
   buildNanoInvocationTelemetry,
   extractNanoFinalContent,
   resolveNanoFaithfulProfile,
+  resolveNanoReasoningBudget,
+  roleUsesReasoningBudgetGate,
   type NanoInvocationTelemetry,
 } from "./nano-faithful-invocation";
 
@@ -118,29 +120,70 @@ async function completeLocalStructuredJson(
     telemetry: NanoInvocationTelemetry;
     generationBudgetExhausted: boolean;
   }> {
+    const reasoningBudget =
+      profile.enabled &&
+      profile.enableThinking &&
+      roleUsesReasoningBudgetGate(role)
+        ? resolveNanoReasoningBudget()
+        : null;
+    const useTwoPhase =
+      reasoningBudget != null &&
+      reasoningBudget > 0 &&
+      reasoningBudget < (profile.enabled ? profile.maxTokens : maxTokensForRole(role));
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), local.timeoutMs);
     try {
+      if (!useTwoPhase || reasoningBudget == null) {
+        return await singleShot(messages, controller.signal, null, false);
+      }
+      return await twoPhaseReasoning(messages, controller.signal, reasoningBudget);
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    async function postChat(
+      msgs: Array<{ role: string; content: string }>,
+      signal: AbortSignal,
+      opts: {
+        maxTokens: number;
+        enableThinking: boolean;
+        temperature: number;
+        topP: number | undefined;
+      },
+    ): Promise<{
+      choice: {
+        finish_reason?: string | null;
+        message?: {
+          content?: string | null;
+          reasoning?: string | null;
+          reasoning_content?: string | null;
+        };
+      };
+      usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        completion_tokens_details?: { reasoning_tokens?: number };
+      };
+    }> {
       const body: Record<string, unknown> = {
         model: local.model,
-        messages,
-        temperature: profile.enabled ? profile.temperature : 0.1,
-        max_tokens: profile.enabled ? profile.maxTokens : maxTokensForRole(role),
+        messages: msgs,
+        temperature: opts.temperature,
+        max_tokens: opts.maxTokens,
         chat_template_kwargs: {
-          enable_thinking: profile.enableThinking,
-          ...(profile.truncateHistoryThinking
-            ? { truncate_history_thinking: true }
-            : {}),
+          enable_thinking: opts.enableThinking,
+          ...(profile.truncateHistoryThinking ? { truncate_history_thinking: true } : {}),
         },
       };
-      if (profile.enabled && typeof profile.topP === "number") {
-        body.top_p = profile.topP;
+      if (typeof opts.topP === "number") {
+        body.top_p = opts.topP;
       }
       const response = await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify(body),
-        signal: controller.signal,
+        signal,
       });
       const payload = (await response.json()) as {
         choices?: Array<{
@@ -162,20 +205,47 @@ async function completeLocalStructuredJson(
         throw new Error(payload.error?.message || `Local worker HTTP ${response.status}`);
       }
       const choice = payload.choices?.[0];
-      const message = choice?.message ?? {};
+      if (!choice) {
+        throw new Error("Local worker returned no choices");
+      }
+      return { choice, usage: payload.usage };
+    }
+
+    async function singleShot(
+      msgs: Array<{ role: string; content: string }>,
+      signal: AbortSignal,
+      reasoningBudgetValue: number | null,
+      twoPhase: boolean,
+    ): Promise<{
+      rawResponse: string;
+      parsed: Record<string, unknown> | null;
+      parseErrors: string[];
+      telemetry: NanoInvocationTelemetry;
+      generationBudgetExhausted: boolean;
+    }> {
+      const maxTokens = profile.enabled ? profile.maxTokens : maxTokensForRole(role);
+      const { choice, usage } = await postChat(msgs, signal, {
+        maxTokens,
+        enableThinking: profile.enableThinking,
+        temperature: profile.enabled ? profile.temperature : 0.1,
+        topP: profile.enabled ? profile.topP : undefined,
+      });
+      const message = choice.message ?? {};
       const extracted = extractNanoFinalContent(message);
       const rawResponse = extracted.finalContent;
       const parsed = parseJsonModelOutput(rawResponse);
-      const finishReason = choice?.finish_reason ?? null;
+      const finishReason = choice.finish_reason ?? null;
       const telemetry = buildNanoInvocationTelemetry({
         role,
         profile,
-        usage: payload.usage,
+        usage,
         finishReason,
         reasoningLen: extracted.reasoningContent?.length ?? null,
         finalLen: rawResponse.length,
         contextMaxModelLen,
         trajectoryId,
+        reasoningBudget: reasoningBudgetValue,
+        twoPhaseReasoning: twoPhase,
       });
       return {
         rawResponse,
@@ -184,8 +254,134 @@ async function completeLocalStructuredJson(
         telemetry,
         generationBudgetExhausted: telemetry.generationBudgetExhausted,
       };
-    } finally {
-      clearTimeout(timeout);
+    }
+
+    /**
+     * NVIDIA README ThinkingBudgetClient: phase-1 caps thinking tokens; if the
+     * trace does not finish cleanly, force-close </think> and continue for the
+     * reserved final headroom with thinking off. Thinking stays ON overall.
+     */
+    async function twoPhaseReasoning(
+      msgs: Array<{ role: string; content: string }>,
+      signal: AbortSignal,
+      budget: number,
+    ): Promise<{
+      rawResponse: string;
+      parsed: Record<string, unknown> | null;
+      parseErrors: string[];
+      telemetry: NanoInvocationTelemetry;
+      generationBudgetExhausted: boolean;
+    }> {
+      const maxTokens = profile.maxTokens;
+      const phase1 = await postChat(msgs, signal, {
+        maxTokens: budget,
+        enableThinking: true,
+        temperature: profile.temperature,
+        topP: profile.topP,
+      });
+      const extracted1 = extractNanoFinalContent(phase1.choice.message ?? {});
+      const phase1Finish = phase1.choice.finish_reason ?? null;
+      const phase1Final = extracted1.finalContent.trim();
+      const phase1Parsed = parseJsonModelOutput(phase1Final);
+
+      // Early complete: thinking finished inside budget with usable final JSON.
+      if (
+        phase1Finish === "stop" &&
+        phase1Final &&
+        phase1Parsed.success &&
+        parsedObject(phase1Parsed.parsed)
+      ) {
+        const telemetry = buildNanoInvocationTelemetry({
+          role,
+          profile,
+          usage: phase1.usage,
+          finishReason: phase1Finish,
+          reasoningLen: extracted1.reasoningContent?.length ?? null,
+          finalLen: phase1Final.length,
+          contextMaxModelLen,
+          trajectoryId,
+          reasoningBudget: budget,
+          twoPhaseReasoning: true,
+          phase1FinishReason: phase1Finish,
+          phase2FinishReason: null,
+          generationBudgetExhausted: false,
+        });
+        return {
+          rawResponse: phase1Final,
+          parsed: parsedObject(phase1Parsed.parsed),
+          parseErrors: phase1Parsed.errors,
+          telemetry,
+          generationBudgetExhausted: false,
+        };
+      }
+
+      // Cap reasoning and reserve final headroom (NVIDIA client semantics).
+      let reasoningBlob =
+        extracted1.reasoningContent ||
+        (phase1.choice.message?.content ?? "") ||
+        "";
+      if (!reasoningBlob.includes("</think>")) {
+        reasoningBlob = `${reasoningBlob.replace(/\s*$/, "")}.\n</think>\n\n`;
+      } else if (!reasoningBlob.trim().endsWith("</think>")) {
+        reasoningBlob = `${extracted1.reasoningContent ?? reasoningBlob}\n</think>\n\n`;
+      }
+      const remaining = Math.max(256, maxTokens - budget);
+      const phase2 = await postChat(
+        [...msgs, { role: "assistant", content: reasoningBlob }],
+        signal,
+        {
+          maxTokens: remaining,
+          enableThinking: false,
+          temperature: profile.temperature,
+          topP: profile.topP,
+        },
+      );
+      const extracted2 = extractNanoFinalContent(phase2.choice.message ?? {});
+      let rawResponse = extracted2.finalContent.trim();
+      if (!rawResponse) {
+        rawResponse = (phase2.choice.message?.content ?? "").trim();
+      }
+      // Prefer phase-1 final if phase-2 empty but phase-1 had partial text.
+      if (!rawResponse && phase1Final) {
+        rawResponse = phase1Final;
+      }
+      const parsed = parseJsonModelOutput(rawResponse);
+      const phase2Finish = phase2.choice.finish_reason ?? null;
+      const combinedCompletion =
+        (phase1.usage?.completion_tokens ?? 0) + (phase2.usage?.completion_tokens ?? 0);
+      const telemetry = buildNanoInvocationTelemetry({
+        role,
+        profile,
+        usage: {
+          prompt_tokens: phase1.usage?.prompt_tokens ?? phase2.usage?.prompt_tokens,
+          completion_tokens: combinedCompletion || phase2.usage?.completion_tokens,
+          completion_tokens_details: {
+            reasoning_tokens:
+              phase1.usage?.completion_tokens_details?.reasoning_tokens ??
+              phase1.usage?.completion_tokens ??
+              undefined,
+          },
+        },
+        finishReason: phase2Finish,
+        reasoningLen: extracted1.reasoningContent?.length ?? reasoningBlob.length,
+        finalLen: rawResponse.length,
+        contextMaxModelLen,
+        trajectoryId,
+        reasoningBudget: budget,
+        twoPhaseReasoning: true,
+        phase1FinishReason: phase1Finish,
+        phase2FinishReason: phase2Finish,
+        // Recovered if phase-1 hit length but phase-2 produced final content.
+        generationBudgetExhausted:
+          phase2Finish === "length" || (!rawResponse && phase1Finish === "length"),
+      });
+      return {
+        rawResponse,
+        parsed: parsed.success ? parsedObject(parsed.parsed) : null,
+        parseErrors: parsed.errors,
+        telemetry,
+        generationBudgetExhausted: telemetry.generationBudgetExhausted,
+      };
     }
   }
 

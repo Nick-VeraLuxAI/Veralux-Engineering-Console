@@ -4,7 +4,9 @@ import {
   isGenerationBudgetExhausted,
   isNanoFaithfulInvocationEnabled,
   resolveNanoFaithfulProfile,
+  resolveNanoReasoningBudget,
   resolveNanoRuntimeMode,
+  roleUsesReasoningBudgetGate,
 } from "./nano-faithful-invocation";
 import { classifyAutonomousFailure } from "./failure-classification";
 
@@ -83,5 +85,15 @@ describe("nano faithful invocation", () => {
       ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL: "http://127.0.0.1:8081/v1",
     };
     expect(resolveNanoRuntimeMode(env)).toBe("DEGRADED");
+  });
+
+  it("resolves optional reasoning budget from env (unset = null)", () => {
+    expect(resolveNanoReasoningBudget({})).toBeNull();
+    expect(resolveNanoReasoningBudget({ ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET: "" })).toBeNull();
+    expect(resolveNanoReasoningBudget({ ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET: "0" })).toBeNull();
+    expect(resolveNanoReasoningBudget({ ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET: "4000" })).toBe(4000);
+    expect(roleUsesReasoningBudgetGate("planning")).toBe(true);
+    expect(roleUsesReasoningBudgetGate("replan")).toBe(true);
+    expect(roleUsesReasoningBudgetGate("diagnosis")).toBe(false);
   });
 });

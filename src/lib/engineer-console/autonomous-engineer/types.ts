@@ -256,6 +256,22 @@ export interface AutonomousWorkerInvocationTrace {
   schemaErrors: string[];
   repairAttempted: boolean;
   accepted: boolean;
+  generationBudgetExhausted?: boolean;
+  telemetry?: {
+    promptTokens: number | null;
+    completionTokens: number | null;
+    reasoningTokens: number | null;
+    finalTokens: number | null;
+    maxTokens: number;
+    finishReason: string | null;
+    reasoningBudget: number | null;
+    twoPhaseReasoning: boolean;
+    phase1FinishReason: string | null;
+    phase2FinishReason: string | null;
+    generationBudgetExhausted: boolean;
+    runtimeMode: string;
+    enableThinking: boolean;
+  } | null;
 }
 
 export interface AutonomousWorkerModelTrace {
