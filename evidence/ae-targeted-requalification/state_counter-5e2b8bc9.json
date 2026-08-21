@@ -1,0 +1,242 @@
+{
+  "specimenId": "state_counter",
+  "matrixClasses": [
+    "state_concurrency"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Shared counter integrity",
+  "objective": "Operators need incrementCounter(store, key, by = 1) under src/state. Contract (unambiguous): missing keys are created on first write (treat absent as 0 / default); do NOT reject a key merely because it is absent from the store; increments must accumulate with a single synchronous read-modify-write so sequential/concurrent callers do not lose updates; distinct keys stay independent; reject clearly invalid inputs only (non-string key, non-object store, non-finite by). Add tests covering create-on-first-write, accumulation, independence, and invalid input. Do not open a PR or deploy.",
+  "elapsedMs": 164369,
+  "taskId": "fd71d07e-a5c4-4f15-b450-f5de1f1a71a1",
+  "runId": "5e2b8bc9-1683-4d45-87a4-2e2660a59515",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "5e2b8bc9-1683-4d45-87a4-2e2660a59515",
+    "state": "exhausted",
+    "failureClass": "BUDGET_EXHAUSTED",
+    "deliveryCandidateStatus": "blocked",
+    "paused": false,
+    "message": "Budget exhausted after diagnosis."
+  },
+  "currentState": "exhausted",
+  "iterationNumber": 6,
+  "deliveryCandidateStatus": "blocked",
+  "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "da471275-9670-4bdc-a8ca-ea28855b9712",
+      "strategy": "Fix incrementCounter implementation to correctly accumulate updates and add comprehensive tests covering create-on-first-write, accumulation, independence, and invalid input scenarios.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "workerPlanId": "a9eea302-3c22-482f-b0fd-ed735bc8746f",
+      "strategy": "Add string key validation helper and integrate it into incrementCounter to restore proper rejection of non‑string keys while preserving create‑on‑first‑write, accumulation, and independence semantics.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "workerPlanId": "ba31cef8-27f6-47c5-9923-a87d95a48ff6",
+      "strategy": "Fix incrementCounter to correctly create missing keys, accumulate updates atomically, enforce strict input validation, and add comprehensive regression tests covering all required scenarios.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "workerPlanId": "4bef246d-2aaa-47d5-b490-978fb233350e",
+      "strategy": "Fix incrementCounter implementation to correctly create missing keys, accumulate updates atomically, and add comprehensive regression tests covering all contract requirements and error cases; ensure test suite uses node:test and node:assert/strict",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "workerPlanId": "951e31c7-e22c-4a5f-adb7-9e20385af104",
+      "strategy": "Fix test file to use proper ESM imports and add comprehensive tests for create‑on‑first‑write, accumulation, independence, and invalid input cases",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "workerPlanId": "f9e9ec9b-3724-47ed-8d23-c7d5f1b5c4d5",
+      "strategy": "Fix incrementCounter to correctly handle missing keys (create‑on‑first‑write), accumulate updates synchronously, keep distinct keys independent, and reject only clearly invalid inputs; add comprehensive regression tests covering all required scenarios.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "failedHypotheses": [
+    {
+      "iteration": 1,
+      "hypothesis": "Fix incrementCounter implementation to correctly accumulate updates and add comprehensive tests covering create-on-first-write, accumulation, independence, and invalid input scenarios.",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "hypothesis": "Add string key validation helper and integrate it into incrementCounter to restore proper rejection of non‑string keys while preserving create‑on‑first‑write, accumulation, and independence semantics.",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "hypothesis": "Fix incrementCounter to correctly create missing keys, accumulate updates atomically, enforce strict input validation, and add comprehensive regression tests covering all required scenarios.",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "hypothesis": "Fix incrementCounter implementation to correctly create missing keys, accumulate updates atomically, and add comprehensive regression tests covering all contract requirements and error cases; ensure test suite uses node:test and node:assert/strict",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "hypothesis": "Fix test file to use proper ESM imports and add comprehensive tests for create‑on‑first‑write, accumulation, independence, and invalid input cases",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "hypothesis": "Fix incrementCounter to correctly handle missing keys (create‑on‑first‑write), accumulate updates synchronously, keep distinct keys independent, and reject only clearly invalid inputs; add comprehensive regression tests covering all required scenarios.",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "usage": {
+    "iterations": 6,
+    "plans": 6,
+    "modelCalls": 19,
+    "changedFiles": 2,
+    "changedBytes": 10078,
+    "runtimeMs": 164366,
+    "investigationReads": 2,
+    "contextBytes": 123,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 1,
+    "owned": 1,
+    "objectiveQcPassed": false
+  },
+  "plans": [
+    {
+      "id": "f9e9ec9b-3724-47ed-8d23-c7d5f1b5c4d5",
+      "summary": "Fix incrementCounter to correctly handle missing keys (create‑on‑first‑write), accumulate updates synchronously, keep distinct keys independent, and reject only clearly invalid inputs; add comprehensive regression tests covering all required scenarios.",
+      "iterationNumber": 6,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "951e31c7-e22c-4a5f-adb7-9e20385af104",
+      "summary": "Fix test file to use proper ESM imports and add comprehensive tests for create‑on‑first‑write, accumulation, independence, and invalid input cases",
+      "iterationNumber": 5,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "4bef246d-2aaa-47d5-b490-978fb233350e",
+      "summary": "Fix incrementCounter implementation to correctly create missing keys, accumulate updates atomically, and add comprehensive regression tests covering all contract requirements and error cases; ensure test suite uses node:test and node:assert/strict",
+      "iterationNumber": 4,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "ba31cef8-27f6-47c5-9923-a87d95a48ff6",
+      "summary": "Fix incrementCounter to correctly create missing keys, accumulate updates atomically, enforce strict input validation, and add comprehensive regression tests covering all required scenarios.",
+      "iterationNumber": 3,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "a9eea302-3c22-482f-b0fd-ed735bc8746f",
+      "summary": "Add string key validation helper and integrate it into incrementCounter to restore proper rejection of non‑string keys while preserving create‑on‑first‑write, accumulation, and independence semantics.",
+      "iterationNumber": 2,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "da471275-9670-4bdc-a8ca-ea28855b9712",
+      "summary": "Fix incrementCounter implementation to correctly accumulate updates and add comprehensive tests covering create-on-first-write, accumulation, independence, and invalid input scenarios.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/5e2b8bc9-1683-4d45-87a4-2e2660a59515",
+    "branchName": "engineer/fd71d07e/5e2b8bc9-20260821002327",
+    "baseRevision": "914c2654e8cceb36683a924d1188c5293ee55fbe",
+    "status": "active"
+  },
+  "score": {
+    "pass": false,
+    "notes": [
+      "rejects missing key (must create-on-first-write)",
+      "no create-on-first-write coverage"
+    ],
+    "robustScorecard": {
+      "state_integrity": "FAIL",
+      "create_on_first_write": "FAIL",
+      "validation": "PASS",
+      "independence": "PASS",
+      "tests": "FAIL"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

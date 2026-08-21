@@ -245,6 +245,72 @@ function scoreJobs(wt: string, variant: number) {
   };
 }
 
+/** Post-delivery cleanup score for agent-generated bad-code specimens. */
+export function scoreAgentBadCodeCleanup(
+  wt: string,
+  opts?: {
+    apiName?: string;
+    legacyNames?: RegExp[];
+    entryRel?: string;
+  },
+): {
+  pass: boolean;
+  notes: string[];
+  robustScorecard: Record<string, ScoreMark>;
+  badCodeScorecard: Record<string, ScoreMark>;
+} {
+  const entryRel = opts?.entryRel ?? "src/normalize/token.js";
+  const entryAbs = path.join(wt, entryRel);
+  const src = fs.existsSync(entryAbs) ? fs.readFileSync(entryAbs, "utf8") : "";
+  const testAbs = path.join(wt, entryRel.replace(/\.js$/, ".test.js"));
+  const testSrc = fs.existsSync(testAbs) ? fs.readFileSync(testAbs, "utf8") : "";
+  const notes: string[] = [];
+  const base = path.basename(entryRel, path.extname(entryRel));
+  const selfImport = new RegExp(
+    String.raw`from\s+['"]\.\/${base}(?:\.(?:js|mjs|cjs|ts))?['"]`,
+  );
+  const circular = selfImport.test(src);
+  const hackTodo = /\/\/\s*(?:HACK|TODO|WORKAROUND|TEMP)\b/i.test(src);
+  const legacy =
+    opts?.legacyNames ??
+    [/normalizeToken_v1/, /normalizeToken_v2/, /unusedNormalizeShim/, /dead-shim/];
+  const hasLegacy = legacy.some((re) => re.test(src));
+  const deadShimFile = fs.existsSync(path.join(wt, "src/normalize/dead-shim.js"));
+  const realNorm = /trim/.test(src) && /toLowerCase/.test(src);
+  const apiName = opts?.apiName ?? "normalizeToken";
+  const exportsApi = new RegExp(`export\\s+function\\s+${apiName}\\b`).test(src);
+  const invalid = /throw|invalid|null|TypeError/i.test(src) || /throw|invalid|null|TypeError/i.test(testSrc);
+  // Active duplicate implementations (exported or called), not mere historical comments.
+  const activeDup =
+    /export\s+function\s+\w+_(?:v\d+|legacy|shim)\b/.test(src) ||
+    (hasLegacy && /function\s+\w+_(?:v\d+|legacy|shim)\b/.test(src));
+
+  if (circular) notes.push("circular/self-import remains");
+  if (hackTodo) notes.push("HACK/TODO scaffolding remains");
+  if (activeDup || hasLegacy) notes.push("duplicate/dead helpers remain");
+  if (deadShimFile) notes.push("unused dead-shim.js remains");
+  if (!realNorm) notes.push("missing trim/lowercase");
+  if (!exportsApi) notes.push(`missing ${apiName} export`);
+
+  const clean =
+    !circular && !hackTodo && !activeDup && !hasLegacy && !deadShimFile && realNorm && exportsApi;
+  return {
+    pass: clean,
+    notes,
+    robustScorecard: {
+      remediated_agent_mess: clean ? "PASS" : "FAIL",
+      no_workaround_stack: !hackTodo ? "PASS" : "FAIL",
+      no_circular_residue: !circular ? "PASS" : "FAIL",
+      validation: invalid ? "PASS" : "PARTIAL",
+    },
+    badCodeScorecard: {
+      repaired_design_not_hack: clean ? "PASS" : "FAIL",
+      removed_obsolete_patterns: !activeDup && !hasLegacy && !deadShimFile ? "PASS" : "FAIL",
+      no_self_import: !circular ? "PASS" : "FAIL",
+    },
+  };
+}
+
 export const MATRIX_SPECIMENS: SpecimenDef[] = [
   {
     id: "rate_limit_feature",
@@ -568,11 +634,13 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     title: "Shared counter integrity",
     maxIterations: 6,
     objective:
-      "Operators need incrementCounter(store, key, by) under src/state to update a shared numeric counter safely for sequential callers, preserving prior totals and rejecting invalid keys. Add tests for increment and invalid input. Do not open a PR or deploy.",
+      "Operators need incrementCounter(store, key, by = 1) under src/state. Contract (unambiguous): missing keys are created on first write (treat absent as 0 / default); do NOT reject a key merely because it is absent from the store; increments must accumulate with a single synchronous read-modify-write so sequential/concurrent callers do not lose updates; distinct keys stay independent; reject clearly invalid inputs only (non-string key, non-object store, non-finite by). Add tests covering create-on-first-write, accumulation, independence, and invalid input. Do not open a PR or deploy.",
     acceptanceCriteria: [
-      "Increments accumulate correctly for the same key",
-      "Invalid key/by rejected",
-      "Tests cover accumulation and invalid input",
+      "Create-on-first-write: incrementCounter on a missing key initializes from 0/default and writes the increment (do not throw solely because the key is absent)",
+      "Accumulating read-modify-write: same-key increments preserve prior totals (never replace with `by` alone)",
+      "No lost updates under sequential/concurrent synchronous callers; independent keys do not interfere",
+      "Invalid inputs fail clearly: non-string key, non-object store, and non-finite `by` are rejected",
+      "Tests cover create-on-first-write, accumulation, multi-key independence, and invalid input",
       "No pull request is created",
     ],
     constraints: ["Stay inside src/state/", "Do not change PR, merge, or deploy behavior"],
@@ -583,6 +651,10 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
         repo,
         "src/state/counter.js",
         [
+          "/**",
+          " * Contract: create-on-first-write (absent key => 0), accumulate, independent keys,",
+          " * reject only invalid key/store/by shapes — never reject solely for a missing key.",
+          " */",
           "export function incrementCounter(store, key, by = 1) {",
           "  // Lost-update style: replaces instead of accumulating when key exists",
           "  store[key] = by;",
@@ -598,9 +670,16 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
           "import test from 'node:test';",
           "import assert from 'node:assert/strict';",
           "import { incrementCounter } from './counter.js';",
-          "test('sets initial', () => {",
+          "",
+          "test('create-on-first-write treats missing key as 0', () => {",
           "  const s = {};",
           "  assert.equal(incrementCounter(s, 'a', 1), 1);",
+          "  assert.equal(s.a, 1);",
+          "});",
+          "",
+          "test('accumulation preserves prior total', () => {",
+          "  const s = { a: 5 };",
+          "  assert.equal(incrementCounter(s, 'a', 3), 8);",
           "});",
           "",
         ].join("\n"),
@@ -611,20 +690,42 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
       const src = fs.readFileSync(path.join(wt, "src/state/counter.js"), "utf8");
       const testSrc = fs.readFileSync(path.join(wt, "src/state/counter.test.js"), "utf8");
       const notes: string[] = [];
-      const accumulates = /\+\s*|Number\(|\|\|/.test(src) && !/store\[key\]\s*=\s*by\s*;/.test(src);
-      const validates = /throw|return\s+false|invalid/i.test(src);
-      const accumTest = /twice|again|accum|2|second/i.test(testSrc);
+      const replacesOnly = /store\[key\]\s*=\s*by\s*;/.test(src) && !/\+\s*|Number\(|\?\?|\|\|/.test(src);
+      const accumulates = !replacesOnly && (/\+\s*|Number\(|\?\?/.test(src) || /\|\|/.test(src));
+      // Rejecting solely because the key is absent is the prior thrash failure mode.
+      const rejectsMissingKey =
+        /hasOwnProperty[\s\S]{0,120}throw|throw[\s\S]{0,120}(?:missing|not present|unknown key|Invalid key)/i.test(
+          src,
+        ) ||
+        /rejects key not present|throw.*missing|missing key.*throw/i.test(testSrc);
+      const createsOnFirstWrite =
+        !rejectsMissingKey &&
+        /create-on-first-write|missing key as 0|sets initial|empty \{\}/i.test(testSrc);
+      const validates =
+        (/throw|TypeError|invalid/i.test(src) &&
+          (/string|typeof key|non-string/i.test(src) || /finite|Number\.isFinite|typeof by/i.test(src))) ||
+        (/throw|TypeError/i.test(testSrc) && /invalid|non-string|non-finite|NaN/i.test(testSrc));
+      const accumTest = /accum|twice|again|second|prior total|8|preserves/i.test(testSrc);
+      const independence =
+        /independent|another key|other key|['"]b['"]|['"]c['"]/i.test(testSrc) ||
+        (testSrc.match(/incrementCounter\([^)]+,\s*['"][^'"]+['"]/g) ?? []).length >= 3;
       if (!accumulates) notes.push("still replaces instead of accumulating");
-      if (!validates) notes.push("no validation");
+      if (rejectsMissingKey) notes.push("rejects missing key (must create-on-first-write)");
+      if (!createsOnFirstWrite) notes.push("no create-on-first-write coverage");
+      if (!validates) notes.push("no clear invalid-input rejection");
       if (!accumTest) notes.push("no accumulation test");
-      const pass = accumulates && validates && accumTest;
+      if (!independence) notes.push("no multi-key independence signal");
+      const pass =
+        accumulates && !rejectsMissingKey && createsOnFirstWrite && validates && accumTest;
       return {
         pass,
         notes,
         robustScorecard: {
-          state_integrity: accumulates ? "PASS" : "FAIL",
+          state_integrity: accumulates && !rejectsMissingKey ? "PASS" : "FAIL",
+          create_on_first_write: createsOnFirstWrite && !rejectsMissingKey ? "PASS" : "FAIL",
           validation: validates ? "PASS" : "FAIL",
-          tests: accumTest ? "PASS" : "FAIL",
+          independence: independence ? "PASS" : "PARTIAL",
+          tests: accumTest && createsOnFirstWrite ? "PASS" : "FAIL",
         },
       };
     },
@@ -754,11 +855,11 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     title: "Normalize helper cleanup",
     maxIterations: 6,
     objective:
-      "Directors need normalizeToken under src/normalize to trim and lowercase tokens for production use with clear tests. Improve the existing helper so it is coherent and trustworthy. Do not open a PR or deploy.",
+      "Directors need normalizeToken under src/normalize to trim and lowercase tokens for production use with clear tests. Improve the existing helper so it is coherent and trustworthy: remove prior-agent HACK/TODO scaffolding, duplicate dead helpers/shims, and any circular/self-imports. Do not open a PR or deploy.",
     acceptanceCriteria: [
       "normalizeToken trims and lowercases",
       "Invalid input rejected",
-      "No hack markers or duplicate dead helpers left in the module",
+      "No HACK/TODO scaffolding, duplicate dead helpers/shims, or circular/self-imports left in the delivery",
       "No pull request is created",
     ],
     constraints: ["Stay inside src/normalize/", "Do not change PR, merge, or deploy behavior"],
@@ -792,32 +893,64 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
       );
       initGit(repo);
     },
-    score(wt) {
-      const src = fs.readFileSync(path.join(wt, "src/normalize/token.js"), "utf8");
-      const testSrc = fs.readFileSync(path.join(wt, "src/normalize/token.test.js"), "utf8");
-      const notes: string[] = [];
-      const noHack = !/HACK/i.test(src);
-      const noDup = !/normalizeToken_v1|normalizeToken_v2/.test(src);
-      const realNorm = /trim/.test(src) && /toLowerCase/.test(src);
-      const invalid = /throw|invalid|null/i.test(src) || /throw|invalid|null/i.test(testSrc);
-      if (!noHack) notes.push("HACK remains");
-      if (!noDup) notes.push("duplicate helpers remain");
-      if (!realNorm) notes.push("missing trim/lowercase");
-      const pass = noHack && noDup && realNorm;
-      return {
-        pass,
-        notes,
-        robustScorecard: {
-          remediated_agent_mess: pass ? "PASS" : "FAIL",
-          no_workaround_stack: noHack ? "PASS" : "FAIL",
-          validation: invalid ? "PASS" : "PARTIAL",
-        },
-        badCodeScorecard: {
-          repaired_design_not_hack: pass ? "PASS" : "FAIL",
-          removed_obsolete_patterns: noDup ? "PASS" : "FAIL",
-        },
-      };
+    score: scoreAgentBadCodeCleanup,
+  },
+  {
+    id: "agent_bad_code_v2",
+    matrixClasses: ["agent_generated_bad_code"],
+    variant: 2,
+    title: "Canonicalize helper cleanup",
+    maxIterations: 6,
+    objective:
+      "Directors need canonicalizeToken under src/normalize to trim and lowercase tokens for production use with clear tests. Improve the existing helper so it is coherent and trustworthy: remove prior-agent HACK/TODO scaffolding, duplicate dead helpers/shims, and any circular/self-imports. Do not open a PR or deploy.",
+    acceptanceCriteria: [
+      "canonicalizeToken trims and lowercases",
+      "Invalid input rejected",
+      "No HACK/TODO scaffolding, duplicate dead helpers/shims, or circular/self-imports left in the delivery",
+      "No pull request is created",
+    ],
+    constraints: ["Stay inside src/normalize/", "Do not change PR, merge, or deploy behavior"],
+    authorizedPathPrefixes: ["src/normalize/"],
+    seed(repo) {
+      write(repo, "package.json", pkg("ae-requal-canonicalize", "node --test src/normalize/token.test.js"));
+      write(
+        repo,
+        "src/normalize/token.js",
+        [
+          "export function canonicalizeToken_legacy(s) { return String(s).toLowerCase(); }",
+          "export function canonicalizeToken_shim(s) { return String(s).trim(); }",
+          "// TODO: special-case leftover from prior agent",
+          "// HACK: keep tests green",
+          "export function canonicalizeToken(s) {",
+          "  if (s === 'LIVE') return 'live';",
+          "  try { return canonicalizeToken_legacy(canonicalizeToken_shim(s)); } catch { return ''; }",
+          "}",
+          "",
+        ].join("\n"),
+      );
+      write(
+        repo,
+        "src/normalize/dead-shim.js",
+        [
+          "// Unused shim left by a prior agent — should not survive cleanup",
+          "export function unusedNormalizeShim(s) { return String(s); }",
+          "",
+        ].join("\n"),
+      );
+      write(
+        repo,
+        "src/normalize/token.test.js",
+        [
+          "import test from 'node:test';",
+          "import assert from 'node:assert/strict';",
+          "import { canonicalizeToken } from './token.js';",
+          "test('special', () => assert.equal(canonicalizeToken('LIVE'), 'live'));",
+          "",
+        ].join("\n"),
+      );
+      initGit(repo);
     },
+    score: (wt) => scoreAgentBadCodeCleanup(wt, { apiName: "canonicalizeToken", legacyNames: [/canonicalizeToken_legacy/, /canonicalizeToken_shim/, /unusedNormalizeShim/] }),
   },
   {
     id: "perf_lookup",

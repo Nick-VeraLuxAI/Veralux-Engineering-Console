@@ -151,6 +151,10 @@ This is **not** evidence that SkillOpt is required next. Faithful envelope alrea
 
 Stop criterion: state class reaches `deliveryCandidateStatus=ready` with unresolved=0 **and** agent-bad-code leaves no circular/dead residue on a fresh seed → re-open full verdict.
 
+### Targeted repair follow-up (2026-08-20)
+
+Narrow fixture/AC clarification + FAITHFUL replays recorded under `evidence/ae-targeted-requalification/` (does not overwrite this folder). Result: **TARGETED RESULTS MIXED** — `state_counter` still blocked (`PRIMARY_QC_NONCONVERGENCE`; create-on-first-write thrash cleared), `agent_bad_code_v2` delivery-ready but left `dead-shim.js`. See `evidence/ae-targeted-requalification/targeted-summary.md`. Still **NOT ROBUST CODE QUALIFIED**.
+
 ---
 
 ## PR recommendation

@@ -40,6 +40,26 @@ const ENGINEERING_QUALITY_PATTERNS: Array<{ id: string; pattern: RegExp; message
   },
 ];
 
+/** Detect circular self-imports of the form `from './same-basename'`. */
+function circularSelfImportDefects(fileContents: Record<string, string>): string[] {
+  const defects: string[] = [];
+  for (const [file, content] of Object.entries(fileContents)) {
+    if (!/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(file)) continue;
+    if (file.includes(".test.") || file.includes("__tests__/")) continue;
+    const base = file.split("/").pop()?.replace(/\.(ts|tsx|js|jsx|mjs|cjs)$/, "") ?? "";
+    if (!base) continue;
+    const selfImport = new RegExp(
+      String.raw`(?:import|export)\s+[^;]*\bfrom\s+['"]\.\/${base}(?:\.(?:js|jsx|ts|tsx|mjs|cjs))?['"]`,
+    );
+    if (selfImport.test(content)) {
+      defects.push(
+        `${file}: Circular/self-import of './${base}' left in delivery; remove residue instead of wrapping it.`,
+      );
+    }
+  }
+  return defects;
+}
+
 function engineeringQualityDefects(fileContents: Record<string, string>): string[] {
   const defects: string[] = [];
   for (const [file, content] of Object.entries(fileContents)) {
@@ -57,6 +77,7 @@ function engineeringQualityDefects(fileContents: Record<string, string>): string
       }
     }
   }
+  defects.push(...circularSelfImportDefects(fileContents));
   return defects;
 }
 
@@ -244,7 +265,7 @@ export function mergeWorkerAdversarialReview(
 
 /** Non-race material engineering defects (unchanged fail-closed bar for real smells). */
 const MATERIAL_NON_RACE =
-  /(?:empty catch|success[- ]?fallback|fail open|swallowed(?:\s+error)?|silent (?:null|success|fail)|WORKAROUND|\bHACK\b|from ['"]vitest['"]|does not export expect|private key|AE_REVIEW_BLOCK|trust boundar|auth hole|partial mutat(?:ion)? without|N\+1(?:\s+query)?|sql inject|path traversal)/i;
+  /(?:empty catch|success[- ]?fallback|fail open|swallowed(?:\s+error)?|silent (?:null|success|fail)|WORKAROUND|\bHACK\b|circular(?:\/|\s+)?self[- ]?import|self-import|from ['"]vitest['"]|does not export expect|private key|AE_REVIEW_BLOCK|trust boundar|auth hole|partial mutat(?:ion)? without|N\+1(?:\s+query)?|sql inject|path traversal)/i;
 
 /** Claims that often misread rethrowing catches as silent success. */
 const SILENT_SUCCESS_CLAIM =

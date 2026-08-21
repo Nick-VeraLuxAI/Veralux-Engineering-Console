@@ -1,0 +1,49 @@
+{
+  "at": "2026-08-21T00:27:29.084220+00:00",
+  "specimenId": "agent_bad_code_v2",
+  "freshEquivalentOf": "agent_bad_code",
+  "runId": "005464a6-a9f1-41ae-942e-48376828ed58",
+  "nanoRuntimeMode": "FAITHFUL",
+  "maxIterations": 6,
+  "iterations": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "unresolvedDefects": [],
+  "humanCodingInterventions": 0,
+  "score": {
+    "pass": false,
+    "notes": [
+      "unused dead-shim.js remains"
+    ],
+    "robustScorecard": {
+      "remediated_agent_mess": "FAIL",
+      "no_workaround_stack": "PASS",
+      "no_circular_residue": "PASS",
+      "validation": "PASS"
+    },
+    "badCodeScorecard": {
+      "repaired_design_not_hack": "FAIL",
+      "removed_obsolete_patterns": "FAIL",
+      "no_self_import": "PASS"
+    }
+  },
+  "normalizeDirFiles": [
+    "token.test.js",
+    "token.js",
+    "dead-shim.js"
+  ],
+  "finalCodeSummary": {
+    "tokenJs": "export function canonicalizeToken(s) {\n  const str = typeof s === 'string' ? s : '';\n  return str.trim().toLowerCase();\n}",
+    "circularSelfImport": false,
+    "hackTodoMarkers": false,
+    "deadShimRemains": true,
+    "legacyHelpersRemovedFromTokenJs": true
+  },
+  "successBar": {
+    "deliveryReady": true,
+    "noCircularOrDeadResidue": false,
+    "met": false
+  },
+  "notes": "Delivery ready in 1 iteration with real canonicalizeToken trim/lowercase and no circular/self-import or HACK/TODO in token.js. Unused src/normalize/dead-shim.js was left untouched \u2014 post-delivery harness score fails on dead residue.",
+  "evidenceRaw": "agent_bad_code_v2-005464a6.json"
+}

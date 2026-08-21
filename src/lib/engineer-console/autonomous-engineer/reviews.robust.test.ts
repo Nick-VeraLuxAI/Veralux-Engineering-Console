@@ -106,19 +106,20 @@ describe("engineering quality + adversarial review merge", () => {
     expect(quality?.actionableDefects.join(" ")).toMatch(/Empty catch/);
   });
 
-  it("blocks WORKAROUND markers in delivery path", () => {
+  it("blocks circular/self-imports in changed production sources", () => {
     const reviews = runAutonomousReviews({
       document: doc(),
-      changedFiles: ["src/ledger.ts"],
-      diffSummary: "hack",
+      changedFiles: ["src/normalize/token.js"],
+      diffSummary: "cleanup",
       qcPassed: true,
       fileContents: {
-        "src/ledger.ts": "// WORKAROUND until tests pass\nexport const ok = true;\n",
+        "src/normalize/token.js":
+          "import { normalizeToken as _legacy } from './token.js';\nexport function normalizeToken(s) { return String(s).trim().toLowerCase(); }\n",
       },
     });
-    expect(reviews.find((r) => r.review === "engineering_quality")?.actionableDefects.join(" ")).toMatch(
-      /Workaround/,
-    );
+    const quality = reviews.find((review) => review.review === "engineering_quality");
+    expect(quality?.passed).toBe(false);
+    expect(quality?.actionableDefects.join(" ")).toMatch(/Circular\/self-import/);
   });
 
   it("blocks vitest imports in production sources", () => {

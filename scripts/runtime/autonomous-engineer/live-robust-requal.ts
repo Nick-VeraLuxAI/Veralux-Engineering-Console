@@ -285,7 +285,10 @@ async function main(): Promise<void> {
 
   initializeEngineerConsoleDatabase();
   const selected = selectSpecimens(process.argv.slice(2));
-  const outDir = path.join(process.cwd(), "evidence/ae-robust-requalification");
+  const outDirArg = process.argv.slice(2).find((a) => a.startsWith("--out-dir="))?.slice("--out-dir=".length);
+  const outDir = path.isAbsolute(outDirArg ?? "")
+    ? (outDirArg as string)
+    : path.join(process.cwd(), outDirArg ?? "evidence/ae-robust-requalification");
   fs.mkdirSync(outDir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const results: Record<string, unknown>[] = [];

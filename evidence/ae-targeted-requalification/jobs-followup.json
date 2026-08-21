@@ -1,0 +1,8 @@
+{
+  "at": "2026-08-21T00:27:29.084364+00:00",
+  "ran": false,
+  "reason": "Optional after primary targets. state_counter still blocked and agent_bad_code_v2 left dead residue; skipped fresh jobs-equivalent. Prior robust requal jobs hard class remains 2/3 (PRIMARY_QC_NONCONVERGENCE on v1).",
+  "priorHardClass": {
+    "idempotent_job_runner": "2/3 delivery ready"
+  }
+}
