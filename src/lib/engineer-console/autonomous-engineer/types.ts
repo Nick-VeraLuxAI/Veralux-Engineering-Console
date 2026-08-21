@@ -271,6 +271,16 @@ export interface AutonomousWorkerInvocationTrace {
     generationBudgetExhausted: boolean;
     runtimeMode: string;
     enableThinking: boolean;
+    policy?: string | null;
+    rescueTriggered?: boolean;
+    singleShotFinishReason?: string | null;
+    singleShotCompletionTokens?: number | null;
+    singleShotReasoningTokens?: number | null;
+    singleShotFinalLen?: number | null;
+    rescueReasoningBudget?: number | null;
+    finalJsonValid?: boolean | null;
+    workerPlanValid?: boolean | null;
+    generationRepairFailed?: boolean;
   } | null;
 }
 

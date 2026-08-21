@@ -189,6 +189,7 @@ async function runSpecimen(specimen: SpecimenDef): Promise<Record<string, unknow
           providerName: state.document.workerModel.providerName,
           modelName: state.document.workerModel.modelName,
           rolesInvoked: state.document.workerModel.rolesInvoked,
+          lastInvocations: state.document.workerModel.lastInvocations ?? [],
         }
       : null,
     priorAttempts: state?.document.priorAttempts,
@@ -233,6 +234,12 @@ function applyFaithfulEnv(): void {
     process.env.ENGINEER_CONSOLE_AE_NANO_MAX_MODEL_LEN ?? "262144";
   // Faithful default ON — do not set false
   delete process.env.ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION;
+  // Qualification must NOT force global reasoning budget (prior 4000 audit regressed sanity).
+  delete process.env.ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET;
+  // Conditional rescue remains available as default policy unless explicitly disabled.
+  if (process.env.ENGINEER_CONSOLE_AE_NANO_CONDITIONAL_BUDGET_RESCUE === undefined) {
+    process.env.ENGINEER_CONSOLE_AE_NANO_CONDITIONAL_BUDGET_RESCUE = "true";
+  }
   process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_TIMEOUT_MS =
     process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_TIMEOUT_MS ?? "600000";
   process.env.ENGINEER_CONSOLE_AE_MAX_RUNTIME_MS ??= String(45 * 60 * 1000);

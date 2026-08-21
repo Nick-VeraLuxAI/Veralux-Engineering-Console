@@ -17,7 +17,8 @@ export type PlanRepairKind =
   | "invalid_content"
   | "harness_incompat"
   | "truncating_update"
-  | "model_output";
+  | "model_output"
+  | "generation_repair";
 
 export interface PlanRepairRecord {
   at: string;
@@ -131,13 +132,16 @@ export function classifyPreExecutionPlanFailure(input: {
   if (
     input.failureClass === "MODEL_OUTPUT_FAILURE" ||
     input.failureClass === "GENERATION_BUDGET_EXHAUSTED" ||
-    /not a worker plan|malformed|parse|JSON|schema|invalid op|run_shell|operations/i.test(message)
+    /not a worker plan|malformed|parse|JSON|schema|invalid op|run_shell|operations|GENERATION_REPAIR_FAILED/i.test(
+      message,
+    )
   ) {
     return {
       chargeKind: "PLAN_REPAIR",
       planRepairKind:
-        input.failureClass === "GENERATION_BUDGET_EXHAUSTED"
-          ? "model_output"
+        input.failureClass === "GENERATION_BUDGET_EXHAUSTED" ||
+        /GENERATION_REPAIR_FAILED|GENERATION_BUDGET_EXHAUSTED/i.test(message)
+          ? "generation_repair"
           : input.failureClass === "MODEL_OUTPUT_FAILURE"
             ? "model_output"
             : "malformed_plan",

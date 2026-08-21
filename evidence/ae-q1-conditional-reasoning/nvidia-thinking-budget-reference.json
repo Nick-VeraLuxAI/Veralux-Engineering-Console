@@ -1,0 +1,12 @@
+{
+  "source": "docker exec vLLM container /models/nano-30b-a3b-nvfp4/README.md (ThinkingBudgetClient)",
+  "match": {
+    "newline_aware_stopping": "Documented as threshold behavior (end at next newline). Shipped sample client does NOT stream; hard-caps phase-1 at reasoning_budget. AE matches sample client hard-cap.",
+    "budget_threshold": "phase-1 max_tokens = reasoning_budget",
+    "grace_500": "Documented in README; NOT implemented in shipped sample client. AE documents but does not invent a streaming hard-cut approximation beyond the sample.",
+    "reasoning_continuation_formatting": "Force-close with `.\\n</think>\\n\\n` when </think> absent — matches sample.",
+    "continue_final_message": "Sample uses completions.create(prompt=apply_chat_template(..., continue_final_message=True)). AE approximates via chat completions with assistant partial message (vLLM-compatible equivalent).",
+    "remaining_token_calculation": "Sample: max_tokens - len(tokenizer.encode(reasoning_content)). AE: /tokenize on reasoning blob; fallback to phase-1 completion_tokens."
+  },
+  "material_delta_vs_prior_AE_hardcut": "Prior AE used remaining = max_tokens - budget (not tokenizer-aware). Now tokenizer-aware remaining."
+}

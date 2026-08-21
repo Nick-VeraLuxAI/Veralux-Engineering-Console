@@ -22,6 +22,12 @@ import {
   roleUsesReasoningBudgetGate,
   type NanoInvocationTelemetry,
 } from "./nano-faithful-invocation";
+import {
+  CONDITIONAL_BUDGET_POLICY,
+  resolvePlanningPolicy,
+  resolveRescueReasoningBudget,
+  shouldTriggerBudgetRescue,
+} from "./nano-conditional-budget-rescue";
 
 export type { AutonomousWorkerRole } from "./worker-schemas";
 
@@ -120,26 +126,104 @@ async function completeLocalStructuredJson(
     telemetry: NanoInvocationTelemetry;
     generationBudgetExhausted: boolean;
   }> {
-    const reasoningBudget =
-      profile.enabled &&
-      profile.enableThinking &&
-      roleUsesReasoningBudgetGate(role)
+    const planRole = roleUsesReasoningBudgetGate(role);
+    const explicitBudget =
+      profile.enabled && profile.enableThinking && planRole
         ? resolveNanoReasoningBudget()
         : null;
-    const useTwoPhase =
-      reasoningBudget != null &&
-      reasoningBudget > 0 &&
-      reasoningBudget < (profile.enabled ? profile.maxTokens : maxTokensForRole(role));
+    const policy = planRole
+      ? resolvePlanningPolicy(process.env, explicitBudget)
+      : "SINGLE_SHOT_ONLY";
+    const alwaysTwoPhase =
+      policy === "ALWAYS_TWO_PHASE" &&
+      explicitBudget != null &&
+      explicitBudget > 0 &&
+      explicitBudget < (profile.enabled ? profile.maxTokens : maxTokensForRole(role));
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), local.timeoutMs);
     try {
-      if (!useTwoPhase || reasoningBudget == null) {
-        return await singleShot(messages, controller.signal, null, false);
+      if (alwaysTwoPhase && explicitBudget != null) {
+        const forced = await twoPhaseReasoning(messages, controller.signal, explicitBudget, {
+          policy,
+          rescueTriggered: false,
+          singleShot: null,
+        });
+        return annotatePlanValidity(forced);
       }
-      return await twoPhaseReasoning(messages, controller.signal, reasoningBudget);
+
+      const single = await singleShot(messages, controller.signal, null, false, {
+        policy,
+        rescueTriggered: false,
+        singleShot: null,
+      });
+      const schema = validateAutonomousWorkerSchema(role, single.parsed);
+      const annotated = annotatePlanValidity({
+        ...single,
+        telemetry: {
+          ...single.telemetry,
+          finalJsonValid: single.parsed != null && single.parseErrors.length === 0,
+          workerPlanValid: schema.valid,
+        },
+      });
+
+      // Conditional rescue: only for plan roles when single-shot hits generation cutoff.
+      if (
+        policy === CONDITIONAL_BUDGET_POLICY &&
+        planRole &&
+        shouldTriggerBudgetRescue({
+          finishReason: annotated.telemetry.finishReason,
+          rawResponse: annotated.rawResponse,
+          parsed: annotated.parsed,
+          parseErrors: annotated.parseErrors,
+          schemaValid: schema.valid,
+          reasoningContent: single.reasoningContent,
+          generationBudgetExhausted: annotated.generationBudgetExhausted,
+        })
+      ) {
+        const rescueBudget = resolveRescueReasoningBudget(process.env, profile.maxTokens);
+        const rescued = await twoPhaseReasoning(messages, controller.signal, rescueBudget, {
+          policy,
+          rescueTriggered: true,
+          singleShot: {
+            finishReason: annotated.telemetry.finishReason,
+            completionTokens: annotated.telemetry.completionTokens,
+            reasoningTokens: annotated.telemetry.reasoningTokens,
+            finalLen: annotated.rawResponse.length,
+          },
+        });
+        const rescuedSchema = validateAutonomousWorkerSchema(role, rescued.parsed);
+        const generationRepairFailed =
+          rescued.generationBudgetExhausted ||
+          !rescuedSchema.valid ||
+          rescued.parsed == null;
+        return annotatePlanValidity({
+          ...rescued,
+          telemetry: {
+            ...rescued.telemetry,
+            finalJsonValid: rescued.parsed != null && rescued.parseErrors.length === 0,
+            workerPlanValid: rescuedSchema.valid,
+            generationRepairFailed,
+          },
+          generationBudgetExhausted: generationRepairFailed
+            ? true
+            : rescued.generationBudgetExhausted,
+        });
+      }
+
+      return annotated;
     } finally {
       clearTimeout(timeout);
+    }
+
+    function annotatePlanValidity(result: {
+      rawResponse: string;
+      parsed: Record<string, unknown> | null;
+      parseErrors: string[];
+      telemetry: NanoInvocationTelemetry;
+      generationBudgetExhausted: boolean;
+    }) {
+      return result;
     }
 
     async function postChat(
@@ -211,17 +295,61 @@ async function completeLocalStructuredJson(
       return { choice, usage: payload.usage };
     }
 
+    /** Tokenizer-aware length via vLLM /tokenize (matches NVIDIA remaining-token calc). */
+    async function tokenizeCount(text: string, signal: AbortSignal): Promise<number | null> {
+      try {
+        const tokenizeUrl = url.replace(/\/chat\/completions\/?$/, "/tokenize");
+        // Prefer host-root /tokenize (vLLM), not under /v1.
+        const candidates = [
+          tokenizeUrl.replace(/\/v1\/tokenize$/, "/tokenize"),
+          tokenizeUrl,
+          `${local.baseUrl.replace(/\/v1\/?$/, "")}/tokenize`,
+        ];
+        for (const tokUrl of candidates) {
+          try {
+            const response = await fetch(tokUrl, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ model: local.model, prompt: text }),
+              signal,
+            });
+            if (!response.ok) continue;
+            const payload = (await response.json()) as { count?: number };
+            if (typeof payload.count === "number" && payload.count > 0) {
+              return payload.count;
+            }
+          } catch {
+            /* try next */
+          }
+        }
+      } catch {
+        /* fall through */
+      }
+      return null;
+    }
+
     async function singleShot(
       msgs: Array<{ role: string; content: string }>,
       signal: AbortSignal,
       reasoningBudgetValue: number | null,
       twoPhase: boolean,
+      meta: {
+        policy: string;
+        rescueTriggered: boolean;
+        singleShot: {
+          finishReason: string | null;
+          completionTokens: number | null;
+          reasoningTokens: number | null;
+          finalLen: number;
+        } | null;
+      },
     ): Promise<{
       rawResponse: string;
       parsed: Record<string, unknown> | null;
       parseErrors: string[];
       telemetry: NanoInvocationTelemetry;
       generationBudgetExhausted: boolean;
+      reasoningContent: string | null;
     }> {
       const maxTokens = profile.enabled ? profile.maxTokens : maxTokensForRole(role);
       const { choice, usage } = await postChat(msgs, signal, {
@@ -246,6 +374,15 @@ async function completeLocalStructuredJson(
         trajectoryId,
         reasoningBudget: reasoningBudgetValue,
         twoPhaseReasoning: twoPhase,
+        policy: meta.policy,
+        rescueTriggered: meta.rescueTriggered,
+        singleShotFinishReason: meta.singleShot?.finishReason ?? finishReason,
+        singleShotCompletionTokens: meta.singleShot?.completionTokens ?? usage?.completion_tokens ?? null,
+        singleShotReasoningTokens:
+          meta.singleShot?.reasoningTokens ??
+          usage?.completion_tokens_details?.reasoning_tokens ??
+          null,
+        singleShotFinalLen: meta.singleShot?.finalLen ?? rawResponse.length,
       });
       return {
         rawResponse,
@@ -253,18 +390,32 @@ async function completeLocalStructuredJson(
         parseErrors: parsed.errors,
         telemetry,
         generationBudgetExhausted: telemetry.generationBudgetExhausted,
+        reasoningContent: extracted.reasoningContent,
       };
     }
 
     /**
-     * NVIDIA README ThinkingBudgetClient: phase-1 caps thinking tokens; if the
-     * trace does not finish cleanly, force-close </think> and continue for the
-     * reserved final headroom with thinking off. Thinking stays ON overall.
+     * NVIDIA README ThinkingBudgetClient:
+     * - phase-1 caps at reasoning_budget (+ documented newline grace when applicable)
+     * - force-close with `.\n</think>\n\n` when think tag absent
+     * - remaining_tokens = max_tokens - tokenize(reasoning_content)
+     * - continue final via assistant continuation (chat equivalent of continue_final_message)
+     * Thinking stays ON for phase-1; phase-2 thinking off.
      */
     async function twoPhaseReasoning(
       msgs: Array<{ role: string; content: string }>,
       signal: AbortSignal,
       budget: number,
+      meta: {
+        policy: string;
+        rescueTriggered: boolean;
+        singleShot: {
+          finishReason: string | null;
+          completionTokens: number | null;
+          reasoningTokens: number | null;
+          finalLen: number;
+        } | null;
+      },
     ): Promise<{
       rawResponse: string;
       parsed: Record<string, unknown> | null;
@@ -273,8 +424,11 @@ async function completeLocalStructuredJson(
       generationBudgetExhausted: boolean;
     }> {
       const maxTokens = profile.maxTokens;
+      // Shipped ThinkingBudgetClient hard-caps phase-1 at reasoning_budget.
+      // README documents newline-aware stop +500 grace; without streaming we match the sample client.
+      const phase1Max = budget;
       const phase1 = await postChat(msgs, signal, {
-        maxTokens: budget,
+        maxTokens: phase1Max,
         enableThinking: true,
         temperature: profile.temperature,
         topP: profile.topP,
@@ -305,6 +459,13 @@ async function completeLocalStructuredJson(
           phase1FinishReason: phase1Finish,
           phase2FinishReason: null,
           generationBudgetExhausted: false,
+          policy: meta.policy,
+          rescueTriggered: meta.rescueTriggered,
+          singleShotFinishReason: meta.singleShot?.finishReason ?? null,
+          singleShotCompletionTokens: meta.singleShot?.completionTokens ?? null,
+          singleShotReasoningTokens: meta.singleShot?.reasoningTokens ?? null,
+          singleShotFinalLen: meta.singleShot?.finalLen ?? null,
+          rescueReasoningBudget: meta.rescueTriggered ? budget : null,
         });
         return {
           rawResponse: phase1Final,
@@ -321,11 +482,22 @@ async function completeLocalStructuredJson(
         (phase1.choice.message?.content ?? "") ||
         "";
       if (!reasoningBlob.includes("</think>")) {
+        // Match shipped client: close with period + think end + blank line.
         reasoningBlob = `${reasoningBlob.replace(/\s*$/, "")}.\n</think>\n\n`;
       } else if (!reasoningBlob.trim().endsWith("</think>")) {
         reasoningBlob = `${extracted1.reasoningContent ?? reasoningBlob}\n</think>\n\n`;
       }
-      const remaining = Math.max(256, maxTokens - budget);
+
+      const tokenized = await tokenizeCount(reasoningBlob, signal);
+      const reasoningTokensLen =
+        tokenized ??
+        phase1.usage?.completion_tokens_details?.reasoning_tokens ??
+        phase1.usage?.completion_tokens ??
+        budget;
+      // NVIDIA: remaining_tokens = max_tokens - len(encode(reasoning_content))
+      const remaining = Math.max(256, maxTokens - reasoningTokensLen);
+
+      // Chat continuation approximates continue_final_message=True (assistant partial).
       const phase2 = await postChat(
         [...msgs, { role: "assistant", content: reasoningBlob }],
         signal,
@@ -341,7 +513,6 @@ async function completeLocalStructuredJson(
       if (!rawResponse) {
         rawResponse = (phase2.choice.message?.content ?? "").trim();
       }
-      // Prefer phase-1 final if phase-2 empty but phase-1 had partial text.
       if (!rawResponse && phase1Final) {
         rawResponse = phase1Final;
       }
@@ -371,9 +542,15 @@ async function completeLocalStructuredJson(
         twoPhaseReasoning: true,
         phase1FinishReason: phase1Finish,
         phase2FinishReason: phase2Finish,
-        // Recovered if phase-1 hit length but phase-2 produced final content.
         generationBudgetExhausted:
           phase2Finish === "length" || (!rawResponse && phase1Finish === "length"),
+        policy: meta.policy,
+        rescueTriggered: meta.rescueTriggered,
+        singleShotFinishReason: meta.singleShot?.finishReason ?? null,
+        singleShotCompletionTokens: meta.singleShot?.completionTokens ?? null,
+        singleShotReasoningTokens: meta.singleShot?.reasoningTokens ?? null,
+        singleShotFinalLen: meta.singleShot?.finalLen ?? null,
+        rescueReasoningBudget: meta.rescueTriggered ? budget : null,
       });
       return {
         rawResponse,

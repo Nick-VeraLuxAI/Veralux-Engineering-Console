@@ -1,0 +1,25 @@
+{
+  "at": "2026-08-21T16:41:00Z",
+  "tip_at_start": "c2db4361e9bec7182eaff79283fc7ea18af8dd52",
+  "policy": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+  "FINAL_PLAN_RESERVE": 1700,
+  "RESCUE_REASONING_BUDGET": 8300,
+  "global_4000_disabled": true,
+  "skillopt": "OFF",
+  "abc": {
+    "A_ok": 2,
+    "B_ok": 2,
+    "C_ok": 2,
+    "C_rescue_count": 0,
+    "C_equiv_A_when_stop": true
+  },
+  "sanity": {
+    "ready": 1,
+    "total": 4,
+    "result": "FAIL"
+  },
+  "q1_triad": "NOT_RUN",
+  "verdict": "SHARED-PATH REGRESSION CONFIRMED — NOT ROBUST CODE QUALIFIED",
+  "sot": "docs/source-of-truth/ae-q1-conditional-reasoning.md",
+  "evidence": "evidence/ae-q1-conditional-reasoning/"
+}

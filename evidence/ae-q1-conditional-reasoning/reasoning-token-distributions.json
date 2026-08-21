@@ -1,0 +1,42 @@
+{
+  "source": [
+    "evidence/ae-q1-generation-budget/abc_*",
+    "/tokenize on finals"
+  ],
+  "successful_reasoning_tokens_est": {
+    "values": [
+      6327,
+      2715,
+      3444
+    ],
+    "median": 3444,
+    "p75": 4885.5,
+    "p90": 5750.400000000001,
+    "max": 6327
+  },
+  "final_plan_tokens": {
+    "tokenizer_measured": [
+      1373,
+      950
+    ],
+    "prior_char4_ests": [
+      1124,
+      801,
+      678,
+      945,
+      975,
+      852
+    ],
+    "combined": {
+      "median": 947.5,
+      "p75": 1012.25,
+      "p90": 1198.6999999999998,
+      "p95": 1285.8500000000001,
+      "max": 1373
+    }
+  },
+  "FINAL_PLAN_RESERVE": 1700,
+  "derivation": "p95\u22481286 + 25% margin \u2192 ceil to 1700",
+  "RESCUE_REASONING_BUDGET": 8300,
+  "derivation_rb": "10000 - FINAL_PLAN_RESERVE"
+}

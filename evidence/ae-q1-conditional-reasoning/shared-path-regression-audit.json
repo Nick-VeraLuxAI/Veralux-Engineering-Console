@@ -1,0 +1,59 @@
+{
+  "last_known_good_3_of_3": {
+    "reference": "docs/source-of-truth/autonomous-engineer-robust-requalification-final.md",
+    "tip_era": "c7ef899 (docs) / pre-896db6e code tip",
+    "ledger": "3/3 ready",
+    "jobs": "3/3 ready",
+    "state": "3/3 ready",
+    "agent_bad": "3/3 ready"
+  },
+  "commits_since": [
+    {
+      "sha": "896db6e",
+      "summary": "Q1 greenfield unbound-import thrash path",
+      "shared_path_impact": "HIGH"
+    },
+    {
+      "sha": "c2db436",
+      "summary": "opt-in Nano reasoning budget",
+      "shared_path_impact": "MEDIUM (planning/replan worker-client only when env set)"
+    },
+    {
+      "sha": "uncommitted_conditional_rescue",
+      "summary": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+      "shared_path_impact": "LOW on stop-success path (C≡A); rescue only on GBE"
+    }
+  ],
+  "categorization": {
+    "Q1_only": [
+      "scripts/.../robust-requal-specimens.ts new lease/attempt/slot specimens",
+      "scoreRateLimitFeature keyword expansion for lease|attempt|slot|grant|ttl (scorer)"
+    ],
+    "fixture_only": [],
+    "shared_diagnosis_planning_QC_completion_validation": [
+      "feedback-convergence.ts (+~400): UNBOUND_IDENTIFIER prioritization, dependency neighborhood, test-thrash guards, LITERAL_ESCAPED_NEWLINES detector",
+      "loop.ts: unbound hint prompts, telemetry persistence, plan repair wiring",
+      "diagnosis.ts: unbound/harness guidance additions",
+      "completion-evaluator.ts: isMaterialRateLimitCriterion keyword expansion (lease|attempt|slot|grant|ttl) — shared completion AC gate",
+      "qc-baseline.ts: delta helpers",
+      "worker-client.ts / nano-faithful-invocation.ts: budget / conditional rescue (planning/replan)"
+    ]
+  },
+  "current_sanity_vs_good": {
+    "result": "1/4 ready (only agent_bad)",
+    "matches_prior_forced_4k_audit_pattern": true,
+    "rescue_causation": "REJECTED — rescueTriggered false on 3/4; jobs/state 0 rescues; first plans finishReason=stop under single-shot policy",
+    "residual_mechanisms": {
+      "idempotent_job_runner_v1": "TEST_ASSERTION_ERROR_CAPTURE (error.message on undefined) thrash across 6 ENGINEERING_ITERATIONs",
+      "bad_legacy_ledger_v1": "LITERAL_ESCAPED_NEWLINES slipped past validation on plan7 then executed; QC SyntaxError; nonconvergence",
+      "state_counter": "production counter.js imported { assert } from node:assert/strict — harness-incompat residue across 6 iters",
+      "agent_bad_code": "ready@1"
+    },
+    "shared_heuristics_degrading_good_classes": [
+      "LITERAL_ESCAPED_NEWLINES detection exists but plan7 still validated as valid — detector/validation gap on shared path",
+      "Harness/test-mode feedback loop still allows assert-import-into-prod and bad error-capture tests to burn full semantic budgets on previously-ready classes",
+      "896db6e shared feedback-convergence/loop changes are the primary shared delta since last 3/3 baseline"
+    ]
+  },
+  "verdict_implication": "SHARED-PATH REGRESSION CONFIRMED — do not run Q1 triad; conditional rescue policy itself is not the sanity regressor"
+}

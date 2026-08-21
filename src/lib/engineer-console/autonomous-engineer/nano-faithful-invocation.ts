@@ -44,6 +44,18 @@ export interface NanoInvocationTelemetry {
   phase1FinishReason?: string | null;
   /** Phase-2 finish_reason when two-phase ran. */
   phase2FinishReason?: string | null;
+  /** Planning policy: single-shot, always two-phase, or conditional rescue. */
+  policy?: string | null;
+  /** True when single-shot exhausted and a one-shot budget rescue ran. */
+  rescueTriggered?: boolean;
+  singleShotFinishReason?: string | null;
+  singleShotCompletionTokens?: number | null;
+  singleShotReasoningTokens?: number | null;
+  singleShotFinalLen?: number | null;
+  rescueReasoningBudget?: number | null;
+  finalJsonValid?: boolean;
+  workerPlanValid?: boolean;
+  generationRepairFailed?: boolean;
 }
 
 const REASONING_ROLES: AutonomousWorkerRole[] = [
@@ -61,9 +73,10 @@ const FAITHFUL_NON_PLAN_MAX_TOKENS = 4_096;
 
 /**
  * Optional explicit reasoning budget (NVIDIA ThinkingBudgetClient pattern).
- * Unset = current single-shot max_tokens shares reasoning+final (legacy).
- * When set (e.g. 4000), planning/replan use two-phase: cap thinking, reserve final headroom.
+ * Unset = FAITHFUL single-shot first; conditional budget rescue may still recover GBE.
+ * When set (experimental), planning/replan use always-two-phase (NOT qualification default).
  * Rollback: unset / empty / 0.
+ * Do NOT set 4000 globally for qualification — that regressed sanity (jobs/ledger/state).
  */
 export function resolveNanoReasoningBudget(
   env: NodeJS.ProcessEnv = process.env,
@@ -273,6 +286,16 @@ export function buildNanoInvocationTelemetry(input: {
   phase2FinishReason?: string | null;
   /** Override generationBudgetExhausted (e.g. two-phase recovered after phase-1 length). */
   generationBudgetExhausted?: boolean;
+  policy?: string | null;
+  rescueTriggered?: boolean;
+  singleShotFinishReason?: string | null;
+  singleShotCompletionTokens?: number | null;
+  singleShotReasoningTokens?: number | null;
+  singleShotFinalLen?: number | null;
+  rescueReasoningBudget?: number | null;
+  finalJsonValid?: boolean;
+  workerPlanValid?: boolean;
+  generationRepairFailed?: boolean;
 }): NanoInvocationTelemetry {
   const finishReason = input.finishReason ?? null;
   const reasoningTokens =
@@ -303,5 +326,15 @@ export function buildNanoInvocationTelemetry(input: {
     twoPhaseReasoning: input.twoPhaseReasoning === true,
     phase1FinishReason: input.phase1FinishReason ?? null,
     phase2FinishReason: input.phase2FinishReason ?? null,
+    policy: input.policy ?? null,
+    rescueTriggered: input.rescueTriggered === true,
+    singleShotFinishReason: input.singleShotFinishReason ?? null,
+    singleShotCompletionTokens: input.singleShotCompletionTokens ?? null,
+    singleShotReasoningTokens: input.singleShotReasoningTokens ?? null,
+    singleShotFinalLen: input.singleShotFinalLen ?? null,
+    rescueReasoningBudget: input.rescueReasoningBudget ?? null,
+    finalJsonValid: input.finalJsonValid,
+    workerPlanValid: input.workerPlanValid,
+    generationRepairFailed: input.generationRepairFailed === true,
   };
 }

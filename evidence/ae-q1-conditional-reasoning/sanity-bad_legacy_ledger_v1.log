@@ -1,0 +1,14 @@
+{"specimen":"bad_legacy_ledger_v1","hardClass":"bad_legacy_ledger","variant":1,"runId":"a7d21cf0-e375-41b3-ba17-99e24e63f8e9","maxIterations":8,"status":"starting"}
+{"specimen":"bad_legacy_ledger_v1","runId":"a7d21cf0-e375-41b3-ba17-99e24e63f8e9","delivery":"blocked","primaryFailureCategory":"PRIMARY_QC_NONCONVERGENCE","scorePass":true,"iterations":8,"elapsedMs":283228,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-conditional-reasoning/bad_legacy_ledger_v1-a7d21cf0.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-conditional-reasoning/batch-2026-08-21T16-32-21-384Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 0,
+    "byFailure": {
+      "PRIMARY_QC_NONCONVERGENCE": 1
+    }
+  }
+}

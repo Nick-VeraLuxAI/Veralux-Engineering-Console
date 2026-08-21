@@ -1,0 +1,22 @@
+{
+  "baseline_tip_expected": "c2db436",
+  "baseline_tip_actual": "c2db4361e9bec7182eaff79283fc7ea18af8dd52",
+  "branch": "feature/autonomous-engineer-v1",
+  "working_tree_at_start": "dirty_untracked_only_unrelated_audit_dirs_plus_this_mission_changes",
+  "runtime": {
+    "mode": "FAITHFUL",
+    "endpoint": "http://127.0.0.1:8082/v1",
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "max_model_len": 262144,
+    "max_num_batched_tokens": 2048,
+    "max_num_seqs": 1,
+    "reasoning_parser": "nano_v3",
+    "tool_parser": "qwen3_coder",
+    "enable_auto_tool_choice": true
+  },
+  "skillopt": "OFF",
+  "global_reasoning_budget_4000": "DISABLED_as_qualification_default",
+  "conditional_rescue_default": true,
+  "FINAL_PLAN_RESERVE": 1700,
+  "RESCUE_REASONING_BUDGET": 8300
+}

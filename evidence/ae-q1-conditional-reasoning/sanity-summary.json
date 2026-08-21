@@ -1,0 +1,94 @@
+{
+  "at": "2026-08-21T16:41:31.287816+00:00",
+  "ready": 1,
+  "total": 4,
+  "gate": "4/4 ready or no material regression vs pre-budget FAITHFUL",
+  "result": "FAIL 1/4",
+  "note": "rescue rarely triggered; failures are QC thrash not GBE; STOP before Q1",
+  "rows": [
+    {
+      "specimen": "idempotent_job_runner_v1",
+      "runId": "100d1f61-7bba-4134-85e2-842d7d304ded",
+      "delivery": "blocked",
+      "failureClass": "BUDGET_EXHAUSTED",
+      "iterations": 6,
+      "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+      "residualMechanism": "TEST_ASSERTION_ERROR_CAPTURE",
+      "rescueTriggered_any": false,
+      "rescue_count": 0,
+      "planning_invocations": 6,
+      "firstPlan": {
+        "finishReason": "stop",
+        "rescueTriggered": false,
+        "twoPhaseReasoning": false,
+        "policy": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+        "completionTokens": 4746,
+        "generationBudgetExhausted": false
+      },
+      "gbe_count": 0
+    },
+    {
+      "specimen": "bad_legacy_ledger_v1",
+      "runId": "a7d21cf0-e375-41b3-ba17-99e24e63f8e9",
+      "delivery": "blocked",
+      "failureClass": "BUDGET_EXHAUSTED",
+      "iterations": 8,
+      "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+      "residualMechanism": "LITERAL_ESCAPED_NEWLINES_SLIPPED_VALIDATION",
+      "rescueTriggered_any": true,
+      "rescue_count": 1,
+      "planning_invocations": 8,
+      "firstPlan": {
+        "finishReason": "stop",
+        "rescueTriggered": false,
+        "twoPhaseReasoning": false,
+        "policy": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+        "completionTokens": 6048,
+        "generationBudgetExhausted": false
+      },
+      "gbe_count": 0
+    },
+    {
+      "specimen": "state_counter",
+      "runId": "71429eab-36e0-4619-bc71-78d46ad34acf",
+      "delivery": "blocked",
+      "failureClass": "BUDGET_EXHAUSTED",
+      "iterations": 6,
+      "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+      "residualMechanism": "HARNESS_INCOMPAT_ASSERT_IMPORT_IN_PROD",
+      "rescueTriggered_any": false,
+      "rescue_count": 0,
+      "planning_invocations": 6,
+      "firstPlan": {
+        "finishReason": "stop",
+        "rescueTriggered": false,
+        "twoPhaseReasoning": false,
+        "policy": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+        "completionTokens": 1918,
+        "generationBudgetExhausted": false
+      },
+      "gbe_count": 0
+    },
+    {
+      "specimen": "agent_bad_code",
+      "runId": "9b7a5658-7076-45f2-8c99-ff076c5e7206",
+      "delivery": "ready",
+      "failureClass": null,
+      "iterations": 1,
+      "primaryFailureCategory": "SUCCESS",
+      "residualMechanism": "SUCCESS",
+      "rescueTriggered_any": false,
+      "rescue_count": 0,
+      "planning_invocations": 1,
+      "firstPlan": {
+        "finishReason": "stop",
+        "rescueTriggered": false,
+        "twoPhaseReasoning": false,
+        "policy": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+        "completionTokens": 2144,
+        "generationBudgetExhausted": false
+      },
+      "gbe_count": 0
+    }
+  ]
+}

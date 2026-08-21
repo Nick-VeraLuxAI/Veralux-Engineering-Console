@@ -158,6 +158,11 @@ describe("autonomous worker client", () => {
         }),
       })
       .mockResolvedValueOnce({
+        // /tokenize
+        ok: true,
+        json: async () => ({ count: 4000 }),
+      })
+      .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           choices: [
@@ -186,12 +191,16 @@ describe("autonomous worker client", () => {
         system: "",
         user: "Run ID: run-1\nReturn worker plan JSON.",
       });
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      const body1 = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      expect(fetchMock).toHaveBeenCalled();
+      const chatCalls = fetchMock.mock.calls.filter((c) =>
+        String(c[0]).includes("/chat/completions"),
+      );
+      expect(chatCalls.length).toBe(2);
+      const body1 = JSON.parse(String(chatCalls[0]?.[1]?.body)) as {
         max_tokens?: number;
         chat_template_kwargs?: { enable_thinking?: boolean };
       };
-      const body2 = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)) as {
+      const body2 = JSON.parse(String(chatCalls[1]?.[1]?.body)) as {
         max_tokens?: number;
         chat_template_kwargs?: { enable_thinking?: boolean };
         messages?: Array<{ role: string; content: string }>;
@@ -209,6 +218,142 @@ describe("autonomous worker client", () => {
       expect(result.telemetry?.reasoningBudget).toBe(4000);
       expect(result.telemetry?.phase1FinishReason).toBe("length");
       expect(result.telemetry?.phase2FinishReason).toBe("stop");
+      expect(result.telemetry?.policy).toBe("ALWAYS_TWO_PHASE");
+    } finally {
+      process.env = previous;
+    }
+  });
+
+  it("conditional rescue: single-shot length then one two-phase recovery", async () => {
+    const planJson = JSON.stringify({
+      runId: "run-1",
+      summary: "Add helper",
+      allowedFiles: ["src/a.ts"],
+      operations: [
+        { type: "create_file", path: "src/a.ts", content: "export {}\n", reason: "helper" },
+      ],
+    });
+    const fetchMock = vi
+      .fn()
+      // single-shot GBE
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              finish_reason: "length",
+              message: { reasoning_content: "thinking forever", content: "" },
+            },
+          ],
+          usage: {
+            prompt_tokens: 40,
+            completion_tokens: 10000,
+            completion_tokens_details: { reasoning_tokens: 10000 },
+          },
+        }),
+      })
+      // rescue phase-1
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              finish_reason: "length",
+              message: { reasoning_content: "bounded thinking", content: "" },
+            },
+          ],
+          usage: { prompt_tokens: 40, completion_tokens: 8300 },
+        }),
+      })
+      // tokenize
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ count: 8300 }),
+      })
+      // rescue phase-2
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [{ finish_reason: "stop", message: { content: planJson } }],
+          usage: { prompt_tokens: 200, completion_tokens: 90 },
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const previous = { ...process.env };
+    process.env.VITEST = "false";
+    Object.assign(process.env, { NODE_ENV: "production" });
+    process.env.ENGINEER_CONSOLE_AE_WORKER_ROUTE = "live";
+    process.env.ENGINEER_CONSOLE_MODEL_PROVIDER = "mock";
+    process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_ENABLED = "true";
+    process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL = "http://127.0.0.1:8082/v1";
+    process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MODEL = "Nemotron-Nano-30B-A3B-NVFP4";
+    process.env.ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION = "true";
+    delete process.env.ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET;
+    process.env.ENGINEER_CONSOLE_AE_NANO_CONDITIONAL_BUDGET_RESCUE = "true";
+    try {
+      const result = await invokeAutonomousWorker({
+        role: "planning",
+        system: "",
+        user: "Run ID: run-1\nReturn worker plan JSON.",
+      });
+      const chatCalls = fetchMock.mock.calls.filter((c) =>
+        String(c[0]).includes("/chat/completions"),
+      );
+      expect(chatCalls.length).toBe(3); // single + p1 + p2
+      expect(result.schemaValid).toBe(true);
+      expect(result.telemetry?.policy).toBe("FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE");
+      expect(result.telemetry?.rescueTriggered).toBe(true);
+      expect(result.telemetry?.rescueReasoningBudget).toBe(8300);
+      expect(result.telemetry?.singleShotFinishReason).toBe("length");
+      expect(result.generationBudgetExhausted).toBe(false);
+    } finally {
+      process.env = previous;
+    }
+  });
+
+  it("conditional rescue: stop+valid plan does not invoke two-phase", async () => {
+    const planJson = JSON.stringify({
+      runId: "run-1",
+      summary: "Add helper",
+      allowedFiles: ["src/a.ts"],
+      operations: [
+        { type: "create_file", path: "src/a.ts", content: "export {}\n", reason: "helper" },
+      ],
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            finish_reason: "stop",
+            message: { reasoning: "ok", content: planJson },
+          },
+        ],
+        usage: { prompt_tokens: 10, completion_tokens: 200 },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const previous = { ...process.env };
+    process.env.VITEST = "false";
+    Object.assign(process.env, { NODE_ENV: "production" });
+    process.env.ENGINEER_CONSOLE_AE_WORKER_ROUTE = "live";
+    process.env.ENGINEER_CONSOLE_MODEL_PROVIDER = "mock";
+    process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_ENABLED = "true";
+    process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL = "http://127.0.0.1:8082/v1";
+    process.env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MODEL = "Nemotron-Nano-30B-A3B-NVFP4";
+    process.env.ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION = "true";
+    delete process.env.ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET;
+    process.env.ENGINEER_CONSOLE_AE_NANO_CONDITIONAL_BUDGET_RESCUE = "true";
+    try {
+      const result = await invokeAutonomousWorker({
+        role: "planning",
+        system: "",
+        user: "Run ID: run-1\nReturn worker plan JSON.",
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(result.telemetry?.rescueTriggered).toBe(false);
+      expect(result.telemetry?.twoPhaseReasoning).toBe(false);
+      expect(result.schemaValid).toBe(true);
     } finally {
       process.env = previous;
     }
