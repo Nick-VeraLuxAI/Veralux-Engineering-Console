@@ -122,6 +122,36 @@ describe("executeWorkerPlanOperations", () => {
     expect(result.errors[0].code).toBe("FILE_NOT_FOUND");
   });
 
+  it("deletes an existing file", () => {
+    fs.mkdirSync(path.join(repoRoot, "src"), { recursive: true });
+    fs.writeFileSync(path.join(repoRoot, "src/dead.js"), "export const x = 1;\n");
+
+    const result = executeWorkerPlanOperations(repoRoot, [
+      op({
+        type: "delete_file",
+        path: "src/dead.js",
+        content: "",
+        reason: "Remove unused dead shim",
+      }),
+    ]);
+    expect(result.success).toBe(true);
+    expect(fs.existsSync(path.join(repoRoot, "src/dead.js"))).toBe(false);
+    expect(result.changedFiles).toContain("src/dead.js");
+  });
+
+  it("fails delete_file when file missing", () => {
+    const result = executeWorkerPlanOperations(repoRoot, [
+      op({
+        type: "delete_file",
+        path: "src/missing.js",
+        content: "",
+        reason: "cleanup",
+      }),
+    ]);
+    expect(result.success).toBe(false);
+    expect(result.errors[0].code).toBe("FILE_NOT_FOUND");
+  });
+
   it("does not create git commits", () => {
     executeWorkerPlanOperations(repoRoot, [
       op({

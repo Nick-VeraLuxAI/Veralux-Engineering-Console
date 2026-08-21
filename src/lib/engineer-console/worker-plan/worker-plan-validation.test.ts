@@ -235,19 +235,42 @@ describe("validateWorkerPlan", () => {
     expect(result.errors.some((e) => e.code === "EMPTY_CONTENT")).toBe(true);
   });
 
-  it("rejects delete operations", () => {
-    const result = validateWorkerPlanPayload(
+  it("rejects shell/rm delete aliases but accepts delete_file for existing files", () => {
+    fs.mkdirSync(path.join(repoRoot, "src"), { recursive: true });
+    fs.writeFileSync(path.join(repoRoot, "src/dead.js"), "export const x = 1;\n");
+
+    const forbidden = validateWorkerPlanPayload(
       {
         runId: "run-1",
         summary: "x",
         allowedFiles: ["src/a.ts"],
-        operations: [{ type: "delete_file", path: "src/a.ts", content: "x", reason: "" }],
+        operations: [{ type: "rm", path: "src/a.ts", content: "x", reason: "" }],
       },
       repoRoot,
       "run-1",
     );
-    expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.code === "FORBIDDEN_OPERATION")).toBe(true);
+    expect(forbidden.valid).toBe(false);
+    expect(forbidden.errors.some((e) => e.code === "FORBIDDEN_OPERATION")).toBe(true);
+
+    const allowed = validateWorkerPlanPayload(
+      {
+        runId: "run-1",
+        summary: "remove dead shim per AC",
+        allowedFiles: ["src/dead.js"],
+        operations: [
+          {
+            type: "delete_file",
+            path: "src/dead.js",
+            content: "",
+            reason: "Remove unused dead shim required by acceptance criteria",
+          },
+        ],
+      },
+      repoRoot,
+      "run-1",
+    );
+    expect(allowed.valid).toBe(true);
+    expect(allowed.normalizedOperations[0]?.type).toBe("delete_file");
   });
 
   it("accepts update and append when files exist", () => {

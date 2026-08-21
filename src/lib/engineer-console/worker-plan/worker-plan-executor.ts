@@ -87,6 +87,21 @@ function executeOperation(
         fs.appendFileSync(absolutePath, operation.content, "utf8");
         break;
       }
+      case "delete_file": {
+        if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+          return {
+            ok: false,
+            error: {
+              code: "FILE_NOT_FOUND",
+              message: "delete_file failed: file does not exist",
+              path: operation.path,
+              operationIndex,
+            },
+          };
+        }
+        fs.unlinkSync(absolutePath);
+        break;
+      }
       default: {
         return {
           ok: false,

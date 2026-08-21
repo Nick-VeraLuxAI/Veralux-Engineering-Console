@@ -21,6 +21,7 @@ export const FAILURE_SIGNATURES = [
   "VITEST_HOOK_UNDER_NODE_TEST",
   "LITERAL_ESCAPED_NEWLINES",
   "INVENTED_TEST_RUNNER_API",
+  "TEST_ASSERTION_MODE_MISMATCH",
 ] as const;
 
 export type FailureSignature = (typeof FAILURE_SIGNATURES)[number];
@@ -31,6 +32,12 @@ export interface RepoTestGroundingFacts {
   assertionLib: "node:assert" | "vitest" | "unknown";
   runner: "node:test" | "vitest" | "unknown";
   factsBlock: string;
+}
+
+export interface SubjectCallMode {
+  path: string;
+  name: string;
+  mode: "sync" | "async";
 }
 
 export interface TestExemplar {
@@ -113,13 +120,104 @@ export function readRepoTestGroundingFacts(repoPath: string): RepoTestGroundingF
       ? "Deterministic: never use require() in new/changed tests or ESM sources under type:module."
       : "",
     runner === "node:test"
-      ? "Deterministic: use import test from 'node:test'; import assert from 'node:assert/strict'; never expect/describe/it from node:test; never assert.throwsAsync (use await assert.rejects)."
+      ? [
+          "Deterministic: use import test from 'node:test'; import assert from 'node:assert/strict'; never expect/describe/it from node:test; never assert.throwsAsync.",
+          "Repo node:assert grounding: synchronous subjects that throw → assert.throws(() => subject(...)); Promise/async subjects → await assert.rejects(async () => subject(...)).",
+          "Never use assert.rejects on a proven synchronous function (export function / non-async). That mismatch causes unhandledRejection / testCodeFailure under node:test.",
+        ].join(" ")
       : "",
   ]
     .filter(Boolean)
     .join("\n");
 
   return { moduleType, testCommand, assertionLib, runner, factsBlock };
+}
+
+/** Extract sync vs async export visibility from authorized production sources (not tests). */
+export function readSubjectCallModes(
+  repoPath: string,
+  prefixes: string[],
+  options: { maxFiles?: number } = {},
+): SubjectCallMode[] {
+  const maxFiles = options.maxFiles ?? 8;
+  const files = listAuthorizedWorktreeFiles(repoPath, prefixes, 48)
+    .filter((relative) => /\.(js|mjs|cjs|ts)$/.test(relative))
+    .filter((relative) => !isTestPath(relative))
+    .slice(0, maxFiles);
+  const modes: SubjectCallMode[] = [];
+  for (const relative of files) {
+    let content = "";
+    try {
+      content = fs.readFileSync(path.join(repoPath, relative), "utf8");
+    } catch {
+      continue;
+    }
+    const asyncExports = [
+      ...content.matchAll(/export\s+async\s+function\s+([A-Za-z_$][\w$]*)/g),
+      ...content.matchAll(
+        /export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*async\s*(?:function|\()/g,
+      ),
+    ];
+    const syncExports = [
+      ...content.matchAll(/export\s+function\s+([A-Za-z_$][\w$]*)/g),
+      ...content.matchAll(
+        /export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?!async\b)(?:function|\()/g,
+      ),
+    ];
+    const asyncNames = new Set(asyncExports.map((m) => m[1]));
+    for (const match of asyncExports) {
+      modes.push({ path: relative, name: match[1], mode: "async" });
+    }
+    for (const match of syncExports) {
+      if (asyncNames.has(match[1])) continue;
+      modes.push({ path: relative, name: match[1], mode: "sync" });
+    }
+  }
+  return modes;
+}
+
+export function formatSubjectCallModeBlock(modes: SubjectCallMode[]): string {
+  if (modes.length === 0) {
+    return "(no exported subjects found under authorized prefixes)";
+  }
+  return [
+    "Subject call modes (read before writing negative-path tests):",
+    ...modes.map((m) => `- ${m.path} :: ${m.name} = ${m.mode}`),
+    "Use assert.throws for sync; await assert.rejects only for async/Promise subjects.",
+  ].join("\n");
+}
+
+/** High-confidence: assert.rejects used against a proven sync subject name. */
+export function detectTestAssertionModeMismatch(
+  testContent: string,
+  syncSubjectNames: string[],
+): boolean {
+  if (!/assert\.rejects\b/.test(testContent) || syncSubjectNames.length === 0) return false;
+  for (const name of syncSubjectNames) {
+    if (!name) continue;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // assert.rejects(() => syncFn(...)) or await assert.rejects(() => syncFn(...))
+    // also assert.rejects(async () => syncFn(...)) when syncFn itself is sync — still wrong for throw.
+    const pattern = new RegExp(
+      String.raw`assert\.rejects\s*\(\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>\s*[^;]*\b${escaped}\s*\(`,
+    );
+    if (pattern.test(testContent)) return true;
+  }
+  return false;
+}
+
+/** Narrow QC-evidence detector for sync throw leaking through assert.rejects. */
+export function detectAssertionModeMismatchInEvidence(evidenceText: string): boolean {
+  const text = evidenceText || "";
+  if (!/Function\.rejects|assert\.rejects|waitForActual/.test(text)) return false;
+  // Sync throw surfaces as testCodeFailure TypeError from subject, not as a rejected Promise assertion.
+  if (/failureType:\s*'testCodeFailure'|ERR_TEST_FAILURE/.test(text) && /TypeError/.test(text)) {
+    return true;
+  }
+  if (/unhandledRejection|UnhandledPromiseRejection/.test(text) && /rejects/.test(text)) {
+    return true;
+  }
+  return false;
 }
 
 /** Rank known-good test exemplars by proximity to focus paths / authorized prefixes. */
@@ -271,15 +369,35 @@ export function detectFailureSignaturesInText(text: string): FailureSignature[] 
   if (/\bdefine\s*\(/.test(text) && /test|node:test/.test(text)) {
     found.add("INVENTED_TEST_RUNNER_API");
   }
+  if (detectAssertionModeMismatchInEvidence(text)) {
+    found.add("TEST_ASSERTION_MODE_MISMATCH");
+  }
   return [...found];
 }
 
-export function detectFailureSignaturesInPlan(plan: WorkerPlan, facts: RepoTestGroundingFacts): FailureSignature[] {
+export function detectFailureSignaturesInPlan(
+  plan: WorkerPlan,
+  facts: RepoTestGroundingFacts,
+  syncSubjectNames: string[] = [],
+): FailureSignature[] {
   const found = new Set<FailureSignature>();
+  const planSyncNames = new Set(syncSubjectNames);
+  for (const op of plan.operations ?? []) {
+    if (!/\.(js|ts|mjs|cjs)$/.test(op.path) || isTestPath(op.path)) continue;
+    if (op.type === "delete_file") continue;
+    const content = op.content ?? "";
+    for (const match of content.matchAll(/export\s+function\s+([A-Za-z_$][\w$]*)/g)) {
+      planSyncNames.add(match[1]);
+    }
+    for (const match of content.matchAll(/export\s+async\s+function\s+([A-Za-z_$][\w$]*)/g)) {
+      planSyncNames.delete(match[1]);
+    }
+  }
+  const syncNames = [...planSyncNames];
   for (const op of plan.operations ?? []) {
     if (!isTestPath(op.path) && !/\.(js|ts|mjs|cjs)$/.test(op.path)) continue;
     const content = op.content ?? "";
-    for (const sig of detectHarnessSignaturesInContent(op.path, content, facts)) {
+    for (const sig of detectHarnessSignaturesInContent(op.path, content, facts, syncNames)) {
       found.add(sig.signature);
     }
   }
@@ -290,6 +408,7 @@ export function detectHarnessSignaturesInContent(
   filePath: string,
   content: string,
   facts: RepoTestGroundingFacts,
+  syncSubjectNames: string[] = [],
 ): HarnessGuardFinding[] {
   const findings: HarnessGuardFinding[] = [];
   const isTest = isTestPath(filePath);
@@ -307,6 +426,13 @@ export function detectHarnessSignaturesInContent(
       path: filePath,
       signature: "INVALID_NODE_ASSERT_API",
       message: `${filePath}: assert.throwsAsync is not a Node assert API; use await assert.rejects(...).`,
+    });
+  }
+  if (isTest && detectTestAssertionModeMismatch(content, syncSubjectNames)) {
+    findings.push({
+      path: filePath,
+      signature: "TEST_ASSERTION_MODE_MISMATCH",
+      message: `${filePath}: assert.rejects used on a proven synchronous subject; use assert.throws(() => ...) for sync throws.`,
     });
   }
   if (isTest && /import\s*\{[^}]*\bexpect\b[^}]*\}\s*from\s*['"]node:test['"]/.test(content)) {
@@ -378,10 +504,23 @@ export function hasLiteralEscapedNewlineCorruption(content: string): boolean {
 export function validatePlanHarnessGuards(
   plan: WorkerPlan,
   facts: RepoTestGroundingFacts,
+  syncSubjectNames: string[] = [],
 ): HarnessGuardFinding[] {
+  const planSyncNames = new Set(syncSubjectNames);
+  for (const op of plan.operations ?? []) {
+    if (!/\.(js|ts|mjs|cjs)$/.test(op.path) || isTestPath(op.path) || op.type === "delete_file") continue;
+    const content = op.content ?? "";
+    for (const match of content.matchAll(/export\s+function\s+([A-Za-z_$][\w$]*)/g)) {
+      planSyncNames.add(match[1]);
+    }
+    for (const match of content.matchAll(/export\s+async\s+function\s+([A-Za-z_$][\w$]*)/g)) {
+      planSyncNames.delete(match[1]);
+    }
+  }
+  const syncNames = [...planSyncNames];
   const findings: HarnessGuardFinding[] = [];
   for (const op of plan.operations ?? []) {
-    findings.push(...detectHarnessSignaturesInContent(op.path, op.content ?? "", facts));
+    findings.push(...detectHarnessSignaturesInContent(op.path, op.content ?? "", facts, syncNames));
   }
   return findings;
 }
@@ -391,14 +530,21 @@ export function validateChangedTestHarness(
   repoPath: string,
   changedFiles: string[],
   facts: RepoTestGroundingFacts,
+  syncSubjectNames: string[] = [],
 ): HarnessGuardFinding[] {
   const findings: HarnessGuardFinding[] = [];
+  const syncNames =
+    syncSubjectNames.length > 0
+      ? syncSubjectNames
+      : readSubjectCallModes(repoPath, ["src/"])
+          .filter((m) => m.mode === "sync")
+          .map((m) => m.name);
   for (const relative of changedFiles.filter(isTestPath)) {
     const absolute = path.join(repoPath, relative);
     try {
       if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) continue;
       const content = fs.readFileSync(absolute, "utf8");
-      findings.push(...detectHarnessSignaturesInContent(relative, content, facts));
+      findings.push(...detectHarnessSignaturesInContent(relative, content, facts, syncNames));
     } catch {
       // skip unreadable
     }
@@ -533,9 +679,15 @@ export function buildDeterministicDiagnosisFromEvidence(input: {
     hypothesis = "Tests or sources used require() under type:module ESM.";
     strategy = "Rewrite tests with import; never reintroduce require() in ESM packages.";
     avoid = "require() in ESM tests";
+  } else if (primary === "TEST_ASSERTION_MODE_MISMATCH") {
+    hypothesis =
+      "Negative-path tests used assert.rejects against a synchronous subject that throws (sync-vs-async assertion mismatch).";
+    strategy =
+      "For sync subjects use assert.throws(() => subject(...)); reserve await assert.rejects(async () => ...) for async/Promise subjects only.";
+    avoid = "assert.rejects on proven sync functions";
   } else if (primary === "INVALID_NODE_ASSERT_API") {
     hypothesis = "Invalid Node assert API (e.g. assert.throwsAsync).";
-    strategy = "Use await assert.rejects(async () => ...) from node:assert/strict.";
+    strategy = "Use await assert.rejects(async () => ...) from node:assert/strict for async subjects; assert.throws for sync.";
     avoid = "assert.throwsAsync";
   } else if (primary === "INVALID_NODE_TEST_EXPECT") {
     hypothesis = "Imported expect from node:test (unsupported).";

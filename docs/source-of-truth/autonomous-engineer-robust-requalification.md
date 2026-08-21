@@ -155,6 +155,10 @@ Stop criterion: state class reaches `deliveryCandidateStatus=ready` with unresol
 
 Narrow fixture/AC clarification + FAITHFUL replays recorded under `evidence/ae-targeted-requalification/` (does not overwrite this folder). Result: **TARGETED RESULTS MIXED** — `state_counter` still blocked (`PRIMARY_QC_NONCONVERGENCE`; create-on-first-write thrash cleared), `agent_bad_code_v2` delivery-ready but left `dead-shim.js`. See `evidence/ae-targeted-requalification/targeted-summary.md`. Still **NOT ROBUST CODE QUALIFIED**.
 
+### Targeted repair II (2026-08-20)
+
+Test-semantics convergence + acceptance-criteria closure under `evidence/ae-targeted-requalification-2/`. Result: **TARGETED BLOCKERS CLOSED — FULL ROBUST REQUALIFICATION SHOULD RESUME**. `state_counter_v2` and `agent_bad_code_v3` both ready+score PASS under FAITHFUL (including second replays). See `docs/source-of-truth/ae-targeted-requalification-repair-2.md`. Still **do not** claim ROBUST CODE QUALIFIED until the full robust matrix is re-run.
+
 ---
 
 ## PR recommendation

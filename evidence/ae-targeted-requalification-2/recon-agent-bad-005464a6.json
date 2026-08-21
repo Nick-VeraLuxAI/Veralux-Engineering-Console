@@ -1,0 +1,27 @@
+{
+  "runId": "005464a6-a9f1-41ae-942e-48376828ed58",
+  "sourceEvidence": "evidence/ae-targeted-requalification/agent_bad_code_v2-005464a6.json",
+  "deadShimScope": "src/normalize/dead-shim.js unusedNormalizeShim \u2014 seeded unused prior-agent residue",
+  "deleteSupportedAtTime": false,
+  "classification": [
+    "DELETE_AUTHORITY_MISSING",
+    "PLAN_MISS",
+    "AC_NOT_PROPAGATED",
+    "COMPLETION_EVALUATOR_MISS",
+    "REVIEW_MISS"
+  ],
+  "primaryClassification": "DELETE_AUTHORITY_MISSING",
+  "planSummaryClaimedRemoval": true,
+  "planOperations": [
+    "update_file token.js",
+    "update_file token.test.js"
+  ],
+  "omitDelete": true,
+  "deliveryReady": true,
+  "scorePass": false,
+  "scoreNotes": [
+    "unused dead-shim.js remains"
+  ],
+  "whyReady": "QC passed on token tests; reviews only inspected changed files; completion evaluator did not verify material cleanup AC against authorized tree; worker-plan forbade delete_file so agent could not remove dead-shim even if planned",
+  "investigationNote": "Existing files listed but cleanup AC not enforced at completion/review"
+}

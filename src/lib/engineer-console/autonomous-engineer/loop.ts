@@ -25,10 +25,12 @@ import {
   detectFailureSignaturesInPlan,
   detectFailureSignaturesInText,
   ensureFailureSignatureHistory,
+  formatSubjectCallModeBlock,
   formatTestExemplarBlock,
   mergeStructuredDiagnosis,
   readAuthorizedTestExemplars,
   readRepoTestGroundingFacts,
+  readSubjectCallModes,
   recordFailureSignatures,
   shouldBlockRepeatedHarnessStrategy,
   sliceOwnedFailureEvidence,
@@ -176,6 +178,7 @@ async function generatePlanForIteration(
       maxFiles: 3,
       focusPaths,
     });
+    const subjectModes = readSubjectCallModes(repoPath, document.authorizedPathPrefixes);
     const snippetBlock =
       snippets.length === 0
         ? "(no existing source snippets under authorized prefixes)"
@@ -206,10 +209,13 @@ async function generatePlanForIteration(
             `Existing files under those prefixes (truncated): ${existingFiles.slice(0, 24).join(", ") || "(none)"}`,
             `package.json scripts: ${packageScripts}`,
             grounding.factsBlock,
+            formatSubjectCallModeBlock(subjectModes),
             priorDigest,
             "Use update_file for paths that already exist and create_file only for new paths. Include complete file contents.",
+            "When acceptance criteria require removing unused dead helpers/shims and the path is authorized/safe, include delete_file with a non-empty reason (content may be empty). Do not delete unrelated files.",
             "When authorized existing modules are defective, incomplete, or unsafe, repair them with update_file (complete corrected contents). Do not stack WORKAROUND/HACK conditionals or silent catch fallbacks. Prefer create_file only for genuinely new helpers/tests. Do not rewrite or append to unrelated large modules. Pre-existing Super/AirLLM QC failures are out of scope.",
             "Match the existing test runner from package.json scripts. If test uses node --test / node:test, write ONLY: import test from 'node:test'; import assert from 'node:assert/strict'; and use test('name', () => { assert.equal(...) }). Do NOT import expect/describe/it from 'node:test' (those exports are invalid). Use Vitest only when package.json already runs vitest. Never import vitest from non-test production sources.",
+            "For negative-path tests: sync subjects → assert.throws(() => ...); async/Promise subjects → await assert.rejects(async () => ...). Read subject call modes above before writing reject/throw tests.",
             "Include happy, negative, and failure-path coverage the objective implies. If a test expectation conflicts with correct fail-closed behavior, fix the test.",
             `Investigation: ${document.observations.map((obs) => obs.summary).join("\n").slice(0, 2500)}`,
             `Authorized source snippets (read these before mutating):\n${snippetBlock}`,
@@ -616,7 +622,10 @@ export async function executeAutonomousLoop(
           });
         }
         const grounding = readRepoTestGroundingFacts(repoPath);
-        const harnessFindings = validatePlanHarnessGuards(plan, grounding);
+        const syncSubjects = readSubjectCallModes(repoPath, document.authorizedPathPrefixes)
+          .filter((m) => m.mode === "sync")
+          .map((m) => m.name);
+        const harnessFindings = validatePlanHarnessGuards(plan, grounding, syncSubjects);
         if (harnessFindings.length > 0) {
           const signatures = [...new Set(harnessFindings.map((f) => f.signature))];
           document.failureSignatureHistory = recordFailureSignatures(
@@ -629,7 +638,7 @@ export async function executeAutonomousLoop(
             planRepairKind: "harness_incompat" as const,
           });
         }
-        const planSignatures = detectFailureSignaturesInPlan(plan, grounding);
+        const planSignatures = detectFailureSignaturesInPlan(plan, grounding, syncSubjects);
         const repeatBlock = shouldBlockRepeatedHarnessStrategy(
           ensureFailureSignatureHistory(document),
           planSignatures,
@@ -951,7 +960,10 @@ export async function executeAutonomousLoop(
 
       // WP7: fast pre-QC harness validation on changed tests (observation → diagnosis → replan).
       const groundingFacts = readRepoTestGroundingFacts(repoPath);
-      const preQcFindings = validateChangedTestHarness(repoPath, changedFiles, groundingFacts);
+      const syncSubjects = readSubjectCallModes(repoPath, document.authorizedPathPrefixes)
+        .filter((m) => m.mode === "sync")
+        .map((m) => m.name);
+      const preQcFindings = validateChangedTestHarness(repoPath, changedFiles, groundingFacts, syncSubjects);
       if (preQcFindings.length > 0) {
         const failureClass = classifyAutonomousFailure({ qualityGatesFailed: true });
         const harnessSummary = preQcFindings.map((f) => f.message).join("; ");
@@ -1149,12 +1161,27 @@ export async function executeAutonomousLoop(
           // Skip unreadable paths; review still has path-level checks.
         }
       }
+      // Scope-relevant tree (including unchanged files) so cleanup AC can see leftover dead shims.
+      const authorizedTree = listAuthorizedWorktreeFiles(repoPath, document.authorizedPathPrefixes, 64);
+      for (const relative of authorizedTree) {
+        if (fileContents[relative]) continue;
+        if (!/\.(js|ts|mjs|cjs)$/.test(relative)) continue;
+        try {
+          const absolute = path.join(repoPath, relative);
+          if (fs.existsSync(absolute) && fs.statSync(absolute).isFile()) {
+            fileContents[relative] = fs.readFileSync(absolute, "utf8").slice(0, 4_000);
+          }
+        } catch {
+          // skip
+        }
+      }
       let reviews = runAutonomousReviews({
         document,
         changedFiles,
         diffSummary,
         qcPassed: document.qcDelta?.objectiveQcPassed ?? true,
         fileContents,
+        authorizedTree,
       });
       const grounding = {
         fileContents,
@@ -1231,6 +1258,7 @@ export async function executeAutonomousLoop(
         qcPassed: document.qcDelta?.objectiveQcPassed ?? true,
         changedFiles,
         reviews: document.reviews,
+        repoPath,
       });
       document.completionEvaluation = evaluation;
       await maybeInvokeWorker(
@@ -1337,7 +1365,8 @@ async function invokeEvidenceGroundedDiagnosis(
     "Output structured diagnosis fields. Match the supplied QC evidence exactly.",
     "Do not rewrite large existing modules. Add or repair a small helper. Pre-existing failures are out of scope.",
     "If evidence mentions node:test does not provide export named 'expect', rewrite tests to: import test from 'node:test'; import assert from 'node:assert/strict' (no expect).",
-    "If evidence mentions assert.throwsAsync is not a function, use await assert.rejects(async () => ...).",
+    "If evidence mentions assert.throwsAsync is not a function, use await assert.rejects(async () => ...) for async subjects.",
+    "If evidence shows assert.rejects / Function.rejects with a synchronous subject TypeError (TEST_ASSERTION_MODE_MISMATCH), switch to assert.throws(() => ...).",
     "If evidence mentions require is not defined in ES module scope, use import — never require() in type:module packages.",
   ].join("\n");
 

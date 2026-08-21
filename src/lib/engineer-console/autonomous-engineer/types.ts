@@ -185,6 +185,12 @@ export interface ClarificationRecord {
   answeredBy: string | null;
 }
 
+export interface AcceptanceCriterionEvidence {
+  criterion: string;
+  status: "SATISFIED" | "UNSATISFIED" | "UNVERIFIED";
+  detail: string;
+}
+
 export interface CompletionEvaluation {
   complete: boolean;
   summary: string;
@@ -194,6 +200,7 @@ export interface CompletionEvaluation {
   qcPassed: boolean;
   reviewsPassed: boolean;
   withinAuthority: boolean;
+  acceptanceEvidence?: AcceptanceCriterionEvidence[];
 }
 
 export type AutonomousReviewKind =

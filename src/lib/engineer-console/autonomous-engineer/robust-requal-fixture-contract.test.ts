@@ -186,4 +186,28 @@ describe("agent_bad_code cleanup scoring", () => {
     expect(score.pass).toBe(false);
     expect(score.notes.join(" ")).toMatch(/HACK|TODO|dead|duplicate/i);
   });
+
+  it("agent_bad_code_v3 seed scores fail until cleaned", () => {
+    const specimen = MATRIX_SPECIMENS.find((s) => s.id === "agent_bad_code_v3");
+    expect(specimen).toBeTruthy();
+    const repo = tmp();
+    specimen!.seed(repo);
+    expect(fs.existsSync(path.join(repo, "src/normalize/dead-shim.js"))).toBe(true);
+    const score = specimen!.score(repo);
+    expect(score.pass).toBe(false);
+    expect(score.notes.join(" ")).toMatch(/HACK|TODO|dead|duplicate/i);
+  });
+});
+
+describe("state_counter_v2 fixture freeze", () => {
+  it("preserves create-on-first-write contract identical to state_counter", () => {
+    const v1 = MATRIX_SPECIMENS.find((s) => s.id === "state_counter");
+    const v2 = MATRIX_SPECIMENS.find((s) => s.id === "state_counter_v2");
+    expect(v1 && v2).toBeTruthy();
+    expect(v2!.objective).toMatch(/create-on-first-write|created on first write/i);
+    expect(v2!.acceptanceCriteria.join("\n")).toMatch(/Create-on-first-write/i);
+    const repo = tmp();
+    v2!.seed(repo);
+    expect(v2!.score(repo).pass).toBe(false);
+  });
 });

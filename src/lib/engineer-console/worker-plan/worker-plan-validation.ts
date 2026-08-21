@@ -1,3 +1,4 @@
+import fs from "fs";
 import type {
   WorkerPlan,
   WorkerPlanOperation,
@@ -9,7 +10,6 @@ import { WORKER_OPERATION_TYPES } from "./worker-plan-types";
 import { isProtectedWorkerPath, resolvePathWithinRepo } from "./path-safety";
 
 const FORBIDDEN_OPERATION_TYPES = new Set([
-  "delete_file",
   "remove_file",
   "delete",
   "rm",
@@ -75,8 +75,9 @@ function parseOperation(
     return { errors };
   }
 
-  const content = raw.content;
-  if (typeof content !== "string" || content.length === 0) {
+  const isDelete = type === "delete_file";
+  const content = typeof raw.content === "string" ? raw.content : "";
+  if (!isDelete && content.length === 0) {
     errors.push({
       code: "EMPTY_CONTENT",
       message: "Operation content must not be empty",
@@ -87,12 +88,21 @@ function parseOperation(
   }
 
   const reason = typeof raw.reason === "string" ? raw.reason : "";
+  if (isDelete && !reason.trim()) {
+    errors.push({
+      code: "EMPTY_REASON",
+      message: "delete_file requires a non-empty reason tied to acceptance criteria or cleanup authority",
+      path: opPath,
+      operationIndex: index,
+    });
+    return { errors };
+  }
 
   return {
     operation: {
       type: type as WorkerPlanOperation["type"],
       path: opPath,
-      content,
+      content: isDelete ? "" : content,
       reason,
     },
     errors,
@@ -271,6 +281,28 @@ export function validateWorkerPlan(
         operationIndex: index,
       });
       continue;
+    }
+
+    if (op.type === "delete_file") {
+      const absolutePath = resolved.resolved.absolutePath;
+      if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+        errors.push({
+          code: "FILE_NOT_FOUND",
+          message: "delete_file failed: file does not exist",
+          path: relativePath,
+          operationIndex: index,
+        });
+        continue;
+      }
+      if (!op.reason.trim()) {
+        errors.push({
+          code: "EMPTY_REASON",
+          message: "delete_file requires a non-empty reason",
+          path: relativePath,
+          operationIndex: index,
+        });
+        continue;
+      }
     }
 
     normalizedOperations.push({

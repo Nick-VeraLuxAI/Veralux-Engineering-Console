@@ -86,6 +86,9 @@ export function coerceWorkerPlanToWorktree(repoPath: string, plan: WorkerPlan): 
   const operations = (plan.operations ?? []).map((operation) => {
     const relative = operation.path.replace(/^\.?\//, "");
     const exists = fs.existsSync(path.join(repoPath, relative));
+    if (operation.type === "delete_file") {
+      return { ...operation, path: relative, content: "" };
+    }
     if (operation.type === "create_file" && exists) {
       return { ...operation, type: "update_file" as const, path: relative };
     }

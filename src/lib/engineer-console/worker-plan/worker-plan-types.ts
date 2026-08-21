@@ -2,6 +2,7 @@ export const WORKER_OPERATION_TYPES = [
   "create_file",
   "update_file",
   "append_file",
+  "delete_file",
 ] as const;
 
 export type WorkerOperationType = (typeof WORKER_OPERATION_TYPES)[number];

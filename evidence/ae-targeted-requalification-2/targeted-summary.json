@@ -1,0 +1,44 @@
+{
+  "status": "COMPLETE",
+  "qualificationImpact": "TARGETED BLOCKERS CLOSED \u2014 FULL ROBUST REQUALIFICATION SHOULD RESUME",
+  "doNotClaim": "ROBUST CODE QUALIFIED",
+  "runtime": "FAITHFUL",
+  "nano": "http://127.0.0.1:8082/v1 max_model_len=262144",
+  "branch": "feature/autonomous-engineer-v1",
+  "primary": {
+    "state_counter_v2": {
+      "runId": "65154251-9522-4e4e-853e-423e523243ec",
+      "delivery": "ready",
+      "scorePass": true,
+      "iterations": 1,
+      "assertApi": "assert.throws",
+      "createOnFirstWrite": true,
+      "CriticalHighMedium": 0,
+      "humanCoding": 0
+    },
+    "agent_bad_code_v3": {
+      "runId": "60152a50-11c9-4e97-a0a2-6c0825dc6414",
+      "delivery": "ready",
+      "scorePass": true,
+      "iterations": 1,
+      "deadShim": "ABSENT",
+      "usedDeleteFile": true,
+      "circularHackResidue": false,
+      "falseCompletion": false,
+      "humanCoding": 0
+    }
+  },
+  "secondReplay": {
+    "state_counter_v2": "e92dc00e-076d-4c45-ad13-ddb54b371677 ready scorePass",
+    "agent_bad_code_v3": "216d4b06-33c0-4ce3-924a-f6150c2ee91a ready scorePass delete_file"
+  },
+  "regressions": {
+    "command": "npm test -- src/lib/engineer-console/autonomous-engineer/*.test.ts src/lib/engineer-console/worker-plan/*.test.ts src/lib/engineer-console/quality-gates/*.test.ts",
+    "testFiles": 21,
+    "tests": 152,
+    "passed": 152,
+    "failed": 0,
+    "notes": "Includes false-completion-protection C1\u2013C4 (+6), fixture v2/v3 (+2), executor delete (+2); baseline prior targeted pass was 20/142"
+  },
+  "falseCompletions": 0
+}

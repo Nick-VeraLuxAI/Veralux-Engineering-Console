@@ -1,0 +1,60 @@
+{
+  "runId": "5e2b8bc9-1683-4d45-87a4-2e2660a59515",
+  "sourceEvidence": "evidence/ae-targeted-requalification/state_counter-5e2b8bc9.json",
+  "createOnFirstWriteContractFrozen": true,
+  "finalImpl": "store[key] ?? 0 create-on-first-write (correct)",
+  "assertRejectsFirstAppeared": "iteration 1 (plan da471275) \u2014 6x await assert.rejects on sync incrementCounter",
+  "iterations": [
+    {
+      "iter": 1,
+      "plan": "da471275",
+      "assert.rejects": 6,
+      "assert.throws": 0,
+      "qc": "npm test fail",
+      "diagnosisTheme": "impl/validation thrash"
+    },
+    {
+      "iter": 2,
+      "plan": "a9eea302",
+      "assert.rejects": "n/a (impl+keyValidator only)",
+      "qc": "npm test fail",
+      "note": "did not fix tests"
+    },
+    {
+      "iter": 3,
+      "plan": "ba31cef8",
+      "assert.rejects": 8,
+      "assert.throws": 0,
+      "qc": "npm test fail"
+    },
+    {
+      "iter": 4,
+      "plan": "4bef246d",
+      "assert.rejects": 5,
+      "assert.throws": 0,
+      "qc": "npm test fail"
+    },
+    {
+      "iter": 5,
+      "plan": "951e31c7",
+      "assert.rejects": 5,
+      "assert.throws": 0,
+      "qc": "npm test fail",
+      "strategy": "ESM imports (already correct)"
+    },
+    {
+      "iter": 6,
+      "plan": "f9e9ec9b",
+      "assert.rejects": 5,
+      "assert.throws": 0,
+      "qc": "Infinity/-Infinity await rejects \u2192 testCodeFailure TypeError"
+    }
+  ],
+  "exemplarsSynced": "node:test + assert present in seed; grounding previously pushed rejects over throws for throwsAsync replacement only",
+  "rootCause": "TEST_ASSERTION_MODE_MISMATCH \u2014 assert.rejects on proven sync export function incrementCounter",
+  "notRootCause": [
+    "fixture create-on-first-write ambiguity",
+    "generation budget",
+    "Nano fidelity"
+  ]
+}

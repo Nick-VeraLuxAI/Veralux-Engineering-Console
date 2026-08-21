@@ -63,7 +63,9 @@ describe("WP1 — test exemplar grounding", () => {
     expect(facts.runner).toBe("node:test");
     expect(facts.assertionLib).toBe("node:assert");
     expect(facts.factsBlock).toMatch(/never use require/);
+    expect(facts.factsBlock).toMatch(/assert\.throws/);
     expect(facts.factsBlock).toMatch(/assert\.rejects/);
+    expect(facts.factsBlock).toMatch(/synchronous subjects|sync subjects/i);
 
     const exemplars = readAuthorizedTestExemplars(tmp, ["src/ledger/"], {
       maxFiles: 3,

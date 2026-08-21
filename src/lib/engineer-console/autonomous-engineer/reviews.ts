@@ -81,6 +81,43 @@ function engineeringQualityDefects(fileContents: Record<string, string>): string
   return defects;
 }
 
+/** When AC demands cleanup, flag authorized-tree residue even if the file was never changed. */
+function cleanupResidueDefects(input: {
+  acceptanceCriteria?: string[];
+  objective?: string;
+  authorizedTree?: string[];
+  fileContents?: Record<string, string>;
+}): string[] {
+  const corpus = [
+    ...(input.acceptanceCriteria ?? []),
+    input.objective ?? "",
+  ]
+    .join("\n")
+    .toLowerCase();
+  if (!/dead|shim|hack|todo|circular|self-import|duplicate|scaffolding/.test(corpus)) {
+    return [];
+  }
+  const defects: string[] = [];
+  const tree = input.authorizedTree ?? Object.keys(input.fileContents ?? {});
+  for (const relative of tree) {
+    if (/dead-shim/i.test(relative)) {
+      defects.push(
+        `${relative}: Unused dead shim remains in authorized scope; delete_file is required by cleanup acceptance criteria.`,
+      );
+    }
+  }
+  for (const [file, content] of Object.entries(input.fileContents ?? {})) {
+    if (file.includes(".test.") || file.includes("__tests__/")) continue;
+    if (/\/\/\s*(?:HACK|TODO|WORKAROUND|TEMP)\b/i.test(content)) {
+      defects.push(`${file}: HACK/TODO scaffolding remains; remove per cleanup acceptance criteria.`);
+    }
+    if (/export\s+function\s+\w+_(?:v\d+|legacy|shim)\b/.test(content)) {
+      defects.push(`${file}: Duplicate/legacy helper exports remain; remove per cleanup acceptance criteria.`);
+    }
+  }
+  return [...new Set(defects)];
+}
+
 export function runAutonomousReviews(input: {
   document: AutonomousDocument;
   changedFiles: string[];
@@ -88,6 +125,8 @@ export function runAutonomousReviews(input: {
   qcPassed: boolean;
   /** Optional worktree file contents for content-level review defects (fixable via update_file). */
   fileContents?: Record<string, string>;
+  /** Authorized tree paths (including unchanged) relevant to cleanup AC. */
+  authorizedTree?: string[];
 }): AutonomousReviewFinding[] {
   const requirements: AutonomousReviewFinding = {
     review: "requirements",
@@ -146,7 +185,16 @@ export function runAutonomousReviews(input: {
     actionableDefects: outOfScope.map((file) => `Out of authorized scope: ${file}`),
   };
 
-  const qualityDefects = engineeringQualityDefects(input.fileContents ?? {});
+  const qualityDefects = [
+    ...engineeringQualityDefects(input.fileContents ?? {}),
+    ...cleanupResidueDefects({
+      acceptanceCriteria:
+        input.document.interpretedObjective?.acceptanceCriteria ?? input.document.acceptanceCriteria,
+      objective: input.document.originalObjective,
+      authorizedTree: input.authorizedTree,
+      fileContents: input.fileContents,
+    }),
+  ];
   const engineeringQuality: AutonomousReviewFinding = {
     review: "engineering_quality",
     passed: qualityDefects.length === 0,

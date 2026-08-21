@@ -953,6 +953,132 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     score: (wt) => scoreAgentBadCodeCleanup(wt, { apiName: "canonicalizeToken", legacyNames: [/canonicalizeToken_legacy/, /canonicalizeToken_shim/, /unusedNormalizeShim/] }),
   },
   {
+    id: "state_counter_v2",
+    matrixClasses: ["state_concurrency"],
+    variant: 2,
+    title: "Shared counter integrity (v2 replay)",
+    maxIterations: 6,
+    objective:
+      "Operators need incrementCounter(store, key, by = 1) under src/state. Contract (unambiguous): missing keys are created on first write (treat absent as 0 / default); do NOT reject a key merely because it is absent from the store; increments must accumulate with a single synchronous read-modify-write so sequential/concurrent callers do not lose updates; distinct keys stay independent; reject clearly invalid inputs only (non-string key, non-object store, non-finite by). Add tests covering create-on-first-write, accumulation, independence, and invalid input. Do not open a PR or deploy.",
+    acceptanceCriteria: [
+      "Create-on-first-write: incrementCounter on a missing key initializes from 0/default and writes the increment (do not throw solely because the key is absent)",
+      "Accumulating read-modify-write: same-key increments preserve prior totals (never replace with `by` alone)",
+      "No lost updates under sequential/concurrent synchronous callers; independent keys do not interfere",
+      "Invalid inputs fail clearly: non-string key, non-object store, and non-finite `by` are rejected",
+      "Tests cover create-on-first-write, accumulation, multi-key independence, and invalid input",
+      "No pull request is created",
+    ],
+    constraints: ["Stay inside src/state/", "Do not change PR, merge, or deploy behavior"],
+    authorizedPathPrefixes: ["src/state/"],
+    seed(repo) {
+      write(repo, "package.json", pkg("ae-requal-state-v2", "node --test src/state/counter.test.js"));
+      write(
+        repo,
+        "src/state/counter.js",
+        [
+          "/**",
+          " * Contract: create-on-first-write (absent key => 0), accumulate, independent keys,",
+          " * reject only invalid key/store/by shapes — never reject solely for a missing key.",
+          " */",
+          "export function incrementCounter(store, key, by = 1) {",
+          "  // Lost-update style: replaces instead of accumulating when key exists",
+          "  store[key] = by;",
+          "  return store[key];",
+          "}",
+          "",
+        ].join("\n"),
+      );
+      write(
+        repo,
+        "src/state/counter.test.js",
+        [
+          "import test from 'node:test';",
+          "import assert from 'node:assert/strict';",
+          "import { incrementCounter } from './counter.js';",
+          "",
+          "test('create-on-first-write treats missing key as 0', () => {",
+          "  const s = {};",
+          "  assert.equal(incrementCounter(s, 'a', 1), 1);",
+          "  assert.equal(s.a, 1);",
+          "});",
+          "",
+          "test('accumulation preserves prior total', () => {",
+          "  const s = { a: 5 };",
+          "  assert.equal(incrementCounter(s, 'a', 3), 8);",
+          "});",
+          "",
+        ].join("\n"),
+      );
+      initGit(repo);
+    },
+    score(wt) {
+      const base = MATRIX_SPECIMENS.find((s) => s.id === "state_counter");
+      if (!base) throw new Error("state_counter missing");
+      return base.score(wt);
+    },
+  },
+  {
+    id: "agent_bad_code_v3",
+    matrixClasses: ["agent_generated_bad_code"],
+    variant: 3,
+    title: "Sanitize helper cleanup",
+    maxIterations: 6,
+    objective:
+      "Directors need sanitizeToken under src/normalize to trim and lowercase tokens for production use with clear tests. Improve the existing helper so it is coherent and trustworthy: remove prior-agent HACK/TODO scaffolding, duplicate dead helpers/shims (including unused dead-shim.js), and any circular/self-imports. Do not open a PR or deploy.",
+    acceptanceCriteria: [
+      "sanitizeToken trims and lowercases",
+      "Invalid input rejected",
+      "No HACK/TODO scaffolding, duplicate dead helpers/shims (including src/normalize/dead-shim.js), or circular/self-imports left in the delivery",
+      "No pull request is created",
+    ],
+    constraints: ["Stay inside src/normalize/", "Do not change PR, merge, or deploy behavior"],
+    authorizedPathPrefixes: ["src/normalize/"],
+    seed(repo) {
+      write(repo, "package.json", pkg("ae-requal-sanitize", "node --test src/normalize/token.test.js"));
+      write(
+        repo,
+        "src/normalize/token.js",
+        [
+          "export function sanitizeToken_legacy(s) { return String(s).toLowerCase(); }",
+          "export function sanitizeToken_shim(s) { return String(s).trim(); }",
+          "// TODO: special-case leftover from prior agent",
+          "// HACK: keep tests green",
+          "export function sanitizeToken(s) {",
+          "  if (s === 'READY') return 'ready';",
+          "  try { return sanitizeToken_legacy(sanitizeToken_shim(s)); } catch { return ''; }",
+          "}",
+          "",
+        ].join("\n"),
+      );
+      write(
+        repo,
+        "src/normalize/dead-shim.js",
+        [
+          "// Unused shim left by a prior agent — should not survive cleanup",
+          "export function unusedNormalizeShim(s) { return String(s); }",
+          "",
+        ].join("\n"),
+      );
+      write(
+        repo,
+        "src/normalize/token.test.js",
+        [
+          "import test from 'node:test';",
+          "import assert from 'node:assert/strict';",
+          "import { sanitizeToken } from './token.js';",
+          "test('special', () => assert.equal(sanitizeToken('READY'), 'ready'));",
+          "",
+        ].join("\n"),
+      );
+      initGit(repo);
+    },
+    score: (wt) =>
+      scoreAgentBadCodeCleanup(wt, {
+        apiName: "sanitizeToken",
+        legacyNames: [/sanitizeToken_legacy/, /sanitizeToken_shim/, /unusedNormalizeShim/],
+      }),
+  },
+  {
     id: "perf_lookup",
     matrixClasses: ["performance_awareness"],
     title: "Index lookup helper",
