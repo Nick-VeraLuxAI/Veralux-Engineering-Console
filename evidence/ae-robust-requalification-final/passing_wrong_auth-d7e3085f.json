@@ -1,0 +1,169 @@
+{
+  "specimenId": "passing_wrong_auth",
+  "matrixClasses": [
+    "passing_but_wrong",
+    "security_fail_closed"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Authorization helper",
+  "objective": "Operators need authorizeAction(user, action) to decide access for console tools. Keep the helper under src/auth, make authorization trustworthy for production, and ensure tests cover both allow and deny cases. Do not open a PR or deploy.",
+  "elapsedMs": 21808,
+  "taskId": "0f8ff77a-8515-4dfb-ad15-8bd547c7f655",
+  "runId": "d7e3085f-268f-431d-9fbe-57d5272a363d",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "d7e3085f-268f-431d-9fbe-57d5272a363d",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "ad5de1fc-8e9a-4d15-a5af-62cbee2a5986",
+      "strategy": "Replace the insecure catch-all fallback in authorizeAction with explicit validation checks and expand the test suite to cover allow, deny, and edge cases; all changes are made via update_file within src/auth/.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 1109,
+    "runtimeMs": 18844,
+    "investigationReads": 2,
+    "contextBytes": 122,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Operators need authorizeAction(user, action) to decide access for console tools. Keep the helper under src/auth, make authorization trustworthy for production, and ensure tests cover both allow and deny cases. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/auth/authorize.js",
+        "Changed src/auth/authorize.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/auth/authorize.js      | 19 ++++++++++++++-----\n src/auth/authorize.test.js | 17 +++++++++++++++++\n 2 files changed, 31 insertions(+), 5 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "Operators need authorizeAction(user, action) to decide access for console tools. Keep the helper under src/auth, make authorization trustworthy for production, and ensure tests cover both allow and deny cases. Do not open a PR or deploy.",
+        "Changed src/auth/authorize.js",
+        "Changed src/auth/authorize.test.js",
+        "Allowed quality gates passed",
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "ad5de1fc-8e9a-4d15-a5af-62cbee2a5986",
+      "summary": "Replace the insecure catch-all fallback in authorizeAction with explicit validation checks and expand the test suite to cover allow, deny, and edge cases; all changes are made via update_file within src/auth/.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/d7e3085f-268f-431d-9fbe-57d5272a363d",
+    "branchName": "engineer/0f8ff77a/d7e3085f-20260821011232",
+    "baseRevision": "082489c5fa7842a7ff64765d0e19966d98e8bed5",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "security_authorization": "PASS",
+      "tests_negative_path": "PASS",
+      "hidden_defect_detected": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

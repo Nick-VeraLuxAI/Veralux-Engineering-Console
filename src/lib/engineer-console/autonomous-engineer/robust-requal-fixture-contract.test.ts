@@ -211,3 +211,15 @@ describe("state_counter_v2 fixture freeze", () => {
     expect(v2!.score(repo).pass).toBe(false);
   });
 });
+
+describe("state_counter_v3 fixture freeze", () => {
+  it("preserves create-on-first-write contract for final third variant", () => {
+    const v3 = MATRIX_SPECIMENS.find((s) => s.id === "state_counter_v3");
+    expect(v3).toBeTruthy();
+    expect(v3!.objective).toMatch(/create-on-first-write|created on first write/i);
+    expect(v3!.acceptanceCriteria.join("\n")).toMatch(/Create-on-first-write/i);
+    const repo = tmp();
+    v3!.seed(repo);
+    expect(v3!.score(repo).pass).toBe(false);
+  });
+});

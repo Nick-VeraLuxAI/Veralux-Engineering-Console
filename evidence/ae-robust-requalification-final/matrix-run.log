@@ -1,0 +1,37 @@
+{"specimen":"rate_limit_feature","hardClass":null,"variant":null,"runId":"7e55f8d7-3669-44ad-b961-cbdc66b7535b","maxIterations":6,"status":"starting"}
+{"specimen":"rate_limit_feature","runId":"7e55f8d7-3669-44ad-b961-cbdc66b7535b","delivery":"blocked","primaryFailureCategory":"PRIMARY_QC_NONCONVERGENCE","scorePass":true,"iterations":6,"elapsedMs":217292,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/rate_limit_feature-7e55f8d7.json"}
+{"specimen":"passing_wrong_auth","hardClass":null,"variant":null,"runId":"d7e3085f-268f-431d-9fbe-57d5272a363d","maxIterations":6,"status":"starting"}
+{"specimen":"passing_wrong_auth","runId":"d7e3085f-268f-431d-9fbe-57d5272a363d","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":21808,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/passing_wrong_auth-d7e3085f.json"}
+{"specimen":"bad_test_vs_impl","hardClass":null,"variant":null,"runId":"b079a863-5654-455a-a3fa-5ce1aec93f32","maxIterations":6,"status":"starting"}
+{"specimen":"bad_test_vs_impl","runId":"b079a863-5654-455a-a3fa-5ce1aec93f32","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":21548,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/bad_test_vs_impl-b079a863.json"}
+{"specimen":"state_counter","hardClass":null,"variant":null,"runId":"3650c835-0730-499b-b8bd-ced43bb7ef3a","maxIterations":6,"status":"starting"}
+{"specimen":"state_counter","runId":"3650c835-0730-499b-b8bd-ced43bb7ef3a","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":47211,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/state_counter-3650c835.json"}
+{"specimen":"backward_compat_greet","hardClass":null,"variant":null,"runId":"8bcfe436-67f1-4d00-8b1c-39d44c950049","maxIterations":6,"status":"starting"}
+{"specimen":"backward_compat_greet","runId":"8bcfe436-67f1-4d00-8b1c-39d44c950049","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":13339,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/backward_compat_greet-8bcfe436.json"}
+{"specimen":"cross_cutting_label","hardClass":null,"variant":null,"runId":"8a333ffc-b324-491c-8f25-62852a7a9524","maxIterations":6,"status":"starting"}
+{"specimen":"cross_cutting_label","runId":"8a333ffc-b324-491c-8f25-62852a7a9524","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":96182,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/cross_cutting_label-8a333ffc.json"}
+{"specimen":"agent_bad_code","hardClass":null,"variant":null,"runId":"9c0eae40-8f29-4e84-b585-1583f0a801e9","maxIterations":6,"status":"starting"}
+{"specimen":"agent_bad_code","runId":"9c0eae40-8f29-4e84-b585-1583f0a801e9","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":21246,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/agent_bad_code-9c0eae40.json"}
+{"specimen":"agent_bad_code_v2","hardClass":null,"variant":2,"runId":"06a3d354-f7b0-4a4b-b66b-ba0bd2c3f4cb","maxIterations":6,"status":"starting"}
+{"specimen":"agent_bad_code_v2","runId":"06a3d354-f7b0-4a4b-b66b-ba0bd2c3f4cb","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":25648,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/agent_bad_code_v2-06a3d354.json"}
+{"specimen":"state_counter_v2","hardClass":null,"variant":2,"runId":"2de16762-6bf6-43a6-b2cd-2a50311cc362","maxIterations":6,"status":"starting"}
+{"specimen":"state_counter_v2","runId":"2de16762-6bf6-43a6-b2cd-2a50311cc362","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":5,"elapsedMs":125527,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/state_counter_v2-2de16762.json"}
+{"specimen":"state_counter_v3","hardClass":null,"variant":3,"runId":"6c7edcf2-8618-40f1-8118-aad374028344","maxIterations":6,"status":"starting"}
+{"specimen":"state_counter_v3","runId":"6c7edcf2-8618-40f1-8118-aad374028344","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":3,"elapsedMs":102059,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/state_counter_v3-6c7edcf2.json"}
+{"specimen":"agent_bad_code_v3","hardClass":null,"variant":3,"runId":"8e09ee60-fa4e-40f7-ae88-4a35d3c6f519","maxIterations":6,"status":"starting"}
+{"specimen":"agent_bad_code_v3","runId":"8e09ee60-fa4e-40f7-ae88-4a35d3c6f519","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":31756,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/agent_bad_code_v3-8e09ee60.json"}
+{"specimen":"perf_lookup","hardClass":null,"variant":null,"runId":"016cdea1-4f87-425d-9a85-b8fc923da069","maxIterations":6,"status":"starting"}
+{"specimen":"perf_lookup","runId":"016cdea1-4f87-425d-9a85-b8fc923da069","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":16067,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/perf_lookup-016cdea1.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification-final/batch-2026-08-21T01-08-55-121Z.json",
+  "summary": {
+    "total": 12,
+    "validRuns": 12,
+    "scorePass": 12,
+    "deliveryReady": 11,
+    "byFailure": {
+      "PRIMARY_QC_NONCONVERGENCE": 1,
+      "SUCCESS": 11
+    }
+  }
+}

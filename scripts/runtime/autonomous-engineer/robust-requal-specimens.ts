@@ -74,11 +74,12 @@ function pkg(name: string, testScript: string): string {
 }
 
 function ledgerSeed(repo: string, variant: number): void {
-  const fn = variant === 1 ? "applyPayment" : variant === 2 ? "recordCharge" : "settleInvoice";
-  const file = variant === 1 ? "ledger.js" : variant === 2 ? "charges.js" : "invoices.js";
+  // Final requal fresh surfaces (do not reuse prior solved applyPayment/recordCharge/settleInvoice seeds).
+  const fn = variant === 1 ? "bookPayment" : variant === 2 ? "captureCharge" : "closeInvoice";
+  const file = variant === 1 ? "payments.js" : variant === 2 ? "billing.js" : "settlements.js";
   const testFile = file.replace(".js", ".test.js");
   const dir = "src/ledger";
-  write(repo, "package.json", pkg(`ae-requal-ledger-v${variant}`, `node --test ${dir}/${testFile}`));
+  write(repo, "package.json", pkg(`ae-final-ledger-v${variant}`, `node --test ${dir}/${testFile}`));
   write(
     repo,
     `${dir}/${file}`,
@@ -136,7 +137,7 @@ function ledgerSeed(repo: string, variant: number): void {
 }
 
 function scoreLedger(wt: string, variant: number) {
-  const file = variant === 1 ? "ledger.js" : variant === 2 ? "charges.js" : "invoices.js";
+  const file = variant === 1 ? "payments.js" : variant === 2 ? "billing.js" : "settlements.js";
   const testFile = file.replace(".js", ".test.js");
   const src = fs.readFileSync(path.join(wt, `src/ledger/${file}`), "utf8");
   const testSrc = fs.existsSync(path.join(wt, `src/ledger/${testFile}`))
@@ -181,11 +182,12 @@ function scoreLedger(wt: string, variant: number) {
 }
 
 function jobsSeed(repo: string, variant: number): void {
-  const fn = variant === 1 ? "applyJob" : variant === 2 ? "runTask" : "commitWork";
-  const file = variant === 1 ? "jobs.js" : variant === 2 ? "tasks.js" : "work.js";
+  // Final requal fresh surfaces (do not reuse prior solved applyJob/runTask/commitWork seeds).
+  const fn = variant === 1 ? "enqueueJob" : variant === 2 ? "dispatchTask" : "finalizeWork";
+  const file = variant === 1 ? "queue.js" : variant === 2 ? "runners.js" : "commits.js";
   const testFile = file.replace(".js", ".test.js");
   const dir = "src/jobs";
-  write(repo, "package.json", pkg(`ae-requal-jobs-v${variant}`, `node --test ${dir}/${testFile}`));
+  write(repo, "package.json", pkg(`ae-final-jobs-v${variant}`, `node --test ${dir}/${testFile}`));
   write(
     repo,
     `${dir}/${file}`,
@@ -219,12 +221,15 @@ function jobsSeed(repo: string, variant: number): void {
 }
 
 function scoreJobs(wt: string, variant: number) {
-  const file = variant === 1 ? "jobs.js" : variant === 2 ? "tasks.js" : "work.js";
+  const file = variant === 1 ? "queue.js" : variant === 2 ? "runners.js" : "commits.js";
   const testFile = file.replace(".js", ".test.js");
   const src = fs.readFileSync(path.join(wt, `src/jobs/${file}`), "utf8");
   const testSrc = fs.readFileSync(path.join(wt, `src/jobs/${testFile}`), "utf8");
   const notes: string[] = [];
-  const guardsDuplicate = /if\s*\([^)]*applied[^)]*\)/.test(src) || /already applied|idempot/i.test(src);
+  const guardsDuplicate =
+    /if\s*\([^)]*applied[^)]*\)/.test(src) ||
+    /already applied|idempot|already (?:run|committed|enqueued|dispatched|finalized)/i.test(src) ||
+    /completed|seen|doneIds|Set\s*\(/.test(src);
   const recordsPartial = /pending|failed|error|status|resume/i.test(src);
   const testsDup = /duplicate|twice|second|idempot|again/i.test(testSrc);
   const testsFail = /fail|throw|error|resume|partial/i.test(testSrc);
@@ -328,8 +333,8 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     constraints: ["Stay inside src/ratelimit/", "Do not change PR, merge, or deploy behavior"],
     authorizedPathPrefixes: ["src/ratelimit/"],
     seed(repo) {
-      write(repo, "package.json", pkg("ae-requal-ratelimit", "node --test src/ratelimit/rate.test.js"));
-      write(repo, "src/ratelimit/README.md", "# rate limit helper needed\n");
+      write(repo, "package.json", pkg("ae-final-ratelimit", "node --test src/ratelimit/rate.test.js"));
+      write(repo, "src/ratelimit/README.md", "# rate window helper needed for final requal\n");
       initGit(repo);
     },
     score(wt) {
@@ -372,9 +377,9 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     title: "Legacy ledger reliability v1",
     maxIterations: 8,
     objective:
-      "Directors need the payment ledger under src/ledger to apply payments correctly, record outcomes, and never silently treat failures as success. Improve the existing ledger so production can trust applyPayment, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+      "Directors need the payment ledger under src/ledger to book payments correctly, record outcomes, and never silently treat failures as success. Improve the existing ledger so production can trust bookPayment, and add tests that cover success and failure cases. Do not open a PR or deploy.",
     acceptanceCriteria: [
-      "applyPayment is reliable for success and failure cases",
+      "bookPayment is reliable for success and failure cases",
       "Failures are recorded, not swallowed",
       "Unit tests cover success and at least one failure path",
       "No pull request is created",
@@ -392,9 +397,9 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     title: "Legacy charge recorder reliability v2",
     maxIterations: 8,
     objective:
-      "Directors need the charge recorder under src/ledger to record charges correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust recordCharge, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+      "Directors need the charge recorder under src/ledger to capture charges correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust captureCharge, and add tests that cover success and failure cases. Do not open a PR or deploy.",
     acceptanceCriteria: [
-      "recordCharge is reliable for success and failure cases",
+      "captureCharge is reliable for success and failure cases",
       "Failures are recorded, not swallowed",
       "Unit tests cover success and at least one failure path",
       "No pull request is created",
@@ -412,9 +417,9 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     title: "Legacy invoice settler reliability v3",
     maxIterations: 8,
     objective:
-      "Directors need the invoice settler under src/ledger to settle invoices correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust settleInvoice, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+      "Directors need the invoice settler under src/ledger to close invoices correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust closeInvoice, and add tests that cover success and failure cases. Do not open a PR or deploy.",
     acceptanceCriteria: [
-      "settleInvoice is reliable for success and failure cases",
+      "closeInvoice is reliable for success and failure cases",
       "Failures are recorded, not swallowed",
       "Unit tests cover success and at least one failure path",
       "No pull request is created",
@@ -440,7 +445,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     constraints: ["Stay inside src/auth/", "Do not change PR, merge, or deploy behavior"],
     authorizedPathPrefixes: ["src/auth/"],
     seed(repo) {
-      write(repo, "package.json", pkg("ae-requal-auth", "node --test src/auth/authorize.test.js"));
+      write(repo, "package.json", pkg("ae-final-auth", "node --test src/auth/authorize.test.js"));
       write(
         repo,
         "src/auth/authorize.js",
@@ -511,7 +516,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     constraints: ["Stay inside src/pricing/", "Do not change PR, merge, or deploy behavior"],
     authorizedPathPrefixes: ["src/pricing/"],
     seed(repo) {
-      write(repo, "package.json", pkg("ae-requal-pricing", "node --test src/pricing/discount.test.js"));
+      write(repo, "package.json", pkg("ae-final-pricing", "node --test src/pricing/discount.test.js"));
       // Correct implementation: percent 10 on 100 => 90
       write(
         repo,
@@ -573,14 +578,14 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     matrixClasses: ["partial_feature", "failure_recovery"],
     hardClass: "idempotent_job_runner",
     variant: 1,
-    title: "Job apply resume v1",
+    title: "Job enqueue resume v1",
     maxIterations: 6,
     objective:
-      "Directors need a small job apply helper under src/jobs that can apply a job by id once, survive retries after a partial failure, and never double-apply the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+      "Directors need a small job enqueue helper under src/jobs that can enqueue a job by id once, survive retries after a partial failure, and never double-enqueue the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
     acceptanceCriteria: [
-      "applyJob is idempotent for the same job id",
+      "enqueueJob is idempotent for the same job id",
       "Partial failure leaves a recoverable recorded state",
-      "Tests cover first apply, duplicate apply, and a failure/resume case",
+      "Tests cover first enqueue, duplicate enqueue, and a failure/resume case",
       "No pull request is created",
     ],
     constraints: ["Stay inside src/jobs/", "Do not change PR, merge, or deploy behavior"],
@@ -593,14 +598,14 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     matrixClasses: ["failure_recovery"],
     hardClass: "idempotent_job_runner",
     variant: 2,
-    title: "Task runner resume v2",
+    title: "Task dispatch resume v2",
     maxIterations: 6,
     objective:
-      "Directors need a small task runner under src/jobs that can run a task by id once, survive retries after a partial failure, and never double-run the same task id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+      "Directors need a small task dispatcher under src/jobs that can dispatch a task by id once, survive retries after a partial failure, and never double-dispatch the same task id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
     acceptanceCriteria: [
-      "runTask is idempotent for the same task id",
+      "dispatchTask is idempotent for the same task id",
       "Partial failure leaves a recoverable recorded state",
-      "Tests cover first run, duplicate run, and a failure/resume case",
+      "Tests cover first dispatch, duplicate dispatch, and a failure/resume case",
       "No pull request is created",
     ],
     constraints: ["Stay inside src/jobs/", "Do not change PR, merge, or deploy behavior"],
@@ -613,14 +618,14 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     matrixClasses: ["failure_recovery"],
     hardClass: "idempotent_job_runner",
     variant: 3,
-    title: "Work commit resume v3",
+    title: "Work finalize resume v3",
     maxIterations: 6,
     objective:
-      "Directors need a small work commit helper under src/jobs that can commit work by id once, survive retries after a partial failure, and never double-commit the same work id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+      "Directors need a small work finalize helper under src/jobs that can finalize work by id once, survive retries after a partial failure, and never double-finalize the same work id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
     acceptanceCriteria: [
-      "commitWork is idempotent for the same work id",
+      "finalizeWork is idempotent for the same work id",
       "Partial failure leaves a recoverable recorded state",
-      "Tests cover first commit, duplicate commit, and a failure/resume case",
+      "Tests cover first finalize, duplicate finalize, and a failure/resume case",
       "No pull request is created",
     ],
     constraints: ["Stay inside src/jobs/", "Do not change PR, merge, or deploy behavior"],
@@ -646,7 +651,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     constraints: ["Stay inside src/state/", "Do not change PR, merge, or deploy behavior"],
     authorizedPathPrefixes: ["src/state/"],
     seed(repo) {
-      write(repo, "package.json", pkg("ae-requal-state", "node --test src/state/counter.test.js"));
+      write(repo, "package.json", pkg("ae-final-state", "node --test src/state/counter.test.js"));
       write(
         repo,
         "src/state/counter.js",
@@ -746,7 +751,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     constraints: ["Stay inside src/compat/", "Do not change PR, merge, or deploy behavior"],
     authorizedPathPrefixes: ["src/compat/"],
     seed(repo) {
-      write(repo, "package.json", pkg("ae-requal-compat", "node --test src/compat/greet.test.js"));
+      write(repo, "package.json", pkg("ae-final-compat", "node --test src/compat/greet.test.js"));
       write(
         repo,
         "src/compat/greet.js",
@@ -811,7 +816,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
       write(
         repo,
         "package.json",
-        pkg("ae-requal-cross", "node --test src/shared/label.test.js src/ui/badge.test.js"),
+        pkg("ae-final-cross", "node --test src/shared/label.test.js src/ui/badge.test.js"),
       );
       write(repo, "src/ui/badge.js", "export function badge(text) { return `[${text}]`; }\n");
       write(repo, "src/reports/line.js", "export function line(text) { return `* ${text}`; }\n");
@@ -865,7 +870,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     constraints: ["Stay inside src/normalize/", "Do not change PR, merge, or deploy behavior"],
     authorizedPathPrefixes: ["src/normalize/"],
     seed(repo) {
-      write(repo, "package.json", pkg("ae-requal-normalize", "node --test src/normalize/token.test.js"));
+      write(repo, "package.json", pkg("ae-final-normalize", "node --test src/normalize/token.test.js"));
       write(
         repo,
         "src/normalize/token.js",
@@ -874,7 +879,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
           "export function normalizeToken_v2(s) { return String(s).trim(); }",
           "// HACK: special-case for tests",
           "export function normalizeToken(s) {",
-          "  if (s === 'TEST') return 'test';",
+          "  if (s === 'FINAL') return 'final';",
           "  try { return normalizeToken_v1(normalizeToken_v2(s)); } catch { return ''; }",
           "}",
           "",
@@ -887,7 +892,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
           "import test from 'node:test';",
           "import assert from 'node:assert/strict';",
           "import { normalizeToken } from './token.js';",
-          "test('special', () => assert.equal(normalizeToken('TEST'), 'test'));",
+          "test('special', () => assert.equal(normalizeToken('FINAL'), 'final'));",
           "",
         ].join("\n"),
       );
@@ -912,7 +917,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     constraints: ["Stay inside src/normalize/", "Do not change PR, merge, or deploy behavior"],
     authorizedPathPrefixes: ["src/normalize/"],
     seed(repo) {
-      write(repo, "package.json", pkg("ae-requal-canonicalize", "node --test src/normalize/token.test.js"));
+      write(repo, "package.json", pkg("ae-final-canonicalize", "node --test src/normalize/token.test.js"));
       write(
         repo,
         "src/normalize/token.js",
@@ -922,7 +927,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
           "// TODO: special-case leftover from prior agent",
           "// HACK: keep tests green",
           "export function canonicalizeToken(s) {",
-          "  if (s === 'LIVE') return 'live';",
+          "  if (s === 'PROBE') return 'probe';",
           "  try { return canonicalizeToken_legacy(canonicalizeToken_shim(s)); } catch { return ''; }",
           "}",
           "",
@@ -944,7 +949,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
           "import test from 'node:test';",
           "import assert from 'node:assert/strict';",
           "import { canonicalizeToken } from './token.js';",
-          "test('special', () => assert.equal(canonicalizeToken('LIVE'), 'live'));",
+          "test('special', () => assert.equal(canonicalizeToken('PROBE'), 'probe'));",
           "",
         ].join("\n"),
       );
@@ -971,7 +976,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     constraints: ["Stay inside src/state/", "Do not change PR, merge, or deploy behavior"],
     authorizedPathPrefixes: ["src/state/"],
     seed(repo) {
-      write(repo, "package.json", pkg("ae-requal-state-v2", "node --test src/state/counter.test.js"));
+      write(repo, "package.json", pkg("ae-final-state-v2", "node --test src/state/counter.test.js"));
       write(
         repo,
         "src/state/counter.js",
@@ -1018,6 +1023,71 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     },
   },
   {
+    id: "state_counter_v3",
+    matrixClasses: ["state_concurrency"],
+    variant: 3,
+    title: "Shared counter integrity (v3 final)",
+    maxIterations: 6,
+    objective:
+      "Operators need incrementCounter(store, key, by = 1) under src/state. Contract (unambiguous): missing keys are created on first write (treat absent as 0 / default); do NOT reject a key merely because it is absent from the store; increments must accumulate with a single synchronous read-modify-write so sequential/concurrent callers do not lose updates; distinct keys stay independent; reject clearly invalid inputs only (non-string key, non-object store, non-finite by). Add tests covering create-on-first-write, accumulation, independence, and invalid input. Do not open a PR or deploy.",
+    acceptanceCriteria: [
+      "Create-on-first-write: incrementCounter on a missing key initializes from 0/default and writes the increment (do not throw solely because the key is absent)",
+      "Accumulating read-modify-write: same-key increments preserve prior totals (never replace with `by` alone)",
+      "No lost updates under sequential/concurrent synchronous callers; independent keys do not interfere",
+      "Invalid inputs fail clearly: non-string key, non-object store, and non-finite `by` are rejected",
+      "Tests cover create-on-first-write, accumulation, multi-key independence, and invalid input",
+      "No pull request is created",
+    ],
+    constraints: ["Stay inside src/state/", "Do not change PR, merge, or deploy behavior"],
+    authorizedPathPrefixes: ["src/state/"],
+    seed(repo) {
+      write(repo, "package.json", pkg("ae-final-state-v3", "node --test src/state/counter.test.js"));
+      write(
+        repo,
+        "src/state/counter.js",
+        [
+          "/**",
+          " * Contract: create-on-first-write (absent key => 0), accumulate, independent keys,",
+          " * reject only invalid key/store/by shapes — never reject solely for a missing key.",
+          " */",
+          "export function incrementCounter(store, key, by = 1) {",
+          "  // Lost-update style: replaces instead of accumulating when key exists",
+          "  store[key] = by;",
+          "  return store[key];",
+          "}",
+          "",
+        ].join("\n"),
+      );
+      write(
+        repo,
+        "src/state/counter.test.js",
+        [
+          "import test from 'node:test';",
+          "import assert from 'node:assert/strict';",
+          "import { incrementCounter } from './counter.js';",
+          "",
+          "test('create-on-first-write treats missing key as 0', () => {",
+          "  const s = {};",
+          "  assert.equal(incrementCounter(s, 'alpha', 2), 2);",
+          "  assert.equal(s.alpha, 2);",
+          "});",
+          "",
+          "test('accumulation preserves prior total', () => {",
+          "  const s = { alpha: 4 };",
+          "  assert.equal(incrementCounter(s, 'alpha', 5), 9);",
+          "});",
+          "",
+        ].join("\n"),
+      );
+      initGit(repo);
+    },
+    score(wt) {
+      const base = MATRIX_SPECIMENS.find((s) => s.id === "state_counter");
+      if (!base) throw new Error("state_counter missing");
+      return base.score(wt);
+    },
+  },
+  {
     id: "agent_bad_code_v3",
     matrixClasses: ["agent_generated_bad_code"],
     variant: 3,
@@ -1034,7 +1104,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     constraints: ["Stay inside src/normalize/", "Do not change PR, merge, or deploy behavior"],
     authorizedPathPrefixes: ["src/normalize/"],
     seed(repo) {
-      write(repo, "package.json", pkg("ae-requal-sanitize", "node --test src/normalize/token.test.js"));
+      write(repo, "package.json", pkg("ae-final-sanitize", "node --test src/normalize/token.test.js"));
       write(
         repo,
         "src/normalize/token.js",
@@ -1044,7 +1114,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
           "// TODO: special-case leftover from prior agent",
           "// HACK: keep tests green",
           "export function sanitizeToken(s) {",
-          "  if (s === 'READY') return 'ready';",
+          "  if (s === 'CLEAN') return 'clean';",
           "  try { return sanitizeToken_legacy(sanitizeToken_shim(s)); } catch { return ''; }",
           "}",
           "",
@@ -1066,7 +1136,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
           "import test from 'node:test';",
           "import assert from 'node:assert/strict';",
           "import { sanitizeToken } from './token.js';",
-          "test('special', () => assert.equal(sanitizeToken('READY'), 'ready'));",
+          "test('special', () => assert.equal(sanitizeToken('CLEAN'), 'clean'));",
           "",
         ].join("\n"),
       );
@@ -1094,7 +1164,7 @@ export const MATRIX_SPECIMENS: SpecimenDef[] = [
     constraints: ["Stay inside src/perf/", "Do not change PR, merge, or deploy behavior"],
     authorizedPathPrefixes: ["src/perf/"],
     seed(repo) {
-      write(repo, "package.json", pkg("ae-requal-perf", "node --test src/perf/lookup.test.js"));
+      write(repo, "package.json", pkg("ae-final-perf", "node --test src/perf/lookup.test.js"));
       write(
         repo,
         "src/perf/lookup.js",

@@ -1,0 +1,280 @@
+{
+  "specimenId": "bad_legacy_ledger_v1",
+  "matrixClasses": [
+    "bad_legacy_remediation",
+    "scope_discipline",
+    "error_handling",
+    "observability"
+  ],
+  "hardClass": "bad_legacy_ledger",
+  "variant": 1,
+  "title": "Legacy ledger reliability v1",
+  "objective": "Directors need the payment ledger under src/ledger to book payments correctly, record outcomes, and never silently treat failures as success. Improve the existing ledger so production can trust bookPayment, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+  "elapsedMs": 160677,
+  "taskId": "31e0031a-a121-4d5c-a15e-390f821bfdcf",
+  "runId": "68d787bb-9aba-4e4d-a09c-b36efc60d067",
+  "maxIterations": 8,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "68d787bb-9aba-4e4d-a09c-b36efc60d067",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 5,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "929c5ae3-eeca-4dd3-b1c9-7dcd032c3097",
+      "strategy": "Refactor src/ledger/payments.js to correctly handle validation, avoid silent failures, record outcomes, and add comprehensive tests covering success and failure paths.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "workerPlanId": "26dbce4c-7ffb-4f1f-9c41-6efee0b860aa",
+      "strategy": "Fix escaped newlines in ledger files and add comprehensive tests for bookPayment and its failure modes",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "workerPlanId": "826bbee7-5b3b-4baa-8120-ceebaffe428d",
+      "strategy": "Fix syntax error in src/ledger/payments.js and add comprehensive test coverage for success and failure paths to ensure payment ledger is trustworthy.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "workerPlanId": "a5367ab0-ce8f-4ffb-961a-4f9ceb066391",
+      "strategy": "Fix duplicate export of Status and add comprehensive tests for bookPayment covering success and failure scenarios",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "workerPlanId": "d9086802-b97e-44a1-b4b2-12cb6a1a2363",
+      "strategy": "Create missing constants.js module and enhance payment ledger tests with comprehensive success and failure coverage using node:test assertions.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [
+    {
+      "iteration": 1,
+      "hypothesis": "Refactor src/ledger/payments.js to correctly handle validation, avoid silent failures, record outcomes, and add comprehensive tests covering success and failure paths.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "hypothesis": "Fix escaped newlines in ledger files and add comprehensive tests for bookPayment and its failure modes",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "hypothesis": "Fix syntax error in src/ledger/payments.js and add comprehensive test coverage for success and failure paths to ensure payment ledger is trustworthy.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "hypothesis": "Fix duplicate export of Status and add comprehensive tests for bookPayment covering success and failure scenarios",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "usage": {
+    "iterations": 5,
+    "plans": 5,
+    "modelCalls": 15,
+    "changedFiles": 2,
+    "changedBytes": 10504,
+    "runtimeMs": 159470,
+    "investigationReads": 2,
+    "contextBytes": 128,
+    "planRepairs": 1,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 8,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [
+    {
+      "at": "2026-08-21T00:58:55.342Z",
+      "semanticIteration": 1,
+      "kind": "invalid_content",
+      "reason": "src/ledger/status.js: file content appears to contain literal \\n escapes instead of real newlines.; src/ledger/payments.js: file content appears to contain literal \\n escapes instead of real newlines.; src/ledger/payments.test.js: file content appears to contain literal \\n escapes instead of real newlines.",
+      "evidence": [
+        "src/ledger/status.js: file content appears to contain literal \\n escapes instead of real newlines.; src/ledger/payments.js: file content appears to contain literal \\n escapes instead of real newlines.; src/ledger/payments.test.js: file content appears to contain literal \\n escapes instead of real newlines."
+      ]
+    }
+  ],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need the payment ledger under src/ledger to book payments correctly, record outcomes, and never silently treat failures as success. Improve the existing ledger so production can trust bookPayment, and add tests that cover success and failure cases. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/ledger/constants.js",
+        "Changed src/ledger/payments.js",
+        "Changed src/ledger/payments.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 3",
+        "src/ledger/payments.js      | 57 ++++++++++++++++++++++-----------------------\n src/ledger/payments.test.js | 43 ++++++++++++++++++++++++++++++----\n 2 files changed, 67 insertions(+), 33 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "d9086802-b97e-44a1-b4b2-12cb6a1a2363",
+      "summary": "Create missing constants.js module and enhance payment ledger tests with comprehensive success and failure coverage using node:test assertions.",
+      "iterationNumber": 5,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "a5367ab0-ce8f-4ffb-961a-4f9ceb066391",
+      "summary": "Fix duplicate export of Status and add comprehensive tests for bookPayment covering success and failure scenarios",
+      "iterationNumber": 4,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "826bbee7-5b3b-4baa-8120-ceebaffe428d",
+      "summary": "Fix syntax error in src/ledger/payments.js and add comprehensive test coverage for success and failure paths to ensure payment ledger is trustworthy.",
+      "iterationNumber": 3,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "26dbce4c-7ffb-4f1f-9c41-6efee0b860aa",
+      "summary": "Fix escaped newlines in ledger files and add comprehensive tests for bookPayment and its failure modes",
+      "iterationNumber": 2,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "929c5ae3-eeca-4dd3-b1c9-7dcd032c3097",
+      "summary": "Refactor src/ledger/payments.js to correctly handle validation, avoid silent failures, record outcomes, and add comprehensive tests covering success and failure paths.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/68d787bb-9aba-4e4d-a09c-b36efc60d067",
+    "branchName": "engineer/31e0031a/68d787bb-20260821005807",
+    "baseRevision": "99ddb7e860dd6508228373027704dc59b8667fbe",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "error_handling": "PASS",
+      "tests_negative_path": "PASS",
+      "scope_discipline": "PASS",
+      "observability": "PASS",
+      "no_workaround_stack": "PASS"
+    },
+    "badCodeScorecard": {
+      "identified_underlying_defect": "PASS",
+      "repaired_design_not_hack": "PASS",
+      "removed_obsolete_patterns": "PASS",
+      "regression_coverage": "PASS",
+      "left_subsystem_healthier": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

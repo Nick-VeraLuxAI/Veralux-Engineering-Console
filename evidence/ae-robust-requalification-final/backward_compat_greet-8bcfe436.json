@@ -1,0 +1,166 @@
+{
+  "specimenId": "backward_compat_greet",
+  "matrixClasses": [
+    "backward_compat"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Greeting API compatibility",
+  "objective": "Product needs formatGreeting under src/compat to support a preferred 'displayName' argument while remaining compatible with existing callers that pass 'name'. Keep both call shapes working with tests. Do not open a PR or deploy.",
+  "elapsedMs": 13339,
+  "taskId": "dd832d2d-d9e7-4598-afc0-b6399eba77fb",
+  "runId": "8bcfe436-67f1-4d00-8b1c-39d44c950049",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "8bcfe436-67f1-4d00-8b1c-39d44c950049",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "7a98fa0b-1984-4e2e-84fc-1a62d12a991e",
+      "strategy": "Add support for 'displayName' argument to formatGreeting in src/compat/greet.js while preserving compatibility with existing 'name' usage, and update the test file to verify both call shapes.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 502,
+    "runtimeMs": 12229,
+    "investigationReads": 2,
+    "contextBytes": 122,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Product needs formatGreeting under src/compat to support a preferred 'displayName' argument while remaining compatible with existing callers that pass 'name'. Keep both call shapes working with tests. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/compat/greet.js",
+        "Changed src/compat/greet.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/compat/greet.js      | 8 +++++---\n src/compat/greet.test.js | 4 ++++\n 2 files changed, 9 insertions(+), 3 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "All acceptance criteria satisfied; formatGreeting now supports both 'name' and 'displayName' arguments while remaining backward compatible",
+        "Legacy call shape continues to work as verified by existing test",
+        "New 'displayName' call shape is covered by added test",
+        "No material defects or blocking issues detected in the changed sources"
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "7a98fa0b-1984-4e2e-84fc-1a62d12a991e",
+      "summary": "Add support for 'displayName' argument to formatGreeting in src/compat/greet.js while preserving compatibility with existing 'name' usage, and update the test file to verify both call shapes.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/8bcfe436-67f1-4d00-8b1c-39d44c950049",
+    "branchName": "engineer/dd832d2d/8bcfe436-20260821011403",
+    "baseRevision": "ecdb3cba5f3bad61bac2c7225bb1c0ef3835c4f3",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "backward_compat": "PASS",
+      "new_shape": "PASS",
+      "tests": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}
