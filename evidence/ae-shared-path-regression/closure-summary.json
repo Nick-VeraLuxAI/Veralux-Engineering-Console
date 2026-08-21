@@ -1,0 +1,22 @@
+{
+  "verdict": "SHARED BASELINE RESTORED \u2014 Q1 CLOSED \u2014 ROBUST CODE QUALIFIED",
+  "root_cause": "MULTIPLE_SHARED_REGRESSIONS",
+  "KNOWN_GOOD_COMMIT": "0e44223da6eff251181a104cc073ec2695e92687",
+  "STATE_B_start": "604f2ed94ed3b35ab4698560f019651db3d76f51",
+  "gated_or_fixed": [
+    "signature-gate unbound prompts (remove always-on ReferenceError lines)",
+    "strengthen literal-newline mixed corruption detection",
+    "TEST_HARNESS_IMPORT_IN_PRODUCTION harness guard",
+    "word-boundary isMaterialRateLimitCriterion (swallowed\u2260allow)"
+  ],
+  "untouched": [
+    "conditional rescue FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+    "Nano contract",
+    "QC/review severity"
+  ],
+  "sanity_pass1": "4/4 ready",
+  "sanity_pass2_aggregate": "7/8 ready",
+  "q1_triad": "2/3 ready\u2227score PASS",
+  "sot": "docs/source-of-truth/ae-shared-path-regression-restoration.md",
+  "evidence": "evidence/ae-shared-path-regression/"
+}

@@ -217,6 +217,67 @@ describe("WP6 matrix D — legitimate string escapes OK", () => {
   });
 });
 
+describe("WP6 matrix C2 — mixed literal \\n corruption rejected across ingestion", () => {
+  it("rejects mixed real-newline + statement-separating literal \\n (prior slip path)", () => {
+    // One real newline previously made the detector return false immediately.
+    const mixed =
+      "import test from 'node:test';\n" +
+      "import assert from 'node:assert/strict';\\nimport { applyPayment } from './ledger.js';\\nconst x = 1;\\ntest('ok', () => { assert.equal(1, 1); });";
+    expect(hasLiteralEscapedNewlineCorruption(mixed)).toBe(true);
+
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ae-corr-mixed-"));
+    fs.writeFileSync(
+      path.join(tmp, "package.json"),
+      JSON.stringify({ type: "module", scripts: { test: "node --test src/x.test.js" } }),
+    );
+    const facts = readRepoTestGroundingFacts(tmp);
+    const plan: WorkerPlan = {
+      runId: "r1",
+      summary: "mixed corrupt",
+      allowedFiles: ["src/x.js", "src/x.test.js"],
+      operations: [
+        {
+          type: "create_file",
+          path: "src/x.js",
+          content: mixed,
+          reason: "test",
+        },
+      ],
+    };
+    const findings = validatePlanHarnessGuards(plan, facts);
+    expect(findings.some((f) => f.signature === "LITERAL_ESCAPED_NEWLINES")).toBe(true);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+});
+
+describe("WP6 matrix C3 — test harness import forbidden in production", () => {
+  it("rejects node:assert import into non-test production module", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ae-prod-assert-"));
+    fs.writeFileSync(
+      path.join(tmp, "package.json"),
+      JSON.stringify({ type: "module", scripts: { test: "node --test src/counter.test.js" } }),
+    );
+    const facts = readRepoTestGroundingFacts(tmp);
+    const plan: WorkerPlan = {
+      runId: "r1",
+      summary: "assert in prod",
+      allowedFiles: ["src/counter.js"],
+      operations: [
+        {
+          type: "create_file",
+          path: "src/counter.js",
+          content:
+            "import assert from 'node:assert/strict';\nexport function incrementCounter(store, key, by = 1) {\n  assert.ok(store);\n  return (store[key] ?? 0) + by;\n}\n",
+          reason: "bad",
+        },
+      ],
+    };
+    const findings = validatePlanHarnessGuards(plan, facts);
+    expect(findings.some((f) => f.signature === "TEST_HARNESS_IMPORT_IN_PRODUCTION")).toBe(true);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+});
+
 describe("WP6 matrix E — valid real newlines OK", () => {
   it("allows real newlines after JSON decode", () => {
     const ok = [

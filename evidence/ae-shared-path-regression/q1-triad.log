@@ -1,0 +1,49 @@
+===== START lease_window_feature 2026-08-21T20:21:01Z =====
+{"specimen":"lease_window_feature","hardClass":null,"variant":null,"runId":"8dedc180-2323-4ac5-bfa8-2591d3710f51","maxIterations":6,"status":"starting"}
+{"specimen":"lease_window_feature","runId":"8dedc180-2323-4ac5-bfa8-2591d3710f51","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":37556,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/lease_window_feature-8dedc180.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/batch-2026-08-21T20-21-02-228Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}
+===== END lease_window_feature 2026-08-21T20:21:39Z =====
+===== START attempt_limiter_feature 2026-08-21T20:21:39Z =====
+{"specimen":"attempt_limiter_feature","hardClass":null,"variant":null,"runId":"a723252a-830a-4f81-9985-d92af3ca0a8b","maxIterations":6,"status":"starting"}
+{"specimen":"attempt_limiter_feature","runId":"a723252a-830a-4f81-9985-d92af3ca0a8b","delivery":"blocked","primaryFailureCategory":"PRIMARY_QC_NONCONVERGENCE","scorePass":false,"iterations":6,"elapsedMs":203888,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/attempt_limiter_feature-a723252a.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/batch-2026-08-21T20-21-40-312Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 0,
+    "deliveryReady": 0,
+    "byFailure": {
+      "PRIMARY_QC_NONCONVERGENCE": 1
+    }
+  }
+}
+===== END attempt_limiter_feature 2026-08-21T20:25:04Z =====
+===== START slot_reservation_feature 2026-08-21T20:25:04Z =====
+{"specimen":"slot_reservation_feature","hardClass":null,"variant":null,"runId":"540f6c88-6b9d-4ecc-a81f-1c146bb6e8c9","maxIterations":6,"status":"starting"}
+{"specimen":"slot_reservation_feature","runId":"540f6c88-6b9d-4ecc-a81f-1c146bb6e8c9","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":73318,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/slot_reservation_feature-540f6c88.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/batch-2026-08-21T20-25-04-708Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}
+===== END slot_reservation_feature 2026-08-21T20:26:18Z =====
+DONE_Q1_TRIAD

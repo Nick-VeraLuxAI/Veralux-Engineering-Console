@@ -24,6 +24,8 @@ export const FAILURE_SIGNATURES = [
   "TEST_ASSERTION_MODE_MISMATCH",
   /** Production (or non-hook) identifier referenced but not defined/imported. */
   "UNBOUND_IDENTIFIER",
+  /** node:test / node:assert (or vitest) imported into non-test production sources. */
+  "TEST_HARNESS_IMPORT_IN_PRODUCTION",
 ] as const;
 
 export type FailureSignature = (typeof FAILURE_SIGNATURES)[number];
@@ -381,6 +383,7 @@ export function formatUnboundDependencyHint(
       ? `Production stack files: ${primary.productionFiles.join(", ")}`
       : "",
     neighborhood?.hint ?? "",
+    "Signature-gated guidance (UNBOUND_IDENTIFIER evidence present): import or define that name in the production file first. Sibling modules under the authorized prefix may already export it — wire the import; do not only add a test fixture.",
     "Do not treat this as a missing test fixture alone when the stack points at production source.",
     "Do not rewrite beforeEach/lifecycle hooks while this production ReferenceError remains.",
   ];
@@ -815,34 +818,63 @@ export function detectHarnessSignaturesInContent(
       message: `${filePath}: file content appears to contain literal \\n escapes instead of real newlines.`,
     });
   }
+  // Production/test boundary: never import test harness / assert libraries into production modules.
+  if (
+    !isTest &&
+    /\.(js|mjs|cjs|ts|tsx)$/.test(filePath) &&
+    /from\s+['"](?:node:assert(?:\/strict)?|node:test|vitest|@jest\/globals)['"]/.test(content)
+  ) {
+    findings.push({
+      path: filePath,
+      signature: "TEST_HARNESS_IMPORT_IN_PRODUCTION",
+      message: `${filePath}: test harness / assert imports are forbidden in production sources; keep node:assert and node:test in *.test.* / *.spec.* files only.`,
+    });
+  }
   return findings;
 }
 
 /**
- * Detect whole-file escaped-newline corruption after JSON decode.
- * Reject: single physical line where `\\n` separates statements.
- * Allow: real newlines; legitimate string escapes like `"hello\\nworld"`.
+ * Detect escaped-newline corruption after JSON decode.
+ * Reject:
+ * - whole-file single physical line where `\\n` separates statements
+ * - mixed corruption where literal `\\n` still separates multiple statements
+ *   even if a few real newlines are also present (prior slip path)
+ * Allow: real newlines as primary structure; legitimate string escapes like `"hello\\nworld"`.
  */
 export function hasLiteralEscapedNewlineCorruption(content: string): boolean {
   if (!content || content.length < 40) return false;
-  // Valid real newlines already present → not whole-file escape corruption.
-  if (content.includes("\n") || content.includes("\r")) return false;
   if (!content.includes("\\n")) return false;
-
-  const parts = content.split("\\n");
-  if (parts.length < 3) {
-    // One or two escapes — typically a legitimate string escape on a one-liner.
-    return false;
-  }
 
   const STATEMENT_START =
     /^\s*(?:import\s|export\s|const\s|let\s|var\s|function\s|class\s|return\s|if\s*\(|for\s*\(|while\s*\(|switch\s*\(|try\s*\{|await\s|async\s|type\s|interface\s|describe\s*\(|it\s*\(|test\s*\(|expect\s*\(|assert\.|}|{\s*$)/;
-  const statementy = parts.filter((part) => {
-    const trimmed = part.trim();
-    if (!trimmed) return false;
-    return STATEMENT_START.test(trimmed) || /;\s*$/.test(trimmed);
-  });
-  return statementy.length >= 2;
+
+  const statementyParts = (parts: string[]) =>
+    parts.filter((part) => {
+      const trimmed = part.trim();
+      if (!trimmed) return false;
+      return STATEMENT_START.test(trimmed) || /;\s*$/.test(trimmed);
+    }).length;
+
+  const realNewlineCount = (content.match(/\r?\n/g) ?? []).length;
+  const literalCount = content.split("\\n").length - 1;
+
+  // Whole-file case: no real newlines; multiple statement-separating \\n.
+  if (realNewlineCount === 0) {
+    const parts = content.split("\\n");
+    if (parts.length < 3) {
+      // One or two escapes — typically a legitimate string escape on a one-liner.
+      return false;
+    }
+    return statementyParts(parts) >= 2;
+  }
+
+  // Mixed corruption: many literal \\n statement separators vs few real newlines.
+  // Catches plans that slipped when a single real newline made the old detector return false.
+  if (literalCount >= 3 && literalCount >= realNewlineCount + 2) {
+    const parts = content.split("\\n");
+    if (statementyParts(parts) >= 2) return true;
+  }
+  return false;
 }
 
 /** Minimal deterministic harness guards on plan operations (WP6). */

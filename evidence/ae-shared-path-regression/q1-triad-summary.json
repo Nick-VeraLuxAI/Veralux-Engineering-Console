@@ -1,0 +1,41 @@
+{
+  "ready_and_score": 2,
+  "total": 3,
+  "gate": "PASS",
+  "SkillOpt": "OFF",
+  "rows": [
+    {
+      "specimen": "lease_window_feature",
+      "file": "lease_window_feature-8dedc180.json",
+      "runId": "8dedc180",
+      "delivery": "ready",
+      "iters": 1,
+      "scorePass": true,
+      "ready_and_score": true,
+      "primaryFailureCategory": "SUCCESS",
+      "humanCoding": 0
+    },
+    {
+      "specimen": "attempt_limiter_feature",
+      "file": "attempt_limiter_feature-a723252a.json",
+      "runId": "a723252a",
+      "delivery": "blocked",
+      "iters": 6,
+      "scorePass": false,
+      "ready_and_score": false,
+      "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+      "humanCoding": 0
+    },
+    {
+      "specimen": "slot_reservation_feature",
+      "file": "slot_reservation_feature-540f6c88.json",
+      "runId": "540f6c88",
+      "delivery": "ready",
+      "iters": 1,
+      "scorePass": true,
+      "ready_and_score": true,
+      "primaryFailureCategory": "SUCCESS",
+      "humanCoding": 0
+    }
+  ]
+}

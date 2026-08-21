@@ -1,0 +1,65 @@
+===== START idempotent_job_runner_v1 2026-08-21T20:15:40Z =====
+{"specimen":"idempotent_job_runner_v1","hardClass":"idempotent_job_runner","variant":1,"runId":"e0d0de36-2b58-4147-92a3-843759c748e1","maxIterations":6,"status":"starting"}
+{"specimen":"idempotent_job_runner_v1","runId":"e0d0de36-2b58-4147-92a3-843759c748e1","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":2,"elapsedMs":66744,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/idempotent_job_runner_v1-e0d0de36.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/batch-2026-08-21T20-15-40-937Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}
+===== END idempotent_job_runner_v1 2026-08-21T20:16:47Z =====
+===== START bad_legacy_ledger_v1 2026-08-21T20:16:47Z =====
+{"specimen":"bad_legacy_ledger_v1","hardClass":"bad_legacy_ledger","variant":1,"runId":"5b1344ce-16e0-4deb-8194-86eb9881e013","maxIterations":8,"status":"starting"}
+{"specimen":"bad_legacy_ledger_v1","runId":"5b1344ce-16e0-4deb-8194-86eb9881e013","delivery":"blocked","primaryFailureCategory":"PRIMARY_QC_NONCONVERGENCE","scorePass":true,"iterations":8,"elapsedMs":189295,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/bad_legacy_ledger_v1-5b1344ce.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/batch-2026-08-21T20-16-48-189Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 0,
+    "byFailure": {
+      "PRIMARY_QC_NONCONVERGENCE": 1
+    }
+  }
+}
+===== END bad_legacy_ledger_v1 2026-08-21T20:19:57Z =====
+===== START state_counter 2026-08-21T20:19:57Z =====
+{"specimen":"state_counter","hardClass":null,"variant":null,"runId":"8c370660-e7cd-4f83-9697-a529e70dcb84","maxIterations":6,"status":"starting"}
+{"specimen":"state_counter","runId":"8c370660-e7cd-4f83-9697-a529e70dcb84","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":31695,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/state_counter-8c370660.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/batch-2026-08-21T20-19-57-999Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}
+===== END state_counter 2026-08-21T20:20:29Z =====
+===== START agent_bad_code 2026-08-21T20:20:29Z =====
+{"specimen":"agent_bad_code","hardClass":null,"variant":null,"runId":"6f015acd-46c6-4c68-8431-f6c9e8dd787d","maxIterations":6,"status":"starting"}
+{"specimen":"agent_bad_code","runId":"6f015acd-46c6-4c68-8431-f6c9e8dd787d","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":18391,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/agent_bad_code-6f015acd.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-shared-path-regression/batch-2026-08-21T20-20-30-212Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}
+===== END agent_bad_code 2026-08-21T20:20:48Z =====
+DONE_RESTORATION_PASS2

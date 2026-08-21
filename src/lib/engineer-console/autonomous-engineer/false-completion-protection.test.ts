@@ -10,6 +10,7 @@ import { buildAuthorityEnvelope } from "./authority";
 import {
   evaluateCompletion,
   evaluateMaterialAcceptanceCriteria,
+  isMaterialRateLimitCriterion,
 } from "./completion-evaluator";
 import {
   buildDeterministicDiagnosisFromEvidence,
@@ -258,5 +259,40 @@ describe("C4 — review sees unchanged dead residue; delete_file authorized when
       "run-1",
     );
     expect(result.valid).toBe(true);
+  });
+});
+
+describe("shared-path restoration — rate-limit AC must not substring-match ledger", () => {
+  it("does not treat 'swallowed' as material rate-limit allow", () => {
+    expect(isMaterialRateLimitCriterion("Failures are recorded, not swallowed")).toBe(false);
+    expect(isMaterialRateLimitCriterion("bookPayment is reliable for success and failure cases")).toBe(
+      false,
+    );
+    expect(isMaterialRateLimitCriterion("Allow requests within the rate window; deny over quota")).toBe(
+      true,
+    );
+    expect(isMaterialRateLimitCriterion("lease/attempt/slot grant within ttl")).toBe(true);
+  });
+
+  it("does not block ledger completion on swallowed substring when QC green", () => {
+    const repo = writeTree(tmp(), {
+      "package.json": JSON.stringify({ type: "module", scripts: { test: "node --test" } }),
+      "src/ledger/payments.js":
+        "export function bookPayment(id, amount, store) {\n  try {\n    store[id] = amount;\n    return { ok: true };\n  } catch (err) {\n    return { ok: false, error: String(err) };\n  }\n}\n",
+      "src/ledger/payments.test.js":
+        "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { bookPayment } from './payments.js';\ntest('ok', () => { assert.equal(bookPayment('a', 1, {}).ok, true); });\n",
+    });
+    const rows = evaluateMaterialAcceptanceCriteria({
+      criteria: [
+        "bookPayment is reliable for success and failure cases",
+        "Failures are recorded, not swallowed",
+        "Unit tests cover success and at least one failure path",
+      ],
+      repoPath: repo,
+      authorizedPathPrefixes: ["src/ledger/"],
+      qcPassed: true,
+    });
+    expect(rows.every((r) => r.status === "SATISFIED")).toBe(true);
+    expect(rows.some((r) => /quota|stateful window/i.test(r.detail))).toBe(false);
   });
 });

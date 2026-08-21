@@ -1,0 +1,42 @@
+{
+  "method": "inventory-driven selective repair (not blind bisect)",
+  "KNOWN_GOOD": "0e44223da6eff251181a104cc073ec2695e92687",
+  "STATE_B": "604f2ed94ed3b35ab4698560f019651db3d76f51",
+  "sequence": [
+    {
+      "id": "A1_prompt_pollution",
+      "suspect": "always-on ReferenceError import-wiring prompts from 896db6e",
+      "action": "REMOVE always-on lines; keep signature-gated unboundHint only",
+      "expected_classes": [
+        "jobs",
+        "ledger",
+        "state"
+      ],
+      "keep_agent_bad": true
+    },
+    {
+      "id": "A2_literal_validation_bypass",
+      "suspect": "hasLiteralEscapedNewlineCorruption early-return on any real newline",
+      "action": "Strengthen detector for mixed corruption; regression tests on all harness ingestion via validatePlanHarnessGuards",
+      "expected_classes": [
+        "ledger"
+      ]
+    },
+    {
+      "id": "A3_prod_assert_boundary",
+      "suspect": "assert import into production (state residual)",
+      "action": "Add TEST_HARNESS_IMPORT_IN_PRODUCTION plan harness guard + prompt clarify never import assert into prod",
+      "expected_classes": [
+        "state"
+      ]
+    }
+  ],
+  "protected_later_fixes": [
+    "UNBOUND_IDENTIFIER parse/prioritize (signature-gated injection only)",
+    "TEST_THRASH_GUARD",
+    "QC TAP stack extraction",
+    "material rate-limit completion AC",
+    "conditional rescue (untouched)"
+  ],
+  "note": "A1\u2013A3 applied together as SELECTIVE_CURRENT because they target disjoint residual mechanisms from the same 896db6e shared-path delta and do not weaken QC/review."
+}

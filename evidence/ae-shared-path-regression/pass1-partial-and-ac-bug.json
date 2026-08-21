@@ -1,0 +1,30 @@
+{
+  "pass1_before_ac_fix": {
+    "ready": 3,
+    "total": 4,
+    "rows": [
+      {
+        "specimen": "idempotent_job_runner_v1",
+        "delivery": "ready"
+      },
+      {
+        "specimen": "bad_legacy_ledger_v1",
+        "delivery": "blocked",
+        "note": "QC passed iter2 then completion AC false-matched swallowed\u2192allow; quota thrash"
+      },
+      {
+        "specimen": "state_counter",
+        "delivery": "ready"
+      },
+      {
+        "specimen": "agent_bad_code",
+        "delivery": "ready"
+      }
+    ]
+  },
+  "root_cause_addendum": {
+    "label": "COMPLETION_AC_REGRESSION",
+    "detail": "isMaterialRateLimitCriterion matched substring allow inside swallowed",
+    "fix": "word-boundary regex"
+  }
+}

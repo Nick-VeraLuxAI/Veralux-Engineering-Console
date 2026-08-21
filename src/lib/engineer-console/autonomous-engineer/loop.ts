@@ -240,9 +240,9 @@ async function generatePlanForIteration(
             "Use update_file for paths that already exist and create_file only for new paths. Include complete file contents.",
             "When acceptance criteria require removing unused dead helpers/shims and the path is authorized/safe, include delete_file with a non-empty reason (content may be empty). Do not delete unrelated files.",
             "When authorized existing modules are defective, incomplete, or unsafe, repair them with update_file (complete corrected contents). Do not stack WORKAROUND/HACK conditionals or silent catch fallbacks. Prefer create_file only for genuinely new helpers/tests. Do not rewrite or append to unrelated large modules. Pre-existing Super/AirLLM QC failures are out of scope.",
-            "Match the existing test runner from package.json scripts. If test uses node --test / node:test, write ONLY: import test from 'node:test'; import assert from 'node:assert/strict'; and use test('name', () => { assert.equal(...) }). Do NOT import expect/describe/it from 'node:test' (those exports are invalid). Use Vitest only when package.json already runs vitest. Never import vitest from non-test production sources.",
+            "Match the existing test runner from package.json scripts. If test uses node --test / node:test, write ONLY: import test from 'node:test'; import assert from 'node:assert/strict'; and use test('name', () => { assert.equal(...) }). Do NOT import expect/describe/it from 'node:test' (those exports are invalid). Use Vitest only when package.json already runs vitest. Never import vitest, node:test, or node:assert from non-test production sources.",
             "For negative-path tests: sync subjects → assert.throws(() => ...); async/Promise subjects → await assert.rejects(async () => ...). Read subject call modes above before writing reject/throw tests.",
-            "If QC shows ReferenceError '<name> is not defined' with a stack frame in a non-test src file, import or define that name in the production file first. Sibling modules under the authorized prefix may already export it — wire the import; do not only add a test fixture.",
+            // UNBOUND_IDENTIFIER guidance is signature-gated via unboundHint (empty unless evidence present).
             "Include happy, negative, and failure-path coverage the objective implies. If a test expectation conflicts with correct fail-closed behavior, fix the test.",
             `Investigation: ${document.observations.map((obs) => obs.summary).join("\n").slice(0, 2500)}`,
             `Authorized source snippets (read these before mutating):\n${snippetBlock}`,
@@ -1470,7 +1470,7 @@ async function invokeEvidenceGroundedDiagnosis(
     "If evidence mentions assert.throwsAsync is not a function, use await assert.rejects(async () => ...) for async subjects.",
     "If evidence shows assert.rejects / Function.rejects with a synchronous subject TypeError (TEST_ASSERTION_MODE_MISMATCH), switch to assert.throws(() => ...).",
     "If evidence mentions require is not defined in ES module scope, use import — never require() in type:module packages.",
-    "If evidence shows ReferenceError '<name> is not defined' with a stack frame in a non-test production file, the primary fix is importing/defining that name in the production file — not adding a test-only fixture, and not rewriting beforeEach while production remains unbound.",
+    // UNBOUND_IDENTIFIER guidance is signature-gated via unboundHint only (not always-on).
   ].join("\n");
 
   const parsed = await maybeInvokeWorker(document, "diagnosis", prompt, generatePlanInjected);

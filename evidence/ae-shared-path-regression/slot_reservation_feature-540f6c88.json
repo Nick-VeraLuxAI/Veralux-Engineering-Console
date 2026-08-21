@@ -1,0 +1,355 @@
+{
+  "specimenId": "slot_reservation_feature",
+  "matrixClasses": [
+    "robust_new_feature"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Resource slot reservation helper",
+  "objective": "Directors need a small slot reservation helper under src/slots that tracks whether a resource id may reserve a slot inside a hold window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+  "elapsedMs": 73318,
+  "taskId": "88e3f9e0-0f4b-4521-882e-8f492e8550d8",
+  "runId": "540f6c88-6b9d-4ecc-a81f-1c146bb6e8c9",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "540f6c88-6b9d-4ecc-a81f-1c146bb6e8c9",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ],
+    "lastInvocations": [
+      {
+        "role": "investigation",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 279,
+          "completionTokens": 417,
+          "reasoningTokens": null,
+          "finalTokens": 1025,
+          "maxTokens": 4096,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 417,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 1025,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "interpretation",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": false,
+        "parseErrors": [],
+        "schemaErrors": [
+          "acceptanceCriteria must be an array of strings",
+          "assumptions must be an array of strings"
+        ],
+        "repairAttempted": true,
+        "accepted": false,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 233,
+          "completionTokens": 1245,
+          "reasoningTokens": null,
+          "finalTokens": 1800,
+          "maxTokens": 4096,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 1245,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 1800,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": false,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "planning",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 1172,
+          "completionTokens": 5455,
+          "reasoningTokens": null,
+          "finalTokens": 4403,
+          "maxTokens": 10000,
+          "finishReason": "stop",
+          "reasoningBudget": 8300,
+          "twoPhaseReasoning": true,
+          "phase1FinishReason": "stop",
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+          "rescueTriggered": true,
+          "singleShotFinishReason": "length",
+          "singleShotCompletionTokens": 10000,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 0,
+          "rescueReasoningBudget": 8300,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "review",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 1707,
+          "completionTokens": 1186,
+          "reasoningTokens": null,
+          "finalTokens": 438,
+          "maxTokens": 10000,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 1186,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 438,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "completion",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 84,
+          "completionTokens": 258,
+          "reasoningTokens": null,
+          "finalTokens": 169,
+          "maxTokens": 4096,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 258,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 169,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      }
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "ca09b361-964a-48f5-a58f-02fef94761e1",
+      "strategy": "Add a small slot reservation helper under src/slots with validation and tests for allow/deny paths",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 3545,
+    "runtimeMs": 72198,
+    "investigationReads": 2,
+    "contextBytes": 119,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a small slot reservation helper under src/slots that tracks whether a resource id may reserve a slot inside a hold window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/slots/reservationHelper.js",
+        "Changed src/slots/reserve.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "Working tree changes not yet in HEAD:\n src/slots/reservationHelper.js | 71 lines\n src/slots/reserve.test.js | 53 lines"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "Missing enforcement of a hold-window expiration and maximum slot limit; reserveHold stores reservations indefinitely without time‑based or capacity constraints, contradicting the requirement to track whether a resource may reserve a slot \"inside a hold window\" and to allow then deny after max slots within that window.",
+        "Advisory (non-blocking): missing_hold_window_enforcement [non-material advisory finding]"
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "ca09b361-964a-48f5-a58f-02fef94761e1",
+      "summary": "Add a small slot reservation helper under src/slots with validation and tests for allow/deny paths",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/540f6c88-6b9d-4ecc-a81f-1c146bb6e8c9",
+    "branchName": "engineer/88e3f9e0/540f6c88-20260821202504",
+    "baseRevision": "4b32ff975f87d6b2cf8a678765bf863e32c0050b",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "validation_error_handling": "PASS",
+      "tests_negative_path": "PASS",
+      "maintainable_structure": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

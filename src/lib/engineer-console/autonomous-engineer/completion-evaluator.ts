@@ -18,9 +18,12 @@ export function isMaterialCleanupCriterion(criterion: string): boolean {
   );
 }
 
-/** Material allow/deny window AC — reject constant stub helpers that only QC-green. */
+/**
+ * Material allow/deny window AC — reject constant stub helpers that only QC-green.
+ * Word-boundary required: substring traps like "swallowed"→allow must not fire on ledger/jobs.
+ */
 export function isMaterialRateLimitCriterion(criterion: string): boolean {
-  return /allow|deny|limit|window|quota|throttle|burst|rate|lease|attempt|slot|grant|ttl/i.test(
+  return /\b(?:allow|deny|limit|window|quota|throttle|burst|rate|lease|attempt|slot|grant|ttl)\b/i.test(
     criterion,
   );
 }
@@ -82,10 +85,13 @@ export function evaluateMaterialAcceptanceCriteria(input: {
       const denyAsserted =
         /strictEqual\s*\([^)]*\bfalse\b|\.equal\s*\([^)]*\bfalse\b|assert\.ok\s*\(\s*!/.test(tests);
       const unsatisfied: string[] = [];
-      if (/allow|deny|limit|window|quota|throttle|burst|rate/i.test(criterion) && !stateful) {
+      if (
+        /\b(?:allow|deny|limit|window|quota|throttle|burst|rate)\b/i.test(criterion) &&
+        !stateful
+      ) {
         unsatisfied.push("no stateful window/quota tracking in production sources");
       }
-      if (/deny|allow|limit|window/i.test(criterion) && !denyAsserted) {
+      if (/\b(?:deny|allow|limit|window)\b/i.test(criterion) && !denyAsserted) {
         unsatisfied.push("tests do not assert a deny/false outcome");
       }
       if (unsatisfied.length > 0) {

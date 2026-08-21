@@ -1,0 +1,39 @@
+{
+  "pass": 1,
+  "ready": 4,
+  "total": 4,
+  "gate": "PASS 4/4",
+  "false_completions": 0,
+  "governance_violations": 0,
+  "human_coding": 0,
+  "rows": [
+    {
+      "specimen": "idempotent_job_runner_v1",
+      "runId": "1be677b9",
+      "delivery": "ready",
+      "iters": 1,
+      "score": true
+    },
+    {
+      "specimen": "bad_legacy_ledger_v1",
+      "runId": "479b42db",
+      "delivery": "ready",
+      "iters": 5,
+      "score": true
+    },
+    {
+      "specimen": "state_counter",
+      "runId": "6edeef4c",
+      "delivery": "ready",
+      "iters": 1,
+      "score": true
+    },
+    {
+      "specimen": "agent_bad_code",
+      "runId": "5e1dba01",
+      "delivery": "ready",
+      "iters": 1,
+      "score": true
+    }
+  ]
+}
