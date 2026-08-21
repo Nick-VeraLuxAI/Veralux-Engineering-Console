@@ -5,6 +5,12 @@ Branch: `feature/ae-skillopt-learning-layer`
 Seeder: `src/lib/engineer-console/skillopt/seed-corpus.ts`  
 Authority: AE V1 freeze + shared-path / Q1 / FAITHFUL evidence trees  
 
+### Final verdict (exact one)
+
+# `SKILLOPT PASSIVE LEARNING LAYER READY`
+
+Seed corpus supports Phase B passive-layer readiness (six validated lessons + one rejected anti-pattern). Injection remains **OFF**.
+
 **Policy:** seed inserts **candidates**; curated validation applies only to the six required good examples. Bad candidates are **rejected**. Nothing auto-validates the entire historical corpus.
 
 ---

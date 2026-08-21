@@ -40,5 +40,6 @@
   "validatedCount": 6,
   "shadowRowsForProbe": 1,
   "humanCodingInterventions": 0,
-  "verdict": "SKILLOPT_SHADOW_PROBE_PASS"
+  "probeVerdict": "SKILLOPT_SHADOW_PROBE_PASS",
+  "verdict": "SKILLOPT PASSIVE LEARNING LAYER READY"
 }

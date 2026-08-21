@@ -6,6 +6,12 @@ Base freeze: Autonomous Engineer V1 tip + freeze packaging (`feature/autonomous-
 Module: `src/lib/engineer-console/skillopt/`  
 SkillOpt does **not** live inside `autonomous-engineer/` intelligence prompts as an active mutator.
 
+### Final verdict (exact one)
+
+# `SKILLOPT PASSIVE LEARNING LAYER READY`
+
+Status detail: passive / shadow only — capture, extraction, curation, versioning, evidence linking, and shadow retrieval are on; prompt injection remains **OFF** (`aePromptsModifiedBySkillOpt=0`).
+
 ### Exact activation rule
 
 > **Retrieval may not alter AE prompts until a separate controlled A/B qualification proves improvement without regression.**

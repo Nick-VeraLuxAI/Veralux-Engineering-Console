@@ -28,5 +28,6 @@
   "humanCodingInterventions": 0,
   "resultFile": "test-results/ae-v1-qual-live-dogfood.json",
   "unitShadowProbe": "evidence/ae-skillopt-learning-layer/live-shadow-probe.json",
-  "verdict": "SKILLOPT_LIVE_SHADOW_PROBE_PASS"
+  "probeVerdict": "SKILLOPT_LIVE_SHADOW_PROBE_PASS",
+  "verdict": "SKILLOPT PASSIVE LEARNING LAYER READY"
 }
