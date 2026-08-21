@@ -1,0 +1,44 @@
+{
+  "capturedAt": "2026-08-21T22:50:49.995Z",
+  "flags": {
+    "capture": "true",
+    "extraction": "true",
+    "shadowRetrieval": "true",
+    "promptInjection": "false"
+  },
+  "aePromptsModifiedBySkillOpt": 0,
+  "promptHashBefore": "78bd2360f592ee19b5a8f8246a5bd281447389a5cec1421b3623e0fccd399c0c",
+  "promptHashAfter": "78bd2360f592ee19b5a8f8246a5bd281447389a5cec1421b3623e0fccd399c0c",
+  "shadowMatched": [
+    "ed1fbfa1-4ea7-4a65-bed2-bfc0482b902d",
+    "496f641f-5ee9-4c4c-b2e3-fafe531de526"
+  ],
+  "wouldInjectPreview": "<!-- SkillOpt SHADOW wouldInject (NOT APPLIED) -->\n1. [model_independent/testing] Sync vs async Node assertion: For negative-path tests: sync subjects → assert.throws(() => ...); async/Promise subjects → await assert.rejects(...). Read subject call modes before writing reject/throw tests.\n2. [model_specific/runtime] Nemotron conditional generation-budget rescue: Primary path remains single-shot FAITHFUL. On GENERATION_BUDGET_EXHAUSTED only, apply FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE. Global a",
+  "actuallyInjected": false,
+  "candidatesCaptured": [
+    {
+      "id": "0f3a3491-c220-4cd0-9d0f-e0fadfaca2af",
+      "title": "Sync vs async Node assertion",
+      "status": "candidate"
+    },
+    {
+      "id": "0a4060c4-d015-4693-876f-b6fb259d4eef",
+      "title": "Avoid always-on heuristic prompt pollution",
+      "status": "candidate"
+    },
+    {
+      "id": "aaa761ca-3054-4b68-9fbf-4c8642fd749a",
+      "title": "Nemotron faithful invocation contract",
+      "status": "candidate"
+    },
+    {
+      "id": "f9b385b1-716e-4396-b859-8e343511c93d",
+      "title": "Nemotron conditional generation-budget rescue",
+      "status": "candidate"
+    }
+  ],
+  "validatedCount": 6,
+  "shadowRowsForProbe": 1,
+  "humanCodingInterventions": 0,
+  "verdict": "SKILLOPT_SHADOW_PROBE_PASS"
+}

@@ -7,6 +7,8 @@ import { runQualityGates, type QualityGateCommandResult } from "../quality-gates
 import { getQualityGateResultsForRun, getRunById, updateRun } from "../run-manager/run-manager";
 import { resolveTaskTargetRepoPath } from "../repo-intelligence/task-repo-path";
 import { getTaskById, updateTask } from "../task-manager/task-manager";
+import { maybeCaptureAfterAeTerminal } from "../skillopt/skill-capture";
+import { maybeShadowRetrieveForPlanning } from "../skillopt/ae-hooks";
 import type { RunStatus } from "../types";
 import type { WorkerPlan } from "../worker-plan/worker-plan-types";
 import { getChangedFiles, getDiffSummary } from "../workspace/git-workspace";
@@ -138,6 +140,15 @@ function terminalResult(
   document: AutonomousDocument,
   message: string,
 ): AutonomousLoopResult {
+  // SkillOpt passive capture only — never mutates prompts/plans/QC.
+  try {
+    const run = getRunById(runId);
+    if (run?.taskId) {
+      maybeCaptureAfterAeTerminal(runId, run.taskId, document);
+    }
+  } catch {
+    // ignore
+  }
   return {
     runId,
     state: document.currentState,
@@ -155,6 +166,7 @@ function runtimeUsage(document: AutonomousDocument, deps: AutonomousLoopDependen
 
 async function generatePlanForIteration(
   runId: string,
+  taskId: string,
   document: AutonomousDocument,
   repoPath: string,
   deps: AutonomousLoopDependencies,
@@ -219,36 +231,44 @@ async function generatePlanForIteration(
     } catch {
       // keep fallback
     }
+    const planningUserPrompt = [
+      `Run ID: ${runId}`,
+      `Objective: ${document.originalObjective}`,
+      `Requirements: ${(document.requirements ?? []).join("; ")}`,
+      `Constraints: ${[...document.constraints, ...diagnosisHint].join("; ")}`,
+      `Allowed path prefixes: ${document.authorizedPathPrefixes.join(", ") || "(repo src/)"}`,
+      `Existing files under those prefixes (truncated): ${existingFiles.slice(0, 24).join(", ") || "(none)"}`,
+      `package.json scripts: ${packageScripts}`,
+      grounding.factsBlock,
+      formatSubjectCallModeBlock(subjectModes),
+      priorDigest,
+      unboundHint,
+      "Use update_file for paths that already exist and create_file only for new paths. Include complete file contents.",
+      "When acceptance criteria require removing unused dead helpers/shims and the path is authorized/safe, include delete_file with a non-empty reason (content may be empty). Do not delete unrelated files.",
+      "When authorized existing modules are defective, incomplete, or unsafe, repair them with update_file (complete corrected contents). Do not stack WORKAROUND/HACK conditionals or silent catch fallbacks. Prefer create_file only for genuinely new helpers/tests. Do not rewrite or append to unrelated large modules. Pre-existing Super/AirLLM QC failures are out of scope.",
+      "Match the existing test runner from package.json scripts. If test uses node --test / node:test, write ONLY: import test from 'node:test'; import assert from 'node:assert/strict'; and use test('name', () => { assert.equal(...) }). Do NOT import expect/describe/it from 'node:test' (those exports are invalid). Use Vitest only when package.json already runs vitest. Never import vitest, node:test, or node:assert from non-test production sources.",
+      "For negative-path tests: sync subjects → assert.throws(() => ...); async/Promise subjects → await assert.rejects(async () => ...). Read subject call modes above before writing reject/throw tests.",
+      // UNBOUND_IDENTIFIER guidance is signature-gated via unboundHint (empty unless evidence present).
+      "Include happy, negative, and failure-path coverage the objective implies. If a test expectation conflicts with correct fail-closed behavior, fix the test.",
+      `Investigation: ${document.observations.map((obs) => obs.summary).join("\n").slice(0, 2500)}`,
+      `Authorized source snippets (read these before mutating):\n${snippetBlock}`,
+      `Known-good test exemplars (1–3, proximity-ranked; match this harness style):\n${formatTestExemplarBlock(exemplars)}`,
+      "Return worker plan JSON with runId matching the run, allowedFiles, and file operations with full content.",
+    ].join("\n");
+    // SkillOpt shadow retrieval: records wouldInject; prompt must remain unchanged.
+    const shadowedUserPrompt = maybeShadowRetrieveForPlanning({
+      runId,
+      taskId,
+      prompt: planningUserPrompt,
+      document,
+    });
     let live: Awaited<ReturnType<typeof invokeAutonomousWorker>>;
     try {
       live = await invokeAutonomousWorker(
         {
           role: document.diagnosis ? "replan" : "planning",
           system: "",
-          user: [
-            `Run ID: ${runId}`,
-            `Objective: ${document.originalObjective}`,
-            `Requirements: ${(document.requirements ?? []).join("; ")}`,
-            `Constraints: ${[...document.constraints, ...diagnosisHint].join("; ")}`,
-            `Allowed path prefixes: ${document.authorizedPathPrefixes.join(", ") || "(repo src/)"}`,
-            `Existing files under those prefixes (truncated): ${existingFiles.slice(0, 24).join(", ") || "(none)"}`,
-            `package.json scripts: ${packageScripts}`,
-            grounding.factsBlock,
-            formatSubjectCallModeBlock(subjectModes),
-            priorDigest,
-            unboundHint,
-            "Use update_file for paths that already exist and create_file only for new paths. Include complete file contents.",
-            "When acceptance criteria require removing unused dead helpers/shims and the path is authorized/safe, include delete_file with a non-empty reason (content may be empty). Do not delete unrelated files.",
-            "When authorized existing modules are defective, incomplete, or unsafe, repair them with update_file (complete corrected contents). Do not stack WORKAROUND/HACK conditionals or silent catch fallbacks. Prefer create_file only for genuinely new helpers/tests. Do not rewrite or append to unrelated large modules. Pre-existing Super/AirLLM QC failures are out of scope.",
-            "Match the existing test runner from package.json scripts. If test uses node --test / node:test, write ONLY: import test from 'node:test'; import assert from 'node:assert/strict'; and use test('name', () => { assert.equal(...) }). Do NOT import expect/describe/it from 'node:test' (those exports are invalid). Use Vitest only when package.json already runs vitest. Never import vitest, node:test, or node:assert from non-test production sources.",
-            "For negative-path tests: sync subjects → assert.throws(() => ...); async/Promise subjects → await assert.rejects(async () => ...). Read subject call modes above before writing reject/throw tests.",
-            // UNBOUND_IDENTIFIER guidance is signature-gated via unboundHint (empty unless evidence present).
-            "Include happy, negative, and failure-path coverage the objective implies. If a test expectation conflicts with correct fail-closed behavior, fix the test.",
-            `Investigation: ${document.observations.map((obs) => obs.summary).join("\n").slice(0, 2500)}`,
-            `Authorized source snippets (read these before mutating):\n${snippetBlock}`,
-            `Known-good test exemplars (1–3, proximity-ranked; match this harness style):\n${formatTestExemplarBlock(exemplars)}`,
-            "Return worker plan JSON with runId matching the run, allowedFiles, and file operations with full content.",
-          ].join("\n"),
+          user: shadowedUserPrompt,
         },
         { generatePlanInjected: false },
       );
@@ -639,7 +659,7 @@ export async function executeAutonomousLoop(
         checkBudget(document.budget, document.usage, "plans", 1);
         plan = coerceWorkerPlanToWorktree(
           repoPath,
-          await generatePlanForIteration(runId, document, repoPath, deps),
+          await generatePlanForIteration(runId, task.id, document, repoPath, deps),
         );
         const truncated = truncatingUpdateErrors(repoPath, plan);
         if (truncated.length > 0) {
