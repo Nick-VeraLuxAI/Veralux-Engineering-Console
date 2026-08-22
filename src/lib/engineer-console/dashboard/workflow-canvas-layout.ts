@@ -24,7 +24,11 @@ export interface WorkflowCanvasSafeArea {
 export interface WorkflowCanvasChromeOptions {
   toolbarCollapsed?: boolean;
   hasMinimizedBar?: boolean;
+  hasChatRail?: boolean;
 }
+
+export const WORKFLOW_CANVAS_CHAT_RAIL_WIDTH = 344;
+export const WORKFLOW_CANVAS_CHAT_RAIL_MIN_VIEWPORT = 768;
 
 export type WorkflowCanvasPort = "top" | "right" | "bottom" | "left";
 
@@ -160,15 +164,19 @@ export function getWorkflowCanvasSafeArea(
 ): WorkflowCanvasSafeArea {
   const leftToolbarPadding = chromeOptions.toolbarCollapsed ? 20 : 72;
   const dockPadding = chromeOptions.hasMinimizedBar ? 148 : 112;
+  const chatRailPadding =
+    chromeOptions.hasChatRail && viewportWidth >= WORKFLOW_CANVAS_CHAT_RAIL_MIN_VIEWPORT
+      ? WORKFLOW_CANVAS_CHAT_RAIL_WIDTH
+      : 0;
   if (viewportWidth >= 1280) {
-    return { top: 88, right: 28, bottom: dockPadding, left: leftToolbarPadding };
+    return { top: 88, right: 28, bottom: dockPadding, left: leftToolbarPadding + chatRailPadding };
   }
   if (viewportWidth >= 768) {
     return {
       top: 84,
       right: 24,
       bottom: chromeOptions.hasMinimizedBar ? 156 : 120,
-      left: chromeOptions.toolbarCollapsed ? 18 : 64,
+      left: (chromeOptions.toolbarCollapsed ? 18 : 64) + chatRailPadding,
     };
   }
   return {

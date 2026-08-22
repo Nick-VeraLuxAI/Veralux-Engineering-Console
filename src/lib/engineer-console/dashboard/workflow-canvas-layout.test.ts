@@ -47,6 +47,24 @@ describe("workflow-canvas-layout", () => {
     expect(zoomedOut.zoom).toBeLessThan(zoomedIn.zoom);
   });
 
+  it("reserves the left gutter for the map chat rail on desktop", () => {
+    const viewport = { width: 1280, height: 760 };
+    const withoutChat = getWorkflowCanvasSafeArea(viewport.width, viewport.height, {
+      toolbarCollapsed: true,
+    });
+    const withChat = getWorkflowCanvasSafeArea(viewport.width, viewport.height, {
+      toolbarCollapsed: true,
+      hasChatRail: true,
+    });
+    const phone = getWorkflowCanvasSafeArea(390, 844, {
+      toolbarCollapsed: true,
+      hasChatRail: true,
+    });
+
+    expect(withChat.left).toBe(withoutChat.left + 344);
+    expect(phone.left).toBeLessThan(80);
+  });
+
   it("expands the left safe area when the toolbar is open", () => {
     const viewport = { width: 1280, height: 760 };
     const collapsedSafeArea = getWorkflowCanvasSafeArea(viewport.width, viewport.height, {

@@ -16,6 +16,7 @@ import {
   updateCanvasOverlay,
   type CanvasOverlayId,
 } from "@/lib/engineer-console/dashboard/canvas-overlays";
+import { summarizeWorkflowMapForChat } from "@/lib/engineer-console/dashboard/map-chat";
 import { type DashboardWorkflowIssue, type EngineeringWorkflowMapData, type WorkflowMapNodeId } from "@/lib/engineer-console/dashboard/workflow-map";
 import { CanvasBottomDock } from "./canvas-bottom-dock";
 import { CanvasDetailDrawer } from "./canvas-detail-drawer";
@@ -23,6 +24,7 @@ import { CanvasFloatingMenu } from "./canvas-floating-menu";
 import { CanvasIssueCard } from "./canvas-issue-card";
 import { CanvasMinimizedBar } from "./canvas-minimized-bar";
 import { CanvasNodeInspector } from "./canvas-node-inspector";
+import { CanvasMapChat } from "./canvas-map-chat";
 import { CanvasTopBar, type CanvasTopBarTabId } from "./canvas-top-bar";
 import { DashboardIssueCenter, routeDashboardIssue } from "./dashboard-issue-center";
 import { WorkflowCanvas } from "./workflow-canvas";
@@ -163,6 +165,7 @@ export function EngineeringConsoleCanvasHome({
     );
   }, [minimizedDetail, overlayStates]);
   const featuredIssue = mapData.featuredIssue;
+  const mapSummary = useMemo(() => summarizeWorkflowMapForChat(mapData.nodes), [mapData.nodes]);
   const isTopOverlay = useCallback(
     (overlayId: CanvasOverlayId) => topOverlay?.id === overlayId,
     [topOverlay],
@@ -521,10 +524,12 @@ export function EngineeringConsoleCanvasHome({
             featuredIssueNodeId={mapData.featuredIssue?.nodeId ?? null}
             cameraRequest={cameraRequest}
             hasMinimizedBar={minimizedOverlays.length > 0}
+            hasChatRail
             onSelectNode={handleSelectNode}
           />
         </div>
 
+        <CanvasMapChat mapSummary={mapSummary} />
         <CanvasFloatingMenu open={menuOpen} onOpenChange={setMenuOpen} />
         <CanvasTopBar
           activeContext={activeTab}

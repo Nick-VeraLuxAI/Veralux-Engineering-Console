@@ -45,6 +45,9 @@ test.describe("Engineering Console trusted local smoke", () => {
     await expect(page.locator('[data-canvas-bottom-dock="true"]')).toBeVisible();
     await expect(page.locator('[data-canvas-toolbar="true"]')).toBeVisible();
     await expect(page.locator('[data-canvas-toolbar="true"]')).toHaveAttribute("data-canvas-toolbar-collapsed", "true");
+    await expect(page.locator('[data-canvas-map-chat="true"]')).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Agent" })).toBeVisible();
+    await expect(page.getByLabel("Model")).toHaveValue("nano30b");
     await expect(page.getByRole("heading", { name: "Setup readiness" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Operator Queue" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Run staging smoke workflow" })).toHaveCount(0);

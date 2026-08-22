@@ -1,4 +1,5 @@
 import type { RegisteredRepo } from "@/lib/engineer-console/repo-intelligence/registered-repos/registered-repo-types";
+import { buildMapChatProjects, type MapChatProject } from "./map-chat-threads";
 import type { DashboardSetupSummary } from "@/lib/engineer-console/setup/build-setup-readiness-summary";
 import type { SetupReadinessItem } from "@/lib/engineer-console/setup/setup-ux";
 import type { EngineeringTask } from "@/lib/engineer-console/types";
@@ -79,6 +80,7 @@ export interface EngineeringWorkflowMapData {
   primaryChip: DashboardPrimaryActionChip;
   defaultSelectedNodeId: WorkflowMapNodeId;
   dockLinks: WorkflowDockLink[];
+  projects: MapChatProject[];
 }
 
 function buildDashboardDetailHref(section: "setup" | "queue" | "tasks"): string {
@@ -732,5 +734,6 @@ export function buildEngineeringWorkflowMapData(input: {
     primaryChip,
     defaultSelectedNodeId,
     dockLinks,
+    projects: buildMapChatProjects({ repos: input.repos, tasks: input.tasks }),
   };
 }

@@ -7,6 +7,7 @@ import { CanvasFloatingMenu } from "@/components/engineer-console/canvas-floatin
 import { CanvasIssueCard } from "@/components/engineer-console/canvas-issue-card";
 import { CanvasMinimizedBar } from "@/components/engineer-console/canvas-minimized-bar";
 import { CanvasNodeInspector } from "@/components/engineer-console/canvas-node-inspector";
+import { CanvasMapChat } from "@/components/engineer-console/canvas-map-chat";
 import { CanvasTopBar } from "@/components/engineer-console/canvas-top-bar";
 import { WorkflowCanvas } from "@/components/engineer-console/workflow-canvas";
 import {
@@ -45,6 +46,28 @@ describe("CanvasTopBar", () => {
     expect(html).toContain("Home");
     expect(html).toContain("Repositories");
     expect(html).toContain("Compatibility");
+  });
+});
+
+describe("CanvasMapChat", () => {
+  it("renders a left rail with modes and Nano 30B", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(CanvasMapChat, {
+        mapSummary: "Setup: Needs setup; Repository: Needs repo; Task: Needs run",
+      }),
+    );
+
+    expect(html).toContain('data-canvas-map-chat="true"');
+    expect(html).toContain("Chat");
+    expect(html).toContain("Plan");
+    expect(html).toContain("Ask");
+    expect(html).toContain("Multitask");
+    expect(html).toContain("Agent");
+    expect(html).toContain("Nano 30B");
+    expect(html).toContain("DeepSeek");
+    expect(html).toContain("Auto");
+    expect(html).toContain("Working on Nano 30B");
+    expect(html).toContain("I will ask clarifying questions until we are aligned");
   });
 });
 

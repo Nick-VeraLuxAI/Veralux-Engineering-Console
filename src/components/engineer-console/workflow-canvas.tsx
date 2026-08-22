@@ -88,6 +88,7 @@ export function WorkflowCanvas({
   featuredIssueNodeId = null,
   cameraRequest,
   hasMinimizedBar = false,
+  hasChatRail = false,
   onSelectNode,
 }: {
   nodes: WorkflowMapNode[];
@@ -95,6 +96,7 @@ export function WorkflowCanvas({
   featuredIssueNodeId?: WorkflowMapNodeId | null;
   cameraRequest?: WorkflowCameraRequest | null;
   hasMinimizedBar?: boolean;
+  hasChatRail?: boolean;
   onSelectNode: (nodeId: WorkflowMapNodeId, intent?: "node-click" | "node-pointerdown") => void;
 }) {
   const containerRef = useRef<HTMLElement | null>(null);
@@ -118,8 +120,9 @@ export function WorkflowCanvas({
       getWorkflowCanvasSafeArea(viewportSize.width, viewportSize.height, {
         toolbarCollapsed,
         hasMinimizedBar,
+        hasChatRail,
       }),
-    [hasMinimizedBar, toolbarCollapsed, viewportSize.height, viewportSize.width],
+    [hasChatRail, hasMinimizedBar, toolbarCollapsed, viewportSize.height, viewportSize.width],
   );
   const edges = useMemo(() => buildWorkflowCanvasEdges(nodes), [nodes]);
   const connectedEdgeIds = useMemo(
@@ -533,7 +536,7 @@ export function WorkflowCanvas({
         }}
       />
 
-      <div className="absolute left-0 top-24 z-30 max-w-full pl-3 lg:top-28 lg:pl-4">
+      <div className={`absolute top-24 z-30 max-w-full pl-3 lg:top-28 lg:pl-4 ${hasChatRail ? "left-[21.5rem]" : "left-0"}`}>
         <WorkflowCanvasToolbar
           zoomLabel={zoomLabel(view.zoom)}
           layoutLocked={layoutLocked}
