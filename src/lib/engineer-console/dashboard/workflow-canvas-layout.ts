@@ -28,6 +28,8 @@ export interface WorkflowCanvasChromeOptions {
 
 export type WorkflowCanvasPort = "top" | "right" | "bottom" | "left";
 
+export type WorkflowCanvasEdgeRole = "sequence" | "record";
+
 export interface WorkflowCanvasEdge {
   id: string;
   source: WorkflowMapNodeId;
@@ -36,25 +38,39 @@ export interface WorkflowCanvasEdge {
   targetPort: WorkflowCanvasPort;
   tone: WorkflowMapTone;
   animated: boolean;
+  role: WorkflowCanvasEdgeRole;
 }
 
-export const WORKFLOW_CANVAS_MIN_ZOOM = 0.5;
+export interface WorkflowCanvasPhase {
+  id: "prepare" | "run" | "ship";
+  label: string;
+  x: number;
+  y: number;
+}
+
+export const WORKFLOW_CANVAS_MIN_ZOOM = 0.28;
 export const WORKFLOW_CANVAS_MAX_ZOOM = 1.75;
 export const WORKFLOW_CANVAS_DEFAULT_ZOOM = 1;
 export const WORKFLOW_CANVAS_OVERSCROLL = 220;
 export const WORKFLOW_CANVAS_WORLD_SIZE: WorkflowCanvasSize = { width: 1600, height: 1040 };
-export const WORKFLOW_CANVAS_NODE_SIZE: WorkflowCanvasSize = { width: 208, height: 128 };
+export const WORKFLOW_CANVAS_NODE_SIZE: WorkflowCanvasSize = { width: 168, height: 80 };
 
 const DEFAULT_LAYOUT: Record<WorkflowMapNodeId, WorkflowCanvasPoint> = {
-  setup: { x: 120, y: 120 },
-  repository: { x: 440, y: 120 },
-  task: { x: 500, y: 390 },
-  run: { x: 780, y: 390 },
-  review: { x: 1110, y: 300 },
-  pr: { x: 860, y: 650 },
-  release: { x: 1160, y: 620 },
-  audit: { x: 790, y: 870 },
+  setup: { x: 260, y: 220 },
+  repository: { x: 260, y: 350 },
+  task: { x: 260, y: 480 },
+  run: { x: 540, y: 350 },
+  review: { x: 820, y: 220 },
+  pr: { x: 820, y: 350 },
+  release: { x: 820, y: 480 },
+  audit: { x: 540, y: 510 },
 };
+
+const WORKFLOW_CANVAS_PHASES: WorkflowCanvasPhase[] = [
+  { id: "prepare", label: "Prepare", x: 260, y: 176 },
+  { id: "run", label: "Run", x: 540, y: 176 },
+  { id: "ship", label: "Ship", x: 820, y: 176 },
+];
 
 const EDGE_LAYOUT: Array<{
   id: string;
@@ -62,14 +78,15 @@ const EDGE_LAYOUT: Array<{
   target: WorkflowMapNodeId;
   sourcePort: WorkflowCanvasPort;
   targetPort: WorkflowCanvasPort;
+  role: WorkflowCanvasEdgeRole;
 }> = [
-  { id: "setup-repository", source: "setup", target: "repository", sourcePort: "right", targetPort: "left" },
-  { id: "repository-task", source: "repository", target: "task", sourcePort: "bottom", targetPort: "top" },
-  { id: "task-run", source: "task", target: "run", sourcePort: "right", targetPort: "left" },
-  { id: "run-review", source: "run", target: "review", sourcePort: "right", targetPort: "left" },
-  { id: "review-pr", source: "review", target: "pr", sourcePort: "bottom", targetPort: "top" },
-  { id: "pr-release", source: "pr", target: "release", sourcePort: "right", targetPort: "left" },
-  { id: "run-audit", source: "run", target: "audit", sourcePort: "bottom", targetPort: "top" },
+  { id: "setup-repository", source: "setup", target: "repository", sourcePort: "bottom", targetPort: "top", role: "sequence" },
+  { id: "repository-task", source: "repository", target: "task", sourcePort: "bottom", targetPort: "top", role: "sequence" },
+  { id: "task-run", source: "task", target: "run", sourcePort: "right", targetPort: "left", role: "sequence" },
+  { id: "run-review", source: "run", target: "review", sourcePort: "right", targetPort: "left", role: "sequence" },
+  { id: "review-pr", source: "review", target: "pr", sourcePort: "bottom", targetPort: "top", role: "sequence" },
+  { id: "pr-release", source: "pr", target: "release", sourcePort: "bottom", targetPort: "top", role: "sequence" },
+  { id: "run-audit", source: "run", target: "audit", sourcePort: "bottom", targetPort: "top", role: "record" },
 ];
 
 function clamp(value: number, min: number, max: number): number {
@@ -132,29 +149,33 @@ export function getDefaultWorkflowCanvasLayout(): Record<WorkflowMapNodeId, Work
   };
 }
 
+export function getWorkflowCanvasPhases(): WorkflowCanvasPhase[] {
+  return WORKFLOW_CANVAS_PHASES.map((phase) => ({ ...phase }));
+}
+
 export function getWorkflowCanvasSafeArea(
   viewportWidth: number,
   viewportHeight: number,
   chromeOptions: WorkflowCanvasChromeOptions = {},
 ): WorkflowCanvasSafeArea {
-  const leftToolbarPadding = chromeOptions.toolbarCollapsed ? 64 : 132;
-  const dockPadding = chromeOptions.hasMinimizedBar ? 228 : 184;
+  const leftToolbarPadding = chromeOptions.toolbarCollapsed ? 20 : 72;
+  const dockPadding = chromeOptions.hasMinimizedBar ? 148 : 112;
   if (viewportWidth >= 1280) {
-    return { top: 150, right: 420, bottom: dockPadding, left: leftToolbarPadding };
+    return { top: 88, right: 28, bottom: dockPadding, left: leftToolbarPadding };
   }
   if (viewportWidth >= 768) {
     return {
-      top: 148,
-      right: 104,
-      bottom: chromeOptions.hasMinimizedBar ? 236 : 212,
-      left: chromeOptions.toolbarCollapsed ? 44 : 84,
+      top: 84,
+      right: 24,
+      bottom: chromeOptions.hasMinimizedBar ? 156 : 120,
+      left: chromeOptions.toolbarCollapsed ? 18 : 64,
     };
   }
   return {
-    top: Math.min(148, viewportHeight * 0.2),
-    right: 28,
-    bottom: chromeOptions.hasMinimizedBar ? 260 : 236,
-    left: chromeOptions.toolbarCollapsed ? 24 : 64,
+    top: 76,
+    right: 16,
+    bottom: chromeOptions.hasMinimizedBar ? 168 : 128,
+    left: chromeOptions.toolbarCollapsed ? 12 : 48,
   };
 }
 
@@ -194,8 +215,9 @@ export function getWorkflowCanvasBounds(layout: Record<WorkflowMapNodeId, Workfl
   const rects = (Object.keys(layout) as WorkflowMapNodeId[]).map((nodeId) =>
     getWorkflowCanvasNodeRect(layout, nodeId),
   );
+  const phases = getWorkflowCanvasPhases();
 
-  return rects.reduce(
+  return [...rects, ...phases.map((phase) => ({ ...phase, width: WORKFLOW_CANVAS_NODE_SIZE.width, height: 24 }))].reduce(
     (bounds, rect) => ({
       minX: Math.min(bounds.minX, rect.x),
       minY: Math.min(bounds.minY, rect.y),
@@ -215,24 +237,7 @@ export function getDefaultWorkflowCanvasView(
   viewportSize: WorkflowCanvasSize,
   safeArea: WorkflowCanvasSafeArea,
 ): WorkflowCanvasViewState {
-  const bounds = getWorkflowCanvasBounds(getDefaultWorkflowCanvasLayout());
-  const availableWidth = Math.max(1, viewportSize.width - safeArea.left - safeArea.right);
-  const availableHeight = Math.max(1, viewportSize.height - safeArea.top - safeArea.bottom);
-
-  return normalizeWorkflowCanvasView(
-    {
-      x:
-        safeArea.left +
-        (availableWidth - (bounds.maxX - bounds.minX) * WORKFLOW_CANVAS_DEFAULT_ZOOM) / 2 -
-        bounds.minX * WORKFLOW_CANVAS_DEFAULT_ZOOM,
-      y:
-        safeArea.top +
-        (availableHeight - (bounds.maxY - bounds.minY) * WORKFLOW_CANVAS_DEFAULT_ZOOM) / 2 -
-        bounds.minY * WORKFLOW_CANVAS_DEFAULT_ZOOM,
-      zoom: WORKFLOW_CANVAS_DEFAULT_ZOOM,
-    },
-    viewportSize,
-  );
+  return fitWorkflowCanvasView(getDefaultWorkflowCanvasLayout(), viewportSize, safeArea);
 }
 
 export function fitWorkflowCanvasView(
@@ -241,8 +246,9 @@ export function fitWorkflowCanvasView(
   safeArea: WorkflowCanvasSafeArea,
 ): WorkflowCanvasViewState {
   const bounds = getWorkflowCanvasBounds(layout);
-  const availableWidth = Math.max(1, viewportSize.width - safeArea.left - safeArea.right);
-  const availableHeight = Math.max(1, viewportSize.height - safeArea.top - safeArea.bottom);
+  const padding = 56;
+  const availableWidth = Math.max(1, viewportSize.width - safeArea.left - safeArea.right - padding);
+  const availableHeight = Math.max(1, viewportSize.height - safeArea.top - safeArea.bottom - padding);
   const boundsWidth = Math.max(1, bounds.maxX - bounds.minX);
   const boundsHeight = Math.max(1, bounds.maxY - bounds.minY);
   const zoom = clampWorkflowCanvasZoom(
@@ -382,8 +388,30 @@ export function buildWorkflowCanvasEdges(nodes: WorkflowMapNode[]): WorkflowCanv
     return {
       ...edge,
       tone,
-      animated: tone === "active" || tone === "warning",
+      animated: edge.role === "sequence" && (tone === "active" || tone === "warning"),
     };
+  });
+}
+
+export function areWorkflowCanvasNodesVisibleInView(
+  layout: Record<WorkflowMapNodeId, WorkflowCanvasPoint>,
+  view: WorkflowCanvasViewState,
+  viewportSize: WorkflowCanvasSize,
+  safeArea: WorkflowCanvasSafeArea,
+  tolerance = 2,
+): boolean {
+  return (Object.keys(layout) as WorkflowMapNodeId[]).every((nodeId) => {
+    const rect = getWorkflowCanvasNodeRect(layout, nodeId);
+    const left = view.x + rect.x * view.zoom;
+    const top = view.y + rect.y * view.zoom;
+    const right = left + rect.width * view.zoom;
+    const bottom = top + rect.height * view.zoom;
+    return (
+      left >= safeArea.left - tolerance &&
+      top >= safeArea.top - tolerance &&
+      right <= viewportSize.width - safeArea.right + tolerance &&
+      bottom <= viewportSize.height - safeArea.bottom + tolerance
+    );
   });
 }
 

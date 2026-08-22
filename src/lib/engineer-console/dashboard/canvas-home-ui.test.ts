@@ -22,11 +22,11 @@ describe("CanvasTopBar", () => {
         activeContext: "architecture",
         issueCount: 2,
         environmentLabel: "Trusted local",
-        onOpenQueue: () => undefined,
+        onOpenIssues: () => undefined,
       }),
     );
 
-    expect(html).toContain("Architecture");
+    expect(html).toContain("Map");
     expect(html).toContain("Engineering Console");
     expect(html).toContain('data-canvas-command-bar="true"');
     expect(html).toContain("Trusted local");
@@ -68,19 +68,25 @@ describe("WorkflowCanvas", () => {
     );
 
     expect(html).toContain('data-workflow-canvas="true"');
+    expect(html).toContain('data-workflow-structure="pipeline"');
+    expect(html).toContain("Engineering workflow");
+    expect(html).toContain("Prepare");
+    expect(html).toContain("Ship");
+    expect(html).toContain('data-workflow-phase="prepare"');
     expect(html).toContain('data-canvas-edge="true"');
+    expect(html).toContain('data-edge-role="sequence"');
     expect(html).toContain('data-canvas-toolbar="true"');
-    expect(html).toContain('data-canvas-toolbar-collapsed="false"');
+    expect(html).toContain('data-canvas-toolbar-collapsed="true"');
     expect(html).toContain('data-canvas-toolbar-edge-tab="true"');
     expect(html).toContain('data-canvas-grid="true"');
-    expect(html).toContain('data-canvas-zoom-label="true"');
     expect(html).toContain('data-canvas-focus-node="run"');
     expect(html).toContain('data-canvas-focus-glow="true"');
     expect(html).toContain('data-canvas-path-glow="true"');
     expect(html).toContain("--canvas-focus-x");
     expect(html).toContain('data-edge-tone="warning"');
     expect(html).toContain('data-edge-connected="true"');
-    expect(html).toContain('data-edge-dimmed="true"');
+    expect(html).toContain('data-edge-dimmed="false"');
+    expect(html).not.toContain('data-edge-dimmed="true"');
     expect(html).toContain('data-node-selected="true"');
     expect(html).toContain('data-node-depth="selected"');
     expect(html).toContain('data-canvas-selected-node-glow="true"');
@@ -153,7 +159,7 @@ describe("Canvas-side surfaces", () => {
       React.createElement(CanvasBottomDock, {
         activeId: "workflow",
         links: [
-          { id: "workflow", label: "Workflows", href: "/engineer" },
+          { id: "workflow", label: "Map", href: "/engineer" },
           { id: "repos", label: "Repos", href: "/engineer/repos" },
           { id: "tasks", label: "Tasks", href: "/engineer?details=tasks#canvas-detail-drawer" },
           { id: "docs", label: "Docs", href: "/engineer?details=docs#canvas-detail-drawer" },
@@ -186,7 +192,7 @@ describe("Canvas-side surfaces", () => {
     expect(issueHtml).toContain("Release blocked");
     expect(issueHtml).toContain('data-overlay-close="priority-issue"');
     expect(dockHtml).toContain('data-canvas-bottom-dock="true"');
-    expect(dockHtml).toContain("Workflows");
+    expect(dockHtml).toContain("Map");
     expect(dockHtml).toContain("Docs");
     expect(drawerHtml).toContain('data-detail-drawer="true"');
     expect(drawerHtml).toContain("Operator queue");

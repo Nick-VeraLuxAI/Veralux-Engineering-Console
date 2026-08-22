@@ -10,6 +10,10 @@ export function getEngineerConsoleDbPath(): string {
   return process.env.ENGINEER_CONSOLE_DB_PATH ?? DEFAULT_DB_PATH;
 }
 
+export function isEngineerConsoleDbInitialized(): boolean {
+  return dbInstance !== null;
+}
+
 export function getEngineerConsoleDb(): Database.Database {
   if (dbInstance) {
     return dbInstance;

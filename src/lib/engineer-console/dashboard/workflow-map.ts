@@ -716,14 +716,11 @@ export function buildEngineeringWorkflowMapData(input: {
   ].filter((item): item is DashboardActivityItem => item !== null);
 
   const dockLinks: WorkflowDockLink[] = [
-    { id: "workflow", label: "Workflows", href: "/engineer" },
+    { id: "workflow", label: "Map", href: "/engineer" },
     { id: "repos", label: "Repos", href: "/engineer/repos" },
     { id: "tasks", label: "Tasks", href: buildDashboardDetailHref("tasks") },
     { id: "runs", label: "Runs", href: latestRunItem?.href ?? buildDashboardDetailHref("queue") },
-    { id: "reviews", label: "Reviews", href: runReviewHref(reviewItem ?? latestRunItem) },
-    { id: "release", label: "Release", href: runReleaseHref(releaseItem ?? latestRunItem) },
-    { id: "activity", label: "Activity", href: "/engineer?details=activity#canvas-detail-drawer" },
-    { id: "docs", label: "Docs", href: "/engineer?details=docs#canvas-detail-drawer" },
+    { id: "reviews", label: "Review", href: runReviewHref(reviewItem ?? latestRunItem) },
   ];
 
   return {

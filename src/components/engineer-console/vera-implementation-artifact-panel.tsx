@@ -43,6 +43,10 @@ export function VeraImplementationArtifactPanel({ run, taskId, artifact }: Props
   const notes = parseVeraRunGovernanceNotes(run.governanceNotes);
   const headline = resolveVeraImplementationArtifactHeadline(artifact);
 
+  if (!canShowVeraImplementationArtifactPanel(run, artifact)) {
+    return null;
+  }
+
   return (
     <section className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
       <h2 className="text-lg font-semibold">Vera implementation artifact</h2>
@@ -55,13 +59,13 @@ export function VeraImplementationArtifactPanel({ run, taskId, artifact }: Props
           <dt className="text-[var(--muted)]">Vera work order</dt>
           <dd>{notes.veraWorkOrderId ?? artifact?.veraWorkOrderId ?? "—"}</dd>
         </div>
-        <div>
-          <dt className="text-[var(--muted)]">Run ID</dt>
-          <dd className="font-mono text-xs">{run.id}</dd>
+        <div className="sr-only">
+          <dt>Run ID</dt>
+          <dd>{run.id}</dd>
         </div>
-        <div>
-          <dt className="text-[var(--muted)]">Task ID</dt>
-          <dd className="font-mono text-xs">{taskId}</dd>
+        <div className="sr-only">
+          <dt>Task ID</dt>
+          <dd>{taskId}</dd>
         </div>
         <div>
           <dt className="text-[var(--muted)]">Branch</dt>

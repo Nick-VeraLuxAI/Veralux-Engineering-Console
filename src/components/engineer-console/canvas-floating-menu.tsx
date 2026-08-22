@@ -100,6 +100,12 @@ export function CanvasFloatingMenu({
               <Link href="/engineer/compatibility" className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white transition hover:border-white/20">
                 Compatibility
               </Link>
+              <Link href="/engineer?details=queue#canvas-detail-drawer" className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white transition hover:border-white/20">
+                Queue
+              </Link>
+              <Link href="/engineer?details=activity#canvas-detail-drawer" className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white transition hover:border-white/20">
+                Activity
+              </Link>
               <Link href="/engineer?details=docs#canvas-detail-drawer" className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white transition hover:border-white/20">
                 Docs
               </Link>

@@ -119,7 +119,7 @@ export function EngineeringConsoleCanvasHome({
   const focusSequenceRef = useRef(0);
   const [canvasReady, setCanvasReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedNodeId, setSelectedNodeId] = useState<WorkflowMapNodeId>(mapData.defaultSelectedNodeId);
+  const [selectedNodeId, setSelectedNodeId] = useState<WorkflowMapNodeId>("run");
   const [activeTab, setActiveTab] = useState<CanvasTopBarTabId>(tabForDetailPanel(detailPanel));
   const [activeDockId, setActiveDockId] = useState(dockActiveId(detailPanel));
   const [cameraRequest, setCameraRequest] = useState<WorkflowCameraRequest | null>(null);
@@ -129,18 +129,10 @@ export function EngineeringConsoleCanvasHome({
   const [overlayStates, setOverlayStates] = useState(() => {
     let next = createCanvasOverlayStateMap({
       "issue-center": mapData.issues.length > 0 ? `Issues: ${mapData.issues.length}` : "Issues",
-      "node-inspector": mapData.inspectors[mapData.defaultSelectedNodeId].title,
+      "node-inspector": mapData.inspectors.run.title,
       "detail-drawer": detailPanel ? titleForDetailPanel(detailPanel) : "Details",
       "priority-issue": mapData.featuredIssue?.title ?? "Priority issue",
     });
-    next = openCanvasOverlay(next, "node-inspector", {
-      title: mapData.inspectors[mapData.defaultSelectedNodeId].title,
-    });
-    if (mapData.featuredIssue) {
-      next = openCanvasOverlay(next, "priority-issue", {
-        title: mapData.featuredIssue.title,
-      });
-    }
     if (detailPanel) {
       next = openCanvasOverlay(next, "detail-drawer", {
         title: titleForDetailPanel(detailPanel),
@@ -334,7 +326,7 @@ export function EngineeringConsoleCanvasHome({
         }),
       );
       if (options.focus !== false) {
-        requestCameraFocus({ kind: "node", nodeId }, options.motion ?? "smooth");
+        requestCameraFocus({ kind: "fit" }, options.motion ?? "smooth");
       }
     },
     [mapData.inspectors, requestCameraFocus],
@@ -418,13 +410,7 @@ export function EngineeringConsoleCanvasHome({
   }, [mapData.issues.length]);
 
   useEffect(() => {
-    if (featuredIssue) {
-      setOverlayStates((current) =>
-        openCanvasOverlay(current, "priority-issue", {
-          title: featuredIssue.title,
-        }),
-      );
-    } else {
+    if (!featuredIssue) {
       setOverlayStates((current) => closeCanvasOverlay(current, "priority-issue"));
     }
   }, [featuredIssue]);
@@ -544,7 +530,7 @@ export function EngineeringConsoleCanvasHome({
           activeContext={activeTab}
           issueCount={mapData.issues.length}
           environmentLabel={environmentLabel}
-          onOpenQueue={() => navigateToDetailPanel("queue")}
+          onOpenIssues={openIssueCenter}
         />
 
         <CanvasIssueCard

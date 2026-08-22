@@ -134,7 +134,8 @@ describe("DS-1 shared UI primitives", () => {
       ),
     );
 
-    expect(html).toContain('data-engineer-route-shell="default"');
+    expect(html).toContain('data-engineer-route-shell="immersive"');
+    expect(html).toContain('data-engineer-surface="sheet"');
     expect(html).toContain("Engineering Console");
     expect(html).toContain("Route content");
   });

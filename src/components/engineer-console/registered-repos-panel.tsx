@@ -109,16 +109,18 @@ export function RegisteredReposPanel({
 
   return (
     <div className="space-y-6">
-      <Surface as="section">
-        <h2 className="mb-3 font-semibold">Repo setup order</h2>
-        <ol className="list-inside list-decimal space-y-1 text-sm text-[var(--muted)]">
+      <details className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-white">
+          <h2 className="inline">Repo setup order</h2>
+        </summary>
+        <ol className="mt-3 list-inside list-decimal space-y-1 text-sm text-[var(--muted)]">
           <li>Register a repo inside approved roots.</li>
           <li>Verify the repo path before indexing.</li>
           <li>Run file index before code index.</li>
           <li>Run compatibility analysis after code index.</li>
           <li>Create a task after repo verification.</li>
         </ol>
-      </Surface>
+      </details>
 
       <Surface as="section">
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -145,12 +147,6 @@ export function RegisteredReposPanel({
         <p className="mt-3 text-sm text-[var(--muted)]">
           Path must be inside approved repo roots.
         </p>
-        <p className="mt-2 text-xs text-[var(--muted)]">
-          Example staging repo path: <code>{smokeRepoExamplePath}</code>
-        </p>
-        <p className="mt-2 text-xs text-[var(--muted)]">
-          Setup references: <code>docs/env-reference.md</code> and <code>docs/operator-runbook.md</code>
-        </p>
       </Surface>
 
       <Surface
@@ -176,7 +172,7 @@ export function RegisteredReposPanel({
             value={path}
             onChange={(e) => setPath(e.target.value)}
             className={`${FIELD_CLASS_NAME} font-mono text-xs`}
-            placeholder="/path/to/git/repo"
+            placeholder={smokeRepoExamplePath || "/path/to/git/repo"}
           />
         </label>
         <p
@@ -202,14 +198,7 @@ export function RegisteredReposPanel({
       <Surface as="section">
         <h2 className="mb-3 font-semibold">Registered ({repos.length})</h2>
         {repos.length === 0 ? (
-          <Surface className="text-sm text-[var(--muted)]" padding="md" variant="inset">
-            <p className="font-medium text-white">Register a repo inside approved roots.</p>
-            <p className="mt-2">
-              What is missing: no repos are registered yet. Why it matters: repo verification,
-              indexing, compatibility analysis, and the safest task targeting all begin here. What
-              next: register a repo, verify it, then index files.
-            </p>
-          </Surface>
+          <p className="text-sm text-white/40">No repositories yet.</p>
         ) : (
           <ul className="space-y-4">
             {repos.map((repo) => {

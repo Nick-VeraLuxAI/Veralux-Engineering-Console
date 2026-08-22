@@ -203,11 +203,39 @@ export default async function RunDetailPage({
     <div>
       <Link
         href={`/engineer/tasks/${task.id}`}
-        className="text-sm text-[var(--muted)] hover:text-white"
+        className="text-sm text-white/40 hover:text-white"
       >
-        ← Task: {task.title}
+        {task.title}
       </Link>
-      <h1 className="mt-4 mb-6 text-2xl font-semibold">Run {run.id.slice(0, 8)}…</h1>
+      <RunLivePanel
+        runId={id}
+        veraExecutionBlocked={veraExecutionBlocked}
+        initial={{
+          run,
+          task,
+          changedFiles,
+          diffSummary,
+          qualityGates,
+          approvalReport,
+          workerPlanDraft: latestDraft
+            ? {
+                id: latestDraft.id,
+                runId: latestDraft.runId,
+                provider: latestDraft.provider,
+                model: latestDraft.model,
+                validationStatus: latestDraft.validationStatus,
+                parsedPlan: latestDraft.parsedPlanJson
+                  ? JSON.parse(latestDraft.parsedPlanJson)
+                  : null,
+                rawResponse: latestDraft.rawResponse,
+                validationErrors: getDraftValidationErrors(latestDraft),
+                createdAt: latestDraft.createdAt,
+              }
+            : null,
+          uxSummary,
+          autonomous,
+        }}
+      />
       {showVeraExecutionApprovalPanel ? (
         <VeraExecutionApprovalPanel
           run={run}
@@ -467,35 +495,6 @@ export default async function RunDetailPage({
           }}
         />
       ) : null}
-      <RunLivePanel
-        runId={id}
-        veraExecutionBlocked={veraExecutionBlocked}
-        initial={{
-          run,
-          task,
-          changedFiles,
-          diffSummary,
-          qualityGates,
-          approvalReport,
-          workerPlanDraft: latestDraft
-            ? {
-                id: latestDraft.id,
-                runId: latestDraft.runId,
-                provider: latestDraft.provider,
-                model: latestDraft.model,
-                validationStatus: latestDraft.validationStatus,
-                parsedPlan: latestDraft.parsedPlanJson
-                  ? JSON.parse(latestDraft.parsedPlanJson)
-                  : null,
-                rawResponse: latestDraft.rawResponse,
-                validationErrors: getDraftValidationErrors(latestDraft),
-                createdAt: latestDraft.createdAt,
-              }
-            : null,
-          uxSummary,
-          autonomous,
-        }}
-      />
     </div>
   );
 }

@@ -16,7 +16,7 @@ Autonomous Engineer V1 plans, executes, and retries **inside** those primitives.
 | API | Next.js Route Handlers (`runtime = nodejs`) |
 | Data | SQLite (`better-sqlite3`), WAL, foreign keys |
 | Tests | Vitest (unit/integration under `src/lib/engineer-console`) |
-| Models | Mock (default), Kimi (OpenAI-compatible HTTP) |
+| Models | Mock (default), Kimi (OpenAI-compatible HTTP). Local role split: Nano 8081 short worker, Nano 8082 long worker, DeepSeek FTW senior on demand — see [source-of-truth/local-model-runtime-strategy.md](./source-of-truth/local-model-runtime-strategy.md). Named AE profiles (switchboard only): [source-of-truth/ae-runtime-profiles-v1.md](./source-of-truth/ae-runtime-profiles-v1.md). Senior escalation package: [source-of-truth/ae-senior-escalation-package-v1.md](./source-of-truth/ae-senior-escalation-package-v1.md). Governed live senior invocation (operator-requested only): [source-of-truth/ae-governed-live-senior-invocation-v2.md](./source-of-truth/ae-governed-live-senior-invocation-v2.md). Senior review queue / operator command: [source-of-truth/ae-senior-review-queue-v1.md](./source-of-truth/ae-senior-review-queue-v1.md). Run-detail panel: [source-of-truth/ae-senior-review-panel-v1.md](./source-of-truth/ae-senior-review-panel-v1.md) |
 
 ## Module map (`src/lib/engineer-console/`)
 
@@ -30,6 +30,7 @@ Autonomous Engineer V1 plans, executes, and retries **inside** those primitives.
 | Autonomous Engineer | `autonomous-engineer/` | Investigate → (clarify) → plan → validate → execute → baseline-aware QC → diagnose/replan → director completion package |
 | Worker plan | `worker-plan/` | Validate, execute UTF-8 file ops only |
 | Model router | `model-router/` | Draft generation, providers, prompts |
+| Senior escalation | `senior-escalation/` | Escalation package + operator-requested DeepSeek review (not AE worker, not loop-wired) |
 | Quality gates | `quality-gates/` | Allowlisted `npm test` / build / lint / typecheck; AE compares post-change results to a pre-mutation baseline |
 | Approval | `approval/` | Approval report JSON |
 | Governance | `governance/` | Audit ledger, evidence, decisions, replay, policy, review stages |
@@ -38,7 +39,10 @@ Autonomous Engineer V1 plans, executes, and retries **inside** those primitives.
 | Server | `server.ts` | `ensureEngineerConsoleReady()` — DB + config validation |
 
 UI components: `src/components/engineer-console/*`  
-Client fetch (CSRF): `src/lib/engineer-console-client/fetch.ts`
+Client fetch (CSRF): `src/lib/engineer-console-client/fetch.ts`  
+Frontend audit (routes, components, senior-review fit, evidence path): [source-of-truth/frontend-engineering-console-audit.md](./source-of-truth/frontend-engineering-console-audit.md)  
+Durable senior-review evidence (state_json + redacted evidence summary): [source-of-truth/ae-senior-review-durable-evidence-v1.md](./source-of-truth/ae-senior-review-durable-evidence-v1.md)  
+Review-workspace Evidence panel senior summary: [source-of-truth/ae-senior-review-evidence-panel-v1.md](./source-of-truth/ae-senior-review-evidence-panel-v1.md)
 
 ## UI routes
 
@@ -165,6 +169,7 @@ Base: `/api/engineer-console`
 | GET | `/tasks/[id]` | viewer |
 | GET, POST | `/tasks/[id]/runs` | operator |
 | GET | `/runs/[id]` | viewer |
+| GET, POST | `/runs/[id]/senior-review` | viewer / operator (advisory only; exact confirmation) |
 | POST | `/runs/[id]/actions` | operator (approve → admin via assert) |
 | POST | `/runs/[id]/worker-plan` | operator |
 | POST | `/runs/[id]/worker-plan-drafts` | operator |

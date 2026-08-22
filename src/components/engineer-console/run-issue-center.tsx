@@ -42,7 +42,7 @@ export function RunIssueCenter({
     () => issues.filter((issue) => issue.severity === "info").length,
     [issues],
   );
-  const [expanded, setExpanded] = useState(() => initiallyExpanded ?? criticalCount > 0);
+  const [expanded, setExpanded] = useState(() => initiallyExpanded ?? false);
 
   const headerTone =
     criticalCount > 0
@@ -52,47 +52,32 @@ export function RunIssueCenter({
         : "border-[var(--border)] bg-[var(--card)]/95";
 
   useEffect(() => {
-    if (criticalCount > 0) {
+    if (initiallyExpanded) {
       setExpanded(true);
     }
-  }, [criticalCount]);
+  }, [initiallyExpanded]);
 
   return (
     <aside
       className="pointer-events-none fixed right-4 bottom-4 left-4 z-30 flex flex-col items-stretch gap-2 sm:left-auto sm:max-w-sm sm:items-end"
       aria-live="polite"
     >
-      <div
-        className={`pointer-events-auto flex items-center gap-3 rounded-full border px-3 py-2 shadow-lg backdrop-blur ${headerTone}`}
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-label="Issue Center"
+        onClick={() => setExpanded((current) => !current)}
+        className={`pointer-events-auto inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm backdrop-blur ${headerTone}`}
       >
         <span
           aria-hidden="true"
-          className={`h-2.5 w-2.5 rounded-full ${
+          className={`h-2 w-2 rounded-full ${
             criticalCount > 0 ? "bg-red-300" : issues.length > 0 ? "bg-amber-300" : "bg-emerald-300"
           }`}
         />
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-white">Issue Center</p>
-          <p className="text-[11px] text-[var(--muted)]">
-            {issues.length === 0
-              ? "All clear right now."
-              : criticalCount > 0
-                ? `${criticalCount} critical issue${criticalCount === 1 ? "" : "s"} need attention.`
-                : `${issues.length} problem${issues.length === 1 ? "" : "s"} ready for review.`}
-          </p>
-        </div>
-        <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--muted)]">
-          {issues.length}
-        </span>
-        <button
-          type="button"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((current) => !current)}
-          className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--muted)] transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-        >
-          {expanded ? "Collapse" : "Expand"}
-        </button>
-      </div>
+        <span className="sr-only">Issue Center</span>
+        <span className="tabular-nums text-white/80">{issues.length}</span>
+      </button>
 
       {expanded ? (
         <div className="pointer-events-auto w-full rounded-2xl border border-[var(--border)] bg-[var(--card)]/95 p-4 shadow-2xl backdrop-blur sm:w-[min(24rem,calc(100vw-2rem))]">

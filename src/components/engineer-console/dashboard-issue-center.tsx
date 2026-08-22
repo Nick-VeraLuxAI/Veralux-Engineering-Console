@@ -37,36 +37,6 @@ export function DashboardIssueCenter({
 
   return (
     <>
-      {!expanded && !overlayState.isMinimized ? (
-        <aside
-          data-issue-center-expanded="false"
-          className="pointer-events-none absolute right-4 bottom-24 z-[90] flex items-end"
-          aria-live="polite"
-        >
-          <button
-            type="button"
-            onClick={onExpand}
-            className="pointer-events-auto flex items-center gap-3 rounded-full border border-white/8 bg-[#07101c]/78 px-3 py-2 shadow-[0_14px_28px_rgba(2,6,23,0.24)] backdrop-blur-xl"
-          >
-            <span
-              aria-hidden="true"
-              className={`h-2.5 w-2.5 rounded-full ${criticalCount > 0 ? "bg-red-300" : issues.length > 0 ? "bg-amber-300" : "bg-emerald-300"}`}
-            />
-            <div className="min-w-0 text-left">
-              <p className="text-sm font-medium text-white">Issues</p>
-              <p className="text-[11px] text-[var(--muted)]">
-                {issues.length === 0
-                  ? "No active dashboard issues."
-                  : `${issues.length} routed issue${issues.length === 1 ? "" : "s"}.`}
-              </p>
-            </div>
-            <span className="rounded-full border border-white/8 bg-black/15 px-2 py-0.5 text-xs text-[var(--muted)]">
-              {issues.length}
-            </span>
-          </button>
-        </aside>
-      ) : null}
-
       {expanded ? (
         <CanvasOverlayWindow
           overlayId="issue-center"

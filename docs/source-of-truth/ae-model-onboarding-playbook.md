@@ -38,4 +38,7 @@ Seed examples: sync/async assert, AC cleanup, causal failure priority, no prompt
 
 ---
 
+Validated local role split (Nano 8081 / 8082 / DeepSeek FTW on demand): `local-model-runtime-strategy.md`.  
+Named AE profiles (switchboard only): `ae-runtime-profiles-v1.md`.
+
 *End of model onboarding playbook.*

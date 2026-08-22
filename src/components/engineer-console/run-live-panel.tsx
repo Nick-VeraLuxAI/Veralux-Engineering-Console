@@ -24,12 +24,10 @@ import {
 import { deriveRunIssues, type RunIssue } from "@/lib/engineer-console/run-ux/run-issues";
 import {
   DEFAULT_RUN_WORKSPACE_VIEW,
-  getRunWorkspaceView,
   getRunWorkspaceViewForTarget,
   resolveRunWorkspaceViewForHash,
   type RunWorkspaceViewId,
 } from "@/lib/engineer-console/run-ux/run-workspace";
-import { Badge } from "@/components/ui/badge";
 import { Surface } from "@/components/ui/surface";
 import { StatusBadge } from "./status-badge";
 import { ApprovalActions } from "./approval-actions";
@@ -68,6 +66,7 @@ import {
   AutonomousEngineerPanel,
   type AutonomousProgressPayload,
 } from "./autonomous-engineer-panel";
+import { SeniorReviewPanel } from "./senior-review-panel";
 
 interface RunDetailPayload {
   run: EngineeringRun;
@@ -82,17 +81,6 @@ interface RunDetailPayload {
 }
 
 type HistoryMode = "push" | "replace" | "none";
-
-function issueToneClasses(severity: RunIssue["severity"]): string {
-  switch (severity) {
-    case "critical":
-      return "border-red-500/40 bg-red-950/20 text-red-200";
-    case "warning":
-      return "border-amber-500/40 bg-amber-950/20 text-amber-200";
-    default:
-      return "border-blue-500/40 bg-blue-950/20 text-blue-200";
-  }
-}
 
 export function RunLivePanel({
   runId,
@@ -142,14 +130,6 @@ export function RunLivePanel({
       return counts;
     }, {});
   }, [issues]);
-  const criticalIssueCount = useMemo(
-    () => issues.filter((issue) => issue.severity === "critical").length,
-    [issues],
-  );
-  const warningIssueCount = useMemo(
-    () => issues.filter((issue) => issue.severity === "warning").length,
-    [issues],
-  );
   const routedView = getRunWorkspaceViewForTarget(pendingTargetId);
   const visibleView = routedView ?? activeView;
 
@@ -309,93 +289,58 @@ export function RunLivePanel({
         }}
       >
         <RunWorkspaceViewPanel viewId="overview" activeView={visibleView}>
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(21rem,0.95fr)]">
-            <div className="space-y-5">
-              <div id={RUN_NAV_TARGET_IDS.currentAction} className="scroll-mt-28">
-                <RunCurrentActionZone state={currentAction} />
-              </div>
+          <div className="space-y-4">
+            <div id={RUN_NAV_TARGET_IDS.currentAction} className="scroll-mt-28">
+              <RunCurrentActionZone state={currentAction} />
+            </div>
 
-              <div id="run-command-center" className="scroll-mt-28">
+            <details id="run-command-center" className="scroll-mt-28 rounded-xl border border-white/8 px-4 py-3">
+              <summary className="cursor-pointer text-sm text-white/55">
+                <h2 className="inline text-sm font-medium text-white/70">Run Command Center</h2>
+              </summary>
+              <div className="mt-4">
                 <RunCommandCenter summary={data.uxSummary} guidance={guidance} />
               </div>
-            </div>
+            </details>
 
-            <div className="space-y-5">
-              <Surface as="section">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-semibold">Needs attention</h2>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      Use this queue when you want the fastest route to the next operator problem.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-[11px]">
-                    <Badge size="sm" variant="muted">
-                      {issues.length} total
-                    </Badge>
-                    <Badge size="sm" variant="blocked">
-                      {criticalIssueCount} critical
-                    </Badge>
-                    <Badge size="sm" variant="warning">
-                      {warningIssueCount} warning
-                    </Badge>
-                  </div>
-                </div>
-                {issues.length === 0 ? (
-                  <p className="mt-4 text-sm text-[var(--muted)]">
-                    No active issues are derived right now. Use this workspace as the run landing
-                    screen and open Audit for technical traceability if you need deeper detail.
-                  </p>
-                ) : (
-                  <ul className="mt-4 space-y-3">
-                    {issues.slice(0, 3).map((issue) => (
-                      <li key={issue.id}>
-                        <button
-                          type="button"
-                          onClick={() => openIssue(issue)}
-                          className="block w-full rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-left transition hover:border-white/20 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${issueToneClasses(issue.severity)}`}
-                              >
-                                {issue.severity}
-                              </span>
-                              <Badge size="sm" variant="muted">
-                                {getRunWorkspaceView(issue.view).label}
-                              </Badge>
-                            </div>
-                            <span className="text-[11px] text-[var(--muted)]">Open workspace</span>
-                          </div>
-                          <p className="mt-2 text-sm font-medium text-white">{issue.title}</p>
-                          <p className="mt-2 text-sm text-[var(--muted)]">{issue.message}</p>
-                          <p className="mt-2 text-xs text-white">Suggested action: {issue.suggestedAction}</p>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Surface>
-
-              <div id="run-lifecycle" className="scroll-mt-28">
+            <details id="run-lifecycle" className="scroll-mt-28 rounded-xl border border-white/8 px-4 py-3">
+              <summary className="cursor-pointer text-sm text-white/55">
+                <h2 className="inline text-sm font-medium text-white/70">Lifecycle</h2>
+              </summary>
+              <div className="mt-4">
                 <RunLifecycleStepper steps={lifecycleSteps} currentStageId={guidance.currentStageId} />
               </div>
-            </div>
-          </div>
+            </details>
 
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-            <div id="run-quick-nav" className="scroll-mt-28">
-              <RunQuickNav items={quickNavItems} />
-            </div>
+            <details id="run-quick-nav" className="scroll-mt-28 rounded-xl border border-white/8 px-4 py-3">
+              <summary className="cursor-pointer text-sm text-white/55">
+                <h2 className="inline text-sm font-medium text-white/70">Quick navigation</h2>
+              </summary>
+              <div className="mt-4">
+                <RunQuickNav items={quickNavItems} />
+              </div>
+            </details>
 
-            <div id="run-expert-summary" className="scroll-mt-28">
-              <RunExpertSummary items={expertSummaryItems} />
-            </div>
+            <details id="run-expert-summary" className="scroll-mt-28 rounded-xl border border-white/8 px-4 py-3">
+              <summary className="cursor-pointer text-sm text-white/55">
+                <h2 className="inline text-sm font-medium text-white/70">Expert summary</h2>
+              </summary>
+              <div className="mt-4">
+                <RunExpertSummary items={expertSummaryItems} />
+              </div>
+            </details>
           </div>
 
             {data.autonomous ? (
-              <AutonomousEngineerPanel runId={runId} payload={data.autonomous} />
+              <details className="rounded-xl border border-white/8 px-4 py-3">
+                <summary className="cursor-pointer text-sm text-white/55">
+                  <h2 className="inline text-sm font-medium text-white/70">Autonomous Engineer</h2>
+                </summary>
+                <div className="mt-4 space-y-4">
+                  <AutonomousEngineerPanel runId={runId} payload={data.autonomous} />
+                  <SeniorReviewPanel runId={runId} />
+                </div>
+              </details>
             ) : null}
 
             <Surface

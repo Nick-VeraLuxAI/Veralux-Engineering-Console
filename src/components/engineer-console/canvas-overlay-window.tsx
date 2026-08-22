@@ -136,8 +136,7 @@ export function CanvasOverlayWindow({
           }`}
         >
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{title}</p>
-            <p className="text-[11px] text-[var(--muted)]">Overlay window</p>
+            <p className="truncate text-sm font-medium tracking-tight text-white">{title}</p>
           </div>
           {headerSuffix || onMinimize || onClose ? (
             <div className="ml-auto flex items-center gap-2">

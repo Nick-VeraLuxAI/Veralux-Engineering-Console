@@ -1,0 +1,146 @@
+{
+  "ok": true,
+  "status": "local_model_coding_proof_passed",
+  "schema_version": "vera_builder_loop_local_model_coding_proof_v1",
+  "placeholder_schema_version": "vera_builder_loop_placeholder_module_card_v1",
+  "coding_task_id": "format_builder_loop_decision_label_v1",
+  "errors": [],
+  "warnings": [
+    "Coding proof is isolated and non-integrating.",
+    "Model generation was real via the configured local OpenAI-compatible endpoint.",
+    "Repair was required before isolated tests passed."
+  ],
+  "model": {
+    "provider": "local_openai_compatible",
+    "model_used": "Nemotron-Nano-30B-A3B-NVFP4",
+    "endpoint": "http://127.0.0.1:8081/v1/chat/completions",
+    "model_generation_real": true,
+    "prompt_summary": "Implement formatBuilderLoopDecisionLabel utility with node:test coverage in an isolated workspace.",
+    "repair_prompt_summary": "Repair isolated coding proof files after test failure (attempt 1)."
+  },
+  "patch": {
+    "unified_diff": "--- /dev/null\n+++ b/src/formatBuilderLoopDecisionLabel.js\n@@ -0,0 +1,12 @@\n+export function formatBuilderLoopDecisionLabel(input) {\n+  switch (input) {\n+    case 'approve':\n+      return 'Approved';\n+    case 'reject':\n+      return 'Rejected';\n+    case 'request_changes':\n+      return 'Changes requested';\n+    default:\n+      return 'Unknown decision';\n+  }\n+}\n--- /dev/null\n+++ b/src/formatBuilderLoopDecisionLabel.test.js\n@@ -0,0 +1,10 @@\n+import test from \"node:test\";\n+import assert from \"node:assert/strict\";\n+import { formatBuilderLoopDecisionLabel } from \"./formatBuilderLoopDecisionLabel.js\";\n+\n+test('formatBuilderLoopDecisionLabel', () => {\n+  assert.equal(formatBuilderLoopDecisionLabel('approve'), 'Approved');\n+  assert.equal(formatBuilderLoopDecisionLabel('reject'), 'Rejected');\n+  assert.equal(formatBuilderLoopDecisionLabel('request_changes'), 'Changes requested');\n+  assert.equal(formatBuilderLoopDecisionLabel('unknown'), 'Unknown decision');\n+});",
+    "files_created_or_changed": [
+      "src/formatBuilderLoopDecisionLabel.js",
+      "src/formatBuilderLoopDecisionLabel.test.js"
+    ]
+  },
+  "tests": {
+    "command_executable": "node",
+    "command_args": [
+      "--test",
+      "src/formatBuilderLoopDecisionLabel.test.js"
+    ],
+    "exit_code": 0,
+    "passed": true,
+    "stdout": "TAP version 13\n# Subtest: formatBuilderLoopDecisionLabel\nok 1 - formatBuilderLoopDecisionLabel\n  ---\n  duration_ms: 0.453743\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 46.348291\n",
+    "stderr": ""
+  },
+  "repair_loop": {
+    "max_repair_attempts": 2,
+    "total_attempts": 2,
+    "initial_status": "failed",
+    "repair_attempts_count": 1,
+    "repair_required": true,
+    "final_status": "passed",
+    "repair_prompt_summary": "Repair isolated coding proof files after test failure (attempt 1).",
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "generation_kind": "initial",
+        "status": "failed",
+        "prompt_summary": "Implement formatBuilderLoopDecisionLabel utility with node:test coverage in an isolated workspace.",
+        "test_exit_code": 1,
+        "test_stdout": "TAP version 13\n# Subtest: formatBuilderLoopDecisionLabel\nnot ok 1 - formatBuilderLoopDecisionLabel\n  ---\n  duration_ms: 0.380263\n  type: 'test'\n  location: '/tmp/vera-builder-loop-coding-21cb01787559-pDIvmV/src/formatBuilderLoopDecisionLabel.test.js:4:1'\n  failureType: 'testCodeFailure'\n  error: 'formatBuilderLoopDecisionLabel is not defined'\n  code: 'ERR_TEST_FAILURE'\n  name: 'ReferenceError'\n  stack: |-\n    TestContext.<anonymous> (file:///tmp/vera-builder-loop-coding-21cb01787559-pDIvmV/src/formatBuilderLoopDecisionLabel.test.js:5:10)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 40.436551\n",
+        "test_stderr": "",
+        "files_changed": [
+          "src/formatBuilderLoopDecisionLabel.js",
+          "src/formatBuilderLoopDecisionLabel.test.js"
+        ]
+      },
+      {
+        "attempt_number": 2,
+        "generation_kind": "repair",
+        "status": "passed",
+        "prompt_summary": "Implement formatBuilderLoopDecisionLabel utility with node:test coverage in an isolated workspace.",
+        "repair_prompt_summary": "Repair isolated coding proof files after test failure (attempt 1).",
+        "test_exit_code": 0,
+        "test_stdout": "TAP version 13\n# Subtest: formatBuilderLoopDecisionLabel\nok 1 - formatBuilderLoopDecisionLabel\n  ---\n  duration_ms: 0.453743\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 46.348291\n",
+        "test_stderr": "",
+        "files_changed": [
+          "src/formatBuilderLoopDecisionLabel.js",
+          "src/formatBuilderLoopDecisionLabel.test.js"
+        ]
+      }
+    ]
+  },
+  "evidence": {
+    "evidence_id": "local-model-coding-proof-d1ff04ca54488e59",
+    "summary": "Local model generated code in an isolated workspace, bounded repair corrected failing tests, and a reviewable patch was returned.",
+    "workspace_type": "system_created_temp_workspace",
+    "workspace_id": "21cb01787559",
+    "workspace_retention": "contained_for_test",
+    "workspace_exists_after_cleanup": true,
+    "checks_run": [
+      {
+        "name": "generated_files_contained_in_workspace",
+        "status": "passed",
+        "summary": "Generated code files were written only inside the system-created temp workspace."
+      },
+      {
+        "name": "patch_returned",
+        "status": "passed",
+        "summary": "Unified diff was generated for operator review."
+      },
+      {
+        "name": "isolated_tests_executed",
+        "status": "passed",
+        "summary": "node --test passed inside the isolated workspace after bounded repair."
+      }
+    ],
+    "boundary_flags": {
+      "local_model_coding_proof": true,
+      "system_source_of_truth": true,
+      "console_metadata_authoritative": false,
+      "repo_mutation_authorized": false,
+      "branch_creation_authorized": false,
+      "commit_creation_authorized": false,
+      "pr_creation_authorized": false,
+      "deploy_authorized": false,
+      "merge_authorized": false,
+      "final_integration_authorized": false,
+      "arbitrary_execution_authorized": false,
+      "arbitrary_filesystem_path_authorized": false,
+      "production_data_used": false,
+      "model_generation_real": true
+    }
+  },
+  "boundary_flags": {
+    "local_model_coding_proof": true,
+    "system_source_of_truth": true,
+    "console_metadata_authoritative": false,
+    "repo_mutation_authorized": false,
+    "branch_creation_authorized": false,
+    "commit_creation_authorized": false,
+    "pr_creation_authorized": false,
+    "deploy_authorized": false,
+    "merge_authorized": false,
+    "final_integration_authorized": false,
+    "arbitrary_execution_authorized": false,
+    "arbitrary_filesystem_path_authorized": false,
+    "production_data_used": false,
+    "model_generation_real": true
+  },
+  "execution_mode": "local_model_coding_proof",
+  "integration_mode": "blocked_manual_only",
+  "final_integration_authorized": false,
+  "repo_mutation_authorized": false,
+  "branch_creation_authorized": false,
+  "commit_creation_authorized": false,
+  "pr_creation_authorized": false,
+  "deploy_authorized": false,
+  "merge_authorized": false,
+  "arbitrary_execution_authorized": false,
+  "arbitrary_filesystem_path_authorized": false,
+  "console_metadata_authoritative": false
+}

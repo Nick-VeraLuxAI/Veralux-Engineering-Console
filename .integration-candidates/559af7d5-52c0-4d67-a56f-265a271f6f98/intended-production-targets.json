@@ -1,0 +1,6 @@
+{
+  "intended_production_targets": [
+    "src/prototypes/word-count-cli.mjs",
+    "src/prototypes/word-count-cli.test.mjs"
+  ]
+}

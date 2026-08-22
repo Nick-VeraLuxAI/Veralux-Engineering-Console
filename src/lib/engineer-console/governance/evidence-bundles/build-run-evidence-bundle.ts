@@ -53,6 +53,8 @@ import { summarizeDeploymentHealthPolicyForRun } from "../../release/deployment-
 import { summarizeReleaseChecklistForRun } from "../../release/release-checklist/release-checklist-manager";
 import { summarizeReleaseSignoffForRun } from "../../release/release-signoff/release-signoff-manager";
 import { getCompatibilitySummaryForRepo } from "../../repo-intelligence/compatibility/compatibility-manager";
+import { getAutonomousState } from "../../autonomous-engineer/state-store";
+import { toEvidenceSeniorReviewSummary } from "../../senior-escalation/durable-state";
 
 export interface BuildRunEvidenceBundleInput {
   runId: string;
@@ -350,6 +352,9 @@ export async function buildRunEvidenceBundle(
     releaseSignoff: buildReleaseSignoffSummary(run.id),
     compatibility: buildCompatibilitySummary(task.registeredRepoId),
     audit: buildAuditReference(run.id),
+    seniorReview: toEvidenceSeniorReviewSummary(
+      getAutonomousState(run.id)?.document.seniorReview ?? null,
+    ),
     timestamps: {
       runStartedAt: run.startedAt,
       runCompletedAt: run.completedAt,

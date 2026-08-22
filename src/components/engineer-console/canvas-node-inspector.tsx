@@ -40,7 +40,7 @@ export function CanvasNodeInspector({
       position={overlayState.position}
       onMove={onMove}
       draggable
-      placementClassName="left-4 bottom-24 xl:left-auto xl:right-4 xl:top-56 xl:bottom-auto"
+      placementClassName="bottom-24 left-1/2 -translate-x-1/2"
       containerClassName="w-[min(22rem,calc(100vw-2rem))]"
       surfaceClassName="border-white/8 bg-[#08111c]/82 shadow-[0_24px_52px_rgba(2,6,23,0.32)]"
       bodyClassName="p-5"

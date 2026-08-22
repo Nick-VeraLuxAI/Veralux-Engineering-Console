@@ -1,0 +1,60 @@
+{
+  "schema_version": "veralux-console-prototype-implementation-plan/v1",
+  "implementation_plan_id": "f90ca550-5c89-4128-80d5-0e82f475e55b",
+  "timestamp": "2026-06-25T01:04:47.620Z",
+  "planning_status": "implementation_plan_recorded",
+  "accepted": true,
+  "implementation_request_id": "dedc59cb-62ad-4355-ab4c-3938d940e765",
+  "approval_decision_id": "8f2c16a2-67f8-403e-bdf9-3b80e079c9dc",
+  "task_id": "phase49-1782349486-task",
+  "run_id": "phase49-1782349486-run",
+  "evidence_path": "evidence/prototype-loop-v1/phase49-1782349486.json",
+  "revision_task_id": "phase49-1782349486-revision-task",
+  "revision_run_id": "phase49-1782349486-revision-run",
+  "revision_evidence_path": "evidence/prototype-loop-v1/phase49-1782349486-revision.json",
+  "final_readiness_status": "ready_for_user_approval",
+  "production_mutation_allowed": false,
+  "approval_required_before_apply": true,
+  "proposed_implementation_summary": "Plan a governed production implementation of the approved word-count CLI prototype behavior without applying code in Phase 38.",
+  "proposed_file_targets": [
+    "Production CLI or application entrypoint to be selected in a later planning review.",
+    "Production test file(s) to be selected in a later planning review.",
+    "Documentation or usage notes if required by the later governed apply phase."
+  ],
+  "proposed_integration_strategy": [
+    "Review prototype evidence and final readiness before selecting production targets.",
+    "Prepare a separate implementation patch only after user approval of an apply phase.",
+    "Keep prototype artifacts as reference material; do not copy them directly without review."
+  ],
+  "proposed_test_plan": [
+    "Add or update unit tests for word count, character count, and top repeated words.",
+    "Run the relevant package test command selected during the later implementation phase.",
+    "Re-run safety checks before any apply proposal is accepted."
+  ],
+  "proposed_rollback_strategy": [
+    "Keep implementation changes isolated in a later reviewed patch.",
+    "Revert only the later implementation patch if validation fails.",
+    "Preserve prototype evidence and approval decision records for audit."
+  ],
+  "risk_impact_notes": [
+    "Production file targets are not selected in Phase 38.",
+    "The approved prototype may require adaptation before production use.",
+    "User approval is required before any apply phase can mutate files."
+  ],
+  "safety_constraints": [
+    "Do not mutate production files in Phase 37.",
+    "Do not copy generated prototype files into production.",
+    "Do not merge, deploy, apply patches, or run implementation executors.",
+    "Preserve task/run/evidence and approval decision lineage.",
+    "Use this payload only for a later governed implementation-planning phase."
+  ],
+  "explicit_non_actions": [
+    "No files changed.",
+    "No production code applied.",
+    "No merge or deploy performed.",
+    "No pull request created.",
+    "No prototype files copied into production."
+  ],
+  "next_expected_phase": "governed_implementation_apply_proposal",
+  "user_note": "Phase 49 smoke: request Console implementation planning only."
+}

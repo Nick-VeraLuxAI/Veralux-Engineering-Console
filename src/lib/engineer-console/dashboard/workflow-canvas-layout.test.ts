@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { WorkflowMapNode } from "./workflow-map";
 import {
+  areWorkflowCanvasNodesVisibleInView,
   buildWorkflowCanvasEdgePath,
   buildWorkflowCanvasEdges,
   fitWorkflowCanvasView,
@@ -23,16 +24,16 @@ const BASE_NODES: WorkflowMapNode[] = [
 ];
 
 describe("workflow-canvas-layout", () => {
-  it("creates a fit-to-view transform that differs from the default view", () => {
+  it("uses fit-to-view as the default camera so the whole map is visible", () => {
     const layout = getDefaultWorkflowCanvasLayout();
     const viewport = { width: 1280, height: 760 };
     const safeArea = getWorkflowCanvasSafeArea(viewport.width, viewport.height);
     const defaultView = getDefaultWorkflowCanvasView(viewport, safeArea);
     const fitView = fitWorkflowCanvasView(layout, viewport, safeArea);
 
-    expect(fitView.zoom).toBeGreaterThanOrEqual(0.5);
+    expect(fitView.zoom).toBeGreaterThanOrEqual(0.28);
     expect(fitView.zoom).toBeLessThanOrEqual(1.75);
-    expect(fitView).not.toEqual(defaultView);
+    expect(defaultView).toEqual(fitView);
   });
 
   it("zooms around an anchor point", () => {
@@ -88,6 +89,34 @@ describe("workflow-canvas-layout", () => {
     expect(edges.find((edge) => edge.id === "task-run")?.tone).toBe("warning");
     expect(edges.find((edge) => edge.id === "run-audit")?.tone).toBe("warning");
     expect(edges.find((edge) => edge.id === "pr-release")?.tone).toBe("blocked");
+  });
+
+  it("connects stages in workflow order instead of a star around run", () => {
+    const edges = buildWorkflowCanvasEdges(BASE_NODES);
+
+    expect(edges.map((edge) => `${edge.source}->${edge.target}`)).toEqual([
+      "setup->repository",
+      "repository->task",
+      "task->run",
+      "run->review",
+      "review->pr",
+      "pr->release",
+      "run->audit",
+    ]);
+    expect(edges.filter((edge) => edge.role === "sequence")).toHaveLength(6);
+    expect(edges.find((edge) => edge.id === "run-audit")?.role).toBe("record");
+  });
+
+  it("fits the whole pipeline on a mobile viewport", () => {
+    const layout = getDefaultWorkflowCanvasLayout();
+    const viewport = { width: 390, height: 844 };
+    const safeArea = getWorkflowCanvasSafeArea(viewport.width, viewport.height, {
+      toolbarCollapsed: true,
+    });
+    const view = fitWorkflowCanvasView(layout, viewport, safeArea);
+
+    expect(view.zoom).toBeGreaterThanOrEqual(0.28);
+    expect(areWorkflowCanvasNodesVisibleInView(layout, view, viewport, safeArea)).toBe(true);
   });
 
   it("restores default coordinates by rebuilding the default layout", () => {

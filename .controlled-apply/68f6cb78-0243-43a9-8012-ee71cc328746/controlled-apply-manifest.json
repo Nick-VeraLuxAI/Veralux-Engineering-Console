@@ -1,0 +1,30 @@
+{
+  "schema_version": "veralux-console-controlled-apply-workspace/v1",
+  "controlled_apply_id": "68f6cb78-0243-43a9-8012-ee71cc328746",
+  "created_at": "2026-06-25T01:04:49.004Z",
+  "workspace_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.controlled-apply/68f6cb78-0243-43a9-8012-ee71cc328746",
+  "source": "phase_43_controlled_apply",
+  "lineage": {
+    "apply_approval_decision_id": "93d5cb2c-cda0-4fe5-b2e0-cc1808cb0d6c",
+    "apply_proposal_id": "5b32a0b8-2051-4443-8e4b-b2cc7c91f06e",
+    "implementation_plan_id": "f90ca550-5c89-4128-80d5-0e82f475e55b",
+    "implementation_request_id": "dedc59cb-62ad-4355-ab4c-3938d940e765",
+    "approval_decision_id": "8f2c16a2-67f8-403e-bdf9-3b80e079c9dc",
+    "task_id": "phase49-1782349486-task",
+    "run_id": "phase49-1782349486-run",
+    "evidence_path": "evidence/prototype-loop-v1/phase49-1782349486.json",
+    "revision_task_id": "phase49-1782349486-revision-task",
+    "revision_run_id": "phase49-1782349486-revision-run",
+    "revision_evidence_path": "evidence/prototype-loop-v1/phase49-1782349486-revision.json",
+    "plan_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/prototype-implementation-plans/f90ca550-5c89-4128-80d5-0e82f475e55b.json",
+    "proposal_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/prototype-apply-proposals/5b32a0b8-2051-4443-8e4b-b2cc7c91f06e.json"
+  },
+  "safety": {
+    "review_required": true,
+    "integration_allowed": false,
+    "merge_allowed": false,
+    "deploy_allowed": false,
+    "pr_allowed": false,
+    "production_mutation_allowed": false
+  }
+}

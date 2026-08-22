@@ -177,7 +177,14 @@ export function persistAutonomousDocument(
   }
   assertTransition(existing.currentState, document.currentState);
   const now = nowIso();
-  const next: AutonomousDocument = { ...document, updatedAt: now };
+  const next: AutonomousDocument = {
+    ...document,
+    seniorReview:
+      document.seniorReview !== undefined
+        ? document.seniorReview
+        : existing.document.seniorReview,
+    updatedAt: now,
+  };
   getEngineerConsoleDb()
     .prepare(
       `UPDATE engineer_autonomous_run_states SET
@@ -218,6 +225,24 @@ export function transitionAutonomousState(
     ...existing.document,
     ...patch,
     currentState: nextState,
+    updatedAt: nowIso(),
+  };
+  return persistAutonomousDocument(runId, document);
+}
+
+/** Merge a document patch without changing AE state unless the patch says so. */
+export function patchAutonomousDocument(
+  runId: string,
+  patch: Partial<AutonomousDocument>,
+): AutonomousRunStateRecord {
+  const existing = getAutonomousState(runId);
+  if (!existing) {
+    throw new Error(`Autonomous state not found for run ${runId}`);
+  }
+  const document: AutonomousDocument = {
+    ...existing.document,
+    ...patch,
+    currentState: patch.currentState ?? existing.document.currentState,
     updatedAt: nowIso(),
   };
   return persistAutonomousDocument(runId, document);

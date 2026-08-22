@@ -15,12 +15,14 @@ import {
   focusNodeInWorkflowCanvasView,
   getDefaultWorkflowCanvasLayout,
   getDefaultWorkflowCanvasView,
+  getWorkflowCanvasPhases,
   getWorkflowCanvasSafeArea,
   moveWorkflowCanvasNode,
   panWorkflowCanvasView,
   type WorkflowCanvasPoint,
   type WorkflowCanvasSize,
   type WorkflowCanvasViewState,
+  WORKFLOW_CANVAS_NODE_SIZE,
   WORKFLOW_CANVAS_WORLD_SIZE,
   zoomWorkflowCanvasView,
 } from "@/lib/engineer-console/dashboard/workflow-canvas-layout";
@@ -102,12 +104,13 @@ export function WorkflowCanvas({
   const viewRef = useRef<WorkflowCanvasViewState>(INITIAL_VIEW);
   const positionsRef = useRef(getDefaultWorkflowCanvasLayout());
   const initializedRef = useRef(false);
+  const lastViewportSizeRef = useRef<WorkflowCanvasSize>(INITIAL_VIEWPORT_SIZE);
   const [viewportSize, setViewportSize] = useState<WorkflowCanvasSize>(INITIAL_VIEWPORT_SIZE);
   const [view, setView] = useState<WorkflowCanvasViewState>(INITIAL_VIEW);
   const [positions, setPositions] = useState(getDefaultWorkflowCanvasLayout);
   const [draggingNodeId, setDraggingNodeId] = useState<WorkflowMapNodeId | null>(null);
   const [layoutLocked, setLayoutLocked] = useState(false);
-  const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(true);
   const [cameraMotionEnabled, setCameraMotionEnabled] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const safeArea = useMemo(
@@ -159,8 +162,8 @@ export function WorkflowCanvas({
       .map((nodeId) => ({
         minX: positions[nodeId].x,
         minY: positions[nodeId].y,
-        maxX: positions[nodeId].x + 208,
-        maxY: positions[nodeId].y + 128,
+        maxX: positions[nodeId].x + WORKFLOW_CANVAS_NODE_SIZE.width,
+        maxY: positions[nodeId].y + WORKFLOW_CANVAS_NODE_SIZE.height,
       }))
       .reduce(
         (current, rect) => ({
@@ -202,8 +205,8 @@ export function WorkflowCanvas({
   const selectedNodeGlow = useMemo(() => {
     const position = positions[focalPoint.focalNodeId];
     return {
-      left: position.x + 104,
-      top: position.y + 64,
+      left: position.x + WORKFLOW_CANVAS_NODE_SIZE.width / 2,
+      top: position.y + WORKFLOW_CANVAS_NODE_SIZE.height / 2,
     };
   }, [focalPoint.focalNodeId, positions]);
   const canvasStyle = useMemo(
@@ -280,18 +283,14 @@ export function WorkflowCanvas({
   useEffect(() => {
     if (viewportSize.width <= 0 || viewportSize.height <= 0) return;
 
-    if (!initializedRef.current) {
+    const viewportChanged =
+      lastViewportSizeRef.current.width !== viewportSize.width ||
+      lastViewportSizeRef.current.height !== viewportSize.height;
+    lastViewportSizeRef.current = viewportSize;
+
+    if (!initializedRef.current || viewportChanged) {
       initializedRef.current = true;
-      const defaultView = getDefaultWorkflowCanvasView(viewportSize, safeArea);
-      setView(
-        focusWorkflowCameraTarget(
-          defaultView,
-          { kind: "node", nodeId: focalPoint.focalNodeId },
-          positionsRef.current,
-          viewportSize,
-          safeArea,
-        ),
-      );
+      setView(fitWorkflowCanvasView(positionsRef.current, viewportSize, safeArea));
       return;
     }
 
@@ -305,7 +304,7 @@ export function WorkflowCanvas({
     setView((current) =>
       focusNodeInWorkflowCanvasView(current, positions, selectedNodeId, viewportSize, safeArea),
     );
-  }, [draggingNodeId, positions, safeArea, selectedNodeId, viewportSize]);
+  }, [draggingNodeId, positions, selectedNodeId]);
 
   useEffect(() => {
     return () => {
@@ -463,10 +462,11 @@ export function WorkflowCanvas({
       ref={containerRef}
       className="relative h-full min-h-[32rem] overflow-hidden touch-none"
       data-workflow-canvas="true"
+      data-workflow-structure="pipeline"
       data-canvas-focus-node={focalPoint.focalNodeId}
       data-canvas-focus-reason={focalPoint.focusReason}
       data-canvas-focus-tone={focalPoint.focalTone}
-      aria-label="Architecture canvas"
+      aria-label="Engineering workflow"
       style={canvasStyle}
       onPointerDown={handleCanvasPointerDown}
       onWheel={(event) => {
@@ -519,7 +519,7 @@ export function WorkflowCanvas({
         className="absolute inset-0 motion-safe:transition-[background-image,opacity] motion-safe:duration-[220ms]"
         style={{
           backgroundImage:
-            "radial-gradient(circle at var(--canvas-focus-x) var(--canvas-focus-y), rgb(var(--canvas-focus-rgb) / 0.22) 0%, rgb(var(--canvas-focus-rgb) / 0.12) 16%, rgb(var(--canvas-focus-rgb) / 0.05) 28%, transparent 46%)",
+            "radial-gradient(circle at var(--canvas-focus-x) var(--canvas-focus-y), rgb(var(--canvas-focus-rgb) / 0.08) 0%, rgb(var(--canvas-focus-rgb) / 0.03) 18%, transparent 36%)",
         }}
       />
       <div
@@ -599,14 +599,14 @@ export function WorkflowCanvas({
             <defs>
               <marker
                 id="workflow-edge-arrow"
-                markerWidth="10"
-                markerHeight="10"
+                viewBox="0 0 10 10"
                 refX="8"
                 refY="5"
+                markerWidth="6"
+                markerHeight="6"
                 orient="auto"
-                markerUnits="userSpaceOnUse"
               >
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(148,163,184,0.72)" />
+                <path d="M 1 1 L 8 5 L 1 9" fill="none" stroke="rgba(255,255,255,0.42)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </marker>
             </defs>
             {edges.map((edge) => (
@@ -615,19 +615,32 @@ export function WorkflowCanvas({
                 path={buildWorkflowCanvasEdgePath({ layout: positions, edge })}
                 tone={edge.tone}
                 animated={edge.animated}
+                role={edge.role}
                 connected={connectedEdgeIds.has(edge.id)}
-                dimmed={connectedEdgeIds.size > 0 && !connectedEdgeIds.has(edge.id)}
+                dimmed={false}
               />
             ))}
           </svg>
+
+          {getWorkflowCanvasPhases().map((phase) => (
+            <p
+              key={phase.id}
+              data-workflow-phase={phase.id}
+              className="pointer-events-none absolute text-[11px] font-medium uppercase tracking-[0.16em] text-white/45"
+              style={{ left: phase.x, top: phase.y, width: WORKFLOW_CANVAS_NODE_SIZE.width }}
+            >
+              {phase.label}
+            </p>
+          ))}
 
           {nodes.map((node) => (
             <WorkflowCanvasNode
               key={node.id}
               node={node}
               selected={node.id === selectedNodeId}
+              attention={node.id === featuredIssueNodeId}
               connected={connectedNodeIds.has(node.id)}
-              dimmed={connectedNodeIds.size > 0 && !connectedNodeIds.has(node.id)}
+              dimmed={false}
               dragging={draggingNodeId === node.id}
               style={{
                 left: positions[node.id].x,
@@ -642,12 +655,6 @@ export function WorkflowCanvas({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute right-6 top-28 z-20 hidden rounded-full border border-white/8 bg-black/15 px-3 py-1.5 text-[10px] text-[var(--muted)] md:block">
-        Drag nodes or pan empty space
-      </div>
-      <div className="pointer-events-none absolute bottom-6 left-6 z-20 hidden rounded-full border border-white/8 bg-black/15 px-3 py-1.5 text-[10px] text-[var(--muted)] md:block">
-        Local canvas layout only
-      </div>
     </section>
   );
 }

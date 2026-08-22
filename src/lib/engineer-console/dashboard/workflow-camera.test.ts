@@ -24,14 +24,14 @@ describe("workflow-camera", () => {
     expect(focused.y).not.toBe(view.y);
   });
 
-  it("keeps the selected node left of center when the right inspector safe area is reserved", () => {
+  it("centers a node in the remaining safe area", () => {
     const view = getDefaultWorkflowCanvasView(viewport, safeArea);
     const focused = centerNodeInWorkflowCanvasView(view, layout, "run", viewport, safeArea);
-    const nodeCenterX = layout.run.x + 104;
+    const nodeCenterX = layout.run.x + 84;
     const availableCenterX = safeArea.left + (viewport.width - safeArea.left - safeArea.right) / 2;
 
     expect(Math.round(focused.x + nodeCenterX * focused.zoom)).toBe(Math.round(availableCenterX));
-    expect(availableCenterX).toBeLessThan(viewport.width / 2);
+    expect(availableCenterX).toBeGreaterThan(viewport.width / 2 - 40);
   });
 
   it("focuses the activity region without jumping to full fit view", () => {
@@ -53,7 +53,7 @@ describe("workflow-camera", () => {
       safeArea,
     );
 
-    expect(fitView).not.toEqual(view);
+    expect(fitView).toEqual(view);
     expect(taskView.zoom).toBe(view.zoom);
     expect(taskView.x).not.toBe(view.x);
   });

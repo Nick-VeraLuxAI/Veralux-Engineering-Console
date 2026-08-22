@@ -20,7 +20,7 @@ test.describe("Engineering Console trusted local smoke", () => {
   }
 
   async function openIssueCenter(page: import("@playwright/test").Page) {
-    const launcher = page.locator('[data-issue-center-expanded="false"] button').first();
+    const launcher = page.locator('[data-canvas-open-issues="true"]').first();
     await launcher.evaluate((node) => {
       (node as HTMLButtonElement).click();
     });
@@ -40,17 +40,17 @@ test.describe("Engineering Console trusted local smoke", () => {
     await expect(page.getByRole("link", { name: "Home", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Compatibility", exact: true })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Engineering Console" })).toBeVisible();
-    await expect(page.locator('[data-canvas-top-context="true"]')).toContainText("Architecture");
+    await expect(page.locator('[data-canvas-top-context="true"]')).toContainText("Map");
     await expect(page.locator('[data-workflow-canvas="true"]')).toBeVisible();
     await expect(page.locator('[data-canvas-bottom-dock="true"]')).toBeVisible();
     await expect(page.locator('[data-canvas-toolbar="true"]')).toBeVisible();
-    await expect(page.locator('[data-canvas-zoom-label="true"]')).toContainText("%");
+    await expect(page.locator('[data-canvas-toolbar="true"]')).toHaveAttribute("data-canvas-toolbar-collapsed", "true");
     await expect(page.getByRole("heading", { name: "Setup readiness" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Operator Queue" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Run staging smoke workflow" })).toHaveCount(0);
     await expect(page.getByText(/Focus mode|Enter focus/i)).toHaveCount(0);
     await expect(page.locator('[data-detail-drawer="true"]')).toHaveCount(0);
-    await expect(page.locator('[data-floating-issue-card="true"]').first()).toBeVisible();
+    await expect(page.locator('[data-floating-issue-card="true"]')).toHaveCount(0);
     await expect(page.locator('[data-workflow-node="run"]').first()).toBeVisible();
     await expect(page.locator('[data-canvas-world="true"] svg').first()).toBeVisible();
     await expect(page.locator('[data-canvas-edge="true"]')).toHaveCount(7);
@@ -140,8 +140,7 @@ test.describe("Engineering Console trusted local smoke", () => {
     expect(Math.abs(geometry.left - (geometry.viewportWidth - geometry.right))).toBeLessThanOrEqual(4);
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
     await expect(commandBar).toContainText("Engineering Console");
-    await expect(commandBar).toContainText("Architecture");
-    await expect(commandBar).toContainText("View queue");
+    await expect(commandBar).toContainText("Map");
     await expect(commandBar.getByRole("button", { name: "Tasks", exact: true })).toHaveCount(0);
     await expect(commandBar.getByRole("button", { name: "Runs", exact: true })).toHaveCount(0);
     await expect(commandBar.getByRole("button", { name: "Repositories", exact: true })).toHaveCount(0);
@@ -321,13 +320,12 @@ test.describe("Engineering Console trusted local smoke", () => {
       (node as HTMLButtonElement).click();
     });
     await expect(page.locator("#canvas-side-panel")).toContainText("Run");
-    const issueCard = page.locator('[data-floating-issue-card="true"]').first();
-    await expect(issueCard).toBeVisible();
-    await issueCard
-      .getByRole("button")
-      .filter({ hasText: /Open|Register/i })
+    await page
+      .locator("#canvas-side-panel")
+      .getByRole("link")
+      .first()
       .evaluate((node) => {
-        (node as HTMLButtonElement).click();
+        (node as HTMLAnchorElement).click();
       });
     await expect(page).not.toHaveURL(/\/engineer\/?$/);
   });
@@ -528,12 +526,12 @@ test.describe("Engineering Console trusted local smoke", () => {
 
   test("registered repos page loads", async ({ page }) => {
     await page.goto("/engineer/repos");
-    await expect(page.locator('[data-engineer-route-shell="default"]')).toBeVisible();
-    await expect(page.getByRole("link", { name: "Home", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Engineering Console", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Repositories", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Compatibility", exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Registered repositories" })).toBeVisible();
+    await expect(page.locator('[data-engineer-route-shell="immersive"]')).toBeVisible();
+    await expect(page.locator('[data-engineer-surface="sheet"]')).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Engineering Console" })).toBeVisible();
+    await expect(page.locator('[data-canvas-bottom-dock="true"]')).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open VeraLux menu" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Repositories" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Register repository" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Approved repo roots" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Repo setup order" })).toBeVisible();
@@ -541,7 +539,7 @@ test.describe("Engineering Console trusted local smoke", () => {
 
   test("compatibility page loads", async ({ page }) => {
     await page.goto("/engineer/compatibility");
-    await expect(page.getByRole("heading", { name: "Compatibility analysis" }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Compatibility" }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Run compatibility analysis" })).toBeVisible();
     await expect(page.getByText(/Compatibility analysis/i).first()).toBeVisible();
   });

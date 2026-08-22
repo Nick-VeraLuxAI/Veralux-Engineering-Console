@@ -347,6 +347,11 @@ export interface AutonomousDocument {
   updatedAt: string;
   pausedAt: string | null;
   directorAbortReason: string | null;
+  /**
+   * Advisory senior-review evidence. Not a release gate.
+   * Preserved when the AE loop persists a document that omits this field.
+   */
+  seniorReview?: import("../senior-escalation/durable-types").DurableSeniorReviewState;
 }
 
 export interface AutonomousRunStateRecord {

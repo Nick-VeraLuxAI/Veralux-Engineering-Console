@@ -4,6 +4,7 @@ Status: **PROMOTED**
 Branch: `feature/autonomous-engineer-v1`  
 Date: 2026-08-20  
 Prior: `nemotron-nano-faithful-runtime-requalification.md`, `nemotron-nano-ae-invocation-fidelity-audit.md`  
+Local role split (8081 short worker / 8082 long worker / DeepSeek senior on demand): `local-model-runtime-strategy.md`.  
 Weights: **same** NVFP4 (`/models/nano-30b-a3b-nvfp4`)  
 Non-goals honored: no SkillOpt, no Super-as-worker, no AE redesign, no semantic ceiling raise (ledger primary=8, jobs=6), no push/PR.
 
