@@ -15,7 +15,7 @@ Push / PR: **not performed**
 | AE freeze packaging (AE branch tip) | `f57fce2407c9a6ae0ccad620a4bfbfa9dc895291` |
 | SkillOpt feature commit (capture/extract/curate/version/shadow/no injection) | `501fa93f82f563f8951bf926e219a136ebd91639` |
 | SkillOpt tip before this packaging | `41a3aa626f1ebd85270e8bc195a2f39e7567943f` |
-| **SKILLOPT_V1_RELEASE_COMMIT** | tip of `feature/ae-skillopt-learning-layer` after this report commit (see git) |
+| **SKILLOPT_V1_RELEASE_COMMIT** | `2e8fbbe032479547c1420c296857b5c9177a05ff` |
 
 `0ad49d4` contains faithful Nano, post-QC repair, `delete_file`, material AC / word-boundary, false-completion, sync/async grounding, conditional rescue, shared-path restoration, Q1 closure, **ROBUST CODE QUALIFIED**.  
 `feature/ae-skillopt-learning-layer` **contains** AE packaging as ancestor (`merge-base` = `f57fce2`). Combined PR should use the SkillOpt branch. Do **not** merge SkillOpt into `feature/autonomous-engineer-v1` unless a combined candidate on that name is requested.

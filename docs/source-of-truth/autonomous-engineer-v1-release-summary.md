@@ -14,7 +14,7 @@ A freeze of the qualified Autonomous Engineer intelligence loop plus a **passive
 | **AE_V1_RELEASE_COMMIT** (intelligence) | `0ad49d4bf8f862c690b555079406a24a4a7353c4` |
 | AE freeze packaging (AE branch tip) | `f57fce2407c9a6ae0ccad620a4bfbfa9dc895291` |
 | SkillOpt branch contains AE packaging as ancestor | yes (`merge-base` = `f57fce2…`) |
-| **SKILLOPT_V1_RELEASE_COMMIT** | see final release report (tip of `feature/ae-skillopt-learning-layer` after RC docs) |
+| **SKILLOPT_V1_RELEASE_COMMIT** | `2e8fbbe032479547c1420c296857b5c9177a05ff` |
 
 ## Qualification (frozen)
 
