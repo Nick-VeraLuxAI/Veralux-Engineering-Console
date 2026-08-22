@@ -10,7 +10,9 @@ SkillOpt does **not** live inside `autonomous-engineer/` intelligence prompts as
 
 # `SKILLOPT PASSIVE LEARNING LAYER READY`
 
-Status detail: passive / shadow only — capture, extraction, curation, versioning, evidence linking, and shadow retrieval are on; prompt injection remains **OFF** (`aePromptsModifiedBySkillOpt=0`).
+# `SKILLOPT V1 IS PASSIVE / SHADOW ONLY`
+
+Status detail: passive / shadow only — capture, extraction, curation, versioning, evidence linking, and shadow retrieval are on; prompt injection remains **OFF** (`AE PROMPTS MODIFIED BY SKILLOPT = 0`).
 
 ### Exact activation rule
 
@@ -114,11 +116,7 @@ Retrieval filters by query `modelId` / `modelFamily`. Model swap must drop `mode
 
 ## 7. Model onboarding (future)
 
-1. Fidelity audit of wrapper / serve recipe  
-2. Baseline AE **WITHOUT** SkillOpt  
-3. Enable model-independent SkillOpt experiment (shadow)  
-4. A/B vs baseline  
-5. Promote only after proven improvement without regression  
+Authority: `docs/source-of-truth/ae-model-onboarding-playbook.md` (9-step sequence).
 
 **Never** hide a broken model wrapper behind SkillOpt.
 
@@ -134,6 +132,18 @@ Active skill→prompt injection requires:
 
 Until then: **`AE PROMPTS MODIFIED BY SKILLOPT = 0`**.
 
+### Active SkillOpt future gate (must all be true)
+
+Prompt injection stays **OFF** until:
+
+1. Separate controlled A/B qualification cycle vs AE V1 freeze baseline
+2. Explicit product decision to enable `ENGINEER_CONSOLE_SKILLOPT_PROMPT_INJECTION`
+3. Regression proof that freeze properties still hold (false-completion, QC, review, AC, governance, FAITHFUL contract)
+4. Model-specific lessons never applied across model swap
+5. No use of SkillOpt to disguise a broken wrapper / DEGRADED serve
+
+Until that gate: **PROMPT INJECTION=OFF**. `applySkillPromptInjection` remains unsupported.
+
 ---
 
 ## 9. UI / metrics
@@ -147,6 +157,11 @@ Until then: **`AE PROMPTS MODIFIED BY SKILLOPT = 0`**.
 
 - Seed corpus report: `docs/source-of-truth/ae-skillopt-seed-corpus.md`
 - AE V1 freeze: `docs/source-of-truth/autonomous-engineer-v1-release-freeze.md`
+- Model onboarding playbook: `docs/source-of-truth/ae-model-onboarding-playbook.md`
+- Seed corpus: `docs/source-of-truth/ae-skillopt-seed-corpus.md`
+
+**SKILLOPT V1 IS PASSIVE / SHADOW ONLY**  
+**AE PROMPTS MODIFIED BY SKILLOPT = 0**
 
 ---
 

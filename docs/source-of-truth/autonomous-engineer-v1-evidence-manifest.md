@@ -2,7 +2,7 @@
 
 Status: **FREEZE PACKAGE**  
 Freeze branch: `feature/autonomous-engineer-v1`  
-Freeze SHA: `0ad49d4bf8f862c690b555079406a24a4a7353c4`  
+Freeze SHA: `0ad49d4bf8f862c690b555079406a24a4a7353c4` (`AE_V1_RELEASE_COMMIT`)  
 Freeze SoT: `docs/source-of-truth/autonomous-engineer-v1-release-freeze.md`  
 Verdict linked: **`SHARED BASELINE RESTORED — Q1 CLOSED — ROBUST CODE QUALIFIED`**
 
@@ -109,14 +109,40 @@ Note: final-requal tip recorded `NOT ROBUST CODE QUALIFIED` on feature delivery 
 
 ---
 
+## J. SkillOpt passive layer (combined RC, not intelligence freeze)
+
+| Artifact | Path | Purpose | Verdict |
+| --- | --- | --- | --- |
+| SkillOpt layer SoT | `docs/source-of-truth/ae-skillopt-learning-layer-v1.md` | Passive architecture, flags | `SKILLOPT PASSIVE LEARNING LAYER READY` |
+| Seed corpus | `docs/source-of-truth/ae-skillopt-seed-corpus.md` | Six validated + one rejected | seeded; injection off |
+| Model onboarding | `docs/source-of-truth/ae-model-onboarding-playbook.md` | 9-step; never hide broken wrapper | playbook |
+| Implementation | `src/lib/engineer-console/skillopt/` | capture/extract/curate/version/shadow | injection unsupported |
+| Tests | `src/lib/engineer-console/skillopt/skillopt.test.ts` | hashes equal, `actuallyInjected=false` | pass in RC regression |
+| Seed script | `scripts/runtime/skillopt/seed-skillopt-corpus.ts` | operator seed | idempotent |
+
+## K. V1 final-release packaging evidence (this mission)
+
+| Artifact | Path | Purpose |
+| --- | --- | --- |
+| Final release report | `docs/source-of-truth/autonomous-engineer-v1-final-release-report.md` | RC verdict |
+| PR description | `docs/source-of-truth/autonomous-engineer-v1-pr-description.md` | prepared, not opened |
+| Release summary | `docs/source-of-truth/autonomous-engineer-v1-release-summary.md` | reviewer brief |
+| Post-V1 backlog | `docs/source-of-truth/autonomous-engineer-post-v1-backlog.md` | out of freeze |
+| Probe tree | `evidence/ae-v1-final-release/` | regression log, nano health, GPU, live smoke |
+
+Does **not** overwrite `evidence/ae-shared-path-regression/` or other prior qualification trees.
+
+---
+
 ## I. Freeze packaging checklist
 
-- [x] Freeze SHA recorded
+- [x] Freeze SHA recorded (`AE_V1_RELEASE_COMMIT` = `0ad49d4bf8f862c690b555079406a24a4a7353c4`)
 - [x] Qualification verdict linked
 - [x] Runtime FAITHFUL contract documented (not altered)
 - [x] Governance / budgets / review / false-completion / rescue documented
 - [x] Rollback path documented
 - [x] Known non-blocking limitations listed
+- [x] Frozen component list documented
 - [ ] Push / PR — **intentionally omitted** unless operator requests
 
 ---

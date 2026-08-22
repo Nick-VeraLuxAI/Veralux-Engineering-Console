@@ -2,9 +2,10 @@
 
 Status: **FROZEN**  
 Branch: `feature/autonomous-engineer-v1`  
-Freeze commit (SHA): `0ad49d4bf8f862c690b555079406a24a4a7353c4`  
+**AE_V1_RELEASE_COMMIT** (intelligence loop): `0ad49d4bf8f862c690b555079406a24a4a7353c4`  
+Packaging commit on AE branch: `f57fce2407c9a6ae0ccad620a4bfbfa9dc895291`  
 Freeze date: 2026-08-21  
-SkillOpt: **OFF** (not part of V1 freeze; separate branch only)  
+SkillOpt: **not part of intelligence freeze** (passive layer lives on `feature/ae-skillopt-learning-layer`, which contains this freeze as ancestor)  
 Push / PR / merge: **not performed in freeze packaging**
 
 ### Exact freeze statement
@@ -20,7 +21,8 @@ Future changes to planning / diagnosis / review prompts, completion logic, failu
 | Item | Value |
 | --- | --- |
 | Branch | `feature/autonomous-engineer-v1` |
-| Freeze SHA | `0ad49d4bf8f862c690b555079406a24a4a7353c4` |
+| **AE_V1_RELEASE_COMMIT** | `0ad49d4bf8f862c690b555079406a24a4a7353c4` |
+| Packaging SHA (AE branch tip) | `f57fce2407c9a6ae0ccad620a4bfbfa9dc895291` |
 | Tip message | `fix(engineer-console): restore shared AE baseline after Q1 path regressions` |
 | Qualification verdict | **`SHARED BASELINE RESTORED — Q1 CLOSED — ROBUST CODE QUALIFIED`** |
 | Authority SoT | `docs/source-of-truth/ae-shared-path-regression-restoration.md` |
@@ -196,6 +198,90 @@ Policy: **`FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE`**.
 
 Freeze packaging = this SoT + evidence manifest + local freeze commit(s).  
 **Default: no push, no PR** unless an operator explicitly requests publication of `feature/autonomous-engineer-v1`.
+
+Combined RC docs (SkillOpt passive + V1 freeze) are intended on `feature/ae-skillopt-learning-layer` because that branch already contains freeze packaging as ancestor. Do **not** merge SkillOpt into `feature/autonomous-engineer-v1` unless a combined candidate is explicitly chosen.
+
+---
+
+## 14. Frozen component list
+
+Changing any item below requires a new qualification cycle:
+
+| Component | Identity |
+| --- | --- |
+| Planning / replan / diagnosis / review prompts | `loop.ts` prompt assembly; `worker-client.ts` role system strings |
+| Faithful Nano invocation | `nano-faithful-invocation.ts` |
+| Conditional GBE rescue | `nano-conditional-budget-rescue.ts` — `FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE`; `FINAL_PLAN_RESERVE=1700`; `RESCUE_REASONING_BUDGET=8300` |
+| Completion / false-completion | `completion-evaluator.ts` (word-boundary AC; model `complete:true` is not authority) |
+| Post-QC review lifecycle | `reviews.ts`, `post-review-repair.ts` |
+| Worker-plan mutation path | `worker-plan-validation.ts`, `worker-plan-executor.ts` (`delete_file` with reason) |
+| QC baseline semantics | `qc-baseline` / quality-gate runner |
+| Isolation | per-run git worktrees |
+| Semantic budgets | `policy-budgets.ts` defaults |
+| Serve recipe | `scripts/runtime/autonomous-engineer/nano-faithful-serve-recipe.sh` |
+
+**Not frozen as intelligence:** docs, evidence packaging, ops runbooks, SkillOpt *passive* capture/shadow (injection remains unsupported).
+
+---
+
+## 15. GPU placement policy (chosen)
+
+Observed 2026-08-21:
+
+| GPU | Occupants |
+| --- | --- |
+| GPU 0 | CONTROL Nano `nemotron-nano-vera-8081` (~22.6 GiB) + light ComfyUI (~0.8 GiB) |
+| GPU 1 | FAITHFUL Nano `nemotron-nano-faithful-8082` (~27.5 GiB), recipe `--gpus device=1` |
+
+**Policy A — Exclusive FAITHFUL occupancy of GPU 1.** Do not co-locate Video-Gen / nvfp4-director on GPU 1 while 8082 is live. Pause FAITHFUL before moving Video-Gen onto GPU 1. CONTROL 8081 may remain on GPU 0. Reject Policy B (co-locate Video-Gen on GPU 1), C (move FAITHFUL off GPU 1 without requal), D (share GPU 1 at 0.82 util with another large model).
+
+---
+
+## 16. Startup / health / stop / restart (ops)
+
+Prefer `scripts/runtime/autonomous-engineer/nano-faithful-serve-recipe.sh`.
+
+```bash
+# Health
+curl -sS http://127.0.0.1:8082/v1/models
+# Expect id Nemotron-Nano-30B-A3B-NVFP4, max_model_len=262144
+
+# GPU mem
+nvidia-smi --query-gpu=index,memory.used,memory.total --format=csv
+
+# Parser / serve knobs (inspect running container)
+docker inspect nemotron-nano-faithful-8082 --format '{{.Config.Cmd}}'
+# Require: --max-model-len 262144 --max-num-seqs 1 --max-num-batched-tokens 2048
+#          --reasoning-parser nano_v3 --tool-call-parser qwen3_coder --enable-auto-tool-choice
+
+# Stop / restart
+docker stop nemotron-nano-faithful-8082
+docker start nemotron-nano-faithful-8082
+# Recreate: docker rm the container, then run the serve recipe (recipe exits if name exists).
+
+# Client (FAITHFUL)
+export ENGINEER_CONSOLE_LOCAL_MODEL_CODING_ENABLED=true
+export ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL=http://127.0.0.1:8082/v1
+export ENGINEER_CONSOLE_LOCAL_MODEL_CODING_MODEL=Nemotron-Nano-30B-A3B-NVFP4
+export ENGINEER_CONSOLE_AE_NANO_MAX_MODEL_LEN=262144
+# Faithful default ON. Do not set ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET=4000.
+```
+
+Local `.env.local` may still point at **8081** (CONTROL). Operators must override to **8082** for FAITHFUL AE.
+
+---
+
+## 17. Rollback FAITHFUL → CONTROL
+
+CONTROL is **below the qualified envelope**. Use only for ops continuity, not for claiming ROBUST CODE QUALIFIED.
+
+```bash
+export ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION=false
+export ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL=http://127.0.0.1:8081/v1
+# CONTROL serve: nemotron-nano-vera-8081 (max_model_len=8192, no nano_v3 / qwen3_coder parsers)
+```
+
+Git rollback of intelligence: reset/revert to `0ad49d4bf8f862c690b555079406a24a4a7353c4` (or known-good landmark `0e44223da6eff251181a104cc073ec2695e92687`).
 
 ---
 

@@ -1,0 +1,17 @@
+{
+  "at": "2026-08-22T01:57:28Z",
+  "sha": "41a3aa626f1ebd85270e8bc195a2f39e7567943f",
+  "aeIntelligenceSha": "0ad49d4bf8f862c690b555079406a24a4a7353c4",
+  "command": "npx vitest run src/lib/engineer-console/autonomous-engineer src/lib/engineer-console/worker-plan src/lib/engineer-console/bridge/run-vera-post-patch-quality-gates.test.ts src/lib/engineer-console/bridge/vera-post-patch-quality-gates-readiness.test.ts src/lib/engineer-console/skillopt",
+  "durationWallClockSec": 6,
+  "vitestDurationSec": 5.04,
+  "testFiles": { "passed": 24, "failed": 0 },
+  "tests": { "passed": 198, "failed": 0 },
+  "breakdown": {
+    "autonomousEngineerAndWorkerPlan": { "files": 21, "tests": 170, "failed": 0 },
+    "qualityGates": { "files": 2, "tests": 18, "failed": 0 },
+    "skillopt": { "files": 1, "tests": 10, "failed": 0 }
+  },
+  "implementationModifiedToPass": false,
+  "runtimeUnderTest": "unit/integration/qualification mocks; FAITHFUL contract unit coverage; no live Nano mutation for this matrix"
+}

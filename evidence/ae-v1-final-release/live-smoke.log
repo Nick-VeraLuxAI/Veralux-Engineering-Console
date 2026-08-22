@@ -1,0 +1,12 @@
+{"runId":"5f39be14-79a9-45f3-a9a4-35578704b13f","taskId":"cc0ba78b-94dc-48ce-b1c5-87ef478f164c","status":"starting"}
+{
+  "outFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-v1-final-release/live-smoke.json",
+  "runId": "5f39be14-79a9-45f3-a9a4-35578704b13f",
+  "state": "exhausted",
+  "delivery": "blocked",
+  "nanoRuntimeMode": "FAITHFUL",
+  "iterations": 3,
+  "skilloptShadows": 5,
+  "hashesEqual": true,
+  "actuallyInjected": false
+}
