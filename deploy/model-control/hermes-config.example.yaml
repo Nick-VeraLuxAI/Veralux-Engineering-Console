@@ -1,0 +1,20 @@
+# Excerpt of ~/.hermes/config.yaml when Hermes runs on top of the console.
+model:
+  default: deepseek-v4-flash
+  provider: custom
+  base_url: http://127.0.0.1:3900/v1
+  api_key: <ENGINEER_CONSOLE_MODEL_API_KEY>
+  api_mode: chat_completions
+  context_length: <configured context of the default model>
+delegation:
+  model: deepseek-v4-flash
+  provider: custom
+  base_url: http://127.0.0.1:3900/v1
+  api_key: <ENGINEER_CONSOLE_MODEL_API_KEY>
+mcp_servers:
+  veralux_console:
+    url: http://127.0.0.1:3900/api/engineer-console/mcp
+    headers:
+      Authorization: Bearer <ENGINEER_CONSOLE_MODEL_API_KEY>
+    timeout: 900
+    connect_timeout: 30

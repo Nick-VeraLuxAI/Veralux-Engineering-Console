@@ -1,0 +1,17 @@
+[Unit]
+Description=VeraLux Engineering Console (model control plane) on 127.0.0.1:3900
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.veralux-engineering-console/deploy/vec-model-control
+EnvironmentFile=%h/.veralux-engineering-console/model-control/console.env
+ExecStart=/usr/bin/node node_modules/.bin/next start -H 127.0.0.1 -p 3900
+Restart=on-failure
+RestartSec=5
+# Stopping the console also stops any model runtime it launched (frees GPU 0).
+KillMode=control-group
+TimeoutStopSec=90
+
+[Install]
+WantedBy=default.target
