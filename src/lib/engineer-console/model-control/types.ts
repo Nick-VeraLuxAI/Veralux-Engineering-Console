@@ -49,9 +49,14 @@ export interface ManagedLaunchSpec {
 }
 
 export interface ModelResourceNeeds {
+  /** Primary GPU (kept for single-GPU entries). */
   gpuIndex: number | null;
-  /** Approximate VRAM the runtime takes once loaded (MiB). */
+  /** All GPUs the runtime occupies (tensor parallel). Defaults to [gpuIndex]. */
+  gpuIndices?: number[];
+  /** Approximate VRAM the runtime takes once loaded, per GPU (MiB). */
   vramMiB: number;
+  /** Free VRAM that must remain on each GPU after load (MiB). Defaults to ENGINEER_CONSOLE_GPU_RESERVE_MIB. */
+  gpuReserveMiB?: number;
   /** Approximate host RAM the runtime takes once loaded (GiB). */
   hostRamGiB: number;
 }

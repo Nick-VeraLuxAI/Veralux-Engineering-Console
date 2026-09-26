@@ -333,16 +333,19 @@ export function requireModel(name: string): CatalogModel {
 async function preflight(model: CatalogModel): Promise<void> {
   const needs = model.resources;
   const snap = await getSystemSnapshot();
-  if (needs && needs.gpuIndex !== null) {
-    const gpu = snap.gpus.find((g) => g.index === needs.gpuIndex);
+  const gpuList = needs ? (needs.gpuIndices ?? (needs.gpuIndex !== null ? [needs.gpuIndex] : [])) : [];
+  const reserve = needs?.gpuReserveMiB ?? gpuReserveMiB();
+  for (const gpuIndex of gpuList) {
+    const gpu = snap.gpus.find((g) => g.index === gpuIndex);
     if (!gpu) {
-      throw new ModelControlError("GPU_UNAVAILABLE", `GPU ${needs.gpuIndex} not visible: ${snap.gpuError ?? "missing"}`, 409);
+      throw new ModelControlError("GPU_UNAVAILABLE", `GPU ${gpuIndex} not visible: ${snap.gpuError ?? "missing"}`, 409);
     }
-    const required = needs.vramMiB + gpuReserveMiB();
+    const required = needs!.vramMiB + reserve;
     if (gpu.memoryFreeMiB < required) {
+      const users = gpu.processes.map((p) => `${p.name}(pid ${p.pid}, ${p.usedMiB} MiB)`).join(", ") || "unknown";
       throw new ModelControlError(
         "INSUFFICIENT_VRAM",
-        `GPU ${gpu.index} has ${gpu.memoryFreeMiB} MiB free; ${model.id} needs ~${needs.vramMiB} MiB plus ${gpuReserveMiB()} MiB reserved headroom for other GPU tenants (Whisper/Kokoro). Refusing to load.`,
+        `GPU ${gpu.index} has ${gpu.memoryFreeMiB} MiB free; ${model.id} needs ~${needs!.vramMiB} MiB plus ${reserve} MiB headroom. GPU ${gpu.index} is used by: ${users}. Refusing to load.`,
         409,
       );
     }
@@ -434,7 +437,9 @@ export async function loadModel(name: string, opts: { wait?: boolean } = {}): Pr
   // One managed load per GPU at a time.
   for (const other of getCatalog()) {
     if (other.id === model.id || other.kind !== "managed") continue;
-    if (other.resources?.gpuIndex === model.resources?.gpuIndex && r.loading.has(other.id)) {
+    const gpusOf = (m: CatalogModel) => m.resources?.gpuIndices ?? (m.resources?.gpuIndex != null ? [m.resources.gpuIndex] : []);
+    const overlap = gpusOf(other).some((g) => gpusOf(model).includes(g));
+    if (overlap && r.loading.has(other.id)) {
       throw new ModelControlError("GPU_BUSY", `${other.id} is loading on the same GPU`, 409);
     }
   }

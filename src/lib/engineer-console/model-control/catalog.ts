@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import type { CatalogModel } from "./types";
 
 /**
@@ -20,13 +21,95 @@ function envInt(env: NodeJS.ProcessEnv, key: string, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-export function defaultCatalog(env: NodeJS.ProcessEnv = process.env): CatalogModel[] {
-  const deepseekCtx = envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_CONTEXT", 65536);
-  const deepseekMoeCache = envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_MOE_CACHE_SIZE", 512);
-  const deepseekCpuThreads = envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_CPU_THREADS", 24);
-  const deepseekPort = envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_PORT", 1919);
+/**
+ * DeepSeek-V4-Flash FTW launch profiles (FreeToken hybrid MoE: experts in host RAM,
+ * attention/KV + an expert cache on GPU). All DeepSeek-specific tuning lives here.
+ */
+function deepseekFtwProfile(opts: {
+  env: NodeJS.ProcessEnv;
+  id: string;
+  label: string;
+  aliases: string[];
+  role: string;
+  port: number;
+  gpus: number[];
+  context: number;
+  moeCacheSize: number;
+  memoryRatio: string;
+  vramMiB: number;
+  gpuReserveMiB?: number;
+  swaRatio?: string;
+  longContextLauncher: boolean;
+  notes: string;
+}): CatalogModel {
+  const { env } = opts;
   const ftVenv = env.ENGINEER_CONSOLE_FREETOKEN_VENV?.trim() || "/mnt/model-storage/venvs/freetoken-glm52";
+  const cpuThreads = env.ENGINEER_CONSOLE_DEEPSEEK_CPU_THREADS?.trim() || "24";
+  const launcher = path.join(
+    env.ENGINEER_CONSOLE_REPO_DIR?.trim() || process.cwd(),
+    "scripts/runtime/model-control/ft-serve-longctx.py",
+  );
+  const modelPath = `${MODELS_ROOT}/deepseek-ai_DeepSeek-V4-Flash-0731-ftw`;
+  const serveArgs = [
+    "serve",
+    "--model", modelPath,
+    "--host", "127.0.0.1",
+    "--port", String(opts.port),
+    "--moe-backend", "hybrid",
+    "--tensor-parallel-size", String(opts.gpus.length),
+    // Served name kept as the existing senior-escalation contract expects.
+    "--served-model-name", "deepseek-v4-flash-ftw-tp1",
+    "--max-seq-len-override", String(opts.context),
+    "--num-tokens", String(opts.context),
+    // Fixed expert cache (not --moe-cache-auto) so VRAM use is deterministic.
+    "--moe-cache-size", String(opts.moeCacheSize),
+    "--memory-ratio", opts.memoryRatio,
+    "--max-running-requests", "1",
+    "--moe-cpu-threads", cpuThreads,
+    "--decode-log-interval", "50",
+  ];
+  return {
+    id: opts.id,
+    label: opts.label,
+    aliases: opts.aliases,
+    kind: "managed",
+    role: opts.role,
+    baseUrl: `http://127.0.0.1:${opts.port}/v1`,
+    upstreamModel: "deepseek-v4-flash-ftw-tp1",
+    contextLength: opts.context,
+    paths: [modelPath],
+    protected: false,
+    sharedWithReceptionist: false,
+    resources: {
+      gpuIndex: opts.gpus[0],
+      gpuIndices: opts.gpus,
+      vramMiB: opts.vramMiB,
+      gpuReserveMiB: opts.gpuReserveMiB,
+      hostRamGiB: 140,
+    },
+    launch: {
+      runtime: "freetoken",
+      // FreeToken answers /v1/models during weight loading; /health flips to "ok" when servable.
+      readiness: { path: "/health", jsonField: "status", expect: "ok" },
+      venv: ftVenv,
+      envFile: `${ftVenv}/nccl.env`,
+      command: opts.longContextLauncher ? "python" : "ft",
+      args: opts.longContextLauncher ? [launcher, ...serveArgs] : serveArgs,
+      cudaVisibleDevices: opts.gpus.join(","),
+      env: opts.longContextLauncher
+        ? {
+          FT_SWA_FULL_TOKENS_RATIO: opts.swaRatio ?? "0.015",
+          FT_INDEXER_MAX_ELEMS: env.ENGINEER_CONSOLE_DEEPSEEK_INDEXER_MAX_ELEMS?.trim() || "48000000",
+        }
+        : undefined,
+      readyTimeoutSeconds: envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_READY_TIMEOUT_S", 600),
+    },
+    notLoadableReason: null,
+    notes: opts.notes,
+  };
+}
 
+export function defaultCatalog(env: NodeJS.ProcessEnv = process.env): CatalogModel[] {
   return [
     {
       id: "receptionist-qwen",
@@ -45,55 +128,38 @@ export function defaultCatalog(env: NodeJS.ProcessEnv = process.env): CatalogMod
       notLoadableReason: "Protected: owned by the live Receptionist (docker nemotron-nano-faithful-8082). The console never starts or stops it.",
       notes: "max-model-len 8192, max-num-seqs 1. Too small for Hermes Agent (needs >= 64K context).",
     },
-    {
+    deepseekFtwProfile({
+      env,
       id: "deepseek-v4-flash",
-      label: "DeepSeek-V4-Flash (FTW, FreeToken hybrid MoE, GPU 0 + CPU RAM)",
-      aliases: ["deepseek-v4-flash-ftw-tp1", "deepseek", "deepseek-senior", "big"],
-      kind: "managed",
-      role: "Big model: senior architect / reviewer and Hermes Agent brain. On demand.",
-      baseUrl: `http://127.0.0.1:${deepseekPort}/v1`,
-      upstreamModel: "deepseek-v4-flash-ftw-tp1",
-      contextLength: deepseekCtx,
-      paths: [`${MODELS_ROOT}/deepseek-ai_DeepSeek-V4-Flash-0731-ftw`],
-      protected: false,
-      sharedWithReceptionist: false,
-      resources: {
-        gpuIndex: 0,
-        vramMiB: envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_VRAM_MIB", 20480),
-        hostRamGiB: 140,
-      },
-      launch: {
-        runtime: "freetoken",
-        // FreeToken answers /v1/models during weight loading; /health flips to "ok" when servable.
-        readiness: { path: "/health", jsonField: "status", expect: "ok" },
-        venv: ftVenv,
-        envFile: `${ftVenv}/nccl.env`,
-        command: "ft",
-        args: [
-          "serve",
-          "--model", `${MODELS_ROOT}/deepseek-ai_DeepSeek-V4-Flash-0731-ftw`,
-          "--host", "127.0.0.1",
-          "--port", String(deepseekPort),
-          "--moe-backend", "hybrid",
-          "--tensor-parallel-size", "1",
-          "--served-model-name", "deepseek-v4-flash-ftw-tp1",
-          "--max-seq-len-override", String(deepseekCtx),
-          "--num-tokens", String(deepseekCtx),
-          // Fixed expert cache (512 x 13.4 MB) instead of --moe-cache-auto so VRAM
-          // use is deterministic (~19.6 GiB) and GPU 0 keeps room for Whisper/Kokoro.
-          "--moe-cache-size", String(deepseekMoeCache),
-          "--memory-ratio", "0.8",
-          "--max-running-requests", "1",
-          "--max-prefill-length", "8192",
-          "--moe-cpu-threads", String(deepseekCpuThreads),
-          "--decode-log-interval", "50",
-        ],
-        cudaVisibleDevices: "0",
-        readyTimeoutSeconds: envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_READY_TIMEOUT_S", 600),
-      },
-      notLoadableReason: null,
-      notes: "Measured on this workstation: ~37 s load, ~20-27 tok/s decode, 64K context.",
-    },
+      label: "DeepSeek-V4-Flash (FTW) — max context, TP2 across both GPUs + CPU RAM",
+      aliases: ["deepseek", "deepseek-v4-flash-1m", "deepseek-maxctx", "big"],
+      role: "Big-context model and Hermes Agent brain. Needs BOTH GPUs free (Receptionist GPU tenants stopped).",
+      port: envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_PORT", 1919),
+      gpus: [0, 1],
+      context: envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_CONTEXT", 1048576),
+      moeCacheSize: envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_MOE_CACHE_SIZE", 512),
+      memoryRatio: "0.95",
+      vramMiB: 29000,
+      gpuReserveMiB: 0,
+      swaRatio: env.ENGINEER_CONSOLE_DEEPSEEK_SWA_RATIO?.trim() || "0.015",
+      longContextLauncher: true,
+      notes: "Native max 1,048,576 tokens (YaRN x16 over 64K). Allocates the full 1M KV per GPU (~8.8 GiB; DSV4 KV is replicated across TP ranks). ~50 s load.",
+    }),
+    deepseekFtwProfile({
+      env,
+      id: "deepseek-v4-flash-64k",
+      label: "DeepSeek-V4-Flash (FTW) — 64K, single GPU 0 (coexists with Receptionist)",
+      aliases: ["deepseek-64k", "deepseek-senior", "deepseek-v4-flash-gpu0"],
+      role: "Big model on GPU 0 only, leaving GPU 1 to the Receptionist vLLM. On demand.",
+      port: envInt(env, "ENGINEER_CONSOLE_DEEPSEEK_64K_PORT", 1920),
+      gpus: [0],
+      context: 65536,
+      moeCacheSize: 512,
+      memoryRatio: "0.8",
+      vramMiB: 20480,
+      longContextLauncher: false,
+      notes: "Measured: ~38 s load, ~20-27 tok/s decode, ~19.6 GiB VRAM; keeps >=4 GiB free for Whisper/Kokoro.",
+    }),
     {
       id: "deepseek-v4-flash-raw",
       label: "DeepSeek-V4-Flash 0731 (raw HF weights)",

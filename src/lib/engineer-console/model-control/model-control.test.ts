@@ -17,8 +17,11 @@ describe("model-control catalog", () => {
   it("resolves default/auto and aliases to DeepSeek on GPU 0 with a capped expert cache", () => {
     const ds = resolveCatalogModel("default", catalog, {} as NodeJS.ProcessEnv)!;
     expect(ds.id).toBe("deepseek-v4-flash");
-    expect(resolveCatalogModel("deepseek-v4-flash-ftw-tp1", catalog, {} as NodeJS.ProcessEnv)?.id).toBe("deepseek-v4-flash");
-    expect(ds.launch?.cudaVisibleDevices).toBe("0");
+    expect(resolveCatalogModel("deepseek", catalog, {} as NodeJS.ProcessEnv)?.id).toBe("deepseek-v4-flash");
+    expect(ds.launch?.cudaVisibleDevices).toBe("0,1");
+    expect(ds.contextLength).toBe(1048576);
+    const small = resolveCatalogModel("deepseek-64k", catalog, {} as NodeJS.ProcessEnv)!;
+    expect(small.launch?.cudaVisibleDevices).toBe("0");
     expect(ds.launch?.args).toContain("--moe-cache-size");
     expect(ds.launch?.args).not.toContain("--moe-cache-auto");
     expect(ds.contextLength).toBeGreaterThanOrEqual(64000);

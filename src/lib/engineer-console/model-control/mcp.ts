@@ -93,7 +93,7 @@ async function callTool(name: string, args: Record<string, unknown>) {
           protected: m.protected,
           sharedWithReceptionist: m.sharedWithReceptionist,
           vramMiB: m.resources?.vramMiB ?? null,
-          gpu: m.resources?.gpuIndex ?? null,
+          gpus: m.resources?.gpuIndices ?? (m.resources?.gpuIndex != null ? [m.resources.gpuIndex] : []),
           notLoadableReason: m.status === "not_loadable" || m.protected ? m.notLoadableReason : undefined,
           loadSeconds: m.process?.loadSeconds ?? undefined,
         })),
