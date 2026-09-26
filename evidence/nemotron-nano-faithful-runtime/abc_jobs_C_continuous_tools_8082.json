@@ -1,0 +1,35 @@
+{
+  "name": "abc_jobs_C_continuous_tools_8082",
+  "elapsed_s": 32.62,
+  "first_finish": "stop",
+  "first_tool_calls": [],
+  "finish_reason": "stop",
+  "usage_first": {
+    "prompt_tokens": 536,
+    "total_tokens": 8200,
+    "completion_tokens": 7664,
+    "prompt_tokens_details": null
+  },
+  "usage_second": {
+    "prompt_tokens": 1400,
+    "total_tokens": 2633,
+    "completion_tokens": 1233,
+    "prompt_tokens_details": null
+  },
+  "has_reasoning_field": true,
+  "think_tags_in_content": false,
+  "parse_error": null,
+  "score": {
+    "parse": true,
+    "semantic": "PASS",
+    "notes": [
+      "async_await=Y",
+      "assert_rejects=Y",
+      "no_throwsAsync=Y",
+      "no_require=Y",
+      "pending_or_status=Y",
+      "dup_guard=Y"
+    ]
+  },
+  "content_preview": "{\n  \"runId\": \"jobs-hard\",\n  \"summary\": \"Async job runner with idempotent applyJob, duplicate handling, resume support, and comprehensive tests\",\n  \"allowedFiles\": [\n    \"src/jobs/runner.js\",\n    \"src/jobs/runner.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"create_file\",\n      \"path\": \"src/jobs/runner.js\",\n      \"content\": \"// src/jobs/runner.js\\nimport test from 'node:test';\\nimport assert from 'node:assert/strict';\\n\\nclass JobRunner {\\n  constructor() {\\n    this.status = new Map(); // 'pending' | 'success' | 'failure'\\n    this.inFlight = new Set();\\n    this.pendingPayloads = new M"
+}

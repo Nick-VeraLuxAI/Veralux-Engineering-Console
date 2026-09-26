@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { RepoPathPolicyError } from "./registered-repo-types";
 
@@ -24,6 +25,27 @@ export function getRepoRootAllowlist(): string[] | null {
 
 export function isRepoRootAllowlistConfigured(): boolean {
   return getRepoRootAllowlist() !== null;
+}
+
+export function getGithubCloneRoot(): string | null {
+  const explicit = process.env.ENGINEER_CONSOLE_GITHUB_CLONE_ROOT?.trim();
+  if (explicit) return path.resolve(explicit);
+  if (process.env.ENGINEER_CONSOLE_TRUSTED_LOCAL_DEV === "true") {
+    const homeGithub = path.join(os.homedir(), "Documents", "GitHub");
+    if (fs.existsSync(homeGithub)) return homeGithub;
+  }
+  return null;
+}
+
+export function getEffectiveRegistrationRoots(): string[] | null {
+  const allowlist = getRepoRootAllowlist();
+  const cloneRoot = getGithubCloneRoot();
+  if (allowlist === null && !process.env.ENGINEER_CONSOLE_GITHUB_CLONE_ROOT?.trim()) {
+    return null;
+  }
+  const roots = [...(allowlist ?? [])];
+  if (cloneRoot && !roots.includes(cloneRoot)) roots.push(cloneRoot);
+  return roots.length ? roots : null;
 }
 
 export function hashRepoPathForAudit(repoPath: string): string {
@@ -60,7 +82,7 @@ export function validateRegistrationPath(inputPath: string): string {
     }
   }
 
-  const allowlist = getRepoRootAllowlist();
+  const allowlist = getEffectiveRegistrationRoots();
   if (allowlist && allowlist.length > 0) {
     const allowed = allowlist.some(
       (root) => resolved === root || resolved.startsWith(root + path.sep),

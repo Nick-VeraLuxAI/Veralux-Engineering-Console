@@ -1,6 +1,10 @@
 import { runAgentWorker } from "../agent-worker/agent-worker";
 import { isVeraStartedImplementationRun } from "../bridge/vera-handoff-task-types";
 import { runVeraImplementationPipeline } from "./vera-implementation-run-pipeline";
+import { getAutonomousState, isAutonomousRun } from "../autonomous-engineer/state-store";
+import { executeAutonomousLoop } from "../autonomous-engineer/loop";
+import { continueEngineeringAndResume } from "../autonomous-engineer/continue-engineering";
+import { getGovernanceModeConfig } from "../governance/governance-mode";
 import {
   auditBranchCreated,
   auditHumanApproved,
@@ -24,7 +28,7 @@ import {
 } from "../run-manager/run-manager";
 import { resolveTaskTargetRepoPath } from "../repo-intelligence/task-repo-path";
 import { getTaskById, updateTask } from "../task-manager/task-manager";
-import { buildApprovalReport } from "../approval/approval-report";
+import { buildApprovalReport, resolveLiveApprovalEligibility } from "../approval/approval-report";
 import {
   refreshRunEvidenceBundle,
   requireRunEvidenceBundle,
@@ -34,6 +38,7 @@ import {
   runPolicyEvaluation,
 } from "../governance/policy-results/policy-result-manager";
 import {
+  acknowledgePendingRequiredReviewStages,
   assertReviewStagesAllowApproval,
 } from "../governance/review-stages/review-stage-manager";
 import { reconcileReviewStagesAfterPolicy } from "../governance/review-stages/review-stage-integration";
@@ -83,9 +88,16 @@ export async function executeRun(runId: string): Promise<void> {
     currentStep: "preparing_workspace",
     startedAt: run.startedAt ?? nowIso(),
   });
-  auditRunStarted(runId, task.id, { path: "default_run" });
+  auditRunStarted(runId, task.id, {
+    path: isAutonomousRun(runId) ? "autonomous_engineer" : "default_run",
+  });
 
   try {
+    if (isAutonomousRun(runId)) {
+      await executeAutonomousLoop(runId);
+      return;
+    }
+
     const repoPath = resolveTaskTargetRepoPath(task);
 
     await verifyGitRepo(repoPath);
@@ -220,7 +232,13 @@ export async function handleApprovalAction(
   runId: string,
   action: "approve" | "request_fix" | "stop",
   options: HandleApprovalActionOptions = {},
-): Promise<{ runId: string; taskId: string; status: string; decisionRecordId: string } | null> {
+): Promise<{
+  runId: string;
+  taskId: string;
+  status: string;
+  decisionRecordId: string;
+  resumedAe?: boolean;
+} | null> {
   const run = getRunById(runId);
   if (!run) return null;
 
@@ -229,6 +247,7 @@ export async function handleApprovalAction(
 
   const actorType = options.actorType ?? AUDIT_ACTOR_TYPES.HUMAN;
   const rationale = options.rationale?.trim() ?? "";
+  const governance = getGovernanceModeConfig();
 
   if ((action === "request_fix" || action === "stop") && !rationale) {
     throw new Error("Rationale is required for request fix and stop.");
@@ -237,14 +256,42 @@ export async function handleApprovalAction(
   const completedAt = nowIso();
 
   if (action === "approve") {
+    acknowledgePendingRequiredReviewStages({
+      runId,
+      actorType,
+      actorLabel: options.actorLabel ?? "operator",
+      rationale,
+    });
     const reportJson = getApprovalReportJson(runId);
-    if (reportJson) {
-      const report = JSON.parse(reportJson) as { canApprove?: boolean };
-      if (!report.canApprove) {
-        throw new Error("Approval blocked by governance or quality gates.");
-      }
+    const report = reportJson
+      ? (JSON.parse(reportJson) as {
+          canApprove?: boolean;
+          recommendedNextAction?: string;
+          governanceIssues?: string[];
+          qualityGateResults?: Array<{ command?: string; status?: string }>;
+          riskLevel?: string;
+        })
+      : null;
+    const eligibility = resolveLiveApprovalEligibility({
+      runStatus: getRunById(runId)?.status ?? run.status,
+      report: report
+        ? {
+            canApprove: Boolean(report.canApprove),
+            recommendedNextAction: report.recommendedNextAction,
+            governanceIssues: report.governanceIssues,
+            qualityGateResults: report.qualityGateResults,
+            riskLevel: report.riskLevel,
+          }
+        : null,
+    });
+    if (!eligibility.canApprove) {
+      const extra = eligibility.details[0] ? ` ${eligibility.details[0]}` : "";
+      throw new Error(`${eligibility.summary}${extra}`);
     }
-    assertPolicyAllowsApproval(runId, rationale, { reevaluate: true });
+    assertPolicyAllowsApproval(runId, rationale, {
+      reevaluate: true,
+      observationalReview: governance.policyReviewIsObservational,
+    });
     await requireRunEvidenceBundle(runId);
     assertReviewStagesAllowApproval(runId);
   }
@@ -283,7 +330,33 @@ export async function handleApprovalAction(
       auditRunCompleted(runId, task.id, { via: "human_approve" });
       break;
     }
-    case "request_fix":
+    case "request_fix": {
+      const shouldResumeAe =
+        governance.continueEngineeringResumesAe &&
+        isAutonomousRun(runId) &&
+        (run.status === "waiting_for_approval" ||
+          getAutonomousState(runId)?.currentState === "waiting_for_approval");
+
+      if (shouldResumeAe) {
+        auditHumanRequestFix(runId, task.id, humanActorLabel);
+        // Fire-and-forget: same pattern as POST /tasks/:id/runs for AE.
+        void continueEngineeringAndResume({
+          runId,
+          feedback: rationale,
+          actorLabel: humanActorLabel,
+        }).catch((error) => {
+          console.error(`Continue engineering failed for run ${runId}:`, error);
+        });
+        await refreshRunEvidenceBundle({ runId });
+        return {
+          runId,
+          taskId: task.id,
+          status: "continue_engineering",
+          decisionRecordId: decisionRecord.id,
+          resumedAe: true,
+        };
+      }
+
       updateRun(runId, {
         status: "failed",
         currentStep: "fix_requested",
@@ -293,6 +366,7 @@ export async function handleApprovalAction(
       auditHumanRequestFix(runId, task.id, humanActorLabel);
       auditRunFailed(runId, task.id, { via: "human_request_fix" });
       break;
+    }
     case "stop":
       updateRun(runId, {
         status: "failed",

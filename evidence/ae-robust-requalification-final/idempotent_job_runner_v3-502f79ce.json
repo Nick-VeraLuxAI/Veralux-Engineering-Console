@@ -1,0 +1,291 @@
+{
+  "specimenId": "idempotent_job_runner_v3",
+  "matrixClasses": [
+    "failure_recovery"
+  ],
+  "hardClass": "idempotent_job_runner",
+  "variant": 3,
+  "title": "Work finalize resume v3",
+  "objective": "Directors need a small work finalize helper under src/jobs that can finalize work by id once, survive retries after a partial failure, and never double-finalize the same work id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+  "elapsedMs": 220187,
+  "taskId": "bbb08f75-aaa5-4e6e-9ec3-29d88a75a81d",
+  "runId": "502f79ce-e7f1-4c61-9848-0f9ca7c5566d",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "502f79ce-e7f1-4c61-9848-0f9ca7c5566d",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 6,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "45b7695c-3f98-4003-98cb-2528b3c3cd96",
+      "strategy": "Implement idempotent, retry‑safe finalizeWork under src/jobs/ with comprehensive node:test coverage",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "workerPlanId": "d292fe5e-dc8d-45a0-9130-5420fb8ed742",
+      "strategy": "Revise src/jobs/commits.js to implement an async, retry‑safe, idempotent finalizeWork that never double‑finalizes, and update src/jobs/commits.test.js to use the correct Node.js test/assert API and async handling, ensuring all tests pass.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "workerPlanId": "a95d46a8-0a13-41e8-86dd-8ecee5195dff",
+      "strategy": "Fix finalizeWork idempotent behavior and add regression coverage to prevent double-finalization on retry; ensure pending state cleanup and correct applied count",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "workerPlanId": "fcb52385-90bb-4920-ba14-dd71c008354b",
+      "strategy": "Finish finalizeWork helper: replace placeholder with idempotent retry‑safe implementation in src/jobs/commits.js and add comprehensive tests in src/jobs/commits.test.js covering happy path, double‑finalization blockers, partial failure cleanup and rejected work handling.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "workerPlanId": "a75cd3fd-d025-456a-854d-0b60085c6423",
+      "strategy": "Export store from commits.js and import it in the test to eliminate ReferenceError; ensure test uses imported store for reset; add comprehensive idempotent and retry-safe tests while preserving original functionality.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "workerPlanId": "0093d2e4-154a-4590-a652-431da38c8fab",
+      "strategy": "Make finalizeWork retry‑safe by cleaning applied state on failure and add regression test for partial failure retries",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [
+    {
+      "iteration": 1,
+      "hypothesis": "Implement idempotent, retry‑safe finalizeWork under src/jobs/ with comprehensive node:test coverage",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "hypothesis": "Revise src/jobs/commits.js to implement an async, retry‑safe, idempotent finalizeWork that never double‑finalizes, and update src/jobs/commits.test.js to use the correct Node.js test/assert API and async handling, ensuring all tests pass.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "hypothesis": "Fix finalizeWork idempotent behavior and add regression coverage to prevent double-finalization on retry; ensure pending state cleanup and correct applied count",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "hypothesis": "Finish finalizeWork helper: replace placeholder with idempotent retry‑safe implementation in src/jobs/commits.js and add comprehensive tests in src/jobs/commits.test.js covering happy path, double‑finalization blockers, partial failure cleanup and rejected work handling.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "hypothesis": "Export store from commits.js and import it in the test to eliminate ReferenceError; ensure test uses imported store for reset; add comprehensive idempotent and retry-safe tests while preserving original functionality.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "usage": {
+    "iterations": 6,
+    "plans": 6,
+    "modelCalls": 18,
+    "changedFiles": 2,
+    "changedBytes": 16864,
+    "runtimeMs": 218834,
+    "investigationReads": 2,
+    "contextBytes": 123,
+    "planRepairs": 1,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [
+    {
+      "at": "2026-08-21T01:07:10.701Z",
+      "semanticIteration": 3,
+      "kind": "model_output",
+      "reason": "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000",
+      "evidence": [
+        "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000"
+      ]
+    }
+  ],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a small work finalize helper under src/jobs that can finalize work by id once, survive retries after a partial failure, and never double-finalize the same work id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/jobs/commits.js",
+        "Changed src/jobs/commits.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/jobs/commits.js      | 49 +++++++++++++++++++++++++++++++------\n src/jobs/commits.test.js | 63 +++++++++++++++++++++++++++++++++++++++++++++---\n 2 files changed, 101 insertions(+), 11 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "0093d2e4-154a-4590-a652-431da38c8fab",
+      "summary": "Make finalizeWork retry‑safe by cleaning applied state on failure and add regression test for partial failure retries",
+      "iterationNumber": 6,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "a75cd3fd-d025-456a-854d-0b60085c6423",
+      "summary": "Export store from commits.js and import it in the test to eliminate ReferenceError; ensure test uses imported store for reset; add comprehensive idempotent and retry-safe tests while preserving original functionality.",
+      "iterationNumber": 5,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "fcb52385-90bb-4920-ba14-dd71c008354b",
+      "summary": "Finish finalizeWork helper: replace placeholder with idempotent retry‑safe implementation in src/jobs/commits.js and add comprehensive tests in src/jobs/commits.test.js covering happy path, double‑finalization blockers, partial failure cleanup and rejected work handling.",
+      "iterationNumber": 4,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "a95d46a8-0a13-41e8-86dd-8ecee5195dff",
+      "summary": "Fix finalizeWork idempotent behavior and add regression coverage to prevent double-finalization on retry; ensure pending state cleanup and correct applied count",
+      "iterationNumber": 3,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "d292fe5e-dc8d-45a0-9130-5420fb8ed742",
+      "summary": "Revise src/jobs/commits.js to implement an async, retry‑safe, idempotent finalizeWork that never double‑finalizes, and update src/jobs/commits.test.js to use the correct Node.js test/assert API and async handling, ensuring all tests pass.",
+      "iterationNumber": 2,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "45b7695c-3f98-4003-98cb-2528b3c3cd96",
+      "summary": "Implement idempotent, retry‑safe finalizeWork under src/jobs/ with comprehensive node:test coverage",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/502f79ce-e7f1-4c61-9848-0f9ca7c5566d",
+    "branchName": "engineer/bbb08f75/502f79ce-20260821010502",
+    "baseRevision": "7a3c2bf4fa9d0bc4d45b6c64e14d67b19ea43365",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "failure_recovery": "PASS",
+      "idempotency": "PASS",
+      "vertical_slice_complete": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

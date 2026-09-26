@@ -1,0 +1,33 @@
+{
+  "probe": "live_ae_task_with_skillopt_shadow",
+  "runId": "8bd437c0-1fd3-48ec-807c-2106cd026f07",
+  "taskId": "2f39f031-1947-49e5-b439-08c818ed8725",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "baseUrl": "http://127.0.0.1:8082/v1",
+  "nanoRuntimeMode": "FAITHFUL",
+  "flags": {
+    "ENGINEER_CONSOLE_SKILLOPT_CAPTURE": true,
+    "ENGINEER_CONSOLE_SKILLOPT_EXTRACTION": true,
+    "ENGINEER_CONSOLE_SKILLOPT_SHADOW_RETRIEVAL": true,
+    "ENGINEER_CONSOLE_SKILLOPT_PROMPT_INJECTION": false
+  },
+  "aeOutcome": {
+    "state": "exhausted",
+    "delivery": "blocked",
+    "iterations": 8,
+    "note": "Normal AE terminal path under budget; SkillOpt did not crash or mutate prompts"
+  },
+  "skillOpt": {
+    "shadowRetrievalEvents": 9,
+    "shadowRows": 9,
+    "actuallyInjectedAlwaysFalse": true,
+    "promptHashBeforeEqualsAfter": true,
+    "captureCompletedEvents": 1,
+    "aePromptsModifiedBySkillOpt": 0
+  },
+  "humanCodingInterventions": 0,
+  "resultFile": "test-results/ae-v1-qual-live-dogfood.json",
+  "unitShadowProbe": "evidence/ae-skillopt-learning-layer/live-shadow-probe.json",
+  "probeVerdict": "SKILLOPT_LIVE_SHADOW_PROBE_PASS",
+  "verdict": "SKILLOPT PASSIVE LEARNING LAYER READY"
+}

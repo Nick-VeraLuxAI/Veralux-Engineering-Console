@@ -1,0 +1,18 @@
+{"specimen":"idempotent_job_runner","runId":"d275ea7c-a5cd-4015-8332-55b1eef98a25","status":"starting"}
+{
+  "outFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/test-results/ae-v1-robust-live-qual.json",
+  "summary": {
+    "total": 1,
+    "scorePass": 1,
+    "deliveryReady": 1
+  },
+  "per": [
+    {
+      "id": "idempotent_job_runner",
+      "delivery": "ready",
+      "scorePass": true,
+      "iterations": 1,
+      "notes": []
+    }
+  ]
+}

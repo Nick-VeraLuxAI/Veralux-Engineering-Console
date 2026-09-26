@@ -11,7 +11,7 @@ describe("RunQuickNav", () => {
         items: [
           {
             id: "current-action",
-            label: "Current action",
+            label: "What to do now",
             href: "#current-action",
             targetId: "current-action",
             tone: "ready",

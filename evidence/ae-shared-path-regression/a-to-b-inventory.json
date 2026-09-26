@@ -1,0 +1,128 @@
+{
+  "KNOWN_GOOD_COMMIT": "0e44223da6eff251181a104cc073ec2695e92687",
+  "STATE_B_HEAD": "604f2ed94ed3b35ab4698560f019651db3d76f51",
+  "rationale": "preflight.json + final-summary tip when ledger/jobs/state/agent-bad each 3/3 ready under FAITHFUL",
+  "changes": [
+    {
+      "change": "Q1 unbound-identifier prioritization + dependency neighborhood + TEST_THRASH_GUARD",
+      "commit": "896db6e",
+      "shared": true,
+      "classes_affected": [
+        "all AE classes via feedback-convergence/loop/diagnosis"
+      ],
+      "intended_benefit": "Close Q1 rate_limit production unbound thrash",
+      "could_alter_planner_diagnosis_qc": true,
+      "classification": "SUSPECT",
+      "bucket": "unbound-id / failure prioritization / test-thrash guard / diagnosis"
+    },
+    {
+      "change": "Always-on ReferenceError import-wiring lines in planning + diagnosis prompts (+~300 chars each)",
+      "commit": "896db6e",
+      "shared": true,
+      "classes_affected": [
+        "jobs",
+        "ledger",
+        "state",
+        "agent-bad",
+        "Q1"
+      ],
+      "intended_benefit": "Steer Q1 away from fixture-only thrash",
+      "could_alter_planner_diagnosis_qc": true,
+      "classification": "SUSPECT",
+      "bucket": "loop prompts",
+      "note": "Injected even when no unbound evidence \u2014 SHARED_PROMPT_POLLUTION"
+    },
+    {
+      "change": "QC TAP ReferenceError+stack extraction helpers",
+      "commit": "896db6e",
+      "shared": true,
+      "classes_affected": [
+        "all with node:test TAP fails"
+      ],
+      "intended_benefit": "Preserve production stack for diagnosis",
+      "could_alter_planner_diagnosis_qc": true,
+      "classification": "KEEP",
+      "bucket": "qc-baseline"
+    },
+    {
+      "change": "isMaterialRateLimitCriterion completion AC (+ lease|attempt|slot|grant|ttl)",
+      "commit": "896db6e then c2db436",
+      "shared": true,
+      "classes_affected": [
+        "Q1 primarily; any AC matching allow|deny|limit|rate|..."
+      ],
+      "intended_benefit": "Block stub rate-limit false completions",
+      "could_alter_planner_diagnosis_qc": false,
+      "classification": "KEEP",
+      "bucket": "completion evaluator / material AC",
+      "note": "Sanity specimen ACs do not match; not primary sanity residual"
+    },
+    {
+      "change": "LITERAL_ESCAPED_NEWLINES detector in harness guards",
+      "commit": "pre-0e44223 (present at known-good); still SUSPECT for slip",
+      "shared": true,
+      "classes_affected": [
+        "ledger observed slip on current"
+      ],
+      "intended_benefit": "Reject whole-file \\\\n corruption",
+      "could_alter_planner_diagnosis_qc": true,
+      "classification": "SUSPECT",
+      "bucket": "literal-newline",
+      "note": "Detector early-returns false when any real newline present \u2014 mixed corruption can bypass"
+    },
+    {
+      "change": "Opt-in ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET always-two-phase",
+      "commit": "c2db436",
+      "shared": true,
+      "classes_affected": [
+        "planning/replan when env set"
+      ],
+      "intended_benefit": "Q1 plan fidelity under GBE",
+      "could_alter_planner_diagnosis_qc": true,
+      "classification": "OBSERVABILITY_ONLY",
+      "bucket": "worker budget",
+      "note": "Qualification default leaves env unset"
+    },
+    {
+      "change": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE conditional rescue",
+      "commit": "604f2ed",
+      "shared": true,
+      "classes_affected": [
+        "planning/replan on GBE only"
+      ],
+      "intended_benefit": "Rescue GBE without global 4k",
+      "could_alter_planner_diagnosis_qc": true,
+      "classification": "KEEP",
+      "bucket": "conditional rescue",
+      "note": "LOW SUSPECT \u2014 C\u2261A when single-shot succeeds; DO NOT MODIFY this mission"
+    },
+    {
+      "change": "Fixture freshness / Q1 lease-attempt-slot specimens + scorecard keywords",
+      "commit": "c7ef899 / 896db6e / c2db436",
+      "shared": false,
+      "classes_affected": [
+        "Q1 harness + docs"
+      ],
+      "intended_benefit": "Fresh seeds / greenfield scoring",
+      "could_alter_planner_diagnosis_qc": false,
+      "classification": "FIXTURE_ONLY",
+      "bucket": "qualification"
+    },
+    {
+      "change": "SoT/evidence docs for requal and Q1 missions",
+      "commit": "c7ef899+",
+      "shared": false,
+      "classes_affected": [],
+      "intended_benefit": "Record verdicts",
+      "could_alter_planner_diagnosis_qc": false,
+      "classification": "QUALIFICATION_ONLY",
+      "bucket": "docs"
+    }
+  ],
+  "high_priority_suspects": {
+    "jobs_TEST_ASSERTION_ERROR_CAPTURE": "Shared prompt/diagnosis bias \u2192 assertion mismatch thrash (not GBE)",
+    "ledger_LITERAL_ESCAPED_NEWLINES": "Validation bypass / mixed-newline detector gap",
+    "state_assert_import_in_production": "Harness prompt + missing production/test boundary guard"
+  },
+  "rescue_verdict": "LOW SUSPECT \u2014 leave intact"
+}

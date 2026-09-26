@@ -3,6 +3,7 @@ import { promisify } from "util";
 import fs from "fs";
 import path from "path";
 import { normalizeRelativePath } from "../worker-plan/path-safety";
+import { isWorktreeInfrastructurePath } from "./worktree-path-policy";
 
 const execFileAsync = promisify(execFile);
 
@@ -139,6 +140,7 @@ export async function getChangedFiles(
     if (entry.isIgnored) continue;
     const normalized = normalizeRelativePath(entry.path);
     if (!isPathWithinRepo(normalized)) continue;
+    if (isWorktreeInfrastructurePath(normalized)) continue;
 
     if (entry.isUntracked) {
       if (workerSet) {
@@ -265,4 +267,154 @@ export async function getDiffSummary(
   }
 
   return "No diff against HEAD (working tree clean).";
+}
+
+export async function getHeadRevision(repoPath: string): Promise<string> {
+  const resolved = path.resolve(repoPath);
+  const { stdout } = await execFileAsync("git", ["-C", resolved, "rev-parse", "HEAD"], {
+    maxBuffer: 64 * 1024,
+  });
+  const rev = stdout.trim();
+  if (!rev) {
+    throw new GitWorkspaceError(`Unable to resolve HEAD for ${resolved}`);
+  }
+  return rev;
+}
+
+const EMPTY_REPO_BASELINE_MESSAGE = "Initial repository baseline for Engineer Console runs.";
+
+/** True when the git repo exists but has no commits yet (unborn HEAD). */
+export async function hasHeadRevision(repoPath: string): Promise<boolean> {
+  try {
+    await getHeadRevision(repoPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Isolated worktrees need a commit SHA. Empty repos have no HEAD.
+ * Create a local empty baseline commit so any new repo can start a run.
+ * Does not add untracked files.
+ */
+export async function ensureHeadRevision(repoPath: string): Promise<string> {
+  try {
+    return await getHeadRevision(repoPath);
+  } catch {
+    // unborn HEAD — fall through to baseline commit
+  }
+
+  const resolved = path.resolve(repoPath);
+  try {
+    await execFileAsync(
+      "git",
+      ["-C", resolved, "commit", "--allow-empty", "-m", EMPTY_REPO_BASELINE_MESSAGE],
+      {
+        maxBuffer: 64 * 1024,
+        env: {
+          ...process.env,
+          GIT_AUTHOR_NAME: process.env.GIT_AUTHOR_NAME || "Engineer Console",
+          GIT_AUTHOR_EMAIL: process.env.GIT_AUTHOR_EMAIL || "engineer-console@local",
+          GIT_COMMITTER_NAME: process.env.GIT_COMMITTER_NAME || "Engineer Console",
+          GIT_COMMITTER_EMAIL: process.env.GIT_COMMITTER_EMAIL || "engineer-console@local",
+        },
+      },
+    );
+  } catch {
+    throw new GitWorkspaceError(
+      "This git repository has no commits yet, and the console could not create a baseline commit for an isolated run.",
+    );
+  }
+
+  return getHeadRevision(resolved);
+}
+
+/**
+ * After copying uncommitted host scaffold into a worktree, commit those paths
+ * so getChangedFiles / scope review only see AE mutations — not the seed itself.
+ */
+export async function commitSeededScaffoldBaseline(
+  worktreePath: string,
+  seededRelativePaths: string[],
+): Promise<string | null> {
+  if (seededRelativePaths.length === 0) return null;
+  const resolved = path.resolve(worktreePath);
+  const env = {
+    ...process.env,
+    GIT_AUTHOR_NAME: process.env.GIT_AUTHOR_NAME || "Engineer Console",
+    GIT_AUTHOR_EMAIL: process.env.GIT_AUTHOR_EMAIL || "engineer-console@local",
+    GIT_COMMITTER_NAME: process.env.GIT_COMMITTER_NAME || "Engineer Console",
+    GIT_COMMITTER_EMAIL: process.env.GIT_COMMITTER_EMAIL || "engineer-console@local",
+  };
+  try {
+    await execFileAsync("git", ["-C", resolved, "add", "--", ...seededRelativePaths], {
+      maxBuffer: 8 * 1024 * 1024,
+      env,
+    });
+    const { stdout: status } = await execFileAsync(
+      "git",
+      ["-C", resolved, "status", "--porcelain"],
+      { maxBuffer: 2 * 1024 * 1024, env },
+    );
+    if (!status.trim()) return null;
+    await execFileAsync(
+      "git",
+      [
+        "-C",
+        resolved,
+        "commit",
+        "-m",
+        "ae: seed host scaffold baseline for isolated run",
+      ],
+      { maxBuffer: 2 * 1024 * 1024, env },
+    );
+    return await getHeadRevision(resolved);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new GitWorkspaceError(
+      `Failed to commit seeded scaffold baseline in ${resolved}: ${message}`,
+    );
+  }
+}
+
+export async function getGitLog(repoPath: string, maxEntries = 20): Promise<string> {
+  const resolved = path.resolve(repoPath);
+  try {
+    const { stdout } = await execFileAsync(
+      "git",
+      ["-C", resolved, "log", "-n", String(maxEntries), "--oneline"],
+      { maxBuffer: 1024 * 1024 },
+    );
+    return stdout.trim();
+  } catch {
+    return "";
+  }
+}
+
+export async function addGitWorktree(input: {
+  repoPath: string;
+  worktreePath: string;
+  branchName: string;
+  baseRevision: string;
+}): Promise<void> {
+  const repo = path.resolve(input.repoPath);
+  const worktree = path.resolve(input.worktreePath);
+  await execFileAsync(
+    "git",
+    ["-C", repo, "worktree", "add", "-b", input.branchName, worktree, input.baseRevision],
+    { maxBuffer: 1024 * 1024 },
+  );
+}
+
+export async function removeGitWorktree(input: {
+  repoPath: string;
+  worktreePath: string;
+  force?: boolean;
+}): Promise<void> {
+  const repo = path.resolve(input.repoPath);
+  const worktree = path.resolve(input.worktreePath);
+  const args = ["-C", repo, "worktree", "remove", worktree];
+  if (input.force) args.push("--force");
+  await execFileAsync("git", args, { maxBuffer: 1024 * 1024 });
 }

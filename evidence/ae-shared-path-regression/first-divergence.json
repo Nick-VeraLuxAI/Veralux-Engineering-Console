@@ -1,0 +1,25 @@
+{
+  "source_current": "evidence/ae-q1-conditional-reasoning/*",
+  "source_known_good": "evidence/ae-robust-requalification-final/*",
+  "per_class": {
+    "idempotent_job_runner": {
+      "known_good": "ready@1 (26ed2b8c) SUCCESS",
+      "current_first_divergence": "After first plan, QC/diagnosis path enters TEST_ASSERTION_ERROR_CAPTURE thrash (error.message on undefined) across iters 2\u20136 instead of converging",
+      "first_plan_ok": true
+    },
+    "bad_legacy_ledger": {
+      "known_good": "ready@5 (68d787bb) SUCCESS",
+      "current_first_divergence": "Iter strategy shifts to Export STATUS / ReferenceError neighborhood (shared unbound prompt pollution), later LITERAL_ESCAPED_NEWLINES slips validation",
+      "first_plan_ok": true
+    },
+    "state_counter": {
+      "known_good": "ready@1 (3650c835) SUCCESS",
+      "current_first_divergence": "Harness-repair strategies pull node:assert into production counter.js; thrash on test assertion mode for remaining budget",
+      "first_plan_ok": true
+    },
+    "agent_bad_code": {
+      "known_good": "ready@1",
+      "current": "ready@1 \u2014 no divergence on success path"
+    }
+  }
+}

@@ -47,7 +47,15 @@ function GuidanceList({
   );
 }
 
-export function RunCurrentActionZone({ state }: { state: RunCurrentActionZoneState }) {
+export function RunCurrentActionZone({
+  state,
+  onPrimaryClick,
+  hidePrimary = false,
+}: {
+  state: RunCurrentActionZoneState;
+  onPrimaryClick?: () => void;
+  hidePrimary?: boolean;
+}) {
   return (
     <section
       className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
@@ -59,25 +67,26 @@ export function RunCurrentActionZone({ state }: { state: RunCurrentActionZoneSta
             {state.title}
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">{state.description}</p>
+          <p className="mt-3 text-sm text-white">{state.currentStateLabel}</p>
         </div>
-        <a
-          href={state.primaryAction.href}
-          className="inline-flex rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white shadow-[0_10px_25px_rgba(59,130,246,0.2)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-        >
-          {state.primaryAction.label}
-        </a>
+        {hidePrimary ? null : (
+          <a
+            href={state.primaryAction.href}
+            onClick={(event) => {
+              if (!onPrimaryClick) return;
+              event.preventDefault();
+              onPrimaryClick();
+            }}
+            className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            {state.primaryAction.label}
+          </a>
+        )}
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
-          <p className="text-sm text-[var(--muted)]">What should the operator do next?</p>
-          <p className="mt-1 text-base font-medium">{state.currentStateLabel}</p>
-          <p className="mt-2 text-sm text-[var(--muted)]">{state.currentStateDetail}</p>
-        </div>
-        <div className="space-y-4">
-          <GuidanceList title="Top blockers" items={state.blockers} tone="danger" />
-          <GuidanceList title="Top warnings" items={state.warnings} tone="warning" />
-        </div>
+      <div className="mt-4 space-y-3">
+        <GuidanceList title="What is in the way" items={state.blockers.slice(0, 2)} tone="danger" />
+        <GuidanceList title="Worth a look" items={state.warnings.slice(0, 1)} tone="warning" />
       </div>
     </section>
   );

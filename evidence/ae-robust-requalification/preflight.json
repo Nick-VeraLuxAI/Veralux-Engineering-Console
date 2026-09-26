@@ -1,0 +1,30 @@
+{
+  "at": "2026-08-20T22:27:00.000Z",
+  "branch": "feature/autonomous-engineer-v1",
+  "tip": "f8fbf727dad0b3230156020e041c8a564e73fae5",
+  "faithfulRuntime": {
+    "endpoint": "http://127.0.0.1:8082/v1",
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "max_model_len": 262144,
+    "max_num_batched_tokens": 2048,
+    "max_num_seqs": 1,
+    "reasoning_parser": "nano_v3",
+    "tool_parser": "qwen3_coder",
+    "probe": {
+      "reasoning_field_present": true,
+      "nanoRuntimeMode_expected": "FAITHFUL"
+    }
+  },
+  "regressionSuites": {
+    "autonomous-engineer": { "files": 15, "tests": 102, "result": "PASS" },
+    "worker-plan": { "files": 3, "tests": 32, "result": "PASS" },
+    "quality-gates": { "files": 1, "tests": 1, "result": "PASS" },
+    "log": "/tmp/ae-regression-baseline.log"
+  },
+  "budgetsFrozen": {
+    "ledger_max_iterations": 8,
+    "jobs_max_iterations": 6,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  }
+}

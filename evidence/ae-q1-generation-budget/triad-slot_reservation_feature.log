@@ -1,0 +1,14 @@
+{"specimen":"slot_reservation_feature","hardClass":null,"variant":null,"runId":"f2160315-aabf-4428-a802-15f50034e768","maxIterations":6,"status":"starting"}
+{"specimen":"slot_reservation_feature","runId":"f2160315-aabf-4428-a802-15f50034e768","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":33576,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-generation-budget/slot_reservation_feature-f2160315.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-generation-budget/batch-2026-08-21T06-21-01-970Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}

@@ -22,8 +22,17 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) =>
-    React.createElement("a", { href, className }, children),
+  default: ({
+    href,
+    className,
+    children,
+    ...props
+  }: {
+    href: string;
+    className?: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => React.createElement("a", { href, className, ...props }, children),
 }));
 
 vi.mock("@/components/engineer-console/engineer-session-bar", () => ({
@@ -134,8 +143,31 @@ describe("DS-1 shared UI primitives", () => {
       ),
     );
 
-    expect(html).toContain('data-engineer-route-shell="default"');
+    expect(html).toContain('data-engineer-route-shell="immersive"');
+    expect(html).toContain('data-engineer-surface="sheet"');
     expect(html).toContain("Engineering Console");
     expect(html).toContain("Route content");
+    expect(html).toContain('data-engineer-back="true"');
+    expect(html).toContain('data-engineer-bottom-dock-slot="true"');
+    expect(html).toContain('data-engineer-route-content="true"');
+    expect(html).toContain('data-motion-press="true"');
+    expect(html).toContain("flex flex-col overflow-hidden");
+    expect(html).not.toContain("absolute inset-0 overflow-y-auto");
+    expect(html).toContain('href="/engineer"');
+    expect(html).toContain("Back to map");
+  });
+
+  it("points compatibility back to repositories", () => {
+    navigationState.pathname = "/engineer/compatibility";
+    const html = renderToStaticMarkup(
+      React.createElement(
+        EngineerRouteShell,
+        null,
+        React.createElement("div", null, "Compatibility"),
+      ),
+    );
+
+    expect(html).toContain('href="/engineer/repos"');
+    expect(html).toContain("Back to repositories");
   });
 });

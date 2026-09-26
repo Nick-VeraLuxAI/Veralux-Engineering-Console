@@ -8,6 +8,7 @@ import { getTaskById } from "@/lib/engineer-console/task-manager/task-manager";
 import { resolveTaskTargetRepoPath } from "@/lib/engineer-console/repo-intelligence/task-repo-path";
 import { getWorkerPlanChangedFilesScope } from "@/lib/engineer-console/worker-plan/worker-plan-manager";
 import { getChangedFiles, getDiffSummary } from "@/lib/engineer-console/workspace/git-workspace";
+import { resolveRunExecutionPath } from "@/lib/engineer-console/workspace/run-worktree";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import { authorizeRead } from "@/lib/engineer-console/security/route-guards";
 import type { ApprovalReport } from "@/lib/engineer-console/types";
@@ -21,6 +22,8 @@ import {
   getLatestWorkerPlanDraftForRun,
 } from "@/lib/engineer-console/worker-plan/worker-plan-draft-manager";
 import { buildRunWorkflowSummary } from "@/lib/engineer-console/run-ux/build-run-workflow-summary";
+import { getAutonomousCompletionPackage } from "@/lib/engineer-console/autonomous-engineer/completion-package";
+import { isAutonomousRun } from "@/lib/engineer-console/autonomous-engineer/state-store";
 
 export const runtime = "nodejs";
 
@@ -45,7 +48,7 @@ export async function GET(
   let changedFiles: string[] = [];
   let diffSummary = "";
   try {
-    const repoPath = resolveTaskTargetRepoPath(task);
+    const repoPath = resolveRunExecutionPath(id, resolveTaskTargetRepoPath(task));
     const scope = getWorkerPlanChangedFilesScope(id);
     changedFiles = await getChangedFiles(repoPath, scope ?? {});
     diffSummary = await getDiffSummary(repoPath, { changedFiles });
@@ -106,5 +109,6 @@ export async function GET(
         }
       : null,
     uxSummary,
+    autonomous: isAutonomousRun(id) ? getAutonomousCompletionPackage(id) : null,
   });
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildApprovalReport } from "./approval-report";
+import { buildApprovalReport, buildFixFollowUpDraft, describeApprovalEligibility, resolveLiveApprovalEligibility } from "./approval-report";
 import type { EngineeringRun, EngineeringTask, QualityGateResult } from "../types";
 
 const baseTask: EngineeringTask = {
@@ -74,5 +74,61 @@ describe("buildApprovalReport", () => {
       qualityGateResults: [passedGate],
     });
     expect(report.canApprove).toBe(false);
+  });
+
+  it("explains a failed quality gate before approval", () => {
+    const described = describeApprovalEligibility({
+      canApprove: false,
+      recommendedNextAction: "Request fix: quality gates failed. Review command output and re-run.",
+      governanceIssues: [],
+      qualityGateResults: [{ command: "npm test", status: "failed" }],
+    });
+    expect(described.canApprove).toBe(false);
+    expect(described.summary).toMatch(/quality gates failed/i);
+    expect(described.details[0]).toBe("Quality gate failed: npm");
+  });
+
+  it("builds a follow-up fix draft from the block reason", () => {
+    const draft = buildFixFollowUpDraft({
+      blockedTitle: "Memory Module V0",
+      eligibility: {
+        summary: "Request fix: quality gates failed. Review command output and re-run.",
+        details: ["Quality gate failed: npm"],
+      },
+    });
+    expect(draft.title).toBe("Fix: Memory Module V0");
+    expect(draft.objective).toMatch(/cannot be approved/);
+    expect(draft.objective).toMatch(/Quality gate failed: npm/);
+    expect(draft.success).toMatch(/Quality gates pass/);
+    expect(draft.constraints).toMatch(/Do not approve the blocked run/);
+  });
+
+  it("allows approval live when stored canApprove is stale but gates only skipped", () => {
+    const eligibility = resolveLiveApprovalEligibility({
+      runStatus: "waiting_for_approval",
+      report: {
+        canApprove: false,
+        recommendedNextAction: "Approve to mark run ready (no auto-commit or deploy in MVP).",
+        governanceIssues: [],
+        qualityGateResults: [{ command: "npm test", status: "skipped" }],
+        riskLevel: "low",
+      },
+    });
+    expect(eligibility.canApprove).toBe(true);
+  });
+
+  it("blocks approval live when a quality gate failed", () => {
+    const eligibility = resolveLiveApprovalEligibility({
+      runStatus: "waiting_for_approval",
+      report: {
+        canApprove: true,
+        recommendedNextAction: "Approve to mark run ready (no auto-commit or deploy in MVP).",
+        governanceIssues: [],
+        qualityGateResults: [{ command: "npm test", status: "failed" }],
+        riskLevel: "low",
+      },
+    });
+    expect(eligibility.canApprove).toBe(false);
+    expect(eligibility.details[0]).toBe("Quality gate failed: npm");
   });
 });

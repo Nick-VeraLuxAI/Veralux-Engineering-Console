@@ -1,0 +1,129 @@
+{
+  "at": "2026-08-20T16:01:53.299Z",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8081/v1",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "idempotent_job_runner",
+      "class": "failure_recovery",
+      "title": "Job apply resume",
+      "objective": "Directors need a small job apply helper under src/jobs that can apply a job by id once, survive retries after a partial failure, and never double-apply the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+      "elapsedMs": 73421,
+      "taskId": "3214094f-622e-4d1e-a184-fbd51d4b6d55",
+      "runId": "8725e572-5520-4084-9a4a-1b95a3a24925",
+      "result": {
+        "runId": "8725e572-5520-4084-9a4a-1b95a3a24925",
+        "state": "exhausted",
+        "failureClass": "BUDGET_EXHAUSTED",
+        "deliveryCandidateStatus": "blocked",
+        "paused": false,
+        "message": "Budget exhausted after diagnosis."
+      },
+      "currentState": "exhausted",
+      "iterationNumber": 6,
+      "deliveryCandidateStatus": "blocked",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 4,
+          "workerPlanId": "ef038899-0278-4fd7-bff1-4eb560045f12",
+          "strategy": "Complete src/jobs/jobs.js to implement idempotent applyJob that records applied jobs, survives retries, and never double-applies. Add comprehensive test coverage in src/jobs/jobs.test.js.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "workerPlanId": "bf9292c7-1f86-4b8b-9fc9-0eff423fd326",
+          "strategy": "Complete src/jobs/jobs.js to implement an idempotent applyJob that records applied jobs, survives retries after partial failure, and never double-applies the same job id. Add a regression test in src/jobs/jobs.test.js to verify idempotency and failure safety.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 4,
+          "hypothesis": "Complete src/jobs/jobs.js to implement idempotent applyJob that records applied jobs, survives retries, and never double-applies. Add comprehensive test coverage in src/jobs/jobs.test.js.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "hypothesis": "Complete src/jobs/jobs.js to implement an idempotent applyJob that records applied jobs, survives retries after partial failure, and never double-applies the same job id. Add a regression test in src/jobs/jobs.test.js to verify idempotency and failure safety.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "reviews": [],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 1,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 1,
+        "objectiveQcPassed": false
+      },
+      "plans": [
+        {
+          "id": "bf9292c7-1f86-4b8b-9fc9-0eff423fd326",
+          "summary": "Complete src/jobs/jobs.js to implement an idempotent applyJob that records applied jobs, survives retries after partial failure, and never double-applies the same job id. Add a regression test in src/jobs/jobs.test.js to verify idempotency and failure safety.",
+          "iterationNumber": 5,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "ef038899-0278-4fd7-bff1-4eb560045f12",
+          "summary": "Complete src/jobs/jobs.js to implement idempotent applyJob that records applied jobs, survives retries, and never double-applies. Add comprehensive test coverage in src/jobs/jobs.test.js.",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/8725e572-5520-4084-9a4a-1b95a3a24925",
+        "branchName": "engineer/3214094f/8725e572-20260820160039",
+        "baseRevision": "4c0c2eab2c1f949248b3c95d3391faead1b88782",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "functional_correctness": "PASS",
+          "failure_recovery": "PASS",
+          "idempotency": "PASS",
+          "vertical_slice_complete": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "scorePass": 1,
+    "deliveryReady": 0
+  }
+}

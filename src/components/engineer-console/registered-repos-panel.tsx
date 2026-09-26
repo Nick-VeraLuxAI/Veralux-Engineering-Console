@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Surface } from "@/components/ui/surface";
 import { OperatorHelp } from "./operator-help";
 import { StatusBadge } from "./status-badge";
+import { GithubRepoAccessPanel } from "./github-repo-access-panel";
+import { StartRepoForm } from "./start-repo-form";
 import { RepoFileIndexPanel } from "./repo-file-index-panel";
 import { RepoCodeIndexPanel } from "./repo-code-index-panel";
 
@@ -82,7 +84,7 @@ export function RegisteredReposPanel({
       if (!res.ok) throw new Error(data.error ?? "Registration failed");
       setName("");
       setPath("");
-      await refreshList();
+      window.location.assign(`/engineer?focus=repository&repo=${encodeURIComponent(data.repo.id)}`);
     } catch (err) {
       setError(formatRepoRegistrationErrorMessage(err instanceof Error ? err.message : String(err)));
     } finally {
@@ -109,107 +111,113 @@ export function RegisteredReposPanel({
 
   return (
     <div className="space-y-6">
-      <Surface as="section">
-        <h2 className="mb-3 font-semibold">Repo setup order</h2>
-        <ol className="list-inside list-decimal space-y-1 text-sm text-[var(--muted)]">
-          <li>Register a repo inside approved roots.</li>
-          <li>Verify the repo path before indexing.</li>
-          <li>Run file index before code index.</li>
-          <li>Run compatibility analysis after code index.</li>
-          <li>Create a task after repo verification.</li>
-        </ol>
-      </Surface>
+      <div data-repo-primary-actions="true">
+        <p className="mb-3 text-[13px] text-[var(--muted)]">
+          Choose one starting point. You can create a clean local repository or map code that
+          already exists.
+        </p>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Surface as="section">
+            <StartRepoForm variant="sheet" />
+          </Surface>
 
-      <Surface as="section">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <h2 className="font-semibold">Approved repo roots</h2>
-          <OperatorHelp term="approved_repo_roots" label="What are approved repo roots?" />
+          <Surface as="form" onSubmit={handleRegister}>
+            <h2 className="mb-1 font-semibold">Register repository</h2>
+            <p className="mb-3 text-[13px] text-[var(--muted)]">
+              Map an existing local checkout without moving its files.
+            </p>
+            {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+            <label className="mb-3 block text-sm">
+              Name (optional)
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={FIELD_CLASS_NAME}
+                placeholder="my-service"
+              />
+            </label>
+            <label className="mb-3 block text-sm">
+              Absolute path
+              <input
+                required
+                value={path}
+                onChange={(e) => setPath(e.target.value)}
+                className={`${FIELD_CLASS_NAME} font-mono text-[13px]`}
+                placeholder={smokeRepoExamplePath || "/path/to/git/repo"}
+              />
+            </label>
+            <p
+              className={`mb-3 text-[13px] ${
+                pathGuidance.status === "ready"
+                  ? "text-emerald-300"
+                  : pathGuidance.status === "warning"
+                    ? "text-amber-300"
+                    : "text-[var(--muted)]"
+              }`}
+            >
+              {pathGuidance.message}
+            </p>
+            <Button disabled={busy === "register"} type="submit" variant="primary">
+              {busy === "register" ? "Registering…" : "Register"}
+            </Button>
+          </Surface>
         </div>
-        {allowedRoots.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">
-            Approved repo roots are not configured here. Any local path may be registered in this
-            environment, but staging and production should set approved roots first.
-          </p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {allowedRoots.map((root) => (
-              <li
-                key={root}
-                className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 py-2 font-mono text-xs"
-              >
-                {root}
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="mt-3 text-sm text-[var(--muted)]">
-          Path must be inside approved repo roots.
-        </p>
-        <p className="mt-2 text-xs text-[var(--muted)]">
-          Example staging repo path: <code>{smokeRepoExamplePath}</code>
-        </p>
-        <p className="mt-2 text-xs text-[var(--muted)]">
-          Setup references: <code>docs/env-reference.md</code> and <code>docs/operator-runbook.md</code>
-        </p>
-      </Surface>
+      </div>
 
-      <Surface
-        as="form"
-        onSubmit={handleRegister}
-        className=""
+      <GithubRepoAccessPanel />
+
+      <details
+        data-repo-setup-details="true"
+        className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
       >
-        <h2 className="mb-3 font-semibold">Register repository</h2>
-        {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
-        <label className="mb-3 block text-sm">
-          Name (optional)
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={FIELD_CLASS_NAME}
-            placeholder="my-service"
-          />
-        </label>
-        <label className="mb-3 block text-sm">
-          Absolute path
-          <input
-            required
-            value={path}
-            onChange={(e) => setPath(e.target.value)}
-            className={`${FIELD_CLASS_NAME} font-mono text-xs`}
-            placeholder="/path/to/git/repo"
-          />
-        </label>
-        <p
-          className={`mb-3 text-xs ${
-            pathGuidance.status === "ready"
-              ? "text-emerald-300"
-              : pathGuidance.status === "warning"
-                ? "text-amber-300"
-                : "text-[var(--muted)]"
-          }`}
-        >
-          {pathGuidance.message}
-        </p>
-        <Button
-          disabled={busy === "register"}
-          type="submit"
-          variant="primary"
-        >
-          {busy === "register" ? "Registering…" : "Register"}
-        </Button>
-      </Surface>
+        <summary className="cursor-pointer text-sm font-semibold text-white">
+          Repository setup details
+        </summary>
+        <div className="mt-4 space-y-5 border-t border-[var(--border)] pt-4">
+          <section>
+            <h2 className="font-semibold text-white">Repo setup order</h2>
+            <ol className="mt-2 list-inside list-decimal space-y-1.5 text-[13px] text-[var(--muted)]">
+              <li>Register a repo inside approved roots.</li>
+              <li>Verify the repo path before indexing.</li>
+              <li>Run file index before code index.</li>
+              <li>Run compatibility analysis after code index.</li>
+              <li>Create a task after repo verification.</li>
+            </ol>
+          </section>
+
+          <section>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <h2 className="font-semibold text-white">Approved repo roots</h2>
+              <OperatorHelp term="approved_repo_roots" label="What are approved repo roots?" />
+            </div>
+            {allowedRoots.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">
+                Approved repo roots are not configured here. Any local path may be registered in
+                this environment, but staging and production should set approved roots first.
+              </p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {allowedRoots.map((root) => (
+                  <li
+                    key={root}
+                    className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 py-2 font-mono text-[13px]"
+                  >
+                    {root}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 text-[13px] text-[var(--muted)]">
+              New and existing local repositories must live inside one of these roots.
+            </p>
+          </section>
+        </div>
+      </details>
 
       <Surface as="section">
         <h2 className="mb-3 font-semibold">Registered ({repos.length})</h2>
         {repos.length === 0 ? (
-          <Surface className="text-sm text-[var(--muted)]" padding="md" variant="inset">
-            <p className="font-medium text-white">Register a repo inside approved roots.</p>
-            <p className="mt-2">
-              What is missing: no repos are registered yet. Why it matters: repo verification,
-              indexing, compatibility analysis, and the safest task targeting all begin here. What
-              next: register a repo, verify it, then index files.
-            </p>
-          </Surface>
+          <p className="text-sm text-[var(--muted)]">No repositories yet.</p>
         ) : (
           <ul className="space-y-4">
             {repos.map((repo) => {
@@ -229,33 +237,33 @@ export function RegisteredReposPanel({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="font-medium">{repo.name}</p>
-                        <p className="font-mono text-xs text-[var(--muted)]">{repo.path}</p>
+                        <p className="font-mono text-[13px] text-[var(--muted)]">{repo.path}</p>
                       </div>
                       <StatusBadge status={repo.verificationStatus} />
                     </div>
-                    <p className="mt-2 text-xs text-[var(--muted)]">{repo.verificationMessage}</p>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    <p className="mt-2 text-[13px] text-[var(--muted)]">{repo.verificationMessage}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-[13px]">
                       {statusSummary.labels.map((label) => (
                         <Badge key={label} size="sm" variant="muted">
                           {label}
                         </Badge>
                       ))}
                     </div>
-                    <p className="mt-2 text-xs text-[var(--muted)]">
+                    <p className="mt-2 text-[13px] text-[var(--muted)]">
                       Next action: {statusSummary.nextAction}
                     </p>
-                    <p className="mt-2 text-xs">
+                    <p className="mt-2 text-[13px]">
                       Scripts:{" "}
                       {repo.packageScripts.length > 0
                         ? repo.packageScripts.map((s) => s.scriptName).join(", ")
                         : "—"}
                     </p>
-                    <p className="text-xs">
+                    <p className="text-[13px]">
                       Test runner: {repo.testProfile?.runner ?? "unknown"}
                       {repo.testProfile ? ` (${repo.testProfile.confidence})` : ""}
                     </p>
                     {repo.codeIndex && (
-                      <p className="mt-1 text-xs text-[var(--muted)]">
+                      <p className="mt-1 text-[13px] text-[var(--muted)]">
                         Code index: {repo.codeIndex.status} · {repo.codeIndex.symbolCount} symbols ·{" "}
                         {repo.codeIndex.chunkCount} chunks
                         {repo.codeIndex.completedAt
@@ -298,7 +306,7 @@ export function RegisteredReposPanel({
             })}
           </ul>
         )}
-        <div className="mt-4 text-xs text-[var(--muted)]">
+        <div className="mt-4 text-[13px] text-[var(--muted)]">
           Next step after repo setup:{" "}
           <Link href="/engineer/compatibility" className="underline underline-offset-2">
             run compatibility analysis
@@ -310,6 +318,7 @@ export function RegisteredReposPanel({
           .
         </div>
       </Surface>
+
     </div>
   );
 }

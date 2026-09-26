@@ -167,6 +167,8 @@ export interface RunEvidenceBundleV1 {
   releaseSignoff: EvidenceReleaseSignoffSummary | null;
   compatibility: EvidenceCompatibilitySummary | null;
   audit: EvidenceAuditReference;
+  /** Redacted advisory senior-review summary. Not a release gate. */
+  seniorReview?: import("../../senior-escalation/durable-types").EvidenceSeniorReviewSummary | null;
   timestamps: {
     runStartedAt: string | null;
     runCompletedAt: string | null;

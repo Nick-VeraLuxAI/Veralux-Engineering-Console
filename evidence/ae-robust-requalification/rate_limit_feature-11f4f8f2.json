@@ -1,0 +1,262 @@
+{
+  "specimenId": "rate_limit_feature",
+  "matrixClasses": [
+    "robust_new_feature"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Request rate window helper",
+  "objective": "Directors need a small rate-limit helper under src/ratelimit that tracks allow/deny for a caller key within a window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+  "elapsedMs": 178812,
+  "taskId": "f5842190-a3f8-4f74-aacc-574a06495233",
+  "runId": "11f4f8f2-e705-4277-93b6-f6671438418f",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "11f4f8f2-e705-4277-93b6-f6671438418f",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 5,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "b63e0f90-f1e9-457f-bb45-41b4380964c5",
+      "strategy": "Add rate limiter implementation and tests",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "workerPlanId": "21e6f04e-16e6-47b6-a461-8733e1758ec2",
+      "strategy": "Make RateLimiter.isAllowed async and reject on rate limit; update the 'deny after exceeding limit' test to use await assert.rejects for proper async assertion.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "workerPlanId": "91d97306-b6c0-4cd1-b5ee-1c90fffb3e1e",
+      "strategy": "Fix RateLimiter input validation and add regression tests for invalid parameters",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "workerPlanId": "09f4f973-7841-4384-8c96-c9520a83c6b6",
+      "strategy": "Rewrite rate‑limiter tests to use the native node:test runner, add deterministic allow/deny coverage, and complete input‑validation regression tests to prevent remaining failures.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "workerPlanId": "eb198051-a86f-44e9-b8db-a99c0d32ee72",
+      "strategy": "Fix RateLimiter to return true when allowance succeeds and add comprehensive tests covering allow/deny paths and input validation.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [
+    {
+      "iteration": 1,
+      "hypothesis": "Add rate limiter implementation and tests",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "hypothesis": "Make RateLimiter.isAllowed async and reject on rate limit; update the 'deny after exceeding limit' test to use await assert.rejects for proper async assertion.",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "hypothesis": "Fix RateLimiter input validation and add regression tests for invalid parameters",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "hypothesis": "Rewrite rate‑limiter tests to use the native node:test runner, add deterministic allow/deny coverage, and complete input‑validation regression tests to prevent remaining failures.",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "usage": {
+    "iterations": 5,
+    "plans": 5,
+    "modelCalls": 15,
+    "changedFiles": 2,
+    "changedBytes": 13744,
+    "runtimeMs": 177918,
+    "investigationReads": 2,
+    "contextBytes": 128,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a small rate-limit helper under src/ratelimit that tracks allow/deny for a caller key within a window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/ratelimit/RateLimiter.js",
+        "Changed src/ratelimit/invalid-input.test.js",
+        "Changed src/ratelimit/rate.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 3",
+        "Working tree changes not yet in HEAD:\n src/ratelimit/RateLimiter.js | 41 lines\n src/ratelimit/invalid-input.test.js | 27 lines\n src/ratelimit/rate.test.js | 46 lines"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "RateLimiter.js implements a window‑based limit using a Map keyed by caller and filters timestamps within the configured window, meeting the 'track allow/deny within a window' requirement.",
+        "Input validation is performed in the constructor for windowMs and max, and additionally validates caller keys in isAllowed, satisfying 'validates inputs' and 'fails closed on invalid inputs'.",
+        "The test suite covers allow, deny, and invalid‑input paths, and quality gates report no regressions, fulfilling the 'covers allow and deny paths with tests' and 'stays maintainable' criteria."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "eb198051-a86f-44e9-b8db-a99c0d32ee72",
+      "summary": "Fix RateLimiter to return true when allowance succeeds and add comprehensive tests covering allow/deny paths and input validation.",
+      "iterationNumber": 5,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "09f4f973-7841-4384-8c96-c9520a83c6b6",
+      "summary": "Rewrite rate‑limiter tests to use the native node:test runner, add deterministic allow/deny coverage, and complete input‑validation regression tests to prevent remaining failures.",
+      "iterationNumber": 4,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "91d97306-b6c0-4cd1-b5ee-1c90fffb3e1e",
+      "summary": "Fix RateLimiter input validation and add regression tests for invalid parameters",
+      "iterationNumber": 3,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "21e6f04e-16e6-47b6-a461-8733e1758ec2",
+      "summary": "Make RateLimiter.isAllowed async and reject on rate limit; update the 'deny after exceeding limit' test to use await assert.rejects for proper async assertion.",
+      "iterationNumber": 2,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "b63e0f90-f1e9-457f-bb45-41b4380964c5",
+      "summary": "Add rate limiter implementation and tests",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/11f4f8f2-e705-4277-93b6-f6671438418f",
+    "branchName": "engineer/f5842190/11f4f8f2-20260820224524",
+    "baseRevision": "bc2ffce5c0cdeb038495d1589c3eee0a16b6ee3d",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "validation_error_handling": "PASS",
+      "tests_negative_path": "PASS",
+      "maintainable_structure": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

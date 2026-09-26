@@ -1,0 +1,72 @@
+{
+  "summary": {
+    "label": "ab_A_ae_jobs_plan",
+    "elapsed_s": 4.57,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 527,
+      "total_tokens": 1792,
+      "completion_tokens": 1265,
+      "prompt_tokens_details": null
+    },
+    "content_len": 4289,
+    "final_len": 4289,
+    "has_think_close": false,
+    "content_preview": "{\n  \"runId\": \"replay-jobs-1\",\n  \"summary\": \"Complete the applyJob helper to be idempotent, record state for retries, and add tests for first apply, duplicate apply, and failure/resume.\",\n  \"allowedFiles\": [\n    \"src/jobs/jobs.js\",\n    \"src/jobs/jobs.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"update_file\",\n      \"path\": \"src/jobs/jobs.js\",\n      \"content\": \"// src/jobs/jobs.js\\n// Half-bu",
+    "final_preview": "{\n  \"runId\": \"replay-jobs-1\",\n  \"summary\": \"Complete the applyJob helper to be idempotent, record state for retries, and add tests for first apply, duplicate apply, and failure/resume.\",\n  \"allowedFiles\": [\n    \"src/jobs/jobs.js\",\n    \"src/jobs/jobs.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"update_file\",\n      \"path\": \"src/jobs/jobs.js\",\n      \"content\": \"// src/jobs/jobs.js\\n// Half-built: only first success path sketched.\\nexport const store = { applied: {}, pending: {} };\\n\\n/**\\n * Apply a job by id.\\n * - Idempotent: calling with the same id again does nothing.\\n * - Partial fa",
+    "request_meta": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 0.1,
+      "max_tokens": 2048,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    }
+  },
+  "messages": [
+    {
+      "role": "system",
+      "content": "You generate a worker plan JSON object only: {runId, summary, allowedFiles, operations:[{type: create_file|update_file|append_file, path, content, reason}]}. Never write files yourself, never run shell, never approve release. JSON only. Include complete file contents. allowedFiles must list every operation path. Use update_file when the path already exists and create_file only for new paths. Match package.json test runner: node --test. Use only: import test from 'node:test'; import assert from 'node:assert/strict'. Never import expect from node:test. Never assert.throwsAsync."
+    },
+    {
+      "role": "user",
+      "content": "Run ID: replay-jobs-1\nObjective: Directors need a small job apply helper under src/jobs that can apply a job by id once, survive retries after a partial failure, and never double-apply the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.\nRequirements: applyJob is idempotent for the same job id; Partial failure leaves a recoverable recorded state; Tests cover first apply, duplicate apply, and a failure/resume case\nConstraints: Stay inside src/jobs/; Do not change PR, merge, or deploy behavior\nAllowed path prefixes: src/jobs/\nExisting files under those prefixes (truncated): src/jobs/jobs.js, src/jobs/jobs.test.js\npackage.json scripts: {\"test\":\"node --test src/jobs/jobs.test.js\"}\nAuthorized source snippets (read these before mutating):\n--- src/jobs/jobs.js ---\n// Half-built: only first success path sketched.\nexport const store = { applied: {}, pending: {} };\nexport function applyJob(id, work) {\n  // TODO: resume / duplicate / failure recording\n  const result = work();\n  store.applied[id] = (store.applied[id] || 0) + 1;\n  return result;\n}\n\n--- src/jobs/jobs.test.js ---\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { applyJob, store } from './jobs.js';\ntest('applies once', () => {\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\n  assert.equal(applyJob('j1', () => 1), 1);\n});\n\nReturn worker plan JSON with runId matching the run, allowedFiles, and file operations with full content.\n"
+    }
+  ],
+  "response": {
+    "id": "chatcmpl-8e804152e32e11c0",
+    "object": "chat.completion",
+    "created": 1787254806,
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"runId\": \"replay-jobs-1\",\n  \"summary\": \"Complete the applyJob helper to be idempotent, record state for retries, and add tests for first apply, duplicate apply, and failure/resume.\",\n  \"allowedFiles\": [\n    \"src/jobs/jobs.js\",\n    \"src/jobs/jobs.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"update_file\",\n      \"path\": \"src/jobs/jobs.js\",\n      \"content\": \"// src/jobs/jobs.js\\n// Half-built: only first success path sketched.\\nexport const store = { applied: {}, pending: {} };\\n\\n/**\\n * Apply a job by id.\\n * - Idempotent: calling with the same id again does nothing.\\n * - Partial failure: if work throws, the id is recorded in pending so a retry can resume.\\n * - Resume: after a failure the id stays in pending until a successful apply removes it.\\n */\\nexport function applyJob(id, work) {\\n  // If already applied, nothing to do.\\n  if (store.applied[id]) {\\n    return;\\n  }\\n\\n  try {\\n    const result = work();\\n    // Record successful application.\\n    store.applied[id] = (store.applied[id] || 0) + 1;\\n    // Remove from pending if it was there.\\n    delete store.pending[id];\\n    return result;\\n  } catch (err) {\\n    // Record failure so a retry can resume later.\\n    store.pending[id] = true;\\n    // Ensure the id is not marked as applied.\\n    delete store.applied[id];\\n    throw err;\\n  }\\n}\",\n      \"reason\": \"Implement full idempotent applyJob with pending state for retries.\"\n    },\n    {\n      \"type\": \"update_file\",\n      \"path\": \"src/jobs/jobs.test.js\",\n      \"content\": \"// src/jobs/jobs.test.js\\nimport test from 'node:test';\\nimport assert from 'node:assert/strict';\\nimport { applyJob, store } from './jobs.js';\\n\\ntest('applies once', () => {\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n  assert.equal(applyJob('j1', () => 1), 1);\\n});\\n\\ntest('duplicate apply does nothing', () => {\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n  applyJob('j1', () => 1); // first apply\\n  const result = applyJob('j1', () => 2); // duplicate\\n  assert.strictEqual(result, undefined);\\n});\\n\\ntest('failure records pending and can resume', () => {\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n  // Simulate a failure\\n  assert.throws(() => applyJob('failId', () => {\\n    throw new Error('boom');\\n  }), Error('boom'));\\n  // Ensure pending is recorded\\n  assert.strictEqual(store.pending['failId'], true);\\n  // Resume after failure\\n  const resumeResult = applyJob('failId', () => 42);\\n  assert.strictEqual(resumeResult, 42);\\n  // Ensure it is now applied and pending cleared\\n  assert.strictEqual(store.applied['failId'], 1);\\n  assert.strictEqual(store.pending['failId'], undefined);\\n});\\n\\ntest('idempotent after successful resume', () => {\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n  applyJob('idempotent', () => 7);\\n  const second = applyJob('idempotent', () => 8);\\n  assert.strictEqual(second, undefined);\\n});\\n\\ntest('cannot apply after pending without resume', () => {\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n  // Failure leaves pending\\n  assert.throws(() => applyJob('stuck', () => {\\n    throw new Error('stuck');\\n  }), Error('stuck'));\\n  // Trying to apply again without a successful resume should still throw\\n  assert.throws(() => applyJob('stuck', () => 1), Error('stuck'));\\n});\\n\\ntest('store state is isolated per test', () => {\\n  // Clean up any leftover state\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n  // Simple sanity check that store starts empty\\n  assert.strictEqual(Object.keys(store.applied).length, 0);\\n  assert.strictEqual(Object.keys(store.pending).length, 0);\\n});\"\n      },\n      \"reason\": \"Add comprehensive tests covering first apply, duplicate apply, failure/resume, idempotency, and isolation.\"\n    }\n  ]\n}",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "tool_calls": [],
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "prompt_tokens": 527,
+      "total_tokens": 1792,
+      "completion_tokens": 1265,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "kv_transfer_params": null
+  }
+}

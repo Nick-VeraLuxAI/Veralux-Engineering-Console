@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import { getLatestCompatibilityAnalysisRun } from "@/lib/engineer-console/repo-intelligence/compatibility/compatibility-manager";
 import { listRegisteredRepos } from "@/lib/engineer-console/repo-intelligence/registered-repos/list-repos";
 import { toPublicRegisteredRepo } from "@/lib/engineer-console/repo-intelligence/registered-repos/register-repo";
 import {
+  getEffectiveRegistrationRoots,
   getRepoRootAllowlist,
   isRepoRootAllowlistConfigured,
 } from "@/lib/engineer-console/repo-intelligence/registered-repos/repo-path-policy";
@@ -16,23 +16,15 @@ export default function EngineerReposPage() {
   ensureEngineerConsoleReady();
   const repos = listRegisteredRepos().map(toPublicRegisteredRepo);
   const allowlistConfigured = isRepoRootAllowlistConfigured();
-  const repoRoots = getRepoRootAllowlist() ?? [];
+  const repoRoots = getEffectiveRegistrationRoots() ?? getRepoRootAllowlist() ?? [];
   const compatibilityAvailable = getLatestCompatibilityAnalysisRun()?.status === "completed";
 
   return (
     <div>
-      <Link href="/engineer" className="text-sm text-[var(--muted)] hover:text-white">
-        ← Engineering tasks
-      </Link>
-      <h1 className="mt-4 mb-2 text-2xl font-semibold">Registered repositories</h1>
-      <p className="mb-6 text-sm text-[var(--muted)]">
-        Register local Git repositories for safer task targeting. Package scripts and test runners
-        are detected for metadata only — nothing runs automatically during registration.
-      </p>
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Repositories</h1>
       {!allowlistConfigured && (
-        <p className="mb-4 rounded border border-amber-900/50 bg-amber-950/30 px-3 py-2 text-sm text-amber-200">
-          <strong>Development mode:</strong> <code>ENGINEER_CONSOLE_REPO_ROOTS</code> is not set.
-          Any local path may be registered. Set a comma-separated allowlist in production.
+        <p className="mb-4 text-sm text-white/60">
+          Approved roots are open in this environment. Production should restrict them.
         </p>
       )}
       <RegisteredReposPanel

@@ -1,0 +1,30 @@
+{
+  "runId": "5f39be14-79a9-45f3-a9a4-35578704b13f",
+  "elapsedMs": 299973,
+  "nanoRuntimeMode": "FAITHFUL",
+  "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+  "state": "exhausted",
+  "deliveryCandidateStatus": "blocked",
+  "failureClass": "BUDGET_EXHAUSTED",
+  "message": "Post-review repair budget exhausted after diagnosis.",
+  "humanCodingInterventions": 0,
+  "qc": {
+    "newRegressions": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "reviewsFailed": ["diff_quality"],
+  "planningPolicyObserved": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+  "rescueTriggeredAtLeastOnce": true,
+  "globalReasoningBudget4000": false,
+  "skillopt": {
+    "shadowRowsForRun": 5,
+    "promptHashEqual": true,
+    "actuallyInjectedAny": false,
+    "aePromptsModifiedBySkillOpt": 0,
+    "validatedCount": 6,
+    "candidateCount": 13,
+    "rejectedCount": 1
+  },
+  "deliveryReady": false
+}

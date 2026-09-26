@@ -53,6 +53,8 @@ export async function POST(
       decision,
       confirmationText: body.confirmationText ?? "",
       reviewer: auth.operator.displayName,
+      reviewerActorId: auth.operator.id,
+      reviewerRole: auth.operator.role === "admin" ? "approver" : "approver",
       reviewerNote: body.reviewerNote ?? null,
     });
 

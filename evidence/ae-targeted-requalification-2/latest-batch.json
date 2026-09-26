@@ -1,0 +1,190 @@
+{
+  "at": "2026-08-21T00:47:41.910Z",
+  "tipHint": "feature/autonomous-engineer-v1",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8082/v1",
+  "maxModelLen": "262144",
+  "nanoRuntimeMode": "FAITHFUL",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "agent_bad_code_v3",
+      "matrixClasses": [
+        "agent_generated_bad_code"
+      ],
+      "hardClass": null,
+      "variant": 3,
+      "title": "Sanitize helper cleanup",
+      "objective": "Directors need sanitizeToken under src/normalize to trim and lowercase tokens for production use with clear tests. Improve the existing helper so it is coherent and trustworthy: remove prior-agent HACK/TODO scaffolding, duplicate dead helpers/shims (including unused dead-shim.js), and any circular/self-imports. Do not open a PR or deploy.",
+      "elapsedMs": 21249,
+      "taskId": "37b2e264-cb5c-427a-a3c4-2d54586d67fe",
+      "runId": "216d4b06-33c0-4ce3-924a-f6150c2ee91a",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "216d4b06-33c0-4ce3-924a-f6150c2ee91a",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "a13ebad7-be3d-4758-9823-5216ca82ec3f",
+          "strategy": "Remove unused dead-shim, simplify sanitizeToken implementation to trim and lowercase tokens, and add comprehensive tests for the new behavior.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 3,
+        "changedBytes": 653,
+        "runtimeMs": 20641,
+        "investigationReads": 2,
+        "contextBytes": 128,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need sanitizeToken under src/normalize to trim and lowercase tokens for production use with clear tests. Improve the existing helper so it is coherent and trustworthy: remove prior-agent HACK/TODO scaffolding, duplicate dead helpers/shims (including unused dead-shim.js), and any circular/self-imports. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/normalize/dead-shim.js",
+            "Changed src/normalize/token.js",
+            "Changed src/normalize/token.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 3",
+            "src/normalize/dead-shim.js  |  2 --\n src/normalize/token.js      |  7 +------\n src/normalize/token.test.js | 18 ++++++++++++++++++\n 3 files changed, 19 insertions(+), 8 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "sanitizeToken correctly trims and lowercases input; dead‑shim and scaffolding have been removed; no circular or self imports remain; existing tests cover basic scenarios."
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "a13ebad7-be3d-4758-9823-5216ca82ec3f",
+          "summary": "Remove unused dead-shim, simplify sanitizeToken implementation to trim and lowercase tokens, and add comprehensive tests for the new behavior.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/216d4b06-33c0-4ce3-924a-f6150c2ee91a",
+        "branchName": "engineer/37b2e264/216d4b06-20260821004720",
+        "baseRevision": "5cf7434e044b2f9f171271329bf89a507dca6e4e",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "remediated_agent_mess": "PASS",
+          "no_workaround_stack": "PASS",
+          "no_circular_residue": "PASS",
+          "validation": "PASS"
+        },
+        "badCodeScorecard": {
+          "repaired_design_not_hack": "PASS",
+          "removed_obsolete_patterns": "PASS",
+          "no_self_import": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}

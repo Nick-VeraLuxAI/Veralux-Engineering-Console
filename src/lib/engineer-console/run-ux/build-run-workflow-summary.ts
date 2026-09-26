@@ -1,9 +1,4 @@
-import type {
-  ApprovalReport,
-  EngineeringRun,
-  EngineeringTask,
-  QualityGateResult,
-} from "@/lib/engineer-console/types";
+import { getGovernanceModeConfig } from "@/lib/engineer-console/governance/governance-mode";
 import { listDecisionRecords } from "@/lib/engineer-console/governance/decision-records/decision-record-manager";
 import { getEvidenceBundleForRun } from "@/lib/engineer-console/governance/evidence-bundles/evidence-bundle-manager";
 import {
@@ -279,6 +274,14 @@ export function buildRunWorkflowSummary(input: {
       signoffExceptionsBlockers:
         hardGates.evaluations.release_signoff_completed_with_exceptions.blockers,
     },
+    governance: (() => {
+      const modeConfig = getGovernanceModeConfig();
+      return {
+        mode: modeConfig.mode,
+        continueEngineeringResumesAe: modeConfig.continueEngineeringResumesAe,
+        preferSandboxAfterApprove: modeConfig.preferSandboxAfterApprove,
+      };
+    })(),
     audit: {
       eventCount: auditEvents.length,
       chainOk: auditVerification.ok,

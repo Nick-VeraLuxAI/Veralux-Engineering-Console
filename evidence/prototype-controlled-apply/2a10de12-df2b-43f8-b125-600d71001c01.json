@@ -1,0 +1,106 @@
+{
+  "schema_version": "veralux-console-prototype-controlled-apply/v1",
+  "controlled_apply_id": "2a10de12-df2b-43f8-b125-600d71001c01",
+  "timestamp": "2026-06-24T18:34:15.107Z",
+  "controlled_apply_status": "controlled_apply_completed",
+  "accepted": true,
+  "workspace_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.controlled-apply/2a10de12-df2b-43f8-b125-600d71001c01",
+  "evidence_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/prototype-controlled-apply/2a10de12-df2b-43f8-b125-600d71001c01.json",
+  "apply_approval_decision_id": "003f3134-3aef-41a5-b59a-fb671f1a91af",
+  "apply_proposal_id": "39fc0613-1e86-482b-a13d-a2b171ba7caf",
+  "implementation_plan_id": "48094589-ac21-4471-b3b6-97473f62e617",
+  "implementation_request_id": "e2ac37bb-cf05-43d3-a3b2-ef55b0df9002",
+  "approval_decision_id": "a62d0a93-aede-495f-bb82-96214197af62",
+  "task_id": "phase47-1782326053-task",
+  "run_id": "phase47-1782326053-run",
+  "prototype_evidence_path": "evidence/prototype-loop-v1/phase47-1782326053.json",
+  "revision_task_id": "phase47-1782326053-revision-task",
+  "revision_run_id": "phase47-1782326053-revision-run",
+  "revision_evidence_path": "evidence/prototype-loop-v1/phase47-1782326053-revision.json",
+  "plan_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/prototype-implementation-plans/48094589-ac21-4471-b3b6-97473f62e617.json",
+  "proposal_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/prototype-apply-proposals/39fc0613-1e86-482b-a13d-a2b171ba7caf.json",
+  "files_changed": [
+    "controlled-apply-manifest.json",
+    "word-count-cli.mjs",
+    "word-count-cli.test.mjs",
+    "sample.txt"
+  ],
+  "checks_run": [
+    {
+      "command": "node --check word-count-cli.mjs",
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "durationMs": 67
+    },
+    {
+      "command": "node --test word-count-cli.test.mjs",
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "TAP version 13\n# Subtest: analyzes word, character, and repeated word counts\nok 1 - analyzes word, character, and repeated word counts\n  ---\n  duration_ms: 1.103853\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 53.402226\n",
+      "stderr": "",
+      "durationMs": 135
+    }
+  ],
+  "checks_passed": true,
+  "rollback_plan": {
+    "strategy": "Discard the isolated controlled apply workspace; no main working tree changes exist to revert.",
+    "steps": [
+      "Review evidence and workspace output.",
+      "If rejected, delete the .controlled-apply workspace for this controlled apply id.",
+      "Keep the evidence artifact for audit."
+    ]
+  },
+  "review_required": true,
+  "integration_allowed": false,
+  "merge_allowed": false,
+  "deploy_allowed": false,
+  "pr_allowed": false,
+  "production_mutation_allowed": false,
+  "safety_notes": [
+    "Phase 43 executes controlled apply output only inside an isolated Console workspace.",
+    "No main working tree files are changed, copied, patched, merged, deployed, committed, pushed, or submitted as a PR.",
+    "Review is required before any later production integration phase.",
+    "No AirLLM, Super escalation, model routing, email, automation, or generic autonomous coding agent is used."
+  ],
+  "explicit_non_actions": [
+    "No main tree mutation.",
+    "No merge.",
+    "No deploy.",
+    "No pull request.",
+    "No commit.",
+    "No push."
+  ],
+  "workspace_manifest": {
+    "schema_version": "veralux-console-controlled-apply-workspace/v1",
+    "controlled_apply_id": "2a10de12-df2b-43f8-b125-600d71001c01",
+    "created_at": "2026-06-24T18:34:15.107Z",
+    "workspace_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/.controlled-apply/2a10de12-df2b-43f8-b125-600d71001c01",
+    "source": "phase_43_controlled_apply",
+    "lineage": {
+      "apply_approval_decision_id": "003f3134-3aef-41a5-b59a-fb671f1a91af",
+      "apply_proposal_id": "39fc0613-1e86-482b-a13d-a2b171ba7caf",
+      "implementation_plan_id": "48094589-ac21-4471-b3b6-97473f62e617",
+      "implementation_request_id": "e2ac37bb-cf05-43d3-a3b2-ef55b0df9002",
+      "approval_decision_id": "a62d0a93-aede-495f-bb82-96214197af62",
+      "task_id": "phase47-1782326053-task",
+      "run_id": "phase47-1782326053-run",
+      "evidence_path": "evidence/prototype-loop-v1/phase47-1782326053.json",
+      "revision_task_id": "phase47-1782326053-revision-task",
+      "revision_run_id": "phase47-1782326053-revision-run",
+      "revision_evidence_path": "evidence/prototype-loop-v1/phase47-1782326053-revision.json",
+      "plan_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/prototype-implementation-plans/48094589-ac21-4471-b3b6-97473f62e617.json",
+      "proposal_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/prototype-apply-proposals/39fc0613-1e86-482b-a13d-a2b171ba7caf.json"
+    },
+    "safety": {
+      "review_required": true,
+      "integration_allowed": false,
+      "merge_allowed": false,
+      "deploy_allowed": false,
+      "pr_allowed": false,
+      "production_mutation_allowed": false
+    }
+  },
+  "next_expected_phase": "user_review_of_controlled_apply_evidence"
+}

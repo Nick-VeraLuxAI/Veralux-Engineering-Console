@@ -1,0 +1,167 @@
+{
+  "specimenId": "cross_cutting_label",
+  "matrixClasses": [
+    "cross_cutting"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Shared label formatter",
+  "objective": "Directors need a shared label formatter used by both src/ui/badge.js and src/reports/line.js under src/shared so labels are consistent, validated, and tested. Keep changes inside authorized prefixes. Do not open a PR or deploy.",
+  "elapsedMs": 34576,
+  "taskId": "9edbf2ed-baff-4ebe-a5eb-70ac9c6d16fa",
+  "runId": "f5257343-3bb3-4304-b1bb-576928c7cb54",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "f5257343-3bb3-4304-b1bb-576928c7cb54",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "a49b9055-8e73-41e4-b84f-ad8a6a95f3a1",
+      "strategy": "Introduce a shared label formatter under src/shared, update badge.js and line.js to use it, and add comprehensive tests",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 4,
+    "changedBytes": 1316,
+    "runtimeMs": 32768,
+    "investigationReads": 2,
+    "contextBytes": 143,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a shared label formatter used by both src/ui/badge.js and src/reports/line.js under src/shared so labels are consistent, validated, and tested. Keep changes inside authorized prefixes. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/reports/line.js",
+        "Changed src/shared/label.js",
+        "Changed src/shared/label.test.js",
+        "Changed src/ui/badge.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 4",
+        "src/reports/line.js | 7 ++++++-\n src/ui/badge.js     | 6 +++++-\n 2 files changed, 11 insertions(+), 2 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "Shared label formatter exists at src/shared/label.js and is imported by both src/ui/badge.js and src/reports/line.js.",
+        "Invalid label inputs are validated and rejected with an Error.",
+        "Unit tests in src/shared/label.test.js cover happy path, whitespace trimming, and rejection of empty or non‑string inputs.",
+        "All changes are confined to the authorized src/shared directory."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "a49b9055-8e73-41e4-b84f-ad8a6a95f3a1",
+      "summary": "Introduce a shared label formatter under src/shared, update badge.js and line.js to use it, and add comprehensive tests",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/f5257343-3bb3-4304-b1bb-576928c7cb54",
+    "branchName": "engineer/9edbf2ed/f5257343-20260820225352",
+    "baseRevision": "5cd2799b4b96f8fcb697aea3eead9493fa8bb34a",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "cross_cutting": "PASS",
+      "scope_discipline": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

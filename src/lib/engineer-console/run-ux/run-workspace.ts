@@ -15,38 +15,84 @@ export interface RunWorkspaceViewDefinition {
   description: string;
 }
 
+export type RunOperatorTabId = "job" | "later";
+
+export const RUN_OPERATOR_TABS: Array<{
+  id: RunOperatorTabId;
+  label: string;
+  description: string;
+  views: RunWorkspaceViewId[];
+}> = [
+  {
+    id: "job",
+    label: "This job",
+    description: "Read what happened and take the one next step. Nothing else is required here.",
+    views: ["overview", "work_plan", "review"],
+  },
+  {
+    id: "later",
+    label: "Later",
+    description: "Share, go live, and history. Open this only after the job itself is settled.",
+    views: ["pr", "release", "audit"],
+  },
+];
+
 export const RUN_WORKSPACE_VIEWS: RunWorkspaceViewDefinition[] = [
   {
     id: "overview",
-    label: "Overview",
-    description: "Landing workspace for status, workflow progress, and what needs attention now.",
+    label: "This job",
+    description: "What this job is doing, and the one next step for you.",
   },
   {
     id: "work_plan",
-    label: "Work Plan",
-    description: "Implementation workspace for worker plans, changed files, and quality checks.",
+    label: "This job",
+    description: "What changed, and whether the automatic checks passed.",
   },
   {
     id: "review",
-    label: "Review",
-    description: "Governance workspace for approval, evidence, replay, policy, and decisions.",
+    label: "This job",
+    description: "Approve, ask for a fix, or stop. Evidence lives here if you need it.",
   },
   {
     id: "pr",
-    label: "PR",
-    description: "Pull request workspace for readiness, draft PR creation, and retry state.",
+    label: "Later",
+    description: "Turn the change into a pull request when you are ready to share it.",
   },
   {
     id: "release",
-    label: "Release",
-    description: "Readiness workspace for merge, deployment, health, checklist, and sign-off.",
+    label: "Later",
+    description: "Merge, deploy, and sign off after the change is shared.",
   },
   {
     id: "audit",
-    label: "Audit",
-    description: "Technical record workspace for timeline, chain verification, and traceability.",
+    label: "Later",
+    description: "A record of what happened. Open this only if you need the paper trail.",
   },
 ];
+
+export function operatorTabForView(viewId: RunWorkspaceViewId): RunOperatorTabId {
+  return viewId === "pr" || viewId === "release" || viewId === "audit" ? "later" : "job";
+}
+
+export function defaultViewForOperatorTab(tab: RunOperatorTabId): RunWorkspaceViewId {
+  return tab === "later" ? "pr" : "overview";
+}
+
+const OPERATOR_RUN_STATUS: Record<string, string> = {
+  queued: "Waiting to start",
+  running: "Working",
+  waiting_for_approval: "Waiting for your decision",
+  approved: "Approved",
+  completed: "Finished",
+  failed: "Stopped — needs a fix",
+  exhausted: "Stopped — retries used up",
+  aborted: "Stopped",
+};
+
+export function operatorRunStatusLabel(status: string): string {
+  const key = status.trim().toLowerCase().replace(/\s+/g, "_");
+  return OPERATOR_RUN_STATUS[key] ?? status.replace(/_/g, " ");
+}
 
 export const DEFAULT_RUN_WORKSPACE_VIEW: RunWorkspaceViewId = "overview";
 
@@ -88,6 +134,7 @@ export function getRunWorkspaceViewForTarget(
   if (
     [
       RUN_PANEL_IDS.evidence,
+      RUN_PANEL_IDS.seniorReviewAdvisory,
       RUN_PANEL_IDS.replay,
       RUN_PANEL_IDS.policy,
       RUN_PANEL_IDS.reviewStages,

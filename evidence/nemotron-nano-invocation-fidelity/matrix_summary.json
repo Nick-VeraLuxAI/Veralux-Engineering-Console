@@ -1,0 +1,90 @@
+{
+  "jobs_ABC": [
+    {
+      "cond": "A",
+      "score": {
+        "parseable": false,
+        "pass": false,
+        "notes": [
+          "unparseable"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 527,
+        "total_tokens": 1792,
+        "completion_tokens": 1265,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "cond": "B",
+      "score": {
+        "parseable": false,
+        "pass": false,
+        "notes": [
+          "unparseable"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 527,
+        "total_tokens": 6671,
+        "completion_tokens": 6144,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "cond": "C",
+      "score": {
+        "parseable": true,
+        "pass": true,
+        "guards": true,
+        "records": true,
+        "testsDup": true,
+        "testsFail": true,
+        "notes": [],
+        "file_paths": [
+          "src/jobs/jobs.js",
+          "src/jobs/jobs.test.js"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 635,
+        "total_tokens": 3305,
+        "completion_tokens": 2670,
+        "prompt_tokens_details": null
+      }
+    }
+  ],
+  "fragmented_replan_score": {
+    "parseable": true,
+    "pass": true,
+    "guards": true,
+    "records": true,
+    "testsDup": true,
+    "testsFail": true,
+    "notes": [],
+    "file_paths": [
+      "src/jobs/jobs.js",
+      "src/jobs/jobs.test.js"
+    ]
+  },
+  "continuous_replan_score": {
+    "parseable": false,
+    "pass": false,
+    "notes": [
+      "unparseable"
+    ]
+  },
+  "ledger_A": {
+    "parseable": true,
+    "uses_isFinite": true,
+    "suspicious_infinity_compare": false,
+    "preview": "export function applyPayment(amount) {\n  if (amount == null) return false;\n  return Number.isFinite(amount);\n}\nimport { applyPayment } from '../src/ledger/ledger.js';\nimport assert from 'node:assert/strict';\n\n// Test that finite numbers return true\nassert.strictEqual(applyPayment(100), true, 'Finite"
+  },
+  "ledger_B": {
+    "parseable": true,
+    "uses_isFinite": true,
+    "suspicious_infinity_compare": false,
+    "preview": "export function applyPayment(amount) {\n  // Reject non\u2011finite amounts (e.g., Infinity) and keep only finite numbers\n  if (typeof amount !== 'number' || !Number.isFinite(amount)) {\n    return false;\n  }\n  // Additional guard for null/undefined (though Number.isFinite catches them)\n  if (amount == nul"
+  }
+}

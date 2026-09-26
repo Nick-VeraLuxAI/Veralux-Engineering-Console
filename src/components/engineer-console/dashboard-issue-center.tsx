@@ -21,6 +21,7 @@ export function DashboardIssueCenter({
   onMinimize,
   onBringToFront,
   onMove,
+  showCollapsedButton = true,
 }: {
   issues: DashboardWorkflowIssue[];
   onOpenIssue: (issue: DashboardWorkflowIssue) => void;
@@ -31,42 +32,25 @@ export function DashboardIssueCenter({
   onMinimize: () => void;
   onBringToFront: () => void;
   onMove: (position: { x: number; y: number }) => void;
+  showCollapsedButton?: boolean;
 }) {
   const criticalCount = issues.filter((issue) => issue.severity === "critical").length;
   const expanded = overlayState.isOpen && !overlayState.isMinimized;
 
   return (
     <>
-      {!expanded && !overlayState.isMinimized ? (
-        <aside
-          data-issue-center-expanded="false"
-          className="pointer-events-none absolute right-4 bottom-24 z-[90] flex items-end"
-          aria-live="polite"
+      {expanded || !showCollapsedButton ? null : (
+        <button
+          type="button"
+          data-canvas-open-issues="true"
+          aria-label={`${issues.length} issues`}
+          onClick={onExpand}
+          className="pointer-events-auto absolute right-3 top-3 z-40 mt-[env(safe-area-inset-top)] inline-flex items-center rounded-full border border-white/8 bg-black/40 px-3 py-1.5 text-[12px] text-white/70 shadow-[0_14px_28px_rgba(2,6,23,0.24)] backdrop-blur-xl transition hover:text-white sm:right-4 sm:top-5"
         >
-          <button
-            type="button"
-            onClick={onExpand}
-            className="pointer-events-auto flex items-center gap-3 rounded-full border border-white/8 bg-[#07101c]/78 px-3 py-2 shadow-[0_14px_28px_rgba(2,6,23,0.24)] backdrop-blur-xl"
-          >
-            <span
-              aria-hidden="true"
-              className={`h-2.5 w-2.5 rounded-full ${criticalCount > 0 ? "bg-red-300" : issues.length > 0 ? "bg-amber-300" : "bg-emerald-300"}`}
-            />
-            <div className="min-w-0 text-left">
-              <p className="text-sm font-medium text-white">Issues</p>
-              <p className="text-[11px] text-[var(--muted)]">
-                {issues.length === 0
-                  ? "No active dashboard issues."
-                  : `${issues.length} routed issue${issues.length === 1 ? "" : "s"}.`}
-              </p>
-            </div>
-            <span className="rounded-full border border-white/8 bg-black/15 px-2 py-0.5 text-xs text-[var(--muted)]">
-              {issues.length}
-            </span>
-          </button>
-        </aside>
-      ) : null}
-
+          Issues
+          {issues.length > 0 ? <span className="ml-1.5 tabular-nums text-white/60">{issues.length}</span> : null}
+        </button>
+      )}
       {expanded ? (
         <CanvasOverlayWindow
           overlayId="issue-center"
@@ -79,14 +63,14 @@ export function DashboardIssueCenter({
           position={overlayState.position}
           onMove={onMove}
           draggable
-          placementClassName="right-4 bottom-24"
-          containerClassName="w-[min(22rem,calc(100vw-2rem))]"
-          surfaceClassName="flex max-h-[min(70vh,34rem)] flex-col"
+          placementClassName="left-4 right-4 top-20 md:left-auto md:right-4 md:top-auto md:bottom-24"
+          containerClassName="w-auto md:w-[min(22rem,calc(100vw-2rem))]"
+          surfaceClassName="flex max-h-[min(70dvh,34rem)] flex-col"
           bodyClassName="overflow-y-auto p-4"
           role="dialog"
           headerSuffix={
             criticalCount > 0 ? (
-              <span className="rounded-full border border-red-500/28 bg-red-950/20 px-2 py-0.5 text-[11px] text-red-100">
+              <span className="rounded-full border border-red-500/28 bg-red-950/20 px-2 py-0.5 text-[12px] text-red-100">
                 {criticalCount} critical
               </span>
             ) : null
@@ -116,15 +100,15 @@ export function DashboardIssueCenter({
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${ISSUE_SEVERITY_CLASSES[issue.severity]}`}
+                            className={`rounded-full border px-2 py-0.5 text-[12px] font-medium ${ISSUE_SEVERITY_CLASSES[issue.severity]}`}
                           >
                             {issue.severity}
                           </span>
-                          <span className="rounded-full border border-white/8 px-2 py-0.5 text-[11px] text-[var(--muted)]">
+                          <span className="rounded-full border border-white/8 px-2 py-0.5 text-[12px] text-[var(--muted)]">
                             {issue.destination}
                           </span>
                         </div>
-                        <span className="text-[11px] text-[var(--muted)]">
+                        <span className="text-[12px] text-[var(--muted)]">
                           {issue.nodeId.replace(/_/g, " ")}
                         </span>
                       </div>
@@ -148,7 +132,9 @@ export function routeDashboardIssue(
   openNode: (nodeId: WorkflowMapNodeId) => void,
 ) {
   openNode(issue.nodeId);
-  if (typeof window !== "undefined") {
-    window.location.assign(issue.href);
+  if (typeof window === "undefined") return;
+  if (issue.href.startsWith("/engineer/runs/")) {
+    return;
   }
+  window.location.assign(issue.href);
 }

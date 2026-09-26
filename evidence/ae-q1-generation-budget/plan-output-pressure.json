@@ -1,0 +1,9 @@
+{
+  "q1_greenfield_executed_plans_bytes": {
+    "afde_max": 3196,
+    "v4_max": 2820,
+    "v6_max": 3998
+  },
+  "json_expansion_ratio_typical": "~1.03\u20131.04 (content JSON-escaped vs raw source)",
+  "note": "Executed greenfield plans are 1.5\u20134KB \u2014 comparable to jobs/ledger/state. Exhaustion is not from needing >10k final tokens; reasoning monopolizes the shared budget before final JSON completes."
+}

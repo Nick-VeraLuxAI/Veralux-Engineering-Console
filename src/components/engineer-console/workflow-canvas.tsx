@@ -1,13 +1,24 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   focusWorkflowCameraTarget,
   type WorkflowCameraRequest,
 } from "@/lib/engineer-console/dashboard/workflow-camera";
 import { deriveWorkflowFocalPoint } from "@/lib/engineer-console/dashboard/workflow-focal-point";
+import {
+  estimatePointerVelocity,
+  isPointerVelocitySettled,
+  nearestNodeSettleTarget,
+  stepDecayingVelocity,
+  stepWorkflowPointSpring,
+  stepWorkflowViewSpring,
+  type PointerVelocitySample,
+  type WorkflowViewVelocity,
+} from "@/lib/engineer-console/dashboard/workflow-motion";
 import type { WorkflowMapNode, WorkflowMapNodeId } from "@/lib/engineer-console/dashboard/workflow-map";
 import {
+  areWorkflowCanvasNodesVisibleInView,
   buildWorkflowCanvasEdgePath,
   buildWorkflowCanvasEdges,
   clampWorkflowCanvasZoom,
@@ -15,20 +26,23 @@ import {
   focusNodeInWorkflowCanvasView,
   getDefaultWorkflowCanvasLayout,
   getDefaultWorkflowCanvasView,
+  getWorkflowCanvasPhases,
   getWorkflowCanvasSafeArea,
   moveWorkflowCanvasNode,
   panWorkflowCanvasView,
   type WorkflowCanvasPoint,
   type WorkflowCanvasSize,
   type WorkflowCanvasViewState,
+  WORKFLOW_CANVAS_NODE_SIZE,
   WORKFLOW_CANVAS_WORLD_SIZE,
   zoomWorkflowCanvasView,
 } from "@/lib/engineer-console/dashboard/workflow-canvas-layout";
 import { WorkflowCanvasEdge } from "./workflow-canvas-edge";
+import { WorkflowMobileFlow } from "./workflow-mobile-flow";
 import { WorkflowCanvasNode } from "./workflow-canvas-node";
 import { WorkflowCanvasToolbar } from "./workflow-canvas-toolbar";
 
-const INITIAL_VIEWPORT_SIZE: WorkflowCanvasSize = { width: 1360, height: 760 };
+const INITIAL_VIEWPORT_SIZE: WorkflowCanvasSize = { width: 1024, height: 640 };
 const INITIAL_SAFE_AREA = getWorkflowCanvasSafeArea(INITIAL_VIEWPORT_SIZE.width, INITIAL_VIEWPORT_SIZE.height);
 const INITIAL_VIEW = getDefaultWorkflowCanvasView(INITIAL_VIEWPORT_SIZE, INITIAL_SAFE_AREA);
 
@@ -36,6 +50,7 @@ type InteractionState =
   | {
       kind: "pan";
       lastClient: WorkflowCanvasPoint;
+      samples: PointerVelocitySample[];
     }
   | {
       kind: "node";
@@ -86,6 +101,9 @@ export function WorkflowCanvas({
   featuredIssueNodeId = null,
   cameraRequest,
   hasMinimizedBar = false,
+  hasChatRail = false,
+  chatSafeLeft,
+  chatSafeBottom,
   onSelectNode,
 }: {
   nodes: WorkflowMapNode[];
@@ -93,30 +111,47 @@ export function WorkflowCanvas({
   featuredIssueNodeId?: WorkflowMapNodeId | null;
   cameraRequest?: WorkflowCameraRequest | null;
   hasMinimizedBar?: boolean;
+  hasChatRail?: boolean;
+  chatSafeLeft?: number;
+  chatSafeBottom?: number;
   onSelectNode: (nodeId: WorkflowMapNodeId, intent?: "node-click" | "node-pointerdown") => void;
 }) {
   const containerRef = useRef<HTMLElement | null>(null);
   const interactionRef = useRef<InteractionState | null>(null);
   const suppressClickUntilRef = useRef(0);
-  const motionTimeoutRef = useRef<number | null>(null);
+  const cameraFrameRef = useRef<number | null>(null);
+  const inertiaFrameRef = useRef<number | null>(null);
+  const nodeSettleFrameRef = useRef<number | null>(null);
+  const arrivalTimeoutRef = useRef<number | null>(null);
+  const previousSelectedNodeRef = useRef<WorkflowMapNodeId>(selectedNodeId);
   const viewRef = useRef<WorkflowCanvasViewState>(INITIAL_VIEW);
   const positionsRef = useRef(getDefaultWorkflowCanvasLayout());
   const initializedRef = useRef(false);
+  const lastViewportSizeRef = useRef<WorkflowCanvasSize>(INITIAL_VIEWPORT_SIZE);
+  const lastSafeAreaRef = useRef(INITIAL_SAFE_AREA);
   const [viewportSize, setViewportSize] = useState<WorkflowCanvasSize>(INITIAL_VIEWPORT_SIZE);
   const [view, setView] = useState<WorkflowCanvasViewState>(INITIAL_VIEW);
   const [positions, setPositions] = useState(getDefaultWorkflowCanvasLayout);
   const [draggingNodeId, setDraggingNodeId] = useState<WorkflowMapNodeId | null>(null);
   const [layoutLocked, setLayoutLocked] = useState(false);
-  const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(true);
   const [cameraMotionEnabled, setCameraMotionEnabled] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [inertiaActive, setInertiaActive] = useState(false);
+  const [lastPanSpeed, setLastPanSpeed] = useState(0);
+  const [settlingNodeId, setSettlingNodeId] = useState<WorkflowMapNodeId | null>(null);
+  const [transientEdgeId, setTransientEdgeId] = useState<string | null>(null);
+  const [arrivingNodeId, setArrivingNodeId] = useState<WorkflowMapNodeId | null>(null);
   const safeArea = useMemo(
     () =>
       getWorkflowCanvasSafeArea(viewportSize.width, viewportSize.height, {
         toolbarCollapsed,
         hasMinimizedBar,
+        hasChatRail,
+        chatSafeLeft,
+        chatSafeBottom,
       }),
-    [hasMinimizedBar, toolbarCollapsed, viewportSize.height, viewportSize.width],
+    [chatSafeBottom, chatSafeLeft, hasChatRail, hasMinimizedBar, toolbarCollapsed, viewportSize.height, viewportSize.width],
   );
   const edges = useMemo(() => buildWorkflowCanvasEdges(nodes), [nodes]);
   const connectedEdgeIds = useMemo(
@@ -159,8 +194,8 @@ export function WorkflowCanvas({
       .map((nodeId) => ({
         minX: positions[nodeId].x,
         minY: positions[nodeId].y,
-        maxX: positions[nodeId].x + 208,
-        maxY: positions[nodeId].y + 128,
+        maxX: positions[nodeId].x + WORKFLOW_CANVAS_NODE_SIZE.width,
+        maxY: positions[nodeId].y + WORKFLOW_CANVAS_NODE_SIZE.height,
       }))
       .reduce(
         (current, rect) => ({
@@ -202,8 +237,8 @@ export function WorkflowCanvas({
   const selectedNodeGlow = useMemo(() => {
     const position = positions[focalPoint.focalNodeId];
     return {
-      left: position.x + 104,
-      top: position.y + 64,
+      left: position.x + WORKFLOW_CANVAS_NODE_SIZE.width / 2,
+      top: position.y + WORKFLOW_CANVAS_NODE_SIZE.height / 2,
     };
   }, [focalPoint.focalNodeId, positions]);
   const canvasStyle = useMemo(
@@ -221,6 +256,30 @@ export function WorkflowCanvas({
   viewRef.current = view;
   positionsRef.current = positions;
 
+  const cancelCameraMotion = useCallback(() => {
+    if (cameraFrameRef.current !== null) {
+      window.cancelAnimationFrame(cameraFrameRef.current);
+      cameraFrameRef.current = null;
+    }
+    setCameraMotionEnabled(false);
+  }, []);
+
+  const cancelInertia = useCallback(() => {
+    if (inertiaFrameRef.current !== null) {
+      window.cancelAnimationFrame(inertiaFrameRef.current);
+      inertiaFrameRef.current = null;
+    }
+    setInertiaActive(false);
+  }, []);
+
+  const cancelNodeSettle = useCallback(() => {
+    if (nodeSettleFrameRef.current !== null) {
+      window.cancelAnimationFrame(nodeSettleFrameRef.current);
+      nodeSettleFrameRef.current = null;
+    }
+    setSettlingNodeId(null);
+  }, []);
+
   const applyViewChange = useCallback(
     (
       nextView:
@@ -229,23 +288,130 @@ export function WorkflowCanvas({
       motion: "smooth" | "instant" = "instant",
     ) => {
       const resolvedMotion = prefersReducedMotion ? "instant" : motion;
-      if (motionTimeoutRef.current) {
-        window.clearTimeout(motionTimeoutRef.current);
-        motionTimeoutRef.current = null;
+      cancelCameraMotion();
+      cancelInertia();
+      const target =
+        typeof nextView === "function" ? nextView(viewRef.current) : nextView;
+      if (resolvedMotion === "instant") {
+        viewRef.current = target;
+        setView(target);
+        return;
       }
-      setCameraMotionEnabled(resolvedMotion === "smooth");
-      setView(nextView);
-      if (resolvedMotion === "smooth") {
-        motionTimeoutRef.current = window.setTimeout(() => {
+
+      setCameraMotionEnabled(true);
+      let current = viewRef.current;
+      let velocity: WorkflowViewVelocity = { x: 0, y: 0, zoom: 0 };
+      let previousTime = performance.now();
+
+      const tick = (time: number) => {
+        const next = stepWorkflowViewSpring(
+          current,
+          target,
+          velocity,
+          time - previousTime,
+        );
+        current = next.view;
+        velocity = next.velocity;
+        previousTime = time;
+        viewRef.current = current;
+        setView(current);
+        if (next.settled) {
+          cameraFrameRef.current = null;
           setCameraMotionEnabled(false);
-          motionTimeoutRef.current = null;
-        }, 260);
-      }
+          return;
+        }
+        cameraFrameRef.current = window.requestAnimationFrame(tick);
+      };
+
+      cameraFrameRef.current = window.requestAnimationFrame(tick);
     },
-    [prefersReducedMotion],
+    [cancelCameraMotion, cancelInertia, prefersReducedMotion],
   );
 
-  useEffect(() => {
+  const startPanInertia = useCallback(
+    (initialVelocity: WorkflowCanvasPoint) => {
+      if (prefersReducedMotion || isPointerVelocitySettled(initialVelocity, 80)) return;
+      cancelCameraMotion();
+      cancelInertia();
+      setInertiaActive(true);
+
+      let velocity = initialVelocity;
+      let previousTime = performance.now();
+      const tick = (time: number) => {
+        const deltaMs = Math.min(time - previousTime, 32);
+        previousTime = time;
+        velocity = stepDecayingVelocity(velocity, deltaMs);
+        if (isPointerVelocitySettled(velocity)) {
+          inertiaFrameRef.current = null;
+          setInertiaActive(false);
+          return;
+        }
+
+        const current = viewRef.current;
+        const next = panWorkflowCanvasView(
+          current,
+          {
+            x: velocity.x * (deltaMs / 1000),
+            y: velocity.y * (deltaMs / 1000),
+          },
+          viewportSize,
+          safeArea,
+        );
+        if (Math.abs(next.x - current.x) < 0.01) velocity.x = 0;
+        if (Math.abs(next.y - current.y) < 0.01) velocity.y = 0;
+        viewRef.current = next;
+        setView(next);
+        inertiaFrameRef.current = window.requestAnimationFrame(tick);
+      };
+
+      inertiaFrameRef.current = window.requestAnimationFrame(tick);
+    },
+    [cancelCameraMotion, cancelInertia, prefersReducedMotion, safeArea, viewportSize],
+  );
+
+  const startNodeSettle = useCallback(
+    (nodeId: WorkflowMapNodeId) => {
+      cancelNodeSettle();
+      const currentPoint = positionsRef.current[nodeId];
+      const targetPoint = nearestNodeSettleTarget(currentPoint);
+      if (
+        prefersReducedMotion ||
+        (currentPoint.x === targetPoint.x && currentPoint.y === targetPoint.y)
+      ) {
+        return;
+      }
+
+      let point = currentPoint;
+      let velocity: WorkflowCanvasPoint = { x: 0, y: 0 };
+      let previousTime = performance.now();
+      setSettlingNodeId(nodeId);
+      const tick = (time: number) => {
+        const next = stepWorkflowPointSpring(
+          point,
+          targetPoint,
+          velocity,
+          time - previousTime,
+        );
+        point = next.point;
+        velocity = next.velocity;
+        previousTime = time;
+        const layout = { ...positionsRef.current, [nodeId]: point };
+        positionsRef.current = layout;
+        setPositions(layout);
+        if (next.settled) {
+          nodeSettleFrameRef.current = null;
+          setSettlingNodeId(null);
+          return;
+        }
+        nodeSettleFrameRef.current = window.requestAnimationFrame(tick);
+      };
+
+      nodeSettleFrameRef.current = window.requestAnimationFrame(tick);
+    },
+    [cancelNodeSettle, prefersReducedMotion],
+  );
+
+  useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
@@ -257,15 +423,26 @@ export function WorkflowCanvas({
     };
 
     updateViewport();
+    const raf = window.requestAnimationFrame(updateViewport);
 
     if (typeof ResizeObserver === "undefined") {
       window.addEventListener("resize", updateViewport);
-      return () => window.removeEventListener("resize", updateViewport);
+      window.visualViewport?.addEventListener("resize", updateViewport);
+      return () => {
+        window.cancelAnimationFrame(raf);
+        window.removeEventListener("resize", updateViewport);
+        window.visualViewport?.removeEventListener("resize", updateViewport);
+      };
     }
 
     const observer = new ResizeObserver(updateViewport);
     observer.observe(container);
-    return () => observer.disconnect();
+    window.visualViewport?.addEventListener("resize", updateViewport);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      observer.disconnect();
+      window.visualViewport?.removeEventListener("resize", updateViewport);
+    };
   }, []);
 
   useEffect(() => {
@@ -278,40 +455,95 @@ export function WorkflowCanvas({
   }, []);
 
   useEffect(() => {
-    if (viewportSize.width <= 0 || viewportSize.height <= 0) return;
+    const previousNodeId = previousSelectedNodeRef.current;
+    previousSelectedNodeRef.current = selectedNodeId;
+    if (previousNodeId === selectedNodeId) return;
 
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      const defaultView = getDefaultWorkflowCanvasView(viewportSize, safeArea);
-      setView(
-        focusWorkflowCameraTarget(
-          defaultView,
-          { kind: "node", nodeId: focalPoint.focalNodeId },
-          positionsRef.current,
-          viewportSize,
-          safeArea,
-        ),
-      );
+    if (arrivalTimeoutRef.current !== null) {
+      window.clearTimeout(arrivalTimeoutRef.current);
+      arrivalTimeoutRef.current = null;
+    }
+    if (prefersReducedMotion) {
+      setTransientEdgeId(null);
+      setArrivingNodeId(null);
       return;
     }
 
-    setView((current) =>
-      focusNodeInWorkflowCanvasView(current, positionsRef.current, selectedNodeId, viewportSize, safeArea),
-    );
-  }, [focalPoint.focalNodeId, safeArea, selectedNodeId, viewportSize]);
+    const incomingEdge =
+      edges.find((edge) => edge.source === previousNodeId && edge.target === selectedNodeId) ??
+      edges.find((edge) => edge.target === selectedNodeId) ??
+      null;
+    setTransientEdgeId(incomingEdge?.id ?? null);
+    setArrivingNodeId(selectedNodeId);
+    arrivalTimeoutRef.current = window.setTimeout(() => {
+      setTransientEdgeId(null);
+      setArrivingNodeId(null);
+      arrivalTimeoutRef.current = null;
+    }, 520);
+  }, [edges, prefersReducedMotion, selectedNodeId]);
 
   useEffect(() => {
-    if (draggingNodeId) return;
-    setView((current) =>
-      focusNodeInWorkflowCanvasView(current, positions, selectedNodeId, viewportSize, safeArea),
+    if (viewportSize.width <= 0 || viewportSize.height <= 0) return;
+
+    const viewportChanged =
+      lastViewportSizeRef.current.width !== viewportSize.width ||
+      lastViewportSizeRef.current.height !== viewportSize.height;
+    const chromeChanged =
+      Math.abs(lastSafeAreaRef.current.left - safeArea.left) > 8 ||
+      Math.abs(lastSafeAreaRef.current.right - safeArea.right) > 8 ||
+      Math.abs(lastSafeAreaRef.current.top - safeArea.top) > 8 ||
+      Math.abs(lastSafeAreaRef.current.bottom - safeArea.bottom) > 8;
+    lastViewportSizeRef.current = viewportSize;
+    lastSafeAreaRef.current = safeArea;
+
+    if (!initializedRef.current || viewportChanged || chromeChanged) {
+      cancelCameraMotion();
+      cancelInertia();
+      initializedRef.current = true;
+      const fitted = fitWorkflowCanvasView(positionsRef.current, viewportSize, safeArea);
+      viewRef.current = fitted;
+      setView(fitted);
+      return;
+    }
+
+    const focused = focusNodeInWorkflowCanvasView(
+      viewRef.current,
+      positionsRef.current,
+      selectedNodeId,
+      viewportSize,
+      safeArea,
     );
+    viewRef.current = focused;
+    setView(focused);
+  }, [cancelCameraMotion, cancelInertia, focalPoint.focalNodeId, safeArea, selectedNodeId, viewportSize]);
+
+  useEffect(() => {
+    if (draggingNodeId || nodeSettleFrameRef.current !== null || !initializedRef.current) return;
+    const next = !areWorkflowCanvasNodesVisibleInView(
+      positions,
+      viewRef.current,
+      viewportSize,
+      safeArea,
+      12,
+    )
+      ? fitWorkflowCanvasView(positions, viewportSize, safeArea)
+      : focusNodeInWorkflowCanvasView(
+          viewRef.current,
+          positions,
+          selectedNodeId,
+          viewportSize,
+          safeArea,
+        );
+    viewRef.current = next;
+    setView(next);
   }, [draggingNodeId, positions, safeArea, selectedNodeId, viewportSize]);
 
   useEffect(() => {
     return () => {
-      if (motionTimeoutRef.current) {
-        window.clearTimeout(motionTimeoutRef.current);
-      }
+      if (cameraFrameRef.current !== null) window.cancelAnimationFrame(cameraFrameRef.current);
+      if (inertiaFrameRef.current !== null) window.cancelAnimationFrame(inertiaFrameRef.current);
+      if (nodeSettleFrameRef.current !== null) window.cancelAnimationFrame(nodeSettleFrameRef.current);
+      if (arrivalTimeoutRef.current !== null) window.clearTimeout(arrivalTimeoutRef.current);
     };
   }, []);
 
@@ -337,8 +569,14 @@ export function WorkflowCanvas({
 
       if (interaction.kind === "pan") {
         setCameraMotionEnabled(false);
-        setView((current) => panWorkflowCanvasView(current, delta, viewportSize));
+        const nextView = panWorkflowCanvasView(viewRef.current, delta, viewportSize, safeArea);
+        viewRef.current = nextView;
+        setView(nextView);
         interaction.lastClient = nextPointer;
+        const now = performance.now();
+        interaction.samples = [...interaction.samples, { ...nextPointer, at: now }]
+          .filter((sample) => now - sample.at <= 140)
+          .slice(-8);
         return;
       }
 
@@ -356,7 +594,13 @@ export function WorkflowCanvas({
         interaction.moved = true;
       }
 
-      setPositions((current) => moveWorkflowCanvasNode(current, interaction.nodeId, worldDelta));
+      const nextPositions = moveWorkflowCanvasNode(
+        positionsRef.current,
+        interaction.nodeId,
+        worldDelta,
+      );
+      positionsRef.current = nextPositions;
+      setPositions(nextPositions);
       interaction.lastClient = nextPointer;
     };
 
@@ -364,6 +608,12 @@ export function WorkflowCanvas({
       const interaction = interactionRef.current;
       if (interaction?.kind === "node" && interaction.moved) {
         suppressClickUntilRef.current = Date.now() + 120;
+        startNodeSettle(interaction.nodeId);
+      }
+      if (interaction?.kind === "pan") {
+        const velocity = estimatePointerVelocity(interaction.samples);
+        setLastPanSpeed(Math.round(Math.hypot(velocity.x, velocity.y)));
+        startPanInertia(velocity);
       }
       interactionRef.current = null;
       setDraggingNodeId(null);
@@ -378,7 +628,7 @@ export function WorkflowCanvas({
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
     };
-  }, [layoutLocked, viewportSize]);
+  }, [layoutLocked, safeArea, startNodeSettle, startPanInertia, viewportSize]);
 
   const handleSelectNode = (nodeId: WorkflowMapNodeId) => {
     if (Date.now() < suppressClickUntilRef.current) {
@@ -393,7 +643,9 @@ export function WorkflowCanvas({
   ) => {
     if (event.button !== 0) return;
     event.stopPropagation();
-    setCameraMotionEnabled(false);
+    cancelCameraMotion();
+    cancelInertia();
+    cancelNodeSettle();
     onSelectNode(nodeId, "node-pointerdown");
     interactionRef.current = {
       kind: "node",
@@ -402,6 +654,11 @@ export function WorkflowCanvas({
       moved: false,
     };
     setDraggingNodeId(nodeId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Window listeners preserve dragging when pointer capture is unavailable.
+    }
   };
 
   const handleCanvasPointerDown = (event: React.PointerEvent<HTMLElement>) => {
@@ -412,33 +669,47 @@ export function WorkflowCanvas({
       return;
     }
 
+    cancelCameraMotion();
+    cancelInertia();
+    cancelNodeSettle();
+    const pointer = pointerPoint(event.nativeEvent);
     interactionRef.current = {
       kind: "pan",
-      lastClient: pointerPoint(event.nativeEvent),
+      lastClient: pointer,
+      samples: [{ ...pointer, at: performance.now() }],
     };
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Window listeners preserve panning when pointer capture is unavailable.
+    }
   };
 
   const handleZoomIn = () => {
-    setCameraMotionEnabled(false);
-    setView((current) =>
-      zoomWorkflowCanvasView(
-        current,
-        clampWorkflowCanvasZoom(current.zoom * 1.15),
-        centerAnchor(viewportSize),
-        viewportSize,
-      ),
+    applyViewChange(
+      (current) =>
+        zoomWorkflowCanvasView(
+          current,
+          clampWorkflowCanvasZoom(current.zoom * 1.15),
+          centerAnchor(viewportSize),
+          viewportSize,
+          safeArea,
+        ),
+      "smooth",
     );
   };
 
   const handleZoomOut = () => {
-    setCameraMotionEnabled(false);
-    setView((current) =>
-      zoomWorkflowCanvasView(
-        current,
-        clampWorkflowCanvasZoom(current.zoom / 1.15),
-        centerAnchor(viewportSize),
-        viewportSize,
-      ),
+    applyViewChange(
+      (current) =>
+        zoomWorkflowCanvasView(
+          current,
+          clampWorkflowCanvasZoom(current.zoom / 1.15),
+          centerAnchor(viewportSize),
+          viewportSize,
+          safeArea,
+        ),
+      "smooth",
     );
   };
 
@@ -452,39 +723,55 @@ export function WorkflowCanvas({
 
   const handleResetLayout = () => {
     const nextLayout = getDefaultWorkflowCanvasLayout();
+    positionsRef.current = nextLayout;
     setPositions(nextLayout);
     applyViewChange(getDefaultWorkflowCanvasView(viewportSize, safeArea), "smooth");
   };
 
   const worldTransform = `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.zoom})`;
+  const compactViewport = viewportSize.width < 768;
+  const toolbarLeft = compactViewport
+    ? undefined
+    : (chatSafeLeft ?? 0) > 0
+      ? chatSafeLeft
+      : hasChatRail
+        ? 344
+        : undefined;
 
   return (
     <section
       ref={containerRef}
-      className="relative h-full min-h-[32rem] overflow-hidden touch-none"
+      className="relative h-full min-h-0 overflow-hidden touch-pan-y md:touch-none"
       data-workflow-canvas="true"
+      data-workflow-structure="pipeline"
       data-canvas-focus-node={focalPoint.focalNodeId}
       data-canvas-focus-reason={focalPoint.focusReason}
       data-canvas-focus-tone={focalPoint.focalTone}
-      aria-label="Architecture canvas"
+      data-camera-spring={cameraMotionEnabled ? "true" : "false"}
+      data-pan-inertia={inertiaActive ? "true" : "false"}
+      data-last-pan-speed={String(lastPanSpeed)}
+      data-node-settling={settlingNodeId ?? undefined}
+      aria-label="Engineering workflow"
       style={canvasStyle}
       onPointerDown={handleCanvasPointerDown}
       onWheel={(event) => {
+        if (compactViewport) return;
         event.preventDefault();
         if (!containerRef.current) return;
 
         const anchor = wheelAnchor(event, containerRef.current);
         const zoomFactor = event.deltaY < 0 ? 1.08 : 0.92;
-        setCameraMotionEnabled(false);
-
-        setView((current) =>
-          zoomWorkflowCanvasView(
-            current,
-            clampWorkflowCanvasZoom(current.zoom * zoomFactor),
-            anchor,
-            viewportSize,
-          ),
+        cancelCameraMotion();
+        cancelInertia();
+        const next = zoomWorkflowCanvasView(
+          viewRef.current,
+          clampWorkflowCanvasZoom(viewRef.current.zoom * zoomFactor),
+          anchor,
+          viewportSize,
+          safeArea,
         );
+        viewRef.current = next;
+        setView(next);
       }}
     >
       <div className="absolute inset-0 bg-[#02050a]" />
@@ -519,7 +806,7 @@ export function WorkflowCanvas({
         className="absolute inset-0 motion-safe:transition-[background-image,opacity] motion-safe:duration-[220ms]"
         style={{
           backgroundImage:
-            "radial-gradient(circle at var(--canvas-focus-x) var(--canvas-focus-y), rgb(var(--canvas-focus-rgb) / 0.22) 0%, rgb(var(--canvas-focus-rgb) / 0.12) 16%, rgb(var(--canvas-focus-rgb) / 0.05) 28%, transparent 46%)",
+            "radial-gradient(circle at var(--canvas-focus-x) var(--canvas-focus-y), rgb(var(--canvas-focus-rgb) / 0.08) 0%, rgb(var(--canvas-focus-rgb) / 0.03) 18%, transparent 36%)",
         }}
       />
       <div
@@ -533,7 +820,19 @@ export function WorkflowCanvas({
         }}
       />
 
-      <div className="absolute left-0 top-24 z-30 max-w-full pl-3 lg:top-28 lg:pl-4">
+      <WorkflowMobileFlow
+        nodes={nodes}
+        selectedNodeId={selectedNodeId}
+        featuredIssueNodeId={featuredIssueNodeId}
+        onSelectNode={onSelectNode}
+      />
+
+      <div
+        className={`absolute top-20 z-30 hidden max-w-full pl-3 md:block md:top-24 lg:top-28 lg:pl-4 ${
+          toolbarLeft ? "" : "left-0"
+        }`}
+        style={toolbarLeft ? { left: toolbarLeft } : undefined}
+      >
         <WorkflowCanvasToolbar
           zoomLabel={zoomLabel(view.zoom)}
           layoutLocked={layoutLocked}
@@ -549,7 +848,7 @@ export function WorkflowCanvas({
       </div>
 
       <div
-        className="absolute inset-0 z-10"
+        className="absolute inset-0 z-10 hidden md:block"
         style={{
           cursor:
             interactionRef.current?.kind === "pan"
@@ -570,13 +869,8 @@ export function WorkflowCanvas({
             transform: worldTransform,
             transformOrigin: "0 0",
           }}
-          className={`absolute left-0 top-0 will-change-transform ${
-            cameraMotionEnabled && !draggingNodeId && interactionRef.current?.kind !== "pan"
-              ? "motion-safe:transition-transform motion-safe:duration-[220ms] motion-safe:ease-out"
-              : ""
-          }`}
+          className="absolute left-0 top-0 will-change-transform"
         >
-          <style>{`@keyframes workflow-edge-pulse { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }`}</style>
           <div
             aria-hidden="true"
             data-canvas-selected-node-glow="true"
@@ -599,14 +893,14 @@ export function WorkflowCanvas({
             <defs>
               <marker
                 id="workflow-edge-arrow"
-                markerWidth="10"
-                markerHeight="10"
+                viewBox="0 0 10 10"
                 refX="8"
                 refY="5"
+                markerWidth="6"
+                markerHeight="6"
                 orient="auto"
-                markerUnits="userSpaceOnUse"
               >
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(148,163,184,0.72)" />
+                <path d="M 1 1 L 8 5 L 1 9" fill="none" stroke="rgba(255,255,255,0.42)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </marker>
             </defs>
             {edges.map((edge) => (
@@ -615,20 +909,35 @@ export function WorkflowCanvas({
                 path={buildWorkflowCanvasEdgePath({ layout: positions, edge })}
                 tone={edge.tone}
                 animated={edge.animated}
+                role={edge.role}
                 connected={connectedEdgeIds.has(edge.id)}
-                dimmed={connectedEdgeIds.size > 0 && !connectedEdgeIds.has(edge.id)}
+                dimmed={false}
+                transient={transientEdgeId === edge.id}
               />
             ))}
           </svg>
+
+          {getWorkflowCanvasPhases().map((phase) => (
+            <p
+              key={phase.id}
+              data-workflow-phase={phase.id}
+              className="pointer-events-none absolute text-center text-[12px] font-medium uppercase tracking-[0.14em] text-white/60"
+              style={{ left: phase.x, top: phase.y, width: WORKFLOW_CANVAS_NODE_SIZE.width }}
+            >
+              {phase.label}
+            </p>
+          ))}
 
           {nodes.map((node) => (
             <WorkflowCanvasNode
               key={node.id}
               node={node}
               selected={node.id === selectedNodeId}
+              attention={node.id === featuredIssueNodeId}
               connected={connectedNodeIds.has(node.id)}
-              dimmed={connectedNodeIds.size > 0 && !connectedNodeIds.has(node.id)}
+              dimmed={false}
               dragging={draggingNodeId === node.id}
+              arriving={arrivingNodeId === node.id}
               style={{
                 left: positions[node.id].x,
                 top: positions[node.id].y,
@@ -642,12 +951,6 @@ export function WorkflowCanvas({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute right-6 top-28 z-20 hidden rounded-full border border-white/8 bg-black/15 px-3 py-1.5 text-[10px] text-[var(--muted)] md:block">
-        Drag nodes or pan empty space
-      </div>
-      <div className="pointer-events-none absolute bottom-6 left-6 z-20 hidden rounded-full border border-white/8 bg-black/15 px-3 py-1.5 text-[10px] text-[var(--muted)] md:block">
-        Local canvas layout only
-      </div>
     </section>
   );
 }

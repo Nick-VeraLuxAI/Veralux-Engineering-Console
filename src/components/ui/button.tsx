@@ -56,6 +56,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       type={type ?? "button"}
       data-ui-button={variant}
       data-ui-button-size={size}
+      data-motion-press="true"
       className={buttonClassName({ variant, size, fullWidth, className })}
     />
   );

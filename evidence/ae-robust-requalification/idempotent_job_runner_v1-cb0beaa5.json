@@ -1,0 +1,249 @@
+{
+  "specimenId": "idempotent_job_runner_v1",
+  "matrixClasses": [
+    "partial_feature",
+    "failure_recovery"
+  ],
+  "hardClass": "idempotent_job_runner",
+  "variant": 1,
+  "title": "Job apply resume v1",
+  "objective": "Directors need a small job apply helper under src/jobs that can apply a job by id once, survive retries after a partial failure, and never double-apply the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+  "elapsedMs": 216975,
+  "taskId": "0ffd078c-c2c5-4ee6-9f61-50075d985810",
+  "runId": "cb0beaa5-5a7e-45ff-8935-7c70a3575f1b",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "cb0beaa5-5a7e-45ff-8935-7c70a3575f1b",
+    "state": "exhausted",
+    "failureClass": "BUDGET_EXHAUSTED",
+    "deliveryCandidateStatus": "blocked",
+    "paused": false,
+    "message": "Budget exhausted after diagnosis."
+  },
+  "currentState": "exhausted",
+  "iterationNumber": 6,
+  "deliveryCandidateStatus": "blocked",
+  "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "c4db750c-ec2c-4938-bd88-342c60ae0d56",
+      "strategy": "Fix literal escaped newlines in jobs.js and implement idempotent applyJob with retry‑safe behavior and full test coverage.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "workerPlanId": "d79293cc-d050-4700-9803-0f7ff158d8f5",
+      "strategy": "Rewrite src/jobs/jobs.js to safely coerce work() results into promises, preserve idempotent apply behavior, and keep pending promises across retries. Update src/jobs/jobs.test.js with async test functions, proper await/return usage, and added coverage for retry‑after‑failure scenarios. All changes are confined to src/jobs/ and resolve the 'work(...).then is not a function' error.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "workerPlanId": "3fbab50b-742a-48ba-8e85-18c58a6221b3",
+      "strategy": "Correct async test handling in jobs.test.js and ensure idempotent applyJob behavior covers happy path, failure, and retry scenarios.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "workerPlanId": "cc076474-48c1-4b11-9e6c-b286edd1d597",
+      "strategy": "Fix job apply helper to correctly propagate synchronous errors and maintain pending state, ensuring idempotent behavior and eliminating the uncaught 'boom' failure.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "workerPlanId": "fe8d9713-9db7-42b8-ae33-2229df2bb21e",
+      "strategy": "Provide a complete idempotent job apply helper with comprehensive tests",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "workerPlanId": "991c6d26-3c3e-4345-b488-29e78557be02",
+      "strategy": "Eliminate duplicate named export of 'store', complete a tested vertical slice for idempotent applyJob that survives retries and never double-applies, and add regression coverage.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "failedHypotheses": [
+    {
+      "iteration": 1,
+      "hypothesis": "Fix literal escaped newlines in jobs.js and implement idempotent applyJob with retry‑safe behavior and full test coverage.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "hypothesis": "Rewrite src/jobs/jobs.js to safely coerce work() results into promises, preserve idempotent apply behavior, and keep pending promises across retries. Update src/jobs/jobs.test.js with async test functions, proper await/return usage, and added coverage for retry‑after‑failure scenarios. All changes are confined to src/jobs/ and resolve the 'work(...).then is not a function' error.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "hypothesis": "Correct async test handling in jobs.test.js and ensure idempotent applyJob behavior covers happy path, failure, and retry scenarios.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "hypothesis": "Fix job apply helper to correctly propagate synchronous errors and maintain pending state, ensuring idempotent behavior and eliminating the uncaught 'boom' failure.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "hypothesis": "Provide a complete idempotent job apply helper with comprehensive tests",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "hypothesis": "Eliminate duplicate named export of 'store', complete a tested vertical slice for idempotent applyJob that survives retries and never double-applies, and add regression coverage.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "usage": {
+    "iterations": 6,
+    "plans": 6,
+    "modelCalls": 19,
+    "changedFiles": 2,
+    "changedBytes": 18700,
+    "runtimeMs": 216972,
+    "investigationReads": 2,
+    "contextBytes": 121,
+    "planRepairs": 1,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [
+    {
+      "at": "2026-08-20T22:35:41.744Z",
+      "semanticIteration": 0,
+      "kind": "invalid_content",
+      "reason": "src/jobs/jobs.js: file content appears to contain literal \\n escapes instead of real newlines.",
+      "evidence": [
+        "src/jobs/jobs.js: file content appears to contain literal \\n escapes instead of real newlines."
+      ]
+    }
+  ],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 1,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 1,
+    "objectiveQcPassed": false
+  },
+  "plans": [
+    {
+      "id": "991c6d26-3c3e-4345-b488-29e78557be02",
+      "summary": "Eliminate duplicate named export of 'store', complete a tested vertical slice for idempotent applyJob that survives retries and never double-applies, and add regression coverage.",
+      "iterationNumber": 6,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "fe8d9713-9db7-42b8-ae33-2229df2bb21e",
+      "summary": "Provide a complete idempotent job apply helper with comprehensive tests",
+      "iterationNumber": 5,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "cc076474-48c1-4b11-9e6c-b286edd1d597",
+      "summary": "Fix job apply helper to correctly propagate synchronous errors and maintain pending state, ensuring idempotent behavior and eliminating the uncaught 'boom' failure.",
+      "iterationNumber": 4,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "3fbab50b-742a-48ba-8e85-18c58a6221b3",
+      "summary": "Correct async test handling in jobs.test.js and ensure idempotent applyJob behavior covers happy path, failure, and retry scenarios.",
+      "iterationNumber": 3,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "d79293cc-d050-4700-9803-0f7ff158d8f5",
+      "summary": "Rewrite src/jobs/jobs.js to safely coerce work() results into promises, preserve idempotent apply behavior, and keep pending promises across retries. Update src/jobs/jobs.test.js with async test functions, proper await/return usage, and added coverage for retry‑after‑failure scenarios. All changes are confined to src/jobs/ and resolve the 'work(...).then is not a function' error.",
+      "iterationNumber": 2,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "c4db750c-ec2c-4938-bd88-342c60ae0d56",
+      "summary": "Fix literal escaped newlines in jobs.js and implement idempotent applyJob with retry‑safe behavior and full test coverage.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/cb0beaa5-5a7e-45ff-8935-7c70a3575f1b",
+    "branchName": "engineer/0ffd078c/cb0beaa5-20260820223514",
+    "baseRevision": "257e06242ff64af4db2dac0720f8414c6ccab7bc",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "failure_recovery": "PASS",
+      "idempotency": "PASS",
+      "vertical_slice_complete": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

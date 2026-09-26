@@ -1,0 +1,7 @@
+{
+  "classification": "LOW_SUSPECT",
+  "policy": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+  "verification": "Prior ae-q1-conditional-reasoning A/B/C: C\u2261A when single-shot succeeds; sanity residuals had rescueTriggered false on 3/4",
+  "this_mission": "DO_NOT_MODIFY \u2014 leave intact",
+  "no_trigger_path_equiv_ordinary_FAITHFUL": true
+}

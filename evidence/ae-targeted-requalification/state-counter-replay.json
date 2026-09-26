@@ -1,0 +1,54 @@
+{
+  "at": "2026-08-21T00:27:29.084062+00:00",
+  "specimenId": "state_counter",
+  "runId": "5e2b8bc9-1683-4d45-87a4-2e2660a59515",
+  "nanoRuntimeMode": "FAITHFUL",
+  "maxIterations": 6,
+  "iterations": 6,
+  "deliveryCandidateStatus": "blocked",
+  "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+  "resultState": "exhausted",
+  "failureClass": "BUDGET_EXHAUSTED",
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 1,
+    "owned": 1,
+    "objectiveQcPassed": false
+  },
+  "planRepairHistory": [],
+  "humanCodingInterventions": 0,
+  "score": {
+    "pass": false,
+    "notes": [
+      "rejects missing key (must create-on-first-write)",
+      "no create-on-first-write coverage"
+    ],
+    "robustScorecard": {
+      "state_integrity": "FAIL",
+      "create_on_first_write": "FAIL",
+      "validation": "PASS",
+      "independence": "PASS",
+      "tests": "FAIL"
+    }
+  },
+  "contractAmbiguityDisappeared": true,
+  "contractAmbiguityNotes": "Final implementation uses create-on-first-write (store[key] ?? 0) and does not hasOwnProperty-reject missing keys. Seed/AC create-on-first-write contract held. QC failed because tests used assert.rejects (async) against synchronous throws (assert.throws required).",
+  "finalCodeSummary": {
+    "counterJs": "import { validateKey } from './keyValidator.js';\n\nexport function incrementCounter(store, key, by = 1) {\n  if (typeof store !== 'object' || store === null) {\n    throw new TypeError('store must be a non-null object');\n  }\n  validateKey(key);\n  if (!Number.isFinite(by)) {\n    throw new TypeError('by must be a finite number');\n  }\n\n  const current = store[key] ?? 0; // treat missing key as 0\n  const newValue = current + by;\n  store[key] = newValue;\n  return newValue;\n}",
+    "testUsesAssertRejectsOnSyncThrows": true,
+    "createOnFirstWrite": true,
+    "rejectsMissingKeyOnly": false
+  },
+  "successBar": {
+    "deliveryReady": false,
+    "criticalHighMediumUnresolved": 0,
+    "governanceViolations": 0,
+    "humanCodingInterventions": 0,
+    "met": false
+  },
+  "classificationExact": "PRIMARY_QC_NONCONVERGENCE",
+  "classificationDetail": "semantic_misunderstanding_of_node_assert_api (assert.rejects vs assert.throws); not fixture_ambiguity; not generation_budget; not runtime",
+  "evidenceRaw": "state_counter-5e2b8bc9.json"
+}

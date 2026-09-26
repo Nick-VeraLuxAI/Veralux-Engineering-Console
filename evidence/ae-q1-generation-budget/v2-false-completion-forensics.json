@@ -1,0 +1,14 @@
+{
+  "runId": "71298511-19b2-4758-be0b-178e4a9e6511",
+  "specimen": "rate_limit_feature_v2",
+  "determination": "HISTORICAL/PRE-FIX RESULT",
+  "evidence": [
+    "delivery ready with stub allow()\u2192true / deny()\u2192false and existence-only tests",
+    "completionEvaluation acceptanceEvidence marked rate-limit ACs as Non-material (isMaterialRateLimitCriterion absent at run time)",
+    "tip 896db6e added isMaterialRateLimitCriterion; re-eval on same worktree now UNSATISFIED",
+    "worker_adversarial findings described stubs but passed=true / empty actionableDefects (advisory only)",
+    "harness rescore later correctly FAIL \u2014 not the live delivery gate at the time"
+  ],
+  "current_tip_blocks_stub": true,
+  "additional_closure_fix_required": false
+}

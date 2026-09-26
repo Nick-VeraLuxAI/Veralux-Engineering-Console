@@ -1,0 +1,176 @@
+{
+  "specimenId": "bad_legacy_ledger_v3",
+  "matrixClasses": [
+    "bad_legacy_remediation"
+  ],
+  "hardClass": "bad_legacy_ledger",
+  "variant": 3,
+  "title": "Legacy invoice settler reliability v3",
+  "objective": "Directors need the invoice settler under src/ledger to settle invoices correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust settleInvoice, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+  "elapsedMs": 43362,
+  "taskId": "ea53b12f-e1bf-4247-87f9-7601527d368c",
+  "runId": "211f958b-ae98-4ec9-8a28-fda59e3a2d92",
+  "maxIterations": 8,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "211f958b-ae98-4ec9-8a28-fda59e3a2d92",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "72489a4d-ddc5-4a2b-955e-094802eea2b5",
+      "strategy": "Rewrote settleInvoice to enforce strict validation, record outcomes, and throw on failure; added comprehensive tests covering success and failure paths.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 3578,
+    "runtimeMs": 42832,
+    "investigationReads": 2,
+    "contextBytes": 129,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 8,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need the invoice settler under src/ledger to settle invoices correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust settleInvoice, and add tests that cover success and failure cases. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/ledger/invoices.js",
+        "Changed src/ledger/invoices.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/ledger/invoices.js      | 81 ++++++++++++++++++++++++++++++---------------\n src/ledger/invoices.test.js | 39 ++++++++++++++++++++--\n 2 files changed, 91 insertions(+), 29 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "requirements: All material requirements satisfied; settlement records outcomes and never silently treats failures as success.",
+        "diff_quality: Changes confined to src/ledger/invoices.js and corresponding test updates.",
+        "regression_risk: Quality gates remain passed; no new runtime risk.",
+        "engineering_quality: No deterministic engineering blockers detected in changes."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "72489a4d-ddc5-4a2b-955e-094802eea2b5",
+      "summary": "Rewrote settleInvoice to enforce strict validation, record outcomes, and throw on failure; added comprehensive tests covering success and failure paths.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/211f958b-ae98-4ec9-8a28-fda59e3a2d92",
+    "branchName": "engineer/ea53b12f/211f958b-20260820223431",
+    "baseRevision": "3c9a26682ea14c752adfddfb2c6ad8d18fda84dc",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "error_handling": "PASS",
+      "tests_negative_path": "PASS",
+      "scope_discipline": "PASS",
+      "observability": "PASS",
+      "no_workaround_stack": "PASS"
+    },
+    "badCodeScorecard": {
+      "identified_underlying_defect": "PASS",
+      "repaired_design_not_hack": "PASS",
+      "removed_obsolete_patterns": "PASS",
+      "regression_coverage": "PASS",
+      "left_subsystem_healthier": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

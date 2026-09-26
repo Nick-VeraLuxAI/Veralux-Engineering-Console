@@ -20,17 +20,22 @@ const STATUS_VARIANTS: Record<string, BadgeVariant> = {
   applying_patch: "active",
   validating_worker_plan: "active",
   executing_worker_plan: "active",
-  running_quality_gates: "active",
+  waiting_for_director: "warning",
+  investigating: "active",
+  diagnosing: "warning",
+  reviewing: "active",
+  exhausted: "blocked",
+  aborted: "blocked",
   low: "ready",
   medium: "warning",
   high: "warning",
   blocked: "blocked",
 };
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status, label }: { status: string; label?: string }) {
   return (
     <Badge variant={STATUS_VARIANTS[status] ?? "muted"} size="md">
-      {status.replace(/_/g, " ")}
+      {label ?? status.replace(/_/g, " ")}
     </Badge>
   );
 }

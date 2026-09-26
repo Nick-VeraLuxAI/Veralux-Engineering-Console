@@ -23,7 +23,7 @@ describe("RunWorkspaceShell", () => {
           nextAction: "Review the approval report.",
           activeView: "overview",
           onSelectView: vi.fn(),
-          viewIssueCounts: { overview: 2, review: 1 },
+          viewIssueCounts: { job: 2, later: 1 },
           currentIssue: null,
           onOpenCurrentIssue: vi.fn(),
         },
@@ -44,9 +44,8 @@ describe("RunWorkspaceShell", () => {
       ),
     );
 
-    expect(html).toContain("Overview");
-    expect(html).toContain("Work Plan");
-    expect(html).toContain("Review");
+    expect(html).toContain("This job");
+    expect(html).toContain("Later");
     expect(html).toContain('aria-selected="true"');
     expect(html).toContain("Overview content");
     expect(html).toContain("Current workspace:");
@@ -78,7 +77,7 @@ describe("RunIssueCenter", () => {
 
     expect(html).toContain("Issue Center");
     expect(html).toContain("Problems needing attention");
-    expect(html).toContain("Review");
+    expect(html).toContain("This job");
     expect(html).toContain("Suggested action: Open review stages.");
   });
 

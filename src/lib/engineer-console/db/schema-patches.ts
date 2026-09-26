@@ -227,4 +227,101 @@ export function applyEngineerConsoleSchemaPatches(db: Database.Database): void {
       }
     }
   }
+
+  const workerPlanColumns = db
+    .prepare(`PRAGMA table_info(engineer_worker_plans)`)
+    .all() as Array<{ name: string }>;
+  if (workerPlanColumns.length > 0 && !workerPlanColumns.some((c) => c.name === "iteration_number")) {
+    db.exec(`ALTER TABLE engineer_worker_plans ADD COLUMN iteration_number INTEGER`);
+  }
+
+  ensureSkillOptTables(db);
+}
+
+/** SkillOpt V1 tables for existing SQLite files (CREATE IF NOT EXISTS). */
+function ensureSkillOptTables(db: Database.Database): void {
+  db.exec(`
+CREATE TABLE IF NOT EXISTS engineer_skills (
+  id TEXT PRIMARY KEY NOT NULL,
+  status TEXT NOT NULL,
+  lesson_type TEXT NOT NULL,
+  model_scope TEXT NOT NULL,
+  model_family TEXT,
+  model_id TEXT,
+  signature TEXT NOT NULL,
+  title TEXT NOT NULL,
+  lesson TEXT NOT NULL,
+  anti_patterns_json TEXT NOT NULL DEFAULT '[]',
+  tags_json TEXT NOT NULL DEFAULT '[]',
+  confidence REAL NOT NULL DEFAULT 0,
+  validation_count INTEGER NOT NULL DEFAULT 0,
+  rejection_count INTEGER NOT NULL DEFAULT 0,
+  current_version INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_engineer_skills_status ON engineer_skills (status);
+CREATE INDEX IF NOT EXISTS idx_engineer_skills_signature ON engineer_skills (signature);
+CREATE INDEX IF NOT EXISTS idx_engineer_skills_model_scope ON engineer_skills (model_scope, model_id);
+
+CREATE TABLE IF NOT EXISTS engineer_skill_versions (
+  id TEXT PRIMARY KEY NOT NULL,
+  skill_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  lesson TEXT NOT NULL,
+  anti_patterns_json TEXT NOT NULL DEFAULT '[]',
+  change_reason TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (skill_id) REFERENCES engineer_skills (id) ON DELETE CASCADE,
+  UNIQUE (skill_id, version)
+);
+CREATE INDEX IF NOT EXISTS idx_engineer_skill_versions_skill_id
+  ON engineer_skill_versions (skill_id, version DESC);
+
+CREATE TABLE IF NOT EXISTS engineer_skill_evidence (
+  id TEXT PRIMARY KEY NOT NULL,
+  skill_id TEXT NOT NULL,
+  polarity TEXT NOT NULL,
+  ref_path TEXT NOT NULL,
+  ref_kind TEXT NOT NULL,
+  run_id TEXT,
+  task_id TEXT,
+  summary TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (skill_id) REFERENCES engineer_skills (id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_engineer_skill_evidence_skill_id
+  ON engineer_skill_evidence (skill_id);
+
+CREATE TABLE IF NOT EXISTS engineer_skill_validations (
+  id TEXT PRIMARY KEY NOT NULL,
+  skill_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (skill_id) REFERENCES engineer_skills (id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_engineer_skill_validations_skill_id
+  ON engineer_skill_validations (skill_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS engineer_skill_shadow_retrievals (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  task_id TEXT,
+  model_id TEXT,
+  model_family TEXT,
+  query_signature TEXT NOT NULL,
+  task_context_digest TEXT NOT NULL,
+  matched_skill_ids_json TEXT NOT NULL DEFAULT '[]',
+  would_inject TEXT NOT NULL DEFAULT '',
+  actually_injected INTEGER NOT NULL DEFAULT 0,
+  prompt_hash_before TEXT NOT NULL,
+  prompt_hash_after TEXT NOT NULL,
+  ranking_scores_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_engineer_skill_shadow_retrievals_run_id
+  ON engineer_skill_shadow_retrievals (run_id, created_at DESC);
+`);
 }

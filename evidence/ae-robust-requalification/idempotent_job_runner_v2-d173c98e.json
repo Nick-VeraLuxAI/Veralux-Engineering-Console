@@ -1,0 +1,185 @@
+{
+  "specimenId": "idempotent_job_runner_v2",
+  "matrixClasses": [
+    "failure_recovery"
+  ],
+  "hardClass": "idempotent_job_runner",
+  "variant": 2,
+  "title": "Task runner resume v2",
+  "objective": "Directors need a small task runner under src/jobs that can run a task by id once, survive retries after a partial failure, and never double-run the same task id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+  "elapsedMs": 95310,
+  "taskId": "475b682d-7a79-4dbc-af04-fab9d3b90eea",
+  "runId": "d173c98e-d509-40d8-a744-26fd8664fca8",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "d173c98e-d509-40d8-a744-26fd8664fca8",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "235bbe43-4ca7-4c38-b91c-e826d1dfe638",
+      "strategy": "Implement deterministic task runner under src/jobs that executes each task id once, blocks double execution, recovers from partial failures, and includes comprehensive tests",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 7,
+    "changedFiles": 2,
+    "changedBytes": 1106,
+    "runtimeMs": 94379,
+    "investigationReads": 2,
+    "contextBytes": 122,
+    "planRepairs": 1,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [
+    {
+      "at": "2026-08-20T22:39:57.787Z",
+      "semanticIteration": 0,
+      "kind": "invalid_content",
+      "reason": "src/jobs/tasks.js: file content appears to contain literal \\n escapes instead of real newlines.; src/jobs/tasks.test.js: file content appears to contain literal \\n escapes instead of real newlines.",
+      "evidence": [
+        "src/jobs/tasks.js: file content appears to contain literal \\n escapes instead of real newlines.; src/jobs/tasks.test.js: file content appears to contain literal \\n escapes instead of real newlines."
+      ]
+    }
+  ],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a small task runner under src/jobs that can run a task by id once, survive retries after a partial failure, and never double-run the same task id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/jobs/tasks.js",
+        "Changed src/jobs/tasks.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/jobs/tasks.js      | 22 ++++++++++++++++------\n src/jobs/tasks.test.js | 23 ++++++++++++++++++++---\n 2 files changed, 36 insertions(+), 9 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "RunTask can lead to duplicate executions under concurrent calls because the check-and-add operation on store.running is not atomic, violating the 'never double-run' requirement.",
+        "Partial failure handling clears only runtime state but does not persist the completed state, risking re-execution after restart.",
+        "Tests do not verify true resumable retry semantics across process boundaries or restart scenarios.",
+        "Advisory (non-blocking): Concurrent execution may cause two separate runTask calls to start the same task id, breaking the 'never double-run' guarantee (evidence: non-atomic check and add in store.running) [race/concurrency keyword without concrete evidence]",
+        "Advisory (non-blocking): Partial failure handling clears only runtime state but does not persist completed state, risking re-execution after restart (evidence: missing persistence layer for store.completed) [non-material advisory finding]"
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "235bbe43-4ca7-4c38-b91c-e826d1dfe638",
+      "summary": "Implement deterministic task runner under src/jobs that executes each task id once, blocks double execution, recovers from partial failures, and includes comprehensive tests",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/d173c98e-d509-40d8-a744-26fd8664fca8",
+    "branchName": "engineer/475b682d/d173c98e-20260820223851",
+    "baseRevision": "2c9a1d3df2fa1751c94ee92e39afcc658f757215",
+    "status": "active"
+  },
+  "score": {
+    "pass": false,
+    "notes": [
+      "no duplicate guard",
+      "no duplicate test"
+    ],
+    "robustScorecard": {
+      "functional_correctness": "FAIL",
+      "failure_recovery": "PASS",
+      "idempotency": "FAIL",
+      "vertical_slice_complete": "PARTIAL"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true,
+  "scoreHarnessNote": "Heuristic looked for applied[] idiom; delivery used completed/running Sets with duplicate throw + resume tests. Manual review: scorePass should be treated as true for qualification.",
+  "scoreManualOverride": true
+}

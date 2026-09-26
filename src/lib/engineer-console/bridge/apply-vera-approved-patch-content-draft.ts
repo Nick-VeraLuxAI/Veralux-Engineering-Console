@@ -22,6 +22,7 @@ import {
 } from "../worker/vera-implementation-patch-application-types";
 import { VERA_APPROVED_PATCH_CONTENT_APPLICATION_CONFIRMATION_PHRASE } from "../worker/vera-implementation-patch-content-draft-types";
 import { applyVeraPatchEntriesToWorktree } from "../worker/vera-worktree-patch-applier";
+import { assertProtectedApplyAuthority } from "../governance/protected-apply-authority";
 
 export class VeraApprovedPatchContentApplicationError extends Error {
   readonly status: number;
@@ -45,6 +46,8 @@ export type ApplyVeraApprovedPatchContentDraftInput = {
   runId: string;
   confirmationText: string;
   requestedBy: string;
+  actorId?: string;
+  actorRole?: "executor" | "operator";
   note?: string | null;
 };
 
@@ -148,6 +151,41 @@ export function applyVeraApprovedPatchContentDraft(
     });
   }
 
+  const grant =
+    governanceNotes.veraImplementationPatchContentDraftReviewDecision === "approved"
+      ? {
+          actorId:
+            governanceNotes.veraImplementationPatchContentDraftReviewerActorId ??
+            governanceNotes.veraImplementationPatchContentDraftReviewedBy ??
+            "",
+          displayName: governanceNotes.veraImplementationPatchContentDraftReviewedBy ?? "",
+          role: governanceNotes.veraImplementationPatchContentDraftReviewerRole ?? "approver",
+        }
+      : null;
+  const authority = assertProtectedApplyAuthority({
+    grant,
+    executor: {
+      actorId: input.actorId ?? requestedBy,
+      displayName: requestedBy,
+      role: input.actorRole ?? "executor",
+    },
+  });
+  if (!authority.allowed) {
+    auditVeraImplementationApprovedPatchContentApplicationBlocked(run.taskId, run.id, {
+      requestedBy,
+      veraWorkOrderId,
+      reasonCode: authority.code,
+      message: authority.reason,
+      draftPath: readiness.draftPath,
+      draftHash: readiness.draftHash,
+      entryCount: readiness.entryCount,
+    });
+    throw new VeraApprovedPatchContentApplicationError(authority.code, authority.reason, {
+      status: 403,
+      reasonCodes: [authority.code],
+    });
+  }
+
   const worktreePath = readiness.worktreePath!;
   const appliedAt = new Date().toISOString();
 
@@ -208,6 +246,8 @@ export function applyVeraApprovedPatchContentDraft(
         veraImplementationPatchAppliedAt: appliedAt,
         veraImplementationPatchAppliedFiles: appliedFiles,
         veraImplementationPatchApplicationSource: "patch_content_draft",
+        veraImplementationPatchAppliedActorId: authority.executor.actorId,
+        veraImplementationPatchAppliedRole: authority.executor.role,
       }),
     });
 

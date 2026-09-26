@@ -8,9 +8,11 @@ import { useState } from "react";
 export function StartRunButton({
   taskId,
   compact = false,
+  autonomous = false,
 }: {
   taskId: string;
   compact?: boolean;
+  autonomous?: boolean;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,8 @@ export function StartRunButton({
     try {
       const res = await engineerConsoleFetch(`/api/engineer-console/tasks/${taskId}/runs`, {
         method: "POST",
+        headers: autonomous ? { "Content-Type": "application/json" } : undefined,
+        body: autonomous ? JSON.stringify({ mode: "autonomous" }) : undefined,
       });
       const data = await res.json();
       if (!res.ok) {
@@ -46,7 +50,7 @@ export function StartRunButton({
           compact ? "px-3 py-1.5" : "px-4 py-2"
         }`}
       >
-        {loading ? "Starting…" : "Start run"}
+        {loading ? "Starting…" : autonomous ? "Start Autonomous Run" : "Start run"}
       </button>
       {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
     </div>

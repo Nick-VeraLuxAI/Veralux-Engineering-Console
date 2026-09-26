@@ -1,4 +1,8 @@
 import type { RegisteredRepo } from "@/lib/engineer-console/repo-intelligence/registered-repos/registered-repo-types";
+import { START_REPO_HREF } from "./start-repo-intent";
+import type { RepoControlFacts } from "./repo-control-plane";
+import { buildMappedCodebase, type MappedCodebase } from "../repo-intelligence/github/codebase-map";
+import { buildMapChatProjects, type MapChatProject } from "./map-chat-threads";
 import type { DashboardSetupSummary } from "@/lib/engineer-console/setup/build-setup-readiness-summary";
 import type { SetupReadinessItem } from "@/lib/engineer-console/setup/setup-ux";
 import type { EngineeringTask } from "@/lib/engineer-console/types";
@@ -70,15 +74,24 @@ export interface WorkflowDockLink {
   href: string;
 }
 
+export interface ChatPendingApproval {
+  runId: string;
+  title: string;
+  href: string;
+}
+
 export interface EngineeringWorkflowMapData {
   nodes: WorkflowMapNode[];
   inspectors: Record<WorkflowMapNodeId, WorkflowNodeInspectorData>;
   issues: DashboardWorkflowIssue[];
   featuredIssue: DashboardWorkflowIssue | null;
+  pendingChatApproval: ChatPendingApproval | null;
   activityItems: DashboardActivityItem[];
   primaryChip: DashboardPrimaryActionChip;
   defaultSelectedNodeId: WorkflowMapNodeId;
   dockLinks: WorkflowDockLink[];
+  projects: MapChatProject[];
+  mappedRepos: MappedCodebase[];
 }
 
 function buildDashboardDetailHref(section: "setup" | "queue" | "tasks"): string {
@@ -119,8 +132,12 @@ function worstTone(tones: WorkflowMapTone[]): WorkflowMapTone {
   return "ready";
 }
 
+function stayOnMapChat(): string {
+  return "/engineer";
+}
+
 function runReviewHref(item: OperatorQueueItem | null): string {
-  return item?.runId ? `/engineer/runs/${item.runId}#approval` : buildDashboardDetailHref("queue");
+  return item?.runId ? stayOnMapChat() : buildDashboardDetailHref("queue");
 }
 
 function runPrHref(item: OperatorQueueItem | null): string {
@@ -181,6 +198,8 @@ export function buildEngineeringWorkflowMapData(input: {
   repos: RegisteredRepo[];
   queueItems: OperatorQueueItem[];
   setup: DashboardSetupSummary;
+  indexedPathsByRepo?: Record<string, string[]>;
+  controlFactsByRepo?: Record<string, RepoControlFacts>;
 }): EngineeringWorkflowMapData {
   const sortedQueueItems = sortQueueItems(input.queueItems);
   const runItems = sortedQueueItems.filter((item) => item.kind === "run");
@@ -263,7 +282,10 @@ export function buildEngineeringWorkflowMapData(input: {
     shortState:
       input.repos.length === 0
         ? "No repositories registered"
-        : `${input.repos.length} repo${input.repos.length === 1 ? "" : "s"} in the console`,
+        : input.repos
+            .slice(0, 3)
+            .map((repo) => repo.name)
+            .join(" · ") + (input.repos.length > 3 ? ` +${input.repos.length - 3}` : ""),
     issueCount: input.repos.length === 0 ? 1 : repoAttention.length,
   };
 
@@ -460,8 +482,10 @@ export function buildEngineeringWorkflowMapData(input: {
         "Repositories are the gateway into indexing, compatibility analysis, task creation, and governed runs.",
       nextAction:
         input.repos.length === 0
-          ? "Register the first repository."
-          : repoAttention[0]?.nextAction ?? "View repositories and confirm the active repo is verified and indexed.",
+          ? "Connect GitHub or register the first repository."
+          : `Mapped: ${input.repos.map((repo) => repo.name).slice(0, 4).join(", ")}${
+              input.repos.length > 4 ? ` +${input.repos.length - 4}` : ""
+            }.`,
       blockers:
         input.repos.length === 0
           ? ["No repositories are registered yet."]
@@ -471,8 +495,8 @@ export function buildEngineeringWorkflowMapData(input: {
       warnings: repoAttention
         .filter((item) => item.status !== "missing")
         .map((item) => `${item.title}: ${item.detail}`),
-      primaryActionLabel: input.repos.length === 0 ? "Register repo" : "View repositories",
-      primaryActionHref: "/engineer/repos",
+      primaryActionLabel: input.repos.length === 0 ? "Start a repo" : "View repositories",
+      primaryActionHref: input.repos.length === 0 ? START_REPO_HREF : "/engineer/repos",
       secondaryActionLabel: "View compatibility",
       secondaryActionHref: "/engineer/compatibility",
     },
@@ -516,10 +540,18 @@ export function buildEngineeringWorkflowMapData(input: {
           ? [`${latestRunItem.warningCount} warning(s) are attached to the latest run.`]
           : [],
       primaryActionLabel:
-        latestRunItem?.runId ? "Open run" : input.tasks.length > 0 ? "Start run" : "Create task",
+        latestRunItem?.status === "waiting_for_approval"
+          ? "Decide in chat"
+          : latestRunItem?.runId
+            ? "Open run"
+            : input.tasks.length > 0
+              ? "Start run"
+              : "Create task",
       primaryActionHref:
-        latestRunItem?.href ??
-        (input.tasks.length > 0 ? buildDashboardDetailHref("tasks") : buildDashboardDetailHref("tasks")),
+        latestRunItem?.status === "waiting_for_approval"
+          ? stayOnMapChat()
+          : latestRunItem?.href ??
+            (input.tasks.length > 0 ? buildDashboardDetailHref("tasks") : buildDashboardDetailHref("tasks")),
       secondaryActionLabel: "View details",
       secondaryActionHref: buildDashboardDetailHref("queue"),
     },
@@ -536,8 +568,16 @@ export function buildEngineeringWorkflowMapData(input: {
         reviewItem?.bucket === "blocked_failed" ? [reviewItem.reason] : [],
       warnings:
         reviewItem && reviewItem.bucket !== "blocked_failed" ? [reviewItem.reason] : [],
-      primaryActionLabel: reviewItem?.runId ? "Open review" : "Open run",
-      primaryActionHref: runReviewHref(reviewItem ?? latestRunItem),
+      primaryActionLabel:
+        latestRunItem?.status === "waiting_for_approval"
+          ? "Decide in chat"
+          : reviewItem?.runId
+            ? "Open review"
+            : "Open run",
+      primaryActionHref:
+        latestRunItem?.status === "waiting_for_approval"
+          ? stayOnMapChat()
+          : runReviewHref(reviewItem ?? latestRunItem),
       secondaryActionLabel: "View queue details",
       secondaryActionHref: buildDashboardDetailHref("queue"),
     },
@@ -655,9 +695,9 @@ export function buildEngineeringWorkflowMapData(input: {
         }
       : input.repos.length === 0
         ? {
-            label: "Register repo",
+            label: "Start a repo",
             detail: "The workflow map is waiting for its first repository.",
-            href: "/engineer/repos",
+            href: START_REPO_HREF,
           }
         : input.tasks.length === 0
           ? {
@@ -678,7 +718,11 @@ export function buildEngineeringWorkflowMapData(input: {
               };
 
   const defaultSelectedNodeId =
-    featuredIssue?.nodeId ?? (input.repos.length === 0 ? "repository" : latestRunItem ? "run" : "task");
+    featuredIssue?.nodeId === "setup" || featuredIssue?.nodeId === "repository"
+      ? featuredIssue.nodeId
+      : input.repos.length === 0
+        ? "repository"
+        : "task";
 
   const activityItems: DashboardActivityItem[] = [
     latestRunItem
@@ -716,24 +760,39 @@ export function buildEngineeringWorkflowMapData(input: {
   ].filter((item): item is DashboardActivityItem => item !== null);
 
   const dockLinks: WorkflowDockLink[] = [
-    { id: "workflow", label: "Workflows", href: "/engineer" },
+    { id: "workflow", label: "Map", href: "/engineer" },
     { id: "repos", label: "Repos", href: "/engineer/repos" },
     { id: "tasks", label: "Tasks", href: buildDashboardDetailHref("tasks") },
-    { id: "runs", label: "Runs", href: latestRunItem?.href ?? buildDashboardDetailHref("queue") },
-    { id: "reviews", label: "Reviews", href: runReviewHref(reviewItem ?? latestRunItem) },
-    { id: "release", label: "Release", href: runReleaseHref(releaseItem ?? latestRunItem) },
-    { id: "activity", label: "Activity", href: "/engineer?details=activity#canvas-detail-drawer" },
-    { id: "docs", label: "Docs", href: "/engineer?details=docs#canvas-detail-drawer" },
+    { id: "runs", label: "Runs", href: "/engineer" },
+    { id: "reviews", label: "Review", href: runReviewHref(reviewItem ?? latestRunItem) },
   ];
+
+  const pendingChatApproval: ChatPendingApproval | null =
+    latestRunItem?.status === "waiting_for_approval" && latestRunItem.runId
+      ? {
+          runId: latestRunItem.runId,
+          title: latestRunItem.title,
+          href: stayOnMapChat(),
+        }
+      : null;
 
   return {
     nodes,
     inspectors,
     issues,
     featuredIssue,
+    pendingChatApproval,
     activityItems,
     primaryChip,
     defaultSelectedNodeId,
     dockLinks,
+    projects: buildMapChatProjects({ repos: input.repos, tasks: input.tasks }),
+    mappedRepos: input.repos.map((repo) =>
+      buildMappedCodebase({
+        ...repo,
+        indexedPaths: input.indexedPathsByRepo?.[repo.id],
+        controlFacts: input.controlFactsByRepo?.[repo.id],
+      }),
+    ),
   };
 }

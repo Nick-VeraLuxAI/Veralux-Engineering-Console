@@ -114,6 +114,14 @@ describe("UX-6 setup guidance", () => {
     expect(html).toContain("Run file index before code index.");
     expect(html).toContain("Verify");
     expect(html).toContain("Detect scripts/profile");
+    expect(html).toContain("Start a new repository");
+    expect(html).toContain('data-repo-primary-actions="true"');
+    expect(html).toContain('data-repo-setup-details="true"');
+    expect(html.indexOf("Start a new repository")).toBeLessThan(
+      html.indexOf("Approved repo roots"),
+    );
+    expect(html.indexOf("Register repository")).toBeLessThan(html.indexOf("Repo setup order"));
+    expect(html).not.toContain("text-black");
   });
 
   it("staging smoke helper logic appears in development or staging-like environments", () => {

@@ -43,10 +43,7 @@ export default async function TaskDetailPage({
 
   return (
     <div>
-      <Link href="/engineer" className="text-sm text-[var(--muted)] hover:text-white">
-        ← Tasks
-      </Link>
-      <div className="mt-4 mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{task.title}</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">{task.description || "No description"}</p>
@@ -62,7 +59,10 @@ export default async function TaskDetailPage({
             controlled preparation panel below.
           </div>
         ) : canStartRun ? (
-          <StartRunButton taskId={task.id} />
+          <div className="flex flex-col gap-2 sm:items-end">
+            <StartRunButton taskId={task.id} autonomous />
+            <StartRunButton taskId={task.id} />
+          </div>
         ) : (
           <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-[var(--muted)]">
             Review the latest run before starting another one.

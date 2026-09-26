@@ -40,9 +40,9 @@ export function CanvasNodeInspector({
       position={overlayState.position}
       onMove={onMove}
       draggable
-      placementClassName="left-4 bottom-24 xl:left-auto xl:right-4 xl:top-56 xl:bottom-auto"
-      containerClassName="w-[min(22rem,calc(100vw-2rem))]"
-      surfaceClassName="border-white/8 bg-[#08111c]/82 shadow-[0_24px_52px_rgba(2,6,23,0.32)]"
+      placementClassName="left-1/2 top-20 -translate-x-1/2 md:top-auto md:bottom-24"
+      containerClassName="w-[min(22rem,calc(100vw-2rem))] max-h-[min(70dvh,34rem)]"
+      surfaceClassName="max-h-[min(70dvh,34rem)] overflow-y-auto border-white/8 bg-[#08111c]/82 shadow-[0_24px_52px_rgba(2,6,23,0.32)]"
       bodyClassName="p-5"
       role="dialog"
     >
@@ -51,16 +51,16 @@ export function CanvasNodeInspector({
 
         <div className="mt-5 space-y-4">
           <div>
-            <p className="text-[11px] font-medium text-[var(--muted)]">Why it matters</p>
+            <p className="text-[12px] font-medium text-[var(--muted)]">Why it matters</p>
             <p className="mt-2 text-sm text-white">{inspector.whyItMatters}</p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-[var(--muted)]">Next action</p>
+            <p className="text-[12px] font-medium text-[var(--muted)]">Next action</p>
             <p className="mt-2 text-sm text-white">{inspector.nextAction}</p>
           </div>
           {guidance.length > 0 ? (
             <div>
-              <p className="text-[11px] font-medium text-[var(--muted)]">Top blockers</p>
+              <p className="text-[12px] font-medium text-[var(--muted)]">Top blockers</p>
               <ul className="mt-2 space-y-2">
                 {guidance.map((item) => (
                   <li

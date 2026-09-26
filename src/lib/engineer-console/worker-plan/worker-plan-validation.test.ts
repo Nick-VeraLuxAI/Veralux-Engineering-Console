@@ -235,19 +235,42 @@ describe("validateWorkerPlan", () => {
     expect(result.errors.some((e) => e.code === "EMPTY_CONTENT")).toBe(true);
   });
 
-  it("rejects delete operations", () => {
-    const result = validateWorkerPlanPayload(
+  it("rejects shell/rm delete aliases but accepts delete_file for existing files", () => {
+    fs.mkdirSync(path.join(repoRoot, "src"), { recursive: true });
+    fs.writeFileSync(path.join(repoRoot, "src/dead.js"), "export const x = 1;\n");
+
+    const forbidden = validateWorkerPlanPayload(
       {
         runId: "run-1",
         summary: "x",
         allowedFiles: ["src/a.ts"],
-        operations: [{ type: "delete_file", path: "src/a.ts", content: "x", reason: "" }],
+        operations: [{ type: "rm", path: "src/a.ts", content: "x", reason: "" }],
       },
       repoRoot,
       "run-1",
     );
-    expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.code === "FORBIDDEN_OPERATION")).toBe(true);
+    expect(forbidden.valid).toBe(false);
+    expect(forbidden.errors.some((e) => e.code === "FORBIDDEN_OPERATION")).toBe(true);
+
+    const allowed = validateWorkerPlanPayload(
+      {
+        runId: "run-1",
+        summary: "remove dead shim per AC",
+        allowedFiles: ["src/dead.js"],
+        operations: [
+          {
+            type: "delete_file",
+            path: "src/dead.js",
+            content: "",
+            reason: "Remove unused dead shim required by acceptance criteria",
+          },
+        ],
+      },
+      repoRoot,
+      "run-1",
+    );
+    expect(allowed.valid).toBe(true);
+    expect(allowed.normalizedOperations[0]?.type).toBe("delete_file");
   });
 
   it("accepts update and append when files exist", () => {
@@ -279,5 +302,41 @@ describe("validateWorkerPlan", () => {
     );
     expect(result.valid).toBe(true);
     expect(result.normalizedOperations).toHaveLength(2);
+  });
+
+  it("rejects worker plans that remove exports from protected scaffold contracts", () => {
+    const hostRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ec-wp-host-"));
+    fs.mkdirSync(path.join(hostRoot, "src"), { recursive: true });
+    fs.writeFileSync(
+      path.join(hostRoot, "src/contracts.ts"),
+      "export interface EventLog {}\nexport interface MemoryRecordStore {}\n",
+    );
+    fs.mkdirSync(path.join(repoRoot, "src"), { recursive: true });
+    fs.writeFileSync(
+      path.join(repoRoot, "src/contracts.ts"),
+      "export interface EventLog {}\nexport interface MemoryRecordStore {}\n",
+    );
+
+    const result = validateWorkerPlan(
+      {
+        runId: "run-1",
+        summary: "rewrite contracts",
+        allowedFiles: ["src/contracts.ts"],
+        operations: [
+          {
+            type: "update_file",
+            path: "src/contracts.ts",
+            content: "export type MemoryRecord = { id: string };\n",
+            reason: "simplify",
+          },
+        ],
+      },
+      repoRoot,
+      "run-1",
+      { scaffoldBaselineRepoPath: hostRoot },
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.code === "SCAFFOLD_CONTRACT_REGRESSION")).toBe(true);
+    fs.rmSync(hostRoot, { recursive: true, force: true });
   });
 });

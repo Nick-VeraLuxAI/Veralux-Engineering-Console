@@ -20,7 +20,13 @@ export const RUN_STATUSES = [
   "validating_worker_plan",
   "executing_worker_plan",
   "running_quality_gates",
+  "investigating",
+  "diagnosing",
+  "reviewing",
+  "waiting_for_director",
   "waiting_for_approval",
+  "exhausted",
+  "aborted",
   "failed",
   "completed",
 ] as const;

@@ -19,7 +19,7 @@ export function CanvasMinimizedBar({
   return (
     <div
       data-canvas-minimized-bar="true"
-      className="absolute bottom-24 left-4 right-4 z-40 flex justify-start xl:bottom-6 xl:max-w-[calc(100vw-28rem)]"
+      className="absolute left-3 right-3 top-[4.75rem] z-40 flex justify-start md:top-auto md:bottom-24 md:left-4 md:right-4 xl:bottom-6 xl:max-w-[calc(100vw-28rem)]"
     >
       <div className="flex max-w-full items-center gap-2 overflow-x-auto rounded-full border border-white/8 bg-[#05070d]/76 px-3 py-2 shadow-[0_14px_28px_rgba(2,6,23,0.24)] backdrop-blur-xl">
         {overlays.map((overlay) => (

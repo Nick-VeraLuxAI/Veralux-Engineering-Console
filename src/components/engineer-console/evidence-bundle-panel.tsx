@@ -5,6 +5,9 @@ import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
 import { RUN_NAV_TARGET_IDS } from "@/lib/engineer-console/run-ux/run-navigation";
+import { RUN_PANEL_IDS } from "@/lib/engineer-console/run-ux/run-ux-types";
+import type { EvidenceSeniorReviewSummary } from "@/lib/engineer-console/senior-escalation/durable-types";
+import { toSeniorReviewEvidencePanelView } from "@/lib/engineer-console/senior-escalation/evidence-panel-view";
 import { OperatorHelp } from "./operator-help";
 
 interface EvidenceResponse {
@@ -27,6 +30,7 @@ interface EvidenceResponse {
       governance: { riskLevel: string; canApprove: boolean; issueCount: number } | null;
       approval: { canApprove: boolean; recommendedNextAction: string } | null;
       audit: { eventCount: number; chainHashPrefixes: string[] };
+      seniorReview?: EvidenceSeniorReviewSummary | null;
     };
   };
 }
@@ -80,6 +84,9 @@ export function EvidenceBundlePanel({ runId }: { runId: string }) {
   }
 
   const bundle = data?.evidence.bundle;
+  const seniorReview = bundle
+    ? toSeniorReviewEvidencePanelView(bundle.seniorReview)
+    : null;
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
@@ -193,6 +200,81 @@ export function EvidenceBundlePanel({ runId }: { runId: string }) {
           </div>
         </dl>
       )}
+
+      {seniorReview ? (
+        <div
+          id={RUN_PANEL_IDS.seniorReviewAdvisory}
+          className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3"
+          data-testid={RUN_PANEL_IDS.seniorReviewAdvisory}
+        >
+          <h3 className="font-semibold">{seniorReview.title}</h3>
+          <p className="mt-2 text-sm text-[var(--muted)]">{seniorReview.advisoryCopy}</p>
+          {!seniorReview.present ? (
+            <p className="mt-2 text-sm text-[var(--muted)]">{seniorReview.emptyLabel}</p>
+          ) : (
+            <dl className="mt-3 grid gap-2 text-sm">
+              <div>
+                <dt className="text-[var(--muted)]">Status</dt>
+                <dd className="text-white">{seniorReview.statusLabel ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Advisory only</dt>
+                <dd className="text-white">{String(seniorReview.advisoryOnly)}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Human gates still required</dt>
+                <dd className="text-white">{String(seniorReview.humanGatesStillRequired)}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Escalation reasons</dt>
+                <dd className="text-white">
+                  {seniorReview.escalationReasons.join(", ") || "None"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Blocked reasons</dt>
+                <dd className="text-white">
+                  {seniorReview.blockedReasonLabels.join(" ") || "None"}
+                </dd>
+              </div>
+              {seniorReview.rootCausePreview ? (
+                <div>
+                  <dt className="text-[var(--muted)]">Root cause</dt>
+                  <dd className="text-white">{seniorReview.rootCausePreview}</dd>
+                </div>
+              ) : null}
+              {seniorReview.nextWorkerMissionPreview ? (
+                <div>
+                  <dt className="text-[var(--muted)]">Next worker mission</dt>
+                  <dd className="text-white">{seniorReview.nextWorkerMissionPreview}</dd>
+                </div>
+              ) : null}
+              {seniorReview.qcGates.length > 0 ? (
+                <div>
+                  <dt className="text-[var(--muted)]">QC gates</dt>
+                  <dd className="text-white">{seniorReview.qcGates.join(", ")}</dd>
+                </div>
+              ) : null}
+              {seniorReview.riskLabels.length > 0 ? (
+                <div>
+                  <dt className="text-[var(--muted)]">Risks</dt>
+                  <dd className="text-white">{seniorReview.riskLabels.join("; ")}</dd>
+                </div>
+              ) : null}
+              {seniorReview.warnings.length > 0 ? (
+                <div>
+                  <dt className="text-[var(--muted)]">Warnings</dt>
+                  <dd className="text-white">{seniorReview.warnings.join(" ")}</dd>
+                </div>
+              ) : null}
+              <div>
+                <dt className="text-[var(--muted)]">Updated</dt>
+                <dd className="text-white">{seniorReview.updatedAt ?? "—"}</dd>
+              </div>
+            </dl>
+          )}
+        </div>
+      ) : null}
     </section>
   );
 }

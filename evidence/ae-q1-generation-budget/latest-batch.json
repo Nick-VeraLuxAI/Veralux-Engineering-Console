@@ -1,0 +1,189 @@
+{
+  "at": "2026-08-21T06:31:41.872Z",
+  "tipHint": "feature/autonomous-engineer-v1",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8082/v1",
+  "maxModelLen": "262144",
+  "nanoRuntimeMode": "FAITHFUL",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "idempotent_job_runner_v2",
+      "matrixClasses": [
+        "failure_recovery"
+      ],
+      "hardClass": "idempotent_job_runner",
+      "variant": 2,
+      "title": "Task dispatch resume v2",
+      "objective": "Directors need a small task dispatcher under src/jobs that can dispatch a task by id once, survive retries after a partial failure, and never double-dispatch the same task id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+      "elapsedMs": 24767,
+      "taskId": "847547f4-c1e9-420b-ae46-bfe1ba577b09",
+      "runId": "c25703fb-3b42-4afe-9c21-064944308f75",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "c25703fb-3b42-4afe-9c21-064944308f75",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "266205da-7063-4b36-81b2-347a6ac4234e",
+          "strategy": "Complete task dispatcher under src/jobs/runners that can dispatch a task by id once, survive retries after partial failure, and never double-dispatch, with full happy, double-dispatch, and failure-path tests.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 2,
+        "changedBytes": 1199,
+        "runtimeMs": 23533,
+        "investigationReads": 2,
+        "contextBytes": 123,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need a small task dispatcher under src/jobs that can dispatch a task by id once, survive retries after a partial failure, and never double-dispatch the same task id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/jobs/runners.js",
+            "Changed src/jobs/runners.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 2",
+            "src/jobs/runners.js      | 25 ++++++++++++++++++-------\n src/jobs/runners.test.js | 17 ++++++++++++++++-\n 2 files changed, 34 insertions(+), 8 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "dispatchTask records attempted[id] before executing work, so if work fails and is retried the task appears already dispatched, breaking idempotency.",
+            "There is no persisted intermediate state (e.g., partially applied changes) to recover from a crash, leaving the dispatch mechanism unable to survive retries after a partial failure.",
+            "The test suite does not cover concurrent or retry paths, so the dispatcher's behavior under failure and recovery is unvalidated.",
+            "Advisory (non-blocking): Missing retry resilience and state persistence leading to potential double dispatch - BLOCKING_DEFECT [non-material advisory finding]"
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "266205da-7063-4b36-81b2-347a6ac4234e",
+          "summary": "Complete task dispatcher under src/jobs/runners that can dispatch a task by id once, survive retries after partial failure, and never double-dispatch, with full happy, double-dispatch, and failure-path tests.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/c25703fb-3b42-4afe-9c21-064944308f75",
+        "branchName": "engineer/847547f4/c25703fb-20260821063117",
+        "baseRevision": "e001ef480ea9be63134602845c8d1e147be7b4de",
+        "status": "active"
+      },
+      "score": {
+        "pass": false,
+        "notes": [
+          "no duplicate test"
+        ],
+        "robustScorecard": {
+          "functional_correctness": "PASS",
+          "failure_recovery": "PASS",
+          "idempotency": "FAIL",
+          "vertical_slice_complete": "PARTIAL"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 0,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}

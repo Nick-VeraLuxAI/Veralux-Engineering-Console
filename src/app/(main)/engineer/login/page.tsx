@@ -38,7 +38,7 @@ export default function EngineerLoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-8">
       <h1 className="mb-2 text-2xl font-semibold">VeraLux Engineering Console</h1>
       <p className="mb-6 text-sm text-[var(--muted)]">Operator sign-in</p>
       <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--card)] p-6">

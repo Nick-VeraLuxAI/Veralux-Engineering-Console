@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { defaultMapChatFrame, mapChatBottomSafePadding } from "./map-chat-frame";
 import {
+  areWorkflowCanvasNodesVisibleInView,
   getDefaultWorkflowCanvasLayout,
   getDefaultWorkflowCanvasView,
   getWorkflowCanvasSafeArea,
@@ -15,23 +17,23 @@ describe("workflow-camera", () => {
   const safeArea = getWorkflowCanvasSafeArea(viewport.width, viewport.height);
   const layout = getDefaultWorkflowCanvasLayout();
 
-  it("centers a node inside the safe area while keeping zoom stable", () => {
+  it("keeps the whole pipeline visible instead of cropping to a node at fit zoom", () => {
     const view = getDefaultWorkflowCanvasView(viewport, safeArea);
     const focused = centerNodeInWorkflowCanvasView(view, layout, "repository", viewport, safeArea);
 
     expect(focused.zoom).toBe(view.zoom);
-    expect(focused.x).not.toBe(view.x);
-    expect(focused.y).not.toBe(view.y);
+    expect(areWorkflowCanvasNodesVisibleInView(layout, focused, viewport, safeArea)).toBe(true);
   });
 
-  it("keeps the selected node left of center when the right inspector safe area is reserved", () => {
+  it("centers a node in the remaining safe area when already zoomed in", () => {
     const view = getDefaultWorkflowCanvasView(viewport, safeArea);
-    const focused = centerNodeInWorkflowCanvasView(view, layout, "run", viewport, safeArea);
-    const nodeCenterX = layout.run.x + 104;
+    const zoomed = { ...view, zoom: Math.min(1.75, view.zoom * 1.45) };
+    const focused = centerNodeInWorkflowCanvasView(zoomed, layout, "run", viewport, safeArea);
+    const nodeCenterX = layout.run.x + 84;
     const availableCenterX = safeArea.left + (viewport.width - safeArea.left - safeArea.right) / 2;
 
     expect(Math.round(focused.x + nodeCenterX * focused.zoom)).toBe(Math.round(availableCenterX));
-    expect(availableCenterX).toBeLessThan(viewport.width / 2);
+    expect(availableCenterX).toBeGreaterThan(viewport.width / 2 - 40);
   });
 
   it("focuses the activity region without jumping to full fit view", () => {
@@ -53,8 +55,20 @@ describe("workflow-camera", () => {
       safeArea,
     );
 
-    expect(fitView).not.toEqual(view);
+    expect(fitView).toEqual(view);
     expect(taskView.zoom).toBe(view.zoom);
-    expect(taskView.x).not.toBe(view.x);
+    expect(areWorkflowCanvasNodesVisibleInView(layout, taskView, viewport, safeArea)).toBe(true);
+  });
+
+  it("keeps the whole map visible when centering a node over a phone chat sheet", () => {
+    const phone = { width: 390, height: 844 };
+    const safeArea = getWorkflowCanvasSafeArea(phone.width, phone.height, {
+      toolbarCollapsed: true,
+      chatSafeBottom: mapChatBottomSafePadding(defaultMapChatFrame(phone), phone.height, phone.width),
+    });
+    const view = getDefaultWorkflowCanvasView(phone, safeArea);
+    const focused = centerNodeInWorkflowCanvasView(view, layout, "repository", phone, safeArea);
+
+    expect(areWorkflowCanvasNodesVisibleInView(layout, focused, phone, safeArea)).toBe(true);
   });
 });

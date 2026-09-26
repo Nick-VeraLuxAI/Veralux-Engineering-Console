@@ -28,6 +28,9 @@ export function CreateTaskForm({
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [acceptanceCriteria, setAcceptanceCriteria] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [startAutonomous, setStartAutonomous] = useState(true);
   const [registeredRepoId, setRegisteredRepoId] = useState("");
   const [targetRepoPath, setTargetRepoPath] = useState("");
   const [repos, setRepos] = useState<PublicRegisteredRepo[]>([]);
@@ -70,7 +73,31 @@ export function CreateTaskForm({
       if (!res.ok) {
         throw new Error(data.error ?? "Failed to create task");
       }
-      router.push(`/engineer/tasks/${data.task.id}`);
+      if (startAutonomous) {
+        const runRes = await engineerConsoleFetch(`/api/engineer-console/tasks/${data.task.id}/runs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "autonomous",
+            objective: description.trim() || title.trim(),
+            acceptanceCriteria: acceptanceCriteria
+              .split("\n")
+              .map((line) => line.trim())
+              .filter(Boolean),
+            constraints: constraints
+              .split("\n")
+              .map((line) => line.trim())
+              .filter(Boolean),
+          }),
+        });
+        const runData = await runRes.json();
+        if (!runRes.ok) {
+          throw new Error(runData.error ?? "Failed to start autonomous run");
+        }
+        router.push(`/engineer/runs/${runData.run.id}`);
+      } else {
+        router.push(`/engineer/tasks/${data.task.id}`);
+      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -88,7 +115,7 @@ export function CreateTaskForm({
         padding="lg"
         variant="elevated"
       >
-        <h2 className="mb-4 text-lg font-semibold">Create engineering task</h2>
+        <h2 className="mb-4 text-lg font-semibold">New engineering objective</h2>
         {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
         <Surface className="mb-4 text-sm text-[var(--muted)]" padding="sm" variant="inset">
           <p className="font-medium text-white">Safest default</p>
@@ -136,11 +163,30 @@ export function CreateTaskForm({
           />
         </label>
         <label className="mb-3 block text-sm">
-          Description
+          Objective
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={3}
+            rows={4}
+            placeholder="Natural-language engineering objective for the Autonomous Engineer"
+            className={FIELD_CLASS_NAME}
+          />
+        </label>
+        <label className="mb-3 block text-sm">
+          Acceptance criteria (optional, one per line)
+          <textarea
+            value={acceptanceCriteria}
+            onChange={(e) => setAcceptanceCriteria(e.target.value)}
+            rows={2}
+            className={FIELD_CLASS_NAME}
+          />
+        </label>
+        <label className="mb-3 block text-sm">
+          Constraints (optional, one per line)
+          <textarea
+            value={constraints}
+            onChange={(e) => setConstraints(e.target.value)}
+            rows={2}
             className={FIELD_CLASS_NAME}
           />
         </label>
@@ -190,6 +236,14 @@ export function CreateTaskForm({
             <option value="urgent">urgent</option>
           </select>
         </label>
+        <label className="mb-4 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={startAutonomous}
+            onChange={(e) => setStartAutonomous(e.target.checked)}
+          />
+          Start Autonomous Run after creating this task
+        </label>
         <div className="flex justify-end gap-2">
           <Button
             onClick={onClose}
@@ -202,7 +256,13 @@ export function CreateTaskForm({
             disabled={submitting}
             variant="primary"
           >
-            {submitting ? "Creating…" : "Create task"}
+            {submitting
+              ? startAutonomous
+                ? "Starting…"
+                : "Creating…"
+              : startAutonomous
+                ? "Start Autonomous Run"
+                : "Create task"}
           </Button>
         </div>
       </Surface>

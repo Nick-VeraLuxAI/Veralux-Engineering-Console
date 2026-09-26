@@ -1,0 +1,235 @@
+{
+  "specimenId": "lease_window_feature",
+  "matrixClasses": [
+    "robust_new_feature"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Subject lease TTL helper",
+  "objective": "Directors need a small lease helper under src/lease that tracks whether a subject key may hold a lease inside a TTL window, validates inputs, covers grant and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+  "elapsedMs": 156155,
+  "taskId": "0a9454d6-92ac-4a5e-a83e-4f9de4d9c633",
+  "runId": "f989d92e-5f84-4229-93e5-93831437bd55",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "f989d92e-5f84-4229-93e5-93831437bd55",
+    "state": "exhausted",
+    "failureClass": "BUDGET_EXHAUSTED",
+    "deliveryCandidateStatus": "blocked",
+    "paused": false,
+    "message": "Budget exhausted after diagnosis."
+  },
+  "currentState": "exhausted",
+  "iterationNumber": 6,
+  "deliveryCandidateStatus": "blocked",
+  "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "09abfd04-0326-4123-9c45-73867240ced2",
+      "strategy": "Add a maintainable lease helper under src/lease that tracks whether a subject key may hold a lease inside a TTL window, validates inputs, provides grant/deny functionality, and includes comprehensive tests for happy and negative paths.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "workerPlanId": "434cbfc1-f798-41d4-b27d-b0384ae321c2",
+      "strategy": "Fix test execution error by providing proper ESM exports from lease.js and rewriting lease.test.js to use only node:test/assert with correct import syntax, ensuring all required functionality is exported and assertions are valid",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "workerPlanId": "41390548-5d18-464f-81df-5f4638c6141a",
+      "strategy": "Fix lease helper interface and test to use synchronous assertions, remove async test failure and ensure maintainable coverage",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "workerPlanId": "676f1226-0e6a-44ec-857d-00f240c2df2f",
+      "strategy": "Fix lease.test.js test failures by correcting assertion usage, removing async misuse, and adding comprehensive synchronous tests for grant, deny, validation, and TTL behavior.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "workerPlanId": "d8fb97a0-6721-40be-a1eb-d0397e16e938",
+      "strategy": "Fix lease.test.js to use correct synchronous assertions and proper test names, ensuring all tests use assert.throws for sync functions and cover grant, deny, validation, and TTL checks.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "workerPlanId": "ae65310c-93a8-4045-84dd-b115ff58c2fb",
+      "strategy": "Fix lease test file to correctly use synchronous assertions, add comprehensive coverage for grant, deny, validation, and TTL behavior, and ensure alignment with package.json test script.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "failedHypotheses": [
+    {
+      "iteration": 1,
+      "hypothesis": "Add a maintainable lease helper under src/lease that tracks whether a subject key may hold a lease inside a TTL window, validates inputs, provides grant/deny functionality, and includes comprehensive tests for happy and negative paths.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "hypothesis": "Fix test execution error by providing proper ESM exports from lease.js and rewriting lease.test.js to use only node:test/assert with correct import syntax, ensuring all required functionality is exported and assertions are valid",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "hypothesis": "Fix lease helper interface and test to use synchronous assertions, remove async test failure and ensure maintainable coverage",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "hypothesis": "Fix lease.test.js test failures by correcting assertion usage, removing async misuse, and adding comprehensive synchronous tests for grant, deny, validation, and TTL behavior.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "hypothesis": "Fix lease.test.js to use correct synchronous assertions and proper test names, ensuring all tests use assert.throws for sync functions and cover grant, deny, validation, and TTL checks.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "hypothesis": "Fix lease test file to correctly use synchronous assertions, add comprehensive coverage for grant, deny, validation, and TTL behavior, and ensure alignment with package.json test script.",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "usage": {
+    "iterations": 6,
+    "plans": 6,
+    "modelCalls": 14,
+    "changedFiles": 2,
+    "changedBytes": 15662,
+    "runtimeMs": 156022,
+    "investigationReads": 2,
+    "contextBytes": 117,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 1,
+    "preExisting": 1,
+    "changed": 0,
+    "owned": 1,
+    "objectiveQcPassed": false
+  },
+  "plans": [
+    {
+      "id": "ae65310c-93a8-4045-84dd-b115ff58c2fb",
+      "summary": "Fix lease test file to correctly use synchronous assertions, add comprehensive coverage for grant, deny, validation, and TTL behavior, and ensure alignment with package.json test script.",
+      "iterationNumber": 6,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "d8fb97a0-6721-40be-a1eb-d0397e16e938",
+      "summary": "Fix lease.test.js to use correct synchronous assertions and proper test names, ensuring all tests use assert.throws for sync functions and cover grant, deny, validation, and TTL checks.",
+      "iterationNumber": 5,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "676f1226-0e6a-44ec-857d-00f240c2df2f",
+      "summary": "Fix lease.test.js test failures by correcting assertion usage, removing async misuse, and adding comprehensive synchronous tests for grant, deny, validation, and TTL behavior.",
+      "iterationNumber": 4,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "41390548-5d18-464f-81df-5f4638c6141a",
+      "summary": "Fix lease helper interface and test to use synchronous assertions, remove async test failure and ensure maintainable coverage",
+      "iterationNumber": 3,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "434cbfc1-f798-41d4-b27d-b0384ae321c2",
+      "summary": "Fix test execution error by providing proper ESM exports from lease.js and rewriting lease.test.js to use only node:test/assert with correct import syntax, ensuring all required functionality is exported and assertions are valid",
+      "iterationNumber": 2,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "09abfd04-0326-4123-9c45-73867240ced2",
+      "summary": "Add a maintainable lease helper under src/lease that tracks whether a subject key may hold a lease inside a TTL window, validates inputs, provides grant/deny functionality, and includes comprehensive tests for happy and negative paths.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/f989d92e-5f84-4229-93e5-93831437bd55",
+    "branchName": "engineer/0a9454d6/f989d92e-20260821061537",
+    "baseRevision": "d878c9d3e3eb27d23024bff915d6892650115632",
+    "status": "active"
+  },
+  "score": {
+    "pass": false,
+    "notes": [
+      "npm test failed"
+    ],
+    "robustScorecard": {
+      "functional_correctness": "FAIL",
+      "validation_error_handling": "PASS",
+      "tests_negative_path": "FAIL",
+      "maintainable_structure": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

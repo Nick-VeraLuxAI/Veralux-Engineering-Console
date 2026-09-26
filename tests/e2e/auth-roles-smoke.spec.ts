@@ -135,7 +135,7 @@ test.describe("Engineering Console auth roles", () => {
     }, taskId);
 
     await gotoRunDetailResilient(page, runId);
-    await page.getByRole("tab", { name: "Release", exact: true }).click();
+    await page.getByRole("tab", { name: "Later", exact: true }).click();
 
     const signOff = page.locator("#release-signoff");
     await signOff.scrollIntoViewIfNeeded();

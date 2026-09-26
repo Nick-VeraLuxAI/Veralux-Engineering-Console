@@ -1,0 +1,357 @@
+{
+  "specimenId": "lease_window_feature",
+  "matrixClasses": [
+    "robust_new_feature"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Subject lease TTL helper",
+  "objective": "Directors need a small lease helper under src/lease that tracks whether a subject key may hold a lease inside a TTL window, validates inputs, covers grant and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+  "elapsedMs": 37556,
+  "taskId": "5e5baab7-3278-444c-9319-ff000d784c61",
+  "runId": "8dedc180-2323-4ac5-bfa8-2591d3710f51",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "8dedc180-2323-4ac5-bfa8-2591d3710f51",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ],
+    "lastInvocations": [
+      {
+        "role": "investigation",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 278,
+          "completionTokens": 388,
+          "reasoningTokens": null,
+          "finalTokens": 628,
+          "maxTokens": 4096,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 388,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 628,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "interpretation",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": true,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 234,
+          "completionTokens": 1021,
+          "reasoningTokens": null,
+          "finalTokens": 1520,
+          "maxTokens": 4096,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 1021,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 1520,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "planning",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 1169,
+          "completionTokens": 5475,
+          "reasoningTokens": null,
+          "finalTokens": 5673,
+          "maxTokens": 10000,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 5475,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 5673,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "review",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 1983,
+          "completionTokens": 1575,
+          "reasoningTokens": null,
+          "finalTokens": 848,
+          "maxTokens": 10000,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 1575,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 848,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "completion",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": true,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 142,
+          "completionTokens": 401,
+          "reasoningTokens": null,
+          "finalTokens": 150,
+          "maxTokens": 4096,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 401,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 150,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      }
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "736fe075-9d27-4aba-adee-4a7ac659ea0b",
+      "strategy": "Create lease helper module and comprehensive test suite for grant/deny logic, TTL tracking, and input validation under src/lease/*.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 4656,
+    "runtimeMs": 34847,
+    "investigationReads": 2,
+    "contextBytes": 117,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a small lease helper under src/lease that tracks whether a subject key may hold a lease inside a TTL window, validates inputs, covers grant and deny paths with tests, and stays maintainable. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/lease/lease.js",
+        "Changed src/lease/lease.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "Working tree changes not yet in HEAD:\n src/lease/lease.js | 91 lines\n src/lease/lease.test.js | 69 lines"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "The generator implements a LeaseHelper class that tracks lease state per subject using a Map and enforces TTL expiration via _cleanExpired.",
+        "Input validation throws TypeError for empty, non-string subjects, non-positive, or non-numeric ttlMs.",
+        "canGrant returns true only when no active lease exists, and grant returns false when a lease is already present.",
+        "grant successfully records an expiration timestamp and updates the lease map.",
+        "isLeasing and remainingTtl correctly clean expired entries before operations.",
+        "Tests cover successful grant, denial when a lease is already active, invalid subject and TTL inputs, and basic remaining TTL calculation.",
+        "No pull request or deployment was performed, satisfying the procedural constraint."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "736fe075-9d27-4aba-adee-4a7ac659ea0b",
+      "summary": "Create lease helper module and comprehensive test suite for grant/deny logic, TTL tracking, and input validation under src/lease/*.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/8dedc180-2323-4ac5-bfa8-2591d3710f51",
+    "branchName": "engineer/5e5baab7/8dedc180-20260821202102",
+    "baseRevision": "ea466ce84239cd35ff7de74cd0f9dbfb3431f2c0",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "validation_error_handling": "PASS",
+      "tests_negative_path": "PASS",
+      "maintainable_structure": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

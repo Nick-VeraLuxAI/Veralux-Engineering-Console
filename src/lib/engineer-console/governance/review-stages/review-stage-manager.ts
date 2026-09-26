@@ -132,6 +132,37 @@ export function assertReviewStagesAllowApproval(runId: string): void {
   }
 }
 
+export function acknowledgePendingRequiredReviewStages(input: {
+  runId: string;
+  actorType: AuditActorType;
+  actorLabel: string;
+  rationale: string;
+}): ReviewStageRecord[] {
+  const gate = verifyReviewStageGates(input.runId);
+  if (gate.rejectedRequired.length > 0) {
+    throw new ReviewStageError(
+      gate.message ?? "A required review was rejected. Send this back or stop.",
+    );
+  }
+  if (gate.pendingRequired.length === 0) {
+    return [];
+  }
+  if (!input.rationale.trim()) {
+    throw new ReviewStageError(
+      "Add a short reason so these checks are recorded with your decision.",
+    );
+  }
+  return gate.pendingRequired.map((stage) =>
+    completeReviewStageAction({
+      stageId: stage.id,
+      action: "approve",
+      actorType: input.actorType,
+      actorLabel: input.actorLabel,
+      rationale: input.rationale,
+    }),
+  );
+}
+
 export function reconcileReviewStagesForRun(
   runId: string,
   options: { audit?: boolean } = {},

@@ -10,8 +10,9 @@ export function normalizeLocalModelCodingBaseUrl(value: string): string {
   return value.trim().replace(/\/chat\/completions\/?$/, "").replace(/\/$/, "");
 }
 
-const DEFAULT_BASE_URL = "http://127.0.0.1:8081/v1";
-const DEFAULT_TIMEOUT_MS = 120_000;
+/** AE coding + map chat default: FAITHFUL Nano @ 8082. Legacy 8081 is not used by this console. */
+const DEFAULT_BASE_URL = "http://127.0.0.1:8082/v1";
+const DEFAULT_TIMEOUT_MS = 600_000;
 
 export function getLocalModelCodingConfig(
   env: NodeJS.ProcessEnv = process.env,

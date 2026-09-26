@@ -11,6 +11,7 @@ import {
 } from "@/lib/engineer-console/run-ux/operator-queue";
 import { resolveOperatorQueuePresetId } from "@/lib/engineer-console/run-ux/operator-queue-view";
 import { buildEngineeringWorkflowMapData } from "@/lib/engineer-console/dashboard/workflow-map";
+import { assembleRepoControlFactsByRepo } from "@/lib/engineer-console/dashboard/repo-control-plane-load";
 import { EngineeringConsoleCanvasHome } from "@/components/engineer-console/engineering-console-canvas-home";
 import { EngineerTaskList } from "@/components/engineer-console/engineer-task-list";
 import { OperatorQueuePanel } from "@/components/engineer-console/operator-queue-panel";
@@ -62,11 +63,20 @@ export default async function EngineerPage({
   const initialPreset = resolveOperatorQueuePresetId(resolvedSearchParams.queue);
   const hasQueueQueryParam = resolvedSearchParams.queue !== undefined;
   const detailPanel = resolveDetailsPanel(resolvedSearchParams.details, resolvedSearchParams.tab);
+  const controlFactsByRepo = assembleRepoControlFactsByRepo({ repos, tasks, queueItems });
+  const indexedPathsByRepo = Object.fromEntries(
+    Object.entries(controlFactsByRepo).map(([repoId, facts]) => [
+      repoId,
+      facts.files.map((file) => file.relativePath),
+    ]),
+  );
   const workflowMapData = buildEngineeringWorkflowMapData({
     tasks,
     repos,
     queueItems,
     setup,
+    indexedPathsByRepo,
+    controlFactsByRepo,
   });
 
   return (

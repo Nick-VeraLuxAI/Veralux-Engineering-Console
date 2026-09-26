@@ -1,0 +1,49 @@
+
+> veralux-engineering-console@0.1.0 test
+> vitest run src/lib/engineer-console/autonomous-engineer/autonomous-engineer-api-governance.test.ts src/lib/engineer-console/autonomous-engineer/autonomous-engineer.integration.test.ts src/lib/engineer-console/autonomous-engineer/autonomous-engineer.qualification.test.ts src/lib/engineer-console/autonomous-engineer/autonomous-engineer.robust-qualification.test.ts src/lib/engineer-console/autonomous-engineer/autonomous-engineer.test.ts src/lib/engineer-console/autonomous-engineer/clean-convergence.test.ts src/lib/engineer-console/autonomous-engineer/false-completion-protection.test.ts src/lib/engineer-console/autonomous-engineer/feedback-convergence.test.ts src/lib/engineer-console/autonomous-engineer/nano-faithful-invocation.test.ts src/lib/engineer-console/autonomous-engineer/plan-worktree-adapter.test.ts src/lib/engineer-console/autonomous-engineer/post-qc-review-lifecycle.test.ts src/lib/engineer-console/autonomous-engineer/qc-baseline.test.ts src/lib/engineer-console/autonomous-engineer/reviews.robust.test.ts src/lib/engineer-console/autonomous-engineer/robust-requal-fixture-contract.test.ts src/lib/engineer-console/autonomous-engineer/worker-client.test.ts src/lib/engineer-console/autonomous-engineer/worker-route.test.ts src/lib/engineer-console/autonomous-engineer/worker-schemas.test.ts src/lib/engineer-console/worker-plan/worker-plan-executor.test.ts src/lib/engineer-console/worker-plan/worker-plan-ux.test.ts src/lib/engineer-console/worker-plan/worker-plan-validation.test.ts src/lib/engineer-console/quality-gates/quality-gate-runner.test.ts
+
+
+ RUN  v3.2.4 /home/ndesantis/Documents/GitHub/Veralux-Engineering-Console
+
+ ✓ src/lib/engineer-console/autonomous-engineer/autonomous-engineer-api-governance.test.ts (3 tests) 3ms
+ ✓ src/lib/engineer-console/autonomous-engineer/feedback-convergence.test.ts (6 tests) 6ms
+ ✓ src/lib/engineer-console/autonomous-engineer/plan-worktree-adapter.test.ts (6 tests) 7ms
+ ✓ src/lib/engineer-console/autonomous-engineer/qc-baseline.test.ts (10 tests) 7ms
+ ✓ src/lib/engineer-console/autonomous-engineer/nano-faithful-invocation.test.ts (8 tests) 3ms
+ ✓ src/lib/engineer-console/autonomous-engineer/worker-route.test.ts (4 tests) 3ms
+ ✓ src/lib/engineer-console/autonomous-engineer/worker-schemas.test.ts (5 tests) 3ms
+ ✓ src/lib/engineer-console/worker-plan/worker-plan-validation.test.ts (13 tests) 7ms
+ ✓ src/lib/engineer-console/quality-gates/quality-gate-runner.test.ts (1 test) 3ms
+ ✓ src/lib/engineer-console/autonomous-engineer/worker-client.test.ts (3 tests) 5ms
+ ✓ src/lib/engineer-console/autonomous-engineer/robust-requal-fixture-contract.test.ts (9 tests) 119ms
+ ✓ src/lib/engineer-console/worker-plan/worker-plan-ux.test.ts (12 tests) 15ms
+ ✓ src/lib/engineer-console/autonomous-engineer/reviews.robust.test.ts (7 tests) 7ms
+ ✓ src/lib/engineer-console/autonomous-engineer/post-qc-review-lifecycle.test.ts (7 tests) 8ms
+ ✓ src/lib/engineer-console/worker-plan/worker-plan-executor.test.ts (9 tests) 228ms
+ ✓ src/lib/engineer-console/autonomous-engineer/false-completion-protection.test.ts (6 tests) 9ms
+ ✓ src/lib/engineer-console/autonomous-engineer/clean-convergence.test.ts (9 tests) 9ms
+ ✓ src/lib/engineer-console/autonomous-engineer/autonomous-engineer.test.ts (9 tests) 6ms
+ ✓ src/lib/engineer-console/autonomous-engineer/autonomous-engineer.robust-qualification.test.ts (4 tests) 1049ms
+   ✓ AE robust qualification — controlled scenarios > S2/S13: workaround + empty-catch delivery is blocked by engineering_quality review  490ms
+   ✓ AE robust qualification — controlled scenarios > S3/S8/S13: success-fallback auth is blocked then repaired fail-closed  461ms
+ ✓ src/lib/engineer-console/autonomous-engineer/autonomous-engineer.integration.test.ts (8 tests) 2716ms
+   ✓ autonomous engineer integration > objective → plan → execute → QC pass → delivery candidate  367ms
+   ✓ autonomous engineer integration > failing first attempt persists observation, diagnoses, replans, and passes  442ms
+   ✓ autonomous engineer integration > Case 5: pre-existing repo-wide QC failure plus objective pass is a delivery candidate  533ms
+   ✓ autonomous engineer integration > discoverable uncertainty is investigated without a human question  336ms
+   ✓ autonomous engineer integration > genuine product decision waits for director then resumes the same run  348ms
+   ✓ autonomous engineer integration > two runs get two worktrees with no cross-run mutation of the director tree  379ms
+ ✓ src/lib/engineer-console/autonomous-engineer/autonomous-engineer.qualification.test.ts (13 tests) 3690ms
+   ✓ AE V1 qualification — restart / rehydration > interrupts after iter fail before plan 2 and resumes same run without budget reset  487ms
+   ✓ AE V1 qualification — budget exhaustion > max_iterations=2 with both failures ends EXHAUSTED without iter 3  433ms
+   ✓ AE V1 qualification — malformed model output > rejects invalid plan JSON/schema and does not best-effort mutate  384ms
+   ✓ AE V1 qualification — impossible / unsatisfiable > ends blocked/exhausted and never delivery_candidate_ready  440ms
+   ✓ AE V1 qualification — stale context / current state > iteration 2 plans against current worktree content from iteration 1  459ms
+   ✓ AE V1 qualification — review-defect repair loop > QC pass with review defect replans, fixes, and only then delivers  451ms
+   ✓ AE V1 qualification — evidence isolation > two runs keep distinct plans, QC, and worktrees  348ms
+
+ Test Files  21 passed (21)
+      Tests  152 passed (152)
+   Start at  17:47:55
+   Duration  4.94s (transform 2.63s, setup 0ms, collect 7.28s, tests 7.90s, environment 2ms, prepare 2.08s)
+

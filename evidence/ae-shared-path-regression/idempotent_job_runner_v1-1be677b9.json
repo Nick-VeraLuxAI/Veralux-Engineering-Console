@@ -1,0 +1,355 @@
+{
+  "specimenId": "idempotent_job_runner_v1",
+  "matrixClasses": [
+    "partial_feature",
+    "failure_recovery"
+  ],
+  "hardClass": "idempotent_job_runner",
+  "variant": 1,
+  "title": "Job enqueue resume v1",
+  "objective": "Directors need a small job enqueue helper under src/jobs that can enqueue a job by id once, survive retries after a partial failure, and never double-enqueue the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+  "elapsedMs": 39486,
+  "taskId": "6d217fcc-179f-4bf7-bce0-d7c6e394b47f",
+  "runId": "1be677b9-205d-470a-abfc-ad1d14e11d04",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "1be677b9-205d-470a-abfc-ad1d14e11d04",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ],
+    "lastInvocations": [
+      {
+        "role": "investigation",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 289,
+          "completionTokens": 392,
+          "reasoningTokens": null,
+          "finalTokens": 586,
+          "maxTokens": 4096,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 392,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 586,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "interpretation",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 199,
+          "completionTokens": 1706,
+          "reasoningTokens": null,
+          "finalTokens": 4832,
+          "maxTokens": 4096,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 1706,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 4832,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "planning",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 1392,
+          "completionTokens": 6748,
+          "reasoningTokens": null,
+          "finalTokens": 3680,
+          "maxTokens": 10000,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "FAITHFUL_SINGLE_SHOT_THEN_BUDGET_RESCUE",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 6748,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 3680,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "review",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 1612,
+          "completionTokens": 1795,
+          "reasoningTokens": null,
+          "finalTokens": 612,
+          "maxTokens": 10000,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 1795,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 612,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      },
+      {
+        "role": "completion",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "requestPath": "http://127.0.0.1:8082/v1/chat/completions",
+        "schemaValid": true,
+        "parseErrors": [],
+        "schemaErrors": [],
+        "repairAttempted": false,
+        "accepted": true,
+        "generationBudgetExhausted": false,
+        "telemetry": {
+          "promptTokens": 84,
+          "completionTokens": 244,
+          "reasoningTokens": null,
+          "finalTokens": 165,
+          "maxTokens": 4096,
+          "finishReason": "stop",
+          "reasoningBudget": null,
+          "twoPhaseReasoning": false,
+          "phase1FinishReason": null,
+          "phase2FinishReason": null,
+          "generationBudgetExhausted": false,
+          "runtimeMode": "FAITHFUL",
+          "enableThinking": true,
+          "policy": "SINGLE_SHOT_ONLY",
+          "rescueTriggered": false,
+          "singleShotFinishReason": "stop",
+          "singleShotCompletionTokens": 244,
+          "singleShotReasoningTokens": null,
+          "singleShotFinalLen": 165,
+          "rescueReasoningBudget": null,
+          "finalJsonValid": true,
+          "workerPlanValid": true,
+          "generationRepairFailed": false
+        }
+      }
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "0b71ed0a-6ad4-4e11-b0c9-7d64491c145e",
+      "strategy": "Implement an idempotent job enqueue helper with retry safety and comprehensive tests",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 2733,
+    "runtimeMs": 38562,
+    "investigationReads": 2,
+    "contextBytes": 121,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a small job enqueue helper under src/jobs that can enqueue a job by id once, survive retries after a partial failure, and never double-enqueue the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/jobs/queue.js",
+        "Changed src/jobs/queue.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/jobs/queue.js      | 37 +++++++++++++++++++++++++------\n src/jobs/queue.test.js | 60 +++++++++++++++++++++++++++++++++++++++++++++++---\n 2 files changed, 87 insertions(+), 10 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "All acceptance criteria are covered by the provided tests: first enqueue, duplicate enqueue (idempotency), and failure‑resume scenario.",
+        "The implementation correctly prevents concurrent enqueues by using the pending Set and respects applied state to avoid duplicate execution.",
+        "No silent‑success pathways or missing-throw scenarios are present; errors are re‑thrown after cleanup.",
+        "The module is a coherent vertical slice under src/jobs that meets the idempotent, retry‑safe, and double‑enqueue‑prevention requirements."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "0b71ed0a-6ad4-4e11-b0c9-7d64491c145e",
+      "summary": "Implement an idempotent job enqueue helper with retry safety and comprehensive tests",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/1be677b9-205d-470a-abfc-ad1d14e11d04",
+    "branchName": "engineer/6d217fcc/1be677b9-20260821201025",
+    "baseRevision": "7a7d1aeb7fefe2efd2728cf723f540f0cd608d46",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "failure_recovery": "PASS",
+      "idempotency": "PASS",
+      "vertical_slice_complete": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

@@ -1,3 +1,4 @@
+import fs from "fs";
 import type {
   WorkerPlan,
   WorkerPlanOperation,
@@ -7,9 +8,10 @@ import type {
 } from "./worker-plan-types";
 import { WORKER_OPERATION_TYPES } from "./worker-plan-types";
 import { isProtectedWorkerPath, resolvePathWithinRepo } from "./path-safety";
+import { sanitizeWorkerPlanFileContent } from "./worker-plan-content-sanitize";
+import { validateProtectedContractContent } from "../autonomous-engineer/scaffold-contract-guard";
 
 const FORBIDDEN_OPERATION_TYPES = new Set([
-  "delete_file",
   "remove_file",
   "delete",
   "rm",
@@ -75,8 +77,9 @@ function parseOperation(
     return { errors };
   }
 
-  const content = raw.content;
-  if (typeof content !== "string" || content.length === 0) {
+  const isDelete = type === "delete_file";
+  const content = typeof raw.content === "string" ? raw.content : "";
+  if (!isDelete && content.length === 0) {
     errors.push({
       code: "EMPTY_CONTENT",
       message: "Operation content must not be empty",
@@ -87,12 +90,21 @@ function parseOperation(
   }
 
   const reason = typeof raw.reason === "string" ? raw.reason : "";
+  if (isDelete && !reason.trim()) {
+    errors.push({
+      code: "EMPTY_REASON",
+      message: "delete_file requires a non-empty reason tied to acceptance criteria or cleanup authority",
+      path: opPath,
+      operationIndex: index,
+    });
+    return { errors };
+  }
 
   return {
     operation: {
       type: type as WorkerPlanOperation["type"],
       path: opPath,
-      content,
+      content: isDelete ? "" : content,
       reason,
     },
     errors,
@@ -273,10 +285,32 @@ export function validateWorkerPlan(
       continue;
     }
 
+    if (op.type === "delete_file") {
+      const absolutePath = resolved.resolved.absolutePath;
+      if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+        errors.push({
+          code: "FILE_NOT_FOUND",
+          message: "delete_file failed: file does not exist",
+          path: relativePath,
+          operationIndex: index,
+        });
+        continue;
+      }
+      if (!op.reason.trim()) {
+        errors.push({
+          code: "EMPTY_REASON",
+          message: "delete_file requires a non-empty reason",
+          path: relativePath,
+          operationIndex: index,
+        });
+        continue;
+      }
+    }
+
     normalizedOperations.push({
       type: op.type,
       path: relativePath,
-      content: op.content,
+      content: op.type === "delete_file" ? op.content : sanitizeWorkerPlanFileContent(op.content),
       reason: op.reason,
       absolutePath: resolved.resolved.absolutePath,
     });
@@ -292,6 +326,43 @@ export function validateWorkerPlan(
       });
     }
     duplicatePaths.add(op.path);
+  }
+
+  if (options.scaffoldBaselineRepoPath) {
+    for (let index = 0; index < normalizedOperations.length; index++) {
+      const op = normalizedOperations[index];
+      if (op.type === "delete_file") {
+        const contractErrors = validateProtectedContractContent({
+          hostRepoPath: options.scaffoldBaselineRepoPath,
+          relativePath: op.path,
+          nextContent: "",
+        });
+        if (contractErrors.length > 0) {
+          errors.push({
+            code: "SCAFFOLD_CONTRACT_REGRESSION",
+            message: `Cannot delete protected scaffold contract file: ${op.path}`,
+            path: op.path,
+            operationIndex: index,
+          });
+        }
+        continue;
+      }
+      if (op.type !== "create_file" && op.type !== "update_file" && op.type !== "append_file") {
+        continue;
+      }
+      for (const message of validateProtectedContractContent({
+        hostRepoPath: options.scaffoldBaselineRepoPath,
+        relativePath: op.path,
+        nextContent: op.content,
+      })) {
+        errors.push({
+          code: "SCAFFOLD_CONTRACT_REGRESSION",
+          message,
+          path: op.path,
+          operationIndex: index,
+        });
+      }
+    }
   }
 
   return {

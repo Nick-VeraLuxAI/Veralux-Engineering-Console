@@ -1,0 +1,21 @@
+{
+  "at": "2026-08-21T19:55:23.911351Z",
+  "branch": "feature/autonomous-engineer-v1",
+  "STATE_B_HEAD": "604f2ed94ed3b35ab4698560f019651db3d76f51",
+  "KNOWN_GOOD_COMMIT": "0e44223da6eff251181a104cc073ec2695e92687",
+  "KNOWN_GOOD_rationale": "evidence/ae-robust-requalification-final/preflight.json tip + SoT tip when ledger/jobs/state/agent-bad were each 3/3 ready",
+  "landmarks": {
+    "c7ef899": "docs recording final requal (fixture/docs only)",
+    "896db6e": "Q1 greenfield unbound thrash shared-path changes",
+    "c2db436": "opt-in Nano reasoning budget",
+    "604f2ed": "conditional rescue (current HEAD)"
+  },
+  "worktrees": {
+    "STATE_A": "/home/ndesantis/Documents/GitHub/Veralux-AE-worktrees/known-good-0e44223",
+    "STATE_B": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console @ HEAD",
+    "STATE_C": "/home/ndesantis/Documents/GitHub/Veralux-AE-worktrees/selective-current"
+  },
+  "runtime": "FAITHFUL Nano http://127.0.0.1:8082/v1",
+  "global_reasoning_budget_4000": "OFF",
+  "conditional_rescue": "LEAVE_INTACT_DO_NOT_MODIFY"
+}

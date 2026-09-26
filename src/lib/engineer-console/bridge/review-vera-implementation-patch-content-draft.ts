@@ -39,6 +39,8 @@ export type ReviewVeraImplementationPatchContentDraftInput = {
   decision: VeraImplementationPatchContentDraftReviewDecision;
   confirmationText: string;
   reviewer: string;
+  reviewerActorId?: string;
+  reviewerRole?: "approver" | "admin" | "operator";
   reviewerNote?: string | null;
 };
 
@@ -168,6 +170,8 @@ export function reviewVeraImplementationPatchContentDraft(
       veraImplementationPatchContentDraftReviewedBy: reviewer,
       veraImplementationPatchContentDraftReviewedAt: reviewedAt,
       veraImplementationPatchContentDraftReviewNote: reviewerNote,
+      veraImplementationPatchContentDraftReviewerActorId: input.reviewerActorId ?? reviewer,
+      veraImplementationPatchContentDraftReviewerRole: input.reviewerRole ?? "approver",
     }),
     agentMessage:
       decision === "approved"

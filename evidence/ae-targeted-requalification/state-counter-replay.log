@@ -1,0 +1,14 @@
+{"specimen":"state_counter","hardClass":null,"variant":null,"runId":"5e2b8bc9-1683-4d45-87a4-2e2660a59515","maxIterations":6,"status":"starting"}
+{"specimen":"state_counter","runId":"5e2b8bc9-1683-4d45-87a4-2e2660a59515","delivery":"blocked","primaryFailureCategory":"PRIMARY_QC_NONCONVERGENCE","scorePass":false,"iterations":6,"elapsedMs":164369,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-targeted-requalification/state_counter-5e2b8bc9.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-targeted-requalification/batch-2026-08-21T00-23-27-555Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 0,
+    "deliveryReady": 0,
+    "byFailure": {
+      "PRIMARY_QC_NONCONVERGENCE": 1
+    }
+  }
+}

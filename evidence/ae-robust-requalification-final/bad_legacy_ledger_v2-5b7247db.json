@@ -1,0 +1,221 @@
+{
+  "specimenId": "bad_legacy_ledger_v2",
+  "matrixClasses": [
+    "bad_legacy_remediation",
+    "scope_discipline"
+  ],
+  "hardClass": "bad_legacy_ledger",
+  "variant": 2,
+  "title": "Legacy charge recorder reliability v2",
+  "objective": "Directors need the charge recorder under src/ledger to capture charges correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust captureCharge, and add tests that cover success and failure cases. Do not open a PR or deploy.",
+  "elapsedMs": 129052,
+  "taskId": "b3e05403-ab31-45e5-a8a9-c4ad48f3cc47",
+  "runId": "5b7247db-483b-4390-b071-1addd6e9110a",
+  "maxIterations": 8,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "5b7247db-483b-4390-b071-1addd6e9110a",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 2,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "30e69843-31f4-4f23-89b1-ad5b8a7cbbe4",
+      "strategy": "Implement robust captureCharge with proper error handling and add comprehensive tests covering success and failure cases using node:test and node:assert/strict",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "workerPlanId": "185b8d36-d057-4f02-80d4-7d02c0dba0c9",
+      "strategy": "Enhance captureCharge error handling and expand regression tests to cover success and additional failure modes, ensuring no silent success treatment.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [
+    {
+      "iteration": 1,
+      "hypothesis": "Implement robust captureCharge with proper error handling and add comprehensive tests covering success and failure cases using node:test and node:assert/strict",
+      "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "usage": {
+    "iterations": 2,
+    "plans": 2,
+    "modelCalls": 11,
+    "changedFiles": 2,
+    "changedBytes": 4430,
+    "runtimeMs": 123439,
+    "investigationReads": 2,
+    "contextBytes": 127,
+    "planRepairs": 2,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 8,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [
+    {
+      "at": "2026-08-21T01:01:42.493Z",
+      "semanticIteration": 1,
+      "kind": "invalid_content",
+      "reason": "src/ledger/billing.js: file content appears to contain literal \\n escapes instead of real newlines.; src/ledger/billing.test.js: file content appears to contain literal \\n escapes instead of real newlines.",
+      "evidence": [
+        "src/ledger/billing.js: file content appears to contain literal \\n escapes instead of real newlines.; src/ledger/billing.test.js: file content appears to contain literal \\n escapes instead of real newlines."
+      ]
+    },
+    {
+      "at": "2026-08-21T01:02:23.075Z",
+      "semanticIteration": 1,
+      "kind": "model_output",
+      "reason": "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000",
+      "evidence": [
+        "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000"
+      ]
+    }
+  ],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need the charge recorder under src/ledger to capture charges correctly, record outcomes, and never silently treat failures as success. Improve the existing module so production can trust captureCharge, and add tests that cover success and failure cases. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/ledger/billing.js",
+        "Changed src/ledger/billing.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/ledger/billing.js      | 60 +++++++++++++++++++++++++++-------------------\n src/ledger/billing.test.js | 42 +++++++++++++++++++++++++++++++-\n 2 files changed, 76 insertions(+), 26 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "No material defects found; implementation satisfies all stated requirements and unit tests cover success and failure cases."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "185b8d36-d057-4f02-80d4-7d02c0dba0c9",
+      "summary": "Enhance captureCharge error handling and expand regression tests to cover success and additional failure modes, ensuring no silent success treatment.",
+      "iterationNumber": 2,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "30e69843-31f4-4f23-89b1-ad5b8a7cbbe4",
+      "summary": "Implement robust captureCharge with proper error handling and add comprehensive tests covering success and failure cases using node:test and node:assert/strict",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/5b7247db-483b-4390-b071-1addd6e9110a",
+    "branchName": "engineer/b3e05403/5b7247db-20260821010048",
+    "baseRevision": "f5f42fe9dd801d859fab5c08164c27d97e59dc01",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "error_handling": "PASS",
+      "tests_negative_path": "PASS",
+      "scope_discipline": "PASS",
+      "observability": "PASS",
+      "no_workaround_stack": "PASS"
+    },
+    "badCodeScorecard": {
+      "identified_underlying_defect": "PASS",
+      "repaired_design_not_hack": "PASS",
+      "removed_obsolete_patterns": "PASS",
+      "regression_coverage": "PASS",
+      "left_subsystem_healthier": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

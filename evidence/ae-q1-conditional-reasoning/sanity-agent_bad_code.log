@@ -1,0 +1,14 @@
+{"specimen":"agent_bad_code","hardClass":null,"variant":null,"runId":"9b7a5658-7076-45f2-8c99-ff076c5e7206","maxIterations":6,"status":"starting"}
+{"specimen":"agent_bad_code","runId":"9b7a5658-7076-45f2-8c99-ff076c5e7206","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":21617,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-conditional-reasoning/agent_bad_code-9b7a5658.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-conditional-reasoning/batch-2026-08-21T16-39-04-815Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}

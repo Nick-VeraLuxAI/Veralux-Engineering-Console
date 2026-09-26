@@ -144,6 +144,17 @@ describe("evidence bundle persistence", () => {
     expect(JSON.stringify(pub)).not.toContain("stdout");
   });
 
+  it("public seniorReview summary is advisory-only and leak-safe", async () => {
+    const { run } = seedRunWithApproval();
+    const record = await refreshRunEvidenceBundle({ runId: run.id });
+    const pub = toPublicEvidenceBundle(record);
+    expect(pub.bundle.seniorReview ?? null).toBeNull();
+    expect(pub.bundle.approval?.canApprove).toBe(true);
+    expect(JSON.stringify(pub.bundle.seniorReview)).not.toMatch(
+      /127\.0\.0\.1|:1919|:8081|:8082|ENGINEER_CONSOLE|\/mnt\/model-storage|localhost|rawResponse|packageSnapshot/i,
+    );
+  });
+
   it("refreshes after human approval", async () => {
     const { run } = seedRunWithApproval();
     await refreshRunEvidenceBundle({ runId: run.id });

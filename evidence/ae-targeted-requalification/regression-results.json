@@ -1,0 +1,20 @@
+{
+  "at": "2026-08-21T00:27:29.084301+00:00",
+  "command": "npm test -- src/lib/engineer-console/autonomous-engineer/*.test.ts src/lib/engineer-console/worker-plan/*.test.ts src/lib/engineer-console/quality-gates/*.test.ts",
+  "testFiles": 20,
+  "tests": 142,
+  "passed": 142,
+  "failed": 0,
+  "breakdown": {
+    "ae_unit_integration_qualification_robust_faithful_feedback_clean_postqc_fixture_contract": "included in 142",
+    "worker_plan": 32,
+    "quality_gates": 1,
+    "new_fixture_contract_tests": 7,
+    "new_circular_self_import_review_test": 1
+  },
+  "priorRobustRequalBaseline": {
+    "ae": 102,
+    "worker_and_qg": 33
+  },
+  "deltaNote": "142 total across same globs after adding fixture-contract + circular-import review coverage"
+}

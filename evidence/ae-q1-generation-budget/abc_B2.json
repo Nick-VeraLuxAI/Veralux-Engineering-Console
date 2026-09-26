@@ -1,0 +1,26 @@
+{
+  "rep": "B2",
+  "mode": "two_phase",
+  "rb": 4000,
+  "max_tokens": 10000,
+  "lat": 18.7,
+  "fr": "stop",
+  "p1_fr": "length",
+  "prompt": 604,
+  "comp_p1": 4000,
+  "comp_p2": 1195,
+  "r_chars": 15997,
+  "f_chars": 3903,
+  "r_tok_est": 3999,
+  "f_tok_est": 975,
+  "json_ok": true,
+  "err": null,
+  "ops": 2,
+  "src": 3400,
+  "paths": [
+    "src/lease/lease.js",
+    "src/lease/lease.test.js"
+  ],
+  "cls": "OK",
+  "rem": 6000
+}

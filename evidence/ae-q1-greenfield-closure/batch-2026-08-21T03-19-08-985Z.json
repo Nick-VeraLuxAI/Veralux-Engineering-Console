@@ -1,0 +1,256 @@
+{
+  "at": "2026-08-21T03:23:01.618Z",
+  "tipHint": "feature/autonomous-engineer-v1",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8082/v1",
+  "maxModelLen": "262144",
+  "nanoRuntimeMode": "FAITHFUL",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "rate_limit_feature_v3",
+      "matrixClasses": [
+        "robust_new_feature"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Throttle gate helper",
+      "objective": "Directors need a small throttle helper under src/throttle that decides whether a subject key may proceed inside a time window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+      "elapsedMs": 232602,
+      "taskId": "b0cb349d-9e3e-4241-ae9e-1dd0f8cf409f",
+      "runId": "246df52b-4704-493d-89c4-73110d53a45b",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "246df52b-4704-493d-89c4-73110d53a45b",
+        "state": "exhausted",
+        "failureClass": "BUDGET_EXHAUSTED",
+        "deliveryCandidateStatus": "blocked",
+        "paused": false,
+        "message": "Budget exhausted after diagnosis."
+      },
+      "currentState": "exhausted",
+      "iterationNumber": 6,
+      "deliveryCandidateStatus": "blocked",
+      "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "e56c7766-187a-4e3c-9bdd-9db6e021c9e9",
+          "strategy": "Add throttle helper to src/throttle with input validation and comprehensive tests covering allow/deny paths",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "workerPlanId": "c77d3877-6beb-4ebf-84d7-d2e9568f4c9c",
+          "strategy": "Fix gate.test.js test to correctly use assert.throws for synchronous canProceed and correct import names",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "workerPlanId": "b789bd80-38d3-4145-9106-782baeca0a58",
+          "strategy": "Update throttle tests to correctly use Node's assert.strictEqual, add comprehensive allow/deny/validation tests, and ensure canProceed returns correct boolean after reset.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=3, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=3, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "workerPlanId": "81139c1b-20f2-417d-aed8-5be7a1528530",
+          "strategy": "Implement input validation and comprehensive tests for throttle helper; fix tests to use assert.throws correctly for synchronous subjects; add regression coverage",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "workerPlanId": "e1094318-fe54-4396-a8c7-f8914d2d876d",
+          "strategy": "Fix throttle canProceed to correctly allow fresh subjects and ensure timestamps reset properly; resolves ERR_ASSERTION failure.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=3, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=3, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "workerPlanId": "278eab4c-61ae-4e68-99d8-d15503346f52",
+          "strategy": "Fix intervalMs validation in throttle and adjust gate.test.js to correctly assert rejections for non‑positive intervalMs using assert.throws, ensuring all tests pass without altering behavior",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 1,
+          "hypothesis": "Add throttle helper to src/throttle with input validation and comprehensive tests covering allow/deny paths",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "hypothesis": "Fix gate.test.js test to correctly use assert.throws for synchronous canProceed and correct import names",
+          "whyFailed": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "hypothesis": "Update throttle tests to correctly use Node's assert.strictEqual, add comprehensive allow/deny/validation tests, and ensure canProceed returns correct boolean after reset.",
+          "whyFailed": "QC vs baseline: new=3, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "hypothesis": "Implement input validation and comprehensive tests for throttle helper; fix tests to use assert.throws correctly for synchronous subjects; add regression coverage",
+          "whyFailed": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "hypothesis": "Fix throttle canProceed to correctly allow fresh subjects and ensure timestamps reset properly; resolves ERR_ASSERTION failure.",
+          "whyFailed": "QC vs baseline: new=3, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "hypothesis": "Fix intervalMs validation in throttle and adjust gate.test.js to correctly assert rejections for non‑positive intervalMs using assert.throws, ensuring all tests pass without altering behavior",
+          "whyFailed": "QC vs baseline: new=2, changed=0, pre_existing=1, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "usage": {
+        "iterations": 6,
+        "plans": 6,
+        "modelCalls": 15,
+        "changedFiles": 2,
+        "changedBytes": 11583,
+        "runtimeMs": 232453,
+        "investigationReads": 2,
+        "contextBytes": 122,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 2,
+        "preExisting": 1,
+        "changed": 0,
+        "owned": 2,
+        "objectiveQcPassed": false
+      },
+      "plans": [
+        {
+          "id": "278eab4c-61ae-4e68-99d8-d15503346f52",
+          "summary": "Fix intervalMs validation in throttle and adjust gate.test.js to correctly assert rejections for non‑positive intervalMs using assert.throws, ensuring all tests pass without altering behavior",
+          "iterationNumber": 6,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "e1094318-fe54-4396-a8c7-f8914d2d876d",
+          "summary": "Fix throttle canProceed to correctly allow fresh subjects and ensure timestamps reset properly; resolves ERR_ASSERTION failure.",
+          "iterationNumber": 5,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "81139c1b-20f2-417d-aed8-5be7a1528530",
+          "summary": "Implement input validation and comprehensive tests for throttle helper; fix tests to use assert.throws correctly for synchronous subjects; add regression coverage",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "b789bd80-38d3-4145-9106-782baeca0a58",
+          "summary": "Update throttle tests to correctly use Node's assert.strictEqual, add comprehensive allow/deny/validation tests, and ensure canProceed returns correct boolean after reset.",
+          "iterationNumber": 3,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "c77d3877-6beb-4ebf-84d7-d2e9568f4c9c",
+          "summary": "Fix gate.test.js test to correctly use assert.throws for synchronous canProceed and correct import names",
+          "iterationNumber": 2,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "e56c7766-187a-4e3c-9bdd-9db6e021c9e9",
+          "summary": "Add throttle helper to src/throttle with input validation and comprehensive tests covering allow/deny paths",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/246df52b-4704-493d-89c4-73110d53a45b",
+        "branchName": "engineer/b0cb349d/246df52b-20260821031909",
+        "baseRevision": "435b9659f7e4110f7f84f2fe0371614f4e152cdc",
+        "status": "active"
+      },
+      "score": {
+        "pass": false,
+        "notes": [
+          "npm test failed"
+        ],
+        "robustScorecard": {
+          "functional_correctness": "FAIL",
+          "validation_error_handling": "PASS",
+          "tests_negative_path": "FAIL",
+          "maintainable_structure": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 0,
+    "deliveryReady": 0,
+    "byFailure": {
+      "PRIMARY_QC_NONCONVERGENCE": 1
+    }
+  }
+}

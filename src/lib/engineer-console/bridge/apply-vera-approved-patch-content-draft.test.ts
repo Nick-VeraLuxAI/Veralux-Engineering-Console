@@ -213,7 +213,7 @@ describe("applyVeraApprovedPatchContentDraft", () => {
     const result = applyVeraApprovedPatchContentDraft({
       runId: run.id,
       confirmationText: VERA_APPROVED_PATCH_CONTENT_APPLICATION_CONFIRMATION_PHRASE,
-      requestedBy: "operator@test",
+      requestedBy: "executor@test",
     });
 
     expect(result.run.currentStep).toBe(VERA_IMPLEMENTATION_PATCH_APPLIED_STEP);
@@ -225,7 +225,7 @@ describe("applyVeraApprovedPatchContentDraft", () => {
     const result = applyVeraApprovedPatchContentDraft({
       runId: run.id,
       confirmationText: VERA_APPROVED_PATCH_CONTENT_APPLICATION_CONFIRMATION_PHRASE,
-      requestedBy: "operator@test",
+      requestedBy: "executor@test",
       note: "2S test",
     });
 
@@ -251,8 +251,21 @@ describe("applyVeraApprovedPatchContentDraft", () => {
     applyVeraApprovedPatchContentDraft({
       runId: run.id,
       confirmationText: VERA_APPROVED_PATCH_CONTENT_APPLICATION_CONFIRMATION_PHRASE,
-      requestedBy: "operator@test",
+      requestedBy: "executor@test",
     });
+    expect(() =>
+      applyVeraApprovedPatchContentDraft({
+        runId: run.id,
+        confirmationText: VERA_APPROVED_PATCH_CONTENT_APPLICATION_CONFIRMATION_PHRASE,
+        requestedBy: "executor@test",
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "PATCH_ALREADY_APPLIED" }),
+    );
+  });
+
+  it("forbids executor self-authorization of protected apply", () => {
+    const run = seedDraftApprovedRun();
     expect(() =>
       applyVeraApprovedPatchContentDraft({
         runId: run.id,
@@ -260,8 +273,20 @@ describe("applyVeraApprovedPatchContentDraft", () => {
         requestedBy: "operator@test",
       }),
     ).toThrow(
-      expect.objectContaining({ code: "PATCH_ALREADY_APPLIED" }),
+      expect.objectContaining({ code: "EXECUTOR_SELF_AUTHORIZE_FORBIDDEN" }),
     );
+  });
+
+  it("allows a distinct executor after an approver grant", () => {
+    const run = seedDraftApprovedRun();
+    const result = applyVeraApprovedPatchContentDraft({
+      runId: run.id,
+      confirmationText: VERA_APPROVED_PATCH_CONTENT_APPLICATION_CONFIRMATION_PHRASE,
+      requestedBy: "executor@test",
+      actorRole: "executor",
+    });
+    expect(result.run.currentStep).toBe(VERA_IMPLEMENTATION_PATCH_APPLIED_STEP);
+    expect(result.run.governanceNotes).toContain("executor");
   });
 });
 

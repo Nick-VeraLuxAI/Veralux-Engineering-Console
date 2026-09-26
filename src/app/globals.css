@@ -28,15 +28,264 @@
   --shadow-elevated: 0 24px 56px rgba(0, 0, 0, 0.3);
   --shadow-glass: 0 20px 48px rgba(0, 0, 0, 0.28);
   --focus-ring: rgba(96, 165, 250, 0.85);
+  --motion-fast: 120ms;
+  --motion-standard: 180ms;
+  --motion-emphasis: 240ms;
+  --motion-spatial: 360ms;
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+  --scrollbar-thumb: rgba(139, 152, 165, 0.32);
+  --scrollbar-thumb-hover: rgba(183, 194, 205, 0.56);
+}
+
+html,
+body {
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family:
-    system-ui,
     -apple-system,
-    Segoe UI,
-    Roboto,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "Segoe UI",
+    system-ui,
     sans-serif;
+  letter-spacing: -0.01em;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  min-height: 32px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-color: var(--scrollbar-thumb);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+@keyframes engineer-route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes engineer-overlay-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes engineer-overlay-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+
+@keyframes engineer-drawer-enter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes engineer-scrim-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes engineer-scrim-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes engineer-menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes engineer-minimized-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes workflow-edge-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes workflow-edge-travel {
+  from {
+    stroke-dashoffset: 28;
+    opacity: 0.38;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes workflow-node-arrive {
+  0% {
+    transform: scale(0.98);
+  }
+  55% {
+    transform: scale(1.055);
+  }
+  100% {
+    transform: scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-engineer-route-content] {
+    animation: engineer-route-enter var(--motion-emphasis) var(--motion-ease-emphasis) both;
+  }
+
+  [data-overlay-window]:not([data-overlay-window="detail-drawer"]) > [data-overlay-surface="true"] {
+    animation: engineer-overlay-enter var(--motion-emphasis) var(--motion-ease-emphasis) both;
+    transform-origin: top center;
+  }
+
+  [data-overlay-window][data-overlay-closing="true"] > [data-overlay-surface="true"] {
+    animation: engineer-overlay-exit var(--motion-standard) var(--motion-ease-standard) both;
+    pointer-events: none;
+  }
+
+  [data-detail-drawer-scrim="true"] {
+    animation: engineer-scrim-enter var(--motion-standard) var(--motion-ease-standard) both;
+  }
+
+  [data-detail-drawer-surface="true"] {
+    animation: engineer-drawer-enter var(--motion-spatial) var(--motion-ease-emphasis) both;
+    transform-origin: bottom center;
+  }
+
+  [data-detail-drawer="true"][data-overlay-closing="true"] [data-detail-drawer-surface="true"] {
+    animation: engineer-overlay-exit var(--motion-standard) var(--motion-ease-standard) both;
+    pointer-events: none;
+  }
+
+  [data-detail-drawer="true"][data-overlay-closing="true"] [data-detail-drawer-scrim="true"] {
+    animation: engineer-scrim-exit var(--motion-standard) var(--motion-ease-standard) both;
+    pointer-events: none;
+  }
+
+  [data-canvas-menu-overlay="true"] {
+    animation: engineer-menu-enter var(--motion-emphasis) var(--motion-ease-emphasis) both;
+    transform-origin: top left;
+  }
+
+  [data-canvas-menu-overlay="true"][data-menu-closing="true"] {
+    animation: engineer-overlay-exit var(--motion-fast) var(--motion-ease-standard) both;
+    pointer-events: none;
+  }
+
+  [data-canvas-minimized-bar="true"] > * {
+    animation: engineer-minimized-enter var(--motion-emphasis) var(--motion-ease-emphasis) both;
+  }
+
+  [data-motion-press="true"] {
+    transition:
+      transform var(--motion-fast) var(--motion-ease-standard),
+      background-color var(--motion-fast) var(--motion-ease-standard),
+      border-color var(--motion-fast) var(--motion-ease-standard);
+  }
+
+  [data-motion-press="true"]:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  [data-edge-animated="true"] {
+    animation: workflow-edge-pulse 2200ms ease-in-out infinite;
+  }
+
+  [data-edge-transient="true"] {
+    animation: workflow-edge-travel var(--motion-spatial) var(--motion-ease-emphasis) both;
+  }
+
+  [data-node-arriving="true"] {
+    animation: workflow-node-arrive var(--motion-spatial) var(--motion-ease-emphasis) both;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-engineer-route-content],
+  [data-overlay-surface="true"],
+  [data-detail-drawer-scrim="true"],
+  [data-detail-drawer-surface="true"],
+  [data-canvas-menu-overlay="true"],
+  [data-canvas-minimized-bar="true"] > *,
+  [data-edge-animated="true"],
+  [data-edge-transient="true"],
+  [data-node-arriving="true"] {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
 }

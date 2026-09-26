@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { CanvasOverlayId, CanvasOverlayPosition } from "@/lib/engineer-console/dashboard/canvas-overlays";
 
 interface DragState {
@@ -51,6 +51,25 @@ export function CanvasOverlayWindow({
 }) {
   const windowRef = useRef<HTMLElement | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
+  const exitTimerRef = useRef<number | null>(null);
+  const [closing, setClosing] = useState(false);
+
+  const exitWithMotion = (callback: () => void) => {
+    if (closing) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      callback();
+      return;
+    }
+    setClosing(true);
+    exitTimerRef.current = window.setTimeout(callback, 180);
+  };
+
+  useEffect(
+    () => () => {
+      if (exitTimerRef.current !== null) window.clearTimeout(exitTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!draggable || !onMove) return;
@@ -110,6 +129,7 @@ export function CanvasOverlayWindow({
       data-overlay-window={overlayId}
       data-overlay-top={isTopmost ? "true" : "false"}
       data-overlay-z-index={String(zIndex)}
+      data-overlay-closing={closing ? "true" : "false"}
       onPointerDown={(event) => {
         event.stopPropagation();
         onBringToFront();
@@ -126,7 +146,8 @@ export function CanvasOverlayWindow({
       }
     >
       <div
-        className={`overflow-hidden rounded-[1.6rem] border border-white/8 bg-[#07101c]/84 shadow-[0_24px_48px_rgba(2,6,23,0.34)] backdrop-blur-xl motion-safe:transition-[transform,opacity,box-shadow,border-color,background-color] motion-safe:duration-200 ${surfaceClassName}`}
+        data-overlay-surface="true"
+        className={`overflow-hidden rounded-[1.6rem] border border-white/8 bg-[#07101c]/84 shadow-[0_24px_48px_rgba(2,6,23,0.34)] backdrop-blur-xl transition-[transform,opacity,box-shadow,border-color,background-color] duration-[var(--motion-standard)] ease-[var(--motion-ease-standard)] ${surfaceClassName}`}
       >
         <div
           data-overlay-drag-handle={draggable ? "true" : undefined}
@@ -136,8 +157,7 @@ export function CanvasOverlayWindow({
           }`}
         >
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{title}</p>
-            <p className="text-[11px] text-[var(--muted)]">Overlay window</p>
+            <p className="truncate text-sm font-medium tracking-tight text-white">{title}</p>
           </div>
           {headerSuffix || onMinimize || onClose ? (
             <div className="ml-auto flex items-center gap-2">
@@ -145,11 +165,12 @@ export function CanvasOverlayWindow({
               {onMinimize ? (
                 <button
                   type="button"
+                  data-motion-press="true"
                   data-overlay-minimize={overlayId}
                   aria-label={`Minimize ${title}`}
                   onClick={(event) => {
                     event.stopPropagation();
-                    onMinimize();
+                    exitWithMotion(onMinimize);
                   }}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/8 text-sm text-[var(--muted)] transition hover:border-white/15 hover:bg-white/[0.03] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 >
@@ -159,11 +180,12 @@ export function CanvasOverlayWindow({
               {onClose ? (
                 <button
                   type="button"
+                  data-motion-press="true"
                   data-overlay-close={overlayId}
                   aria-label={`Close ${title}`}
                   onClick={(event) => {
                     event.stopPropagation();
-                    onClose();
+                    exitWithMotion(onClose);
                   }}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/8 text-sm text-[var(--muted)] transition hover:border-white/15 hover:bg-white/[0.03] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 >

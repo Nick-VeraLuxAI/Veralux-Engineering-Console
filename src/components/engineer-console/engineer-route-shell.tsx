@@ -1,11 +1,34 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
+import React, { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
-import { Surface } from "@/components/ui/surface";
-import { EngineerSessionBar } from "./engineer-session-bar";
+import { CanvasBottomDock } from "./canvas-bottom-dock";
+import { CanvasFloatingMenu } from "./canvas-floating-menu";
+import { EngineerBackLink } from "./engineer-back-link";
+
+const SHEET_DOCK = [
+  { id: "workflow", label: "Map", href: "/engineer" },
+  { id: "repos", label: "Repos", href: "/engineer/repos" },
+  { id: "tasks", label: "Tasks", href: "/engineer?details=tasks" },
+  { id: "runs", label: "Runs", href: "/engineer?details=queue" },
+  { id: "reviews", label: "Review", href: "/engineer?details=queue" },
+];
+
+function dockActiveId(pathname: string) {
+  if (pathname.startsWith("/engineer/repos")) return "repos";
+  if (pathname.startsWith("/engineer/compatibility")) return "repos";
+  if (pathname.startsWith("/engineer/runs")) return "runs";
+  if (pathname.startsWith("/engineer/tasks")) return "tasks";
+  return "workflow";
+}
+
+function contextLabel(pathname: string) {
+  if (pathname.startsWith("/engineer/repos")) return "Repositories";
+  if (pathname.startsWith("/engineer/compatibility")) return "Compatibility";
+  if (pathname.startsWith("/engineer/runs")) return "Run";
+  if (pathname.startsWith("/engineer/tasks")) return "Task";
+  return "Map";
+}
 
 export function EngineerRouteShell({
   children,
@@ -15,93 +38,81 @@ export function EngineerRouteShell({
   const pathname = usePathname();
   const immersiveHome = pathname === "/engineer";
   const loginRoute = pathname === "/engineer/login";
-  const navLinkClassName =
-    "rounded-full px-3 py-1.5 text-sm text-[var(--muted)] transition hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
-  const activeNavLinkClassName =
-    "rounded-full bg-white/[0.08] px-3 py-1.5 text-sm font-medium text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
-  const linkClassName = (active: boolean) =>
-    active ? activeNavLinkClassName : navLinkClassName;
 
   useEffect(() => {
-    if (!immersiveHome) return;
+    if (loginRoute) return;
 
-    const previousOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
     const previousOverscroll = document.body.style.overscrollBehavior;
-    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = immersiveHome ? "hidden" : "";
     document.body.style.overscrollBehavior = "none";
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
       document.body.style.overscrollBehavior = previousOverscroll;
     };
-  }, [immersiveHome]);
+  }, [immersiveHome, loginRoute]);
+
+  if (loginRoute) {
+    return <div className="min-h-dvh">{children}</div>;
+  }
 
   if (immersiveHome) {
     return (
       <div
         data-engineer-route-shell="immersive"
-        className="fixed inset-0 z-0 h-[100dvh] w-screen overflow-hidden bg-[#03060b]"
+        data-engineer-surface="map"
+        className="fixed inset-0 z-0 overflow-hidden bg-[#05060a]"
       >
-        {children}
+        <div key={pathname} data-engineer-route-content="true" className="h-full">
+          {children}
+        </div>
       </div>
     );
   }
 
-  if (loginRoute) {
-    return <div className="min-h-screen">{children}</div>;
-  }
-
   return (
     <div
-      data-engineer-route-shell="default"
-      className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_28%),var(--background)]"
+      data-engineer-route-shell="immersive"
+      data-engineer-surface="sheet"
+      className="fixed inset-0 z-0 flex flex-col overflow-hidden bg-[#05060a] text-white"
     >
-      <header className="border-b border-white/6 bg-black/10 backdrop-blur-xl">
-        <div className="flex flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--muted)]">
-                VeraLux
-              </p>
-              <h1 className="mt-1 text-lg font-semibold text-white">Engineering Console</h1>
-            </div>
-            <EngineerSessionBar />
-          </div>
-          <Surface
-            as="nav"
-            aria-label="Engineering routes"
-            className="flex flex-wrap items-center gap-2"
-            padding="sm"
-            variant="glass"
-          >
-            <Link
-              href="/"
-              className={linkClassName(pathname === "/")}
-            >
-              Home
-            </Link>
-            <Link
-              href="/engineer"
-              className={linkClassName(pathname === "/engineer")}
-            >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.03),transparent_42%)]" />
+      <header className="relative z-40 flex min-h-12 shrink-0 items-center gap-2 border-b border-white/8 bg-[#070a12] px-3 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] sm:px-4">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <CanvasFloatingMenu placement="inline" />
+          <EngineerBackLink />
+        </div>
+        <div className="ml-auto min-w-0 text-right">
+          <p className="truncate text-[13px] font-medium tracking-tight text-white sm:hidden">
+            {contextLabel(pathname)}
+          </p>
+          <p className="hidden min-w-0 items-baseline gap-2 sm:flex">
+            <span className="truncate text-[14px] font-medium tracking-tight text-white">
               Engineering Console
-            </Link>
-            <Link
-              href="/engineer/repos"
-              className={linkClassName(pathname.startsWith("/engineer/repos"))}
-            >
-              Repositories
-            </Link>
-            <Link
-              href="/engineer/compatibility"
-              className={linkClassName(pathname.startsWith("/engineer/compatibility"))}
-            >
-              Compatibility
-            </Link>
-          </Surface>
+            </span>
+            <span className="truncate text-[12px] text-white/60">{contextLabel(pathname)}</span>
+          </p>
         </div>
       </header>
-      <main className="px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+      <main className="relative min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
+        <div
+          key={pathname}
+          data-engineer-route-content="true"
+          className="mx-auto w-full max-w-4xl"
+        >
+          {children}
+        </div>
+      </main>
+      <footer
+        data-engineer-bottom-dock-slot="true"
+        className="relative z-30 flex shrink-0 justify-center border-t border-white/8 bg-[#070a12] px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4"
+      >
+        <CanvasBottomDock links={SHEET_DOCK} activeId={dockActiveId(pathname)} />
+      </footer>
     </div>
   );
 }

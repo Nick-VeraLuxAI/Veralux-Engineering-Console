@@ -1,0 +1,96 @@
+[
+  {
+    "file": "rate_limit_feature-afde07e3.json",
+    "specimen": "rate_limit_feature",
+    "runId": "afde07e3-8c74-4f76-8e36-aafed19e94c5",
+    "delivery": "blocked",
+    "category": "GENERATION_BUDGET_EXHAUSTED",
+    "iters": 6,
+    "scorePass": false,
+    "notes": [
+      "tests do not assert a deny/false outcome",
+      "npm test failed"
+    ],
+    "falseCompletion": false
+  },
+  {
+    "file": "rate_limit_feature_v2-71298511.json",
+    "specimen": "rate_limit_feature_v2",
+    "runId": "71298511-19b2-4758-be0b-178e4a9e6511",
+    "delivery": "ready",
+    "category": "SUCCESS",
+    "iters": 1,
+    "scorePass": false,
+    "notes": [
+      "no stateful window/quota tracking",
+      "tests do not assert a deny/false outcome"
+    ],
+    "falseCompletion": true
+  },
+  {
+    "file": "rate_limit_feature_v3-246df52b.json",
+    "specimen": "rate_limit_feature_v3",
+    "runId": "246df52b-4704-493d-89c4-73110d53a45b",
+    "delivery": "blocked",
+    "category": "PRIMARY_QC_NONCONVERGENCE",
+    "iters": 6,
+    "scorePass": false,
+    "notes": [
+      "npm test failed"
+    ],
+    "falseCompletion": false
+  },
+  {
+    "file": "rate_limit_feature_v3-49b825d6.json",
+    "specimen": "rate_limit_feature_v3",
+    "runId": "49b825d6-8444-4b59-b4c6-c5f0fa0fe974",
+    "delivery": "ready",
+    "category": "SUCCESS",
+    "iters": 1,
+    "scorePass": true,
+    "notes": [],
+    "falseCompletion": false
+  },
+  {
+    "file": "rate_limit_feature_v4-88c951d3.json",
+    "specimen": "rate_limit_feature_v4",
+    "runId": "88c951d3-0396-4343-babd-11e38ecf2fdf",
+    "delivery": "blocked",
+    "category": "GENERATION_BUDGET_EXHAUSTED",
+    "iters": 6,
+    "scorePass": false,
+    "notes": [
+      "tests do not assert a deny/false outcome",
+      "npm test failed"
+    ],
+    "falseCompletion": false
+  },
+  {
+    "file": "rate_limit_feature_v5-88295df6.json",
+    "specimen": "rate_limit_feature_v5",
+    "runId": "88295df6-9b04-4af9-bbd2-ea0e9feafcba",
+    "delivery": "blocked",
+    "category": "PRIMARY_QC_NONCONVERGENCE",
+    "iters": 6,
+    "scorePass": false,
+    "notes": [
+      "tests do not assert a deny/false outcome",
+      "npm test failed"
+    ],
+    "falseCompletion": false
+  },
+  {
+    "file": "rate_limit_feature_v6-a8e94c44.json",
+    "specimen": "rate_limit_feature_v6",
+    "runId": "a8e94c44-cafd-4a8a-b9db-cb267397fd8d",
+    "delivery": "blocked",
+    "category": "GENERATION_BUDGET_EXHAUSTED",
+    "iters": 6,
+    "scorePass": false,
+    "notes": [
+      "tests do not assert a deny/false outcome",
+      "npm test failed"
+    ],
+    "falseCompletion": false
+  }
+]

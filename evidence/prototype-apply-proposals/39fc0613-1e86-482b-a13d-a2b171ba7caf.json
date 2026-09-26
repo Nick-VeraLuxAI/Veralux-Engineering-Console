@@ -1,0 +1,76 @@
+{
+  "schema_version": "veralux-console-prototype-apply-proposal/v1",
+  "apply_proposal_id": "39fc0613-1e86-482b-a13d-a2b171ba7caf",
+  "timestamp": "2026-06-24T18:34:14.404Z",
+  "apply_proposal_status": "apply_proposal_recorded",
+  "accepted": true,
+  "implementation_plan_id": "48094589-ac21-4471-b3b6-97473f62e617",
+  "implementation_request_id": "e2ac37bb-cf05-43d3-a3b2-ef55b0df9002",
+  "approval_decision_id": "a62d0a93-aede-495f-bb82-96214197af62",
+  "task_id": "phase47-1782326053-task",
+  "run_id": "phase47-1782326053-run",
+  "evidence_path": "evidence/prototype-loop-v1/phase47-1782326053.json",
+  "revision_task_id": "phase47-1782326053-revision-task",
+  "revision_run_id": "phase47-1782326053-revision-run",
+  "revision_evidence_path": "evidence/prototype-loop-v1/phase47-1782326053-revision.json",
+  "plan_path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/prototype-implementation-plans/48094589-ac21-4471-b3b6-97473f62e617.json",
+  "final_readiness_status": "ready_for_user_approval",
+  "production_mutation_allowed": false,
+  "apply_allowed": false,
+  "user_approval_required": true,
+  "approval_required_before_apply": true,
+  "proposed_apply_summary": "Prepare a later controlled apply phase for implementation plan 48094589-ac21-4471-b3b6-97473f62e617. No code is applied in Phase 40.",
+  "proposed_target_files": [
+    "Production CLI or application entrypoint identified during the later controlled apply phase.",
+    "Production unit/integration test files selected during the later controlled apply phase.",
+    "Documentation or operator notes if required by the approved implementation plan."
+  ],
+  "proposed_patch_strategy": [
+    "Review the implementation plan artifact and prototype evidence before selecting exact production files.",
+    "Prepare a separate reviewable patch only after explicit user approval of the apply proposal.",
+    "Keep generated prototype files as reference evidence; do not copy them directly into production.",
+    "Run pre-apply checks before any controlled apply execution begins."
+  ],
+  "proposed_test_commands": [
+    "npm test -- src/lib/engineer-console/prototype-loop",
+    "Run package-specific unit tests for the production files selected in the controlled apply phase.",
+    "Run any acceptance checks listed in the implementation plan before and after controlled apply."
+  ],
+  "required_pre_apply_checks": [
+    "Confirm user approval for the apply proposal is recorded.",
+    "Confirm production_mutation_allowed remains false until the controlled apply phase begins.",
+    "Confirm target files are selected from the reviewed plan, not copied from prototype artifacts.",
+    "Confirm rollback instructions are available before applying any later patch."
+  ],
+  "required_post_apply_checks": [
+    "Run the proposed test commands after any later controlled apply phase.",
+    "Verify no generated prototype files were copied into production.",
+    "Verify evidence, plan, approval, and apply records preserve lineage."
+  ],
+  "rollback_strategy": [
+    "Keep any later implementation patch isolated and reviewable.",
+    "If validation fails after a later controlled apply, revert only that reviewed patch.",
+    "Preserve prototype evidence, implementation plan, and apply proposal artifacts for audit."
+  ],
+  "risk_classification": "medium",
+  "risk_impact_notes": [
+    "Phase 40 does not inspect or mutate production source files.",
+    "Exact production file targets must be reviewed before a later controlled apply phase.",
+    "Applying implementation changes later may affect runtime behavior and requires explicit user approval."
+  ],
+  "safety_constraints": [
+    "Do not mutate production files in Phase 47 smoke.",
+    "Do not copy generated prototype files into production.",
+    "Do not merge, deploy, push, create PRs, commit, or run implementation executors."
+  ],
+  "explicit_non_actions": [
+    "No files changed.",
+    "No patches applied.",
+    "No prototype files copied.",
+    "No commit created.",
+    "No pull request created.",
+    "No merge or deploy performed."
+  ],
+  "next_expected_phase": "governed_apply_approval_controlled_apply_execution",
+  "user_note": "Phase 47 smoke: prepare governed proposal only."
+}

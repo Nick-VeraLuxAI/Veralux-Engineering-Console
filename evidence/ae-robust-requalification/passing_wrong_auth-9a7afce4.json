@@ -1,0 +1,171 @@
+{
+  "specimenId": "passing_wrong_auth",
+  "matrixClasses": [
+    "passing_but_wrong",
+    "security_fail_closed"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Authorization helper",
+  "objective": "Operators need authorizeAction(user, action) to decide access for console tools. Keep the helper under src/auth, make authorization trustworthy for production, and ensure tests cover both allow and deny cases. Do not open a PR or deploy.",
+  "elapsedMs": 20522,
+  "taskId": "10366850-7bb2-445f-b01f-f0a1fb1170d9",
+  "runId": "9a7afce4-a223-4aab-96aa-87a8eb094c4b",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "9a7afce4-a223-4aab-96aa-87a8eb094c4b",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "40bfb330-d6ef-4074-9663-bd51f0cc47b6",
+      "strategy": "Update authorization helper to deterministic role check and add comprehensive deny-path tests.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 1186,
+    "runtimeMs": 18053,
+    "investigationReads": 2,
+    "contextBytes": 123,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Operators need authorizeAction(user, action) to decide access for console tools. Keep the helper under src/auth, make authorization trustworthy for production, and ensure tests cover both allow and deny cases. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/auth/authorize.js",
+        "Changed src/auth/authorize.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/auth/authorize.js      | 16 +++++++++++-----\n src/auth/authorize.test.js | 17 +++++++++++++++++\n 2 files changed, 28 insertions(+), 5 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "Function authorizeAction correctly checks that user.roles is an array and includes the requested action before returning true, satisfying the 'allows only when the user has the action' requirement.",
+        "All invalid inputs (null user, missing roles, non-array roles, missing action, non-string action) result in a false return, providing explicit deny/fail‑closed behavior.",
+        "Test suite includes tests for both the allow case (user with role 'read' requesting 'read') and the deny cases (unlisted action, missing roles, non‑array roles, null user), meeting the coverage requirement.",
+        "The export is placed within src/auth/authorize.js, keeping the helper under the designated folder.",
+        "No silent‑success path exists; empty/catch captures do not hide outcomes, and no added N+1 or unbounded growth patterns are evident in the hot path."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "40bfb330-d6ef-4074-9663-bd51f0cc47b6",
+      "summary": "Update authorization helper to deterministic role check and add comprehensive deny-path tests.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/9a7afce4-a223-4aab-96aa-87a8eb094c4b",
+    "branchName": "engineer/10366850/9a7afce4-20260820224823",
+    "baseRevision": "306458f969d8e7a5ff2abb7a1c3dfc78a79beb92",
+    "status": "active"
+  },
+  "score": {
+    "pass": false,
+    "notes": [
+      "not clearly fail-closed"
+    ],
+    "robustScorecard": {
+      "functional_correctness": "FAIL",
+      "security_authorization": "FAIL",
+      "tests_negative_path": "PASS",
+      "hidden_defect_detected": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

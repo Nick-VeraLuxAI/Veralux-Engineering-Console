@@ -1,0 +1,20 @@
+{"specimen":"bad_legacy_ledger","runId":"4c94c025-ef0e-4e68-9797-30abd4053fd6","status":"starting"}
+{
+  "outFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/test-results/ae-v1-robust-live-qual.json",
+  "summary": {
+    "total": 1,
+    "scorePass": 0,
+    "deliveryReady": 1
+  },
+  "per": [
+    {
+      "id": "bad_legacy_ledger",
+      "delivery": "ready",
+      "scorePass": false,
+      "iterations": 7,
+      "notes": [
+        "failures not clearly recorded"
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ export const RUN_PANEL_IDS = {
   changedFiles: "changed-files",
   qualityGates: "quality-gates",
   evidence: "evidence",
+  seniorReviewAdvisory: "senior-review-advisory",
   replay: "replay",
   policy: "policy",
   reviewStages: "review-stages",
@@ -162,6 +163,12 @@ export interface RunWorkflowSummary {
     signoffCompletedBlockers: string[];
     signoffExceptionsStatus: string | null;
     signoffExceptionsBlockers: string[];
+  };
+  /** Build / observe / release posture. Optional for older fixtures. */
+  governance?: {
+    mode: "build" | "observe" | "release";
+    continueEngineeringResumesAe: boolean;
+    preferSandboxAfterApprove: boolean;
   };
   audit: {
     eventCount: number;

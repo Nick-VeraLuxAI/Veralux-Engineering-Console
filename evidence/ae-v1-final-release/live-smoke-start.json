@@ -1,0 +1,8 @@
+{
+  "runId": "5f39be14-79a9-45f3-a9a4-35578704b13f",
+  "taskId": "cc0ba78b-94dc-48ce-b1c5-87ef478f164c",
+  "objective": "Directors need a one-line QC-versus-baseline sentence they can trust: new regressions, pre-existing failures, and resolved baseline items. Add a small tested helper that formats that sentence from counts already known to the autonomous loop, and keep the change inside the autonomous-engineer library. Do not open a PR or deploy.",
+  "baseUrl": "http://127.0.0.1:8082/v1",
+  "faithful": "true",
+  "skilloptInjection": "false"
+}

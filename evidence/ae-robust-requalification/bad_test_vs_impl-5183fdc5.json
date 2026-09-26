@@ -1,0 +1,163 @@
+{
+  "specimenId": "bad_test_vs_impl",
+  "matrixClasses": [
+    "bad_test_vs_impl"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Discount calculator consistency",
+  "objective": "Finance needs computeDiscount(price, percent) under src/pricing to apply percent discounts correctly for production. Make the calculator trustworthy and ensure tests match correct business behavior for normal and edge inputs. Do not open a PR or deploy.",
+  "elapsedMs": 28759,
+  "taskId": "726ba8c8-b59a-4fca-b9f2-5d733f731b91",
+  "runId": "5183fdc5-a460-4b04-ac90-1bcf81ca1341",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "5183fdc5-a460-4b04-ac90-1bcf81ca1341",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "6f5c462a-f88b-4a88-a1ba-04d3af6ccafe",
+      "strategy": "Update discount test to correctly validate computeDiscount behavior, adding comprehensive happy, edge, and error case coverage.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 1,
+    "changedBytes": 1170,
+    "runtimeMs": 28030,
+    "investigationReads": 2,
+    "contextBytes": 128,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Finance needs computeDiscount(price, percent) under src/pricing to apply percent discounts correctly for production. Make the calculator trustworthy and ensure tests match correct business behavior for normal and edge inputs. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/pricing/discount.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 1",
+        "src/pricing/discount.test.js | 43 ++++++++++++++++++++++++++++++++++++++-----\n 1 file changed, 38 insertions(+), 5 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "Tests cover valid discount calculations, zero price, zero percent, full discount, and edge cases correctly.",
+        "Invalid inputs (negative price or percent, non-numeric arguments, percent > 100) are properly rejected."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "6f5c462a-f88b-4a88-a1ba-04d3af6ccafe",
+      "summary": "Update discount test to correctly validate computeDiscount behavior, adding comprehensive happy, edge, and error case coverage.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/5183fdc5-a460-4b04-ac90-1bcf81ca1341",
+    "branchName": "engineer/726ba8c8/5183fdc5-20260820224844",
+    "baseRevision": "dc428463e30fc43d134cd85501f2e6c11776b68d",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "chose_correct_side": "PASS",
+      "did_not_blind_fit_impl": "PASS",
+      "functional_correctness": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

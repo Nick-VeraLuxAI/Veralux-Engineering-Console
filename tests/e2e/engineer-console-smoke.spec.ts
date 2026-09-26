@@ -20,7 +20,7 @@ test.describe("Engineering Console trusted local smoke", () => {
   }
 
   async function openIssueCenter(page: import("@playwright/test").Page) {
-    const launcher = page.locator('[data-issue-center-expanded="false"] button').first();
+    const launcher = page.locator('[data-canvas-open-issues="true"]').first();
     await launcher.evaluate((node) => {
       (node as HTMLButtonElement).click();
     });
@@ -40,17 +40,30 @@ test.describe("Engineering Console trusted local smoke", () => {
     await expect(page.getByRole("link", { name: "Home", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Compatibility", exact: true })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Engineering Console" })).toBeVisible();
-    await expect(page.locator('[data-canvas-top-context="true"]')).toContainText("Architecture");
+    await expect(page.locator('[data-canvas-top-context="true"]')).toContainText("Map");
     await expect(page.locator('[data-workflow-canvas="true"]')).toBeVisible();
+    await expect(page.locator('[data-canvas-surface="workflow"]')).toBeVisible();
+    await expect(page.locator('[data-canvas-surface-toggle="true"]')).toBeVisible();
     await expect(page.locator('[data-canvas-bottom-dock="true"]')).toBeVisible();
     await expect(page.locator('[data-canvas-toolbar="true"]')).toBeVisible();
-    await expect(page.locator('[data-canvas-zoom-label="true"]')).toContainText("%");
+    await expect(page.locator('[data-canvas-toolbar="true"]')).toHaveAttribute("data-canvas-toolbar-collapsed", "true");
+    await expect(page.locator('[data-canvas-workspace="split"]')).toBeVisible();
+    await expect(page.locator('[data-canvas-map-chat="true"]')).toBeVisible();
+    await expect(page.locator('[data-map-chat-layout="docked"]')).toBeVisible();
+    await expect(page.locator('[data-canvas-chat-slot="true"]')).toBeVisible();
+    await expect(page.locator('[data-canvas-stage="true"]')).toBeVisible();
+    await expect(page.locator('[data-canvas-workbench="true"]')).toBeAttached();
+    await expect(page.locator('[data-canvas-stage-tabs="true"]')).toBeVisible();
+    await expect(page.getByText(/I'm Vera\. I can help with whatever you're trying to build/i)).toBeVisible();
+    await expect(page.locator('[data-map-chat-threads="true"]')).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Agent" })).toBeVisible();
+    await expect(page.getByLabel("Model")).toHaveValue("nano30b");
     await expect(page.getByRole("heading", { name: "Setup readiness" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Operator Queue" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Run staging smoke workflow" })).toHaveCount(0);
     await expect(page.getByText(/Focus mode|Enter focus/i)).toHaveCount(0);
     await expect(page.locator('[data-detail-drawer="true"]')).toHaveCount(0);
-    await expect(page.locator('[data-floating-issue-card="true"]').first()).toBeVisible();
+    await expect(page.locator('[data-floating-issue-card="true"]')).toHaveCount(0);
     await expect(page.locator('[data-workflow-node="run"]').first()).toBeVisible();
     await expect(page.locator('[data-canvas-world="true"] svg').first()).toBeVisible();
     await expect(page.locator('[data-canvas-edge="true"]')).toHaveCount(7);
@@ -59,13 +72,77 @@ test.describe("Engineering Console trusted local smoke", () => {
     if (viewport) {
       const rootBox = await page.locator('[data-engineering-immersive-root="true"]').boundingBox();
       const canvasBox = await page.locator('[data-workflow-canvas="true"]').boundingBox();
+      const chatBox = await page.locator('[data-canvas-chat-slot="true"]').boundingBox();
+      const stageBox = await page.locator('[data-canvas-stage="true"]').boundingBox();
       expect(rootBox).not.toBeNull();
       expect(canvasBox).not.toBeNull();
+      expect(chatBox).not.toBeNull();
+      expect(stageBox).not.toBeNull();
       expect(rootBox!.x).toBeLessThanOrEqual(1);
       expect(rootBox!.width).toBeGreaterThanOrEqual(viewport.width - 2);
-      expect(canvasBox!.x).toBeLessThanOrEqual(1);
-      expect(canvasBox!.width).toBeGreaterThanOrEqual(viewport.width - 2);
+      if (viewport.width >= 768) {
+        expect(chatBox!.x).toBeLessThanOrEqual(2);
+        expect(stageBox!.x).toBeGreaterThanOrEqual(chatBox!.x + chatBox!.width - 2);
+        expect(canvasBox!.x).toBeGreaterThanOrEqual(chatBox!.width - 8);
+        expect(canvasBox!.width).toBeLessThan(viewport.width - 200);
+        expect(Math.abs(canvasBox!.width - stageBox!.width)).toBeLessThan(4);
+        expect(chatBox!.x + chatBox!.width + stageBox!.width).toBeGreaterThan(viewport.width - 8);
+      } else {
+        expect(canvasBox!.width).toBeGreaterThanOrEqual(viewport.width - 2);
+      }
     }
+  });
+
+  test("mobile renders a readable workflow flow with a reserved dock row", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/engineer");
+    await waitForCanvasReady(page);
+
+    const mobileFlow = page.locator('[data-workflow-mobile-flow="true"]');
+    const mobileNode = page.locator('[data-mobile-workflow-node="repository"]');
+    const desktopNode = page.locator('[data-workflow-node="repository"]');
+    const workflowPane = page.locator('[data-canvas-stage-pane="workflow"]');
+    const dockSlot = page.locator('[data-canvas-bottom-dock-slot="true"]');
+
+    await expect(mobileFlow).toBeVisible();
+    await expect(mobileNode).toBeVisible();
+    await expect(desktopNode).toBeHidden();
+    await expect(page.getByText("New repo", { exact: true })).toBeVisible();
+    await expect(page.getByText("New task", { exact: true })).toBeVisible();
+
+    const nodeBox = await mobileNode.boundingBox();
+    const paneBox = await workflowPane.boundingBox();
+    const dockBox = await dockSlot.boundingBox();
+    expect(nodeBox).not.toBeNull();
+    expect(paneBox).not.toBeNull();
+    expect(dockBox).not.toBeNull();
+    expect(nodeBox!.width).toBeGreaterThanOrEqual(320);
+    expect(nodeBox!.height).toBeGreaterThanOrEqual(56);
+    expect(paneBox!.y + paneBox!.height).toBeLessThanOrEqual(dockBox!.y + 1);
+  });
+
+  test("mobile chat sheet uses velocity-aware snap physics", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/engineer");
+    await waitForCanvasReady(page);
+
+    const chat = page.locator('[data-canvas-map-chat="true"]');
+    const slot = page.locator('[data-canvas-chat-slot="true"]');
+    const handle = page.locator('[data-map-chat-move="true"]');
+    const handleBox = await handle.boundingBox();
+    expect(handleBox).not.toBeNull();
+
+    const centerX = handleBox!.x + handleBox!.width / 2;
+    const centerY = handleBox!.y + handleBox!.height / 2;
+    await page.mouse.move(centerX, centerY);
+    await page.mouse.down();
+    await page.mouse.move(centerX, centerY - 130, { steps: 3 });
+    await expect(chat).toHaveAttribute("data-map-chat-sheet-dragging", "true");
+    await page.mouse.up();
+    await expect(chat).toHaveAttribute("data-map-chat-sheet-dragging", "false");
+    await expect
+      .poll(async () => Math.round((await slot.boundingBox())?.height ?? 0))
+      .toBe(473);
   });
 
   test("floating menu opens navigation and Escape closes it", async ({ page }) => {
@@ -104,14 +181,17 @@ test.describe("Engineering Console trusted local smoke", () => {
     await page.goto("/engineer");
     await waitForCanvasReady(page);
     const world = page.locator('[data-canvas-world="true"]');
+    const canvas = page.locator('[data-workflow-canvas="true"]');
     const zoomLabel = page.locator('[data-canvas-zoom-label="true"]');
     const initialZoom = await world.getAttribute("data-canvas-zoom");
 
     await page.locator('[data-canvas-zoom-in="true"]').click();
+    await expect(canvas).toHaveAttribute("data-camera-spring", "true");
     await expect(world).not.toHaveAttribute("data-canvas-zoom", initialZoom ?? "1.00");
     const zoomedIn = await world.getAttribute("data-canvas-zoom");
 
     await page.getByRole("button", { name: "Fit view" }).click();
+    await expect(canvas).toHaveAttribute("data-camera-spring", "true");
     await expect(zoomLabel).not.toContainText(initialZoom ? `${Math.round(Number(initialZoom) * 100)}%` : "100%");
     await expect(world).not.toHaveAttribute("data-canvas-zoom", zoomedIn ?? "1.00");
   });
@@ -124,6 +204,7 @@ test.describe("Engineering Console trusted local smoke", () => {
     await waitForCanvasReady(page);
 
     const commandBar = page.locator('[data-canvas-command-bar="true"]');
+    const stage = page.locator('[data-canvas-stage="true"]');
     const geometry = await commandBar.evaluate((node) => {
       const element = node as HTMLElement;
       const rect = element.getBoundingClientRect();
@@ -133,18 +214,24 @@ test.describe("Engineering Console trusted local smoke", () => {
         width: rect.width,
         clientWidth: element.clientWidth,
         scrollWidth: element.scrollWidth,
-        viewportWidth: window.innerWidth,
       };
     });
-
-    expect(Math.abs(geometry.left - (geometry.viewportWidth - geometry.right))).toBeLessThanOrEqual(4);
+    const stageBox = await stage.boundingBox();
+    expect(stageBox).not.toBeNull();
+    expect(Math.abs(geometry.left - stageBox!.x)).toBeLessThanOrEqual(4);
+    expect(Math.abs(geometry.right - (stageBox!.x + stageBox!.width))).toBeLessThanOrEqual(4);
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
     await expect(commandBar).toContainText("Engineering Console");
-    await expect(commandBar).toContainText("Architecture");
-    await expect(commandBar).toContainText("View queue");
     await expect(commandBar.getByRole("button", { name: "Tasks", exact: true })).toHaveCount(0);
     await expect(commandBar.getByRole("button", { name: "Runs", exact: true })).toHaveCount(0);
     await expect(commandBar.getByRole("button", { name: "Repositories", exact: true })).toHaveCount(0);
+
+    const tabs = page.locator('[data-canvas-stage-tabs="true"]');
+    const commandBox = await commandBar.boundingBox();
+    const tabsBox = await tabs.boundingBox();
+    expect(commandBox).not.toBeNull();
+    expect(tabsBox).not.toBeNull();
+    expect(commandBox!.y + commandBox!.height).toBeLessThanOrEqual(tabsBox!.y + 1);
   });
 
   test("toolbar collapses to a premium edge tab and restores working zoom controls", async ({ page }) => {
@@ -210,8 +297,9 @@ test.describe("Engineering Console trusted local smoke", () => {
     await waitForCanvasReady(page);
 
     await page.locator('[data-canvas-dock-link="repos"]').click();
-    await expect(page.locator('[data-workflow-node="repository"]')).toHaveAttribute("data-node-selected", "true");
-    await expect(page.locator("#canvas-side-panel")).toContainText("Repository");
+    await expect(page.locator('[data-canvas-surface="repo"]')).toBeVisible();
+    await expect(page.locator('[data-repo-map-canvas="true"]')).toBeVisible();
+    await expect(page.locator('[data-repo-contract-card="true"]')).toBeVisible();
 
     await page.locator('[data-canvas-dock-link="release"]').click();
     await expect(page.locator('[data-workflow-node="release"]')).toHaveAttribute("data-node-selected", "true");
@@ -321,13 +409,12 @@ test.describe("Engineering Console trusted local smoke", () => {
       (node as HTMLButtonElement).click();
     });
     await expect(page.locator("#canvas-side-panel")).toContainText("Run");
-    const issueCard = page.locator('[data-floating-issue-card="true"]').first();
-    await expect(issueCard).toBeVisible();
-    await issueCard
-      .getByRole("button")
-      .filter({ hasText: /Open|Register/i })
+    await page
+      .locator("#canvas-side-panel")
+      .getByRole("link")
+      .first()
       .evaluate((node) => {
-        (node as HTMLButtonElement).click();
+        (node as HTMLAnchorElement).click();
       });
     await expect(page).not.toHaveURL(/\/engineer\/?$/);
   });
@@ -338,13 +425,10 @@ test.describe("Engineering Console trusted local smoke", () => {
     await page.locator('[data-workflow-node="repository"]').first().evaluate((node) => {
       (node as HTMLButtonElement).click();
     });
-    await expect(page.locator("#canvas-side-panel")).toContainText("Repository");
-    await page
-      .locator("#canvas-side-panel")
-      .getByRole("link", { name: /Register repo|View repositories/i })
-      .evaluate((node) => {
-        (node as HTMLAnchorElement).click();
-      });
+    await expect(page.locator('[data-canvas-surface="repo"]')).toBeVisible();
+    await expect(page.locator('[data-repo-map-canvas="true"]')).toBeVisible();
+    await expect(page.locator('[data-repo-contract-card="true"]')).toBeVisible();
+    await page.getByRole("link", { name: /Repo details|Open repositories/i }).click();
     await expect(page).toHaveURL(/\/engineer\/repos$/);
   });
 
@@ -479,6 +563,16 @@ test.describe("Engineering Console trusted local smoke", () => {
     await expect(page.locator('[data-canvas-command-bar="true"]')).toBeVisible();
     await expect(page.locator('[data-canvas-toolbar="true"]')).toBeVisible();
     await expect(page.locator('[data-workflow-node="run"]')).toBeVisible();
+    await page.locator('[data-canvas-menu-button="true"]').click();
+    await expect(page.locator('[data-canvas-menu-overlay="true"]')).toHaveCSS("animation-name", "none");
+    await page.keyboard.press("Escape");
+    await page.locator('[data-workflow-node="review"]').evaluate((node) => {
+      (node as HTMLButtonElement).click();
+    });
+    const transientEdge = page.locator('[data-edge-transient="true"]');
+    if ((await transientEdge.count()) > 0) {
+      await expect(transientEdge.first()).toHaveCSS("animation-name", "none");
+    }
   });
 
   test("dense queue details stay hidden by default and open run navigation still works", async ({
@@ -528,20 +622,39 @@ test.describe("Engineering Console trusted local smoke", () => {
 
   test("registered repos page loads", async ({ page }) => {
     await page.goto("/engineer/repos");
-    await expect(page.locator('[data-engineer-route-shell="default"]')).toBeVisible();
-    await expect(page.getByRole("link", { name: "Home", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Engineering Console", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Repositories", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Compatibility", exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Registered repositories" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Register repository" })).toBeVisible();
+    await expect(page.locator('[data-engineer-route-shell="immersive"]')).toBeVisible();
+    await expect(page.locator('[data-engineer-surface="sheet"]')).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Engineering Console" })).toBeVisible();
+    await expect(page.locator('[data-canvas-bottom-dock="true"]')).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open VeraLux menu" })).toBeVisible();
+    await expect(page.locator('[data-engineer-back="true"]')).toHaveCount(1);
+    await expect(page.locator('[data-engineer-back="true"]').first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Repositories" })).toBeVisible();
+    const primaryActions = page.locator('[data-repo-primary-actions="true"]');
+    await expect(primaryActions).toBeVisible();
+    await expect(primaryActions.getByRole("heading", { name: "Start a new repository" })).toBeVisible();
+    await expect(primaryActions.getByRole("heading", { name: "Register repository" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "GitHub" })).toBeVisible();
+    await expect(page.locator('[data-github-access="true"]')).toBeVisible();
+    const setupDetails = page.locator('[data-repo-setup-details="true"]');
+    await expect(setupDetails).not.toHaveAttribute("open", "");
+    await setupDetails.locator("summary").click();
     await expect(page.getByRole("heading", { name: "Approved repo roots" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Repo setup order" })).toBeVisible();
+    const mainBox = await page.locator("main").boundingBox();
+    const dockSlotBox = await page.locator('[data-engineer-bottom-dock-slot="true"]').boundingBox();
+    expect(mainBox).not.toBeNull();
+    expect(dockSlotBox).not.toBeNull();
+    expect(mainBox!.y + mainBox!.height).toBeLessThanOrEqual(dockSlotBox!.y + 1);
+    await page.locator('[data-engineer-back="true"]').first().click();
+    await expect(page).toHaveURL(/\/engineer\/?$/);
   });
 
   test("compatibility page loads", async ({ page }) => {
     await page.goto("/engineer/compatibility");
-    await expect(page.getByRole("heading", { name: "Compatibility analysis" }).first()).toBeVisible();
+    await expect(page.locator('[data-engineer-back="true"]')).toHaveCount(1);
+    await expect(page.locator('[data-engineer-back="true"]').first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Compatibility" }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Run compatibility analysis" })).toBeVisible();
     await expect(page.getByText(/Compatibility analysis/i).first()).toBeVisible();
   });
@@ -587,19 +700,8 @@ test.describe("Engineering Console trusted local smoke", () => {
         has: page.getByText("Issue Center", { exact: true }),
       });
       await expect(issueCenter).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: "Run Command Center", exact: true }),
-      ).toBeVisible();
-      await expect(page.getByRole("heading", { name: /Current action:/i })).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: "Lifecycle", exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: "Quick navigation", exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: "Expert summary", exact: true }),
-      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: "What to do now", exact: true })).toBeVisible();
+      await expect(page.getByText("More status (optional)")).toBeVisible();
       await expect(page.getByRole("button", { name: /Open issue:/i })).toBeVisible();
     });
 
@@ -614,28 +716,14 @@ test.describe("Engineering Console trusted local smoke", () => {
       });
       await gotoRunDetailResilient(page, runId, request, baseURL!);
 
-      await expect(page.locator('a[href="#pr-creation"]').first()).toBeVisible();
-      await expect(page.locator('a[href="#audit-timeline"]').first()).toBeVisible();
-
-      await page.getByRole("tab", { name: "PR", exact: true }).click();
-      await expect(page.getByRole("tab", { name: "PR", exact: true })).toHaveAttribute(
+      await page.getByRole("tab", { name: "Later", exact: true }).click();
+      await expect(page.getByRole("tab", { name: "Later", exact: true })).toHaveAttribute(
         "aria-selected",
         "true",
         { timeout: 15_000 },
       );
       await expect(page.getByRole("heading", { name: "PR creation", exact: true })).toBeVisible();
-
-      await expect(page.getByRole("tab", { name: "Audit", exact: true })).toHaveAttribute(
-        "aria-selected",
-        "false",
-      );
-      await page.getByRole("tab", { name: "Audit", exact: true }).click();
       await expect(page.getByRole("heading", { name: "Audit timeline", exact: true })).toBeVisible();
-      await expect(page.getByRole("tab", { name: "Audit", exact: true })).toHaveAttribute(
-        "aria-selected",
-        "true",
-        { timeout: 15_000 },
-      );
     });
 
     test("guided worker-plan builder supports README smoke helper", async ({
@@ -649,7 +737,7 @@ test.describe("Engineering Console trusted local smoke", () => {
       });
 
       await gotoRunDetailResilient(page, runId, request, baseURL!);
-      await page.getByRole("tab", { name: "Work Plan", exact: true }).click();
+      await page.getByRole("tab", { name: "This job", exact: true }).click();
       await expect(page.getByRole("heading", { name: "Guided worker-plan builder" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Create README smoke plan" })).toBeVisible();
 

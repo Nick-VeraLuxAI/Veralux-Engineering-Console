@@ -1,0 +1,14 @@
+{
+  "command": "npx vitest run src/lib/engineer-console/autonomous-engineer src/lib/engineer-console/worker-plan src/lib/engineer-console/skillopt",
+  "testFiles": { "passed": 22, "total": 22 },
+  "tests": { "passed": 180, "total": 180, "failed": 0 },
+  "breakdown": {
+    "aeWorkerPlan": { "files": 21, "tests": 170 },
+    "skillopt": { "files": 1, "tests": 10 }
+  },
+  "aePromptsModifiedBySkillOpt": 0,
+  "falseCompletionRegressions": 0,
+  "governanceRegressions": 0,
+  "recordedAt": "2026-08-21T22:58:00Z",
+  "verdict": "SKILLOPT PASSIVE LEARNING LAYER READY"
+}

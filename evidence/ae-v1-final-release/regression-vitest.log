@@ -1,0 +1,48 @@
+
+ RUN  v3.2.4 /home/ndesantis/Documents/GitHub/Veralux-Engineering-Console
+
+ ✓ src/lib/engineer-console/autonomous-engineer/autonomous-engineer-api-governance.test.ts (3 tests) 3ms
+ ✓ src/lib/engineer-console/autonomous-engineer/nano-conditional-budget-rescue.test.ts (6 tests) 3ms
+ ✓ src/lib/engineer-console/autonomous-engineer/qc-baseline.test.ts (10 tests) 7ms
+ ✓ src/lib/engineer-console/autonomous-engineer/plan-worktree-adapter.test.ts (6 tests) 8ms
+ ✓ src/lib/engineer-console/autonomous-engineer/nano-faithful-invocation.test.ts (9 tests) 4ms
+ ✓ src/lib/engineer-console/autonomous-engineer/worker-route.test.ts (4 tests) 3ms
+ ✓ src/lib/engineer-console/autonomous-engineer/feedback-convergence.test.ts (10 tests) 9ms
+ ✓ src/lib/engineer-console/autonomous-engineer/worker-schemas.test.ts (5 tests) 3ms
+ ✓ src/lib/engineer-console/worker-plan/worker-plan-validation.test.ts (13 tests) 7ms
+ ✓ src/lib/engineer-console/autonomous-engineer/worker-client.test.ts (6 tests) 8ms
+ ✓ src/lib/engineer-console/autonomous-engineer/robust-requal-fixture-contract.test.ts (10 tests) 138ms
+ ✓ src/lib/engineer-console/worker-plan/worker-plan-ux.test.ts (12 tests) 16ms
+ ✓ src/lib/engineer-console/autonomous-engineer/post-qc-review-lifecycle.test.ts (7 tests) 8ms
+ ✓ src/lib/engineer-console/autonomous-engineer/reviews.robust.test.ts (7 tests) 6ms
+ ✓ src/lib/engineer-console/worker-plan/worker-plan-executor.test.ts (9 tests) 237ms
+ ✓ src/lib/engineer-console/autonomous-engineer/clean-convergence.test.ts (11 tests) 11ms
+ ✓ src/lib/engineer-console/autonomous-engineer/false-completion-protection.test.ts (8 tests) 11ms
+ ✓ src/lib/engineer-console/autonomous-engineer/autonomous-engineer.test.ts (9 tests) 7ms
+ ✓ src/lib/engineer-console/skillopt/skillopt.test.ts (10 tests) 655ms
+ ✓ src/lib/engineer-console/bridge/run-vera-post-patch-quality-gates.test.ts (9 tests) 524ms
+ ✓ src/lib/engineer-console/bridge/vera-post-patch-quality-gates-readiness.test.ts (9 tests) 545ms
+ ✓ src/lib/engineer-console/autonomous-engineer/autonomous-engineer.robust-qualification.test.ts (4 tests) 1069ms
+   ✓ AE robust qualification — controlled scenarios > S2/S13: workaround + empty-catch delivery is blocked by engineering_quality review  505ms
+   ✓ AE robust qualification — controlled scenarios > S3/S8/S13: success-fallback auth is blocked then repaired fail-closed  446ms
+ ✓ src/lib/engineer-console/autonomous-engineer/autonomous-engineer.integration.test.ts (8 tests) 2660ms
+   ✓ autonomous engineer integration > objective → plan → execute → QC pass → delivery candidate  370ms
+   ✓ autonomous engineer integration > failing first attempt persists observation, diagnoses, replans, and passes  429ms
+   ✓ autonomous engineer integration > Case 5: pre-existing repo-wide QC failure plus objective pass is a delivery candidate  523ms
+   ✓ autonomous engineer integration > discoverable uncertainty is investigated without a human question  330ms
+   ✓ autonomous engineer integration > genuine product decision waits for director then resumes the same run  325ms
+   ✓ autonomous engineer integration > two runs get two worktrees with no cross-run mutation of the director tree  378ms
+ ✓ src/lib/engineer-console/autonomous-engineer/autonomous-engineer.qualification.test.ts (13 tests) 3718ms
+   ✓ AE V1 qualification — restart / rehydration > interrupts after iter fail before plan 2 and resumes same run without budget reset  514ms
+   ✓ AE V1 qualification — budget exhaustion > max_iterations=2 with both failures ends EXHAUSTED without iter 3  435ms
+   ✓ AE V1 qualification — malformed model output > rejects invalid plan JSON/schema and does not best-effort mutate  380ms
+   ✓ AE V1 qualification — impossible / unsatisfiable > ends blocked/exhausted and never delivery_candidate_ready  426ms
+   ✓ AE V1 qualification — stale context / current state > iteration 2 plans against current worktree content from iteration 1  443ms
+   ✓ AE V1 qualification — review-defect repair loop > QC pass with review defect replans, fixes, and only then delivers  444ms
+   ✓ AE V1 qualification — evidence isolation > two runs keep distinct plans, QC, and worktrees  369ms
+
+ Test Files  24 passed (24)
+      Tests  198 passed (198)
+   Start at  18:57:28
+   Duration  5.04s (transform 3.56s, setup 0ms, collect 9.82s, tests 9.66s, environment 3ms, prepare 2.36s)
+

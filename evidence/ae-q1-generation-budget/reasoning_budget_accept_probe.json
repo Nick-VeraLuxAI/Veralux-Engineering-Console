@@ -1,0 +1,101 @@
+[
+  {
+    "name": "kwargs_reasoning_budget",
+    "latency": 0.9777874946594238,
+    "err": null,
+    "analyze": {
+      "finish_reason": "length",
+      "prompt_tokens": 121,
+      "completion_tokens": 256,
+      "reasoning_tokens": null,
+      "reasoning_chars": 1046,
+      "final_chars": 0,
+      "json_ok": false,
+      "ops": 0,
+      "src_bytes": 0,
+      "truncation_class": "A",
+      "final_head": "",
+      "final_tail": "",
+      "reasoning_tail": " We'll use \"run-001\". summary short: \"Greet with JSON\". operations: create file at /hello.json with content {\"ok\":true} and reason \"Say hi\". allowedFiles list includes /hello.json.\n\nReturn JSON object"
+    },
+    "raw_keys": [
+      "id",
+      "object",
+      "created",
+      "model",
+      "choices",
+      "service_tier",
+      "system_fingerprint",
+      "usage",
+      "prompt_logprobs",
+      "prompt_token_ids",
+      "kv_transfer_params"
+    ]
+  },
+  {
+    "name": "body_reasoning_budget",
+    "latency": 0.9596812725067139,
+    "err": null,
+    "analyze": {
+      "finish_reason": "length",
+      "prompt_tokens": 121,
+      "completion_tokens": 256,
+      "reasoning_tokens": null,
+      "reasoning_chars": 1104,
+      "final_chars": 0,
+      "json_ok": false,
+      "ops": 0,
+      "src_bytes": 0,
+      "truncation_class": "A",
+      "final_head": "",
+      "final_tail": "",
+      "reasoning_tail": "need to be a string. So content: '{\"ok\":true}'. That's the file content.\n\nWe must ensure allowedFiles includes every operation path. So allowedFiles: [\"message.json\"].\n\nMake sure the whole output is a"
+    },
+    "raw_keys": [
+      "id",
+      "object",
+      "created",
+      "model",
+      "choices",
+      "service_tier",
+      "system_fingerprint",
+      "usage",
+      "prompt_logprobs",
+      "prompt_token_ids",
+      "kv_transfer_params"
+    ]
+  },
+  {
+    "name": "extra_body_style",
+    "latency": 0.9511833190917969,
+    "err": null,
+    "analyze": {
+      "finish_reason": "length",
+      "prompt_tokens": 121,
+      "completion_tokens": 256,
+      "reasoning_tokens": null,
+      "reasoning_chars": 1071,
+      "final_chars": 0,
+      "json_ok": false,
+      "ops": 0,
+      "src_bytes": 0,
+      "truncation_class": "A",
+      "final_head": "",
+      "final_tail": "",
+      "reasoning_tail": "e file content to be {\"ok\":true}. So we need to create a file (maybe \"hi.json\") with that content. Provide a worker plan JSON with that operation.\n\nThe plan should include runId, summary, allowedFiles"
+    },
+    "raw_keys": [
+      "id",
+      "object",
+      "created",
+      "model",
+      "choices",
+      "service_tier",
+      "system_fingerprint",
+      "usage",
+      "prompt_logprobs",
+      "prompt_token_ids",
+      "kv_transfer_params"
+    ]
+  }
+]

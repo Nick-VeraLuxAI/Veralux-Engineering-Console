@@ -1,0 +1,167 @@
+{
+  "specimenId": "idempotent_job_runner_v2",
+  "matrixClasses": [
+    "failure_recovery"
+  ],
+  "hardClass": "idempotent_job_runner",
+  "variant": 2,
+  "title": "Task dispatch resume v2",
+  "objective": "Directors need a small task dispatcher under src/jobs that can dispatch a task by id once, survive retries after a partial failure, and never double-dispatch the same task id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+  "elapsedMs": 40469,
+  "taskId": "90aee308-d3c6-48ec-a343-667fc1b0a327",
+  "runId": "da62995f-2996-46b5-8e70-d5a70f039b22",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "da62995f-2996-46b5-8e70-d5a70f039b22",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "0debc1cd-fc4c-40ac-9cb8-3e462d260c8f",
+      "strategy": "Complete dispatcher implementation with idempotent dispatch, duplicate detection, and retry safety, plus comprehensive test coverage",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 3554,
+    "runtimeMs": 39520,
+    "investigationReads": 2,
+    "contextBytes": 123,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a small task dispatcher under src/jobs that can dispatch a task by id once, survive retries after a partial failure, and never double-dispatch the same task id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/jobs/runners.js",
+        "Changed src/jobs/runners.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/jobs/runners.js      | 31 ++++++++++++++++++++++++-------\n src/jobs/runners.test.js | 31 +++++++++++++++++++++++++++++++\n 2 files changed, 55 insertions(+), 7 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "All acceptance criteria are satisfied: dispatchTask is idempotent, records successful dispatch, propagates errors without marking the task dispatched, and retries after a failure are supported.",
+        "Tests include coverage for the first dispatch, duplicate dispatch, and a failure/resume case.",
+        "No silent-success behavior; errors are properly propagated.",
+        "No material defects found in the supplied diff."
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "0debc1cd-fc4c-40ac-9cb8-3e462d260c8f",
+      "summary": "Complete dispatcher implementation with idempotent dispatch, duplicate detection, and retry safety, plus comprehensive test coverage",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/da62995f-2996-46b5-8e70-d5a70f039b22",
+    "branchName": "engineer/90aee308/da62995f-20260821010421",
+    "baseRevision": "1bd11fe5c69c83a3356ff02491c1ab71eea3fafb",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "failure_recovery": "PASS",
+      "idempotency": "PASS",
+      "vertical_slice_complete": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

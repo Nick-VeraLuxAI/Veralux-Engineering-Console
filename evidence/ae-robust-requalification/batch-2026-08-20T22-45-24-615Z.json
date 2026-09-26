@@ -1,0 +1,1541 @@
+{
+  "at": "2026-08-20T22:55:12.590Z",
+  "tipHint": "feature/autonomous-engineer-v1",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8082/v1",
+  "maxModelLen": "262144",
+  "nanoRuntimeMode": "FAITHFUL",
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "rate_limit_feature",
+      "matrixClasses": [
+        "robust_new_feature"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Request rate window helper",
+      "objective": "Directors need a small rate-limit helper under src/ratelimit that tracks allow/deny for a caller key within a window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+      "elapsedMs": 178812,
+      "taskId": "f5842190-a3f8-4f74-aacc-574a06495233",
+      "runId": "11f4f8f2-e705-4277-93b6-f6671438418f",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "11f4f8f2-e705-4277-93b6-f6671438418f",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 5,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "diagnosis",
+          "replan",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "b63e0f90-f1e9-457f-bb45-41b4380964c5",
+          "strategy": "Add rate limiter implementation and tests",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "workerPlanId": "21e6f04e-16e6-47b6-a461-8733e1758ec2",
+          "strategy": "Make RateLimiter.isAllowed async and reject on rate limit; update the 'deny after exceeding limit' test to use await assert.rejects for proper async assertion.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "workerPlanId": "91d97306-b6c0-4cd1-b5ee-1c90fffb3e1e",
+          "strategy": "Fix RateLimiter input validation and add regression tests for invalid parameters",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "workerPlanId": "09f4f973-7841-4384-8c96-c9520a83c6b6",
+          "strategy": "Rewrite rate‑limiter tests to use the native node:test runner, add deterministic allow/deny coverage, and complete input‑validation regression tests to prevent remaining failures.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "workerPlanId": "eb198051-a86f-44e9-b8db-a99c0d32ee72",
+          "strategy": "Fix RateLimiter to return true when allowance succeeds and add comprehensive tests covering allow/deny paths and input validation.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 1,
+          "hypothesis": "Add rate limiter implementation and tests",
+          "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "hypothesis": "Make RateLimiter.isAllowed async and reject on rate limit; update the 'deny after exceeding limit' test to use await assert.rejects for proper async assertion.",
+          "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "hypothesis": "Fix RateLimiter input validation and add regression tests for invalid parameters",
+          "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "hypothesis": "Rewrite rate‑limiter tests to use the native node:test runner, add deterministic allow/deny coverage, and complete input‑validation regression tests to prevent remaining failures.",
+          "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "usage": {
+        "iterations": 5,
+        "plans": 5,
+        "modelCalls": 15,
+        "changedFiles": 2,
+        "changedBytes": 13744,
+        "runtimeMs": 177918,
+        "investigationReads": 2,
+        "contextBytes": 128,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need a small rate-limit helper under src/ratelimit that tracks allow/deny for a caller key within a window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/ratelimit/RateLimiter.js",
+            "Changed src/ratelimit/invalid-input.test.js",
+            "Changed src/ratelimit/rate.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 3",
+            "Working tree changes not yet in HEAD:\n src/ratelimit/RateLimiter.js | 41 lines\n src/ratelimit/invalid-input.test.js | 27 lines\n src/ratelimit/rate.test.js | 46 lines"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "RateLimiter.js implements a window‑based limit using a Map keyed by caller and filters timestamps within the configured window, meeting the 'track allow/deny within a window' requirement.",
+            "Input validation is performed in the constructor for windowMs and max, and additionally validates caller keys in isAllowed, satisfying 'validates inputs' and 'fails closed on invalid inputs'.",
+            "The test suite covers allow, deny, and invalid‑input paths, and quality gates report no regressions, fulfilling the 'covers allow and deny paths with tests' and 'stays maintainable' criteria."
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "eb198051-a86f-44e9-b8db-a99c0d32ee72",
+          "summary": "Fix RateLimiter to return true when allowance succeeds and add comprehensive tests covering allow/deny paths and input validation.",
+          "iterationNumber": 5,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "09f4f973-7841-4384-8c96-c9520a83c6b6",
+          "summary": "Rewrite rate‑limiter tests to use the native node:test runner, add deterministic allow/deny coverage, and complete input‑validation regression tests to prevent remaining failures.",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "91d97306-b6c0-4cd1-b5ee-1c90fffb3e1e",
+          "summary": "Fix RateLimiter input validation and add regression tests for invalid parameters",
+          "iterationNumber": 3,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "21e6f04e-16e6-47b6-a461-8733e1758ec2",
+          "summary": "Make RateLimiter.isAllowed async and reject on rate limit; update the 'deny after exceeding limit' test to use await assert.rejects for proper async assertion.",
+          "iterationNumber": 2,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "b63e0f90-f1e9-457f-bb45-41b4380964c5",
+          "summary": "Add rate limiter implementation and tests",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/11f4f8f2-e705-4277-93b6-f6671438418f",
+        "branchName": "engineer/f5842190/11f4f8f2-20260820224524",
+        "baseRevision": "bc2ffce5c0cdeb038495d1589c3eee0a16b6ee3d",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "functional_correctness": "PASS",
+          "validation_error_handling": "PASS",
+          "tests_negative_path": "PASS",
+          "maintainable_structure": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "passing_wrong_auth",
+      "matrixClasses": [
+        "passing_but_wrong",
+        "security_fail_closed"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Authorization helper",
+      "objective": "Operators need authorizeAction(user, action) to decide access for console tools. Keep the helper under src/auth, make authorization trustworthy for production, and ensure tests cover both allow and deny cases. Do not open a PR or deploy.",
+      "elapsedMs": 20522,
+      "taskId": "10366850-7bb2-445f-b01f-f0a1fb1170d9",
+      "runId": "9a7afce4-a223-4aab-96aa-87a8eb094c4b",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "9a7afce4-a223-4aab-96aa-87a8eb094c4b",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "40bfb330-d6ef-4074-9663-bd51f0cc47b6",
+          "strategy": "Update authorization helper to deterministic role check and add comprehensive deny-path tests.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 2,
+        "changedBytes": 1186,
+        "runtimeMs": 18053,
+        "investigationReads": 2,
+        "contextBytes": 123,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Operators need authorizeAction(user, action) to decide access for console tools. Keep the helper under src/auth, make authorization trustworthy for production, and ensure tests cover both allow and deny cases. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/auth/authorize.js",
+            "Changed src/auth/authorize.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 2",
+            "src/auth/authorize.js      | 16 +++++++++++-----\n src/auth/authorize.test.js | 17 +++++++++++++++++\n 2 files changed, 28 insertions(+), 5 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "Function authorizeAction correctly checks that user.roles is an array and includes the requested action before returning true, satisfying the 'allows only when the user has the action' requirement.",
+            "All invalid inputs (null user, missing roles, non-array roles, missing action, non-string action) result in a false return, providing explicit deny/fail‑closed behavior.",
+            "Test suite includes tests for both the allow case (user with role 'read' requesting 'read') and the deny cases (unlisted action, missing roles, non‑array roles, null user), meeting the coverage requirement.",
+            "The export is placed within src/auth/authorize.js, keeping the helper under the designated folder.",
+            "No silent‑success path exists; empty/catch captures do not hide outcomes, and no added N+1 or unbounded growth patterns are evident in the hot path."
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "40bfb330-d6ef-4074-9663-bd51f0cc47b6",
+          "summary": "Update authorization helper to deterministic role check and add comprehensive deny-path tests.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/9a7afce4-a223-4aab-96aa-87a8eb094c4b",
+        "branchName": "engineer/10366850/9a7afce4-20260820224823",
+        "baseRevision": "306458f969d8e7a5ff2abb7a1c3dfc78a79beb92",
+        "status": "active"
+      },
+      "score": {
+        "pass": false,
+        "notes": [
+          "not clearly fail-closed"
+        ],
+        "robustScorecard": {
+          "functional_correctness": "FAIL",
+          "security_authorization": "FAIL",
+          "tests_negative_path": "PASS",
+          "hidden_defect_detected": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "bad_test_vs_impl",
+      "matrixClasses": [
+        "bad_test_vs_impl"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Discount calculator consistency",
+      "objective": "Finance needs computeDiscount(price, percent) under src/pricing to apply percent discounts correctly for production. Make the calculator trustworthy and ensure tests match correct business behavior for normal and edge inputs. Do not open a PR or deploy.",
+      "elapsedMs": 28759,
+      "taskId": "726ba8c8-b59a-4fca-b9f2-5d733f731b91",
+      "runId": "5183fdc5-a460-4b04-ac90-1bcf81ca1341",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "5183fdc5-a460-4b04-ac90-1bcf81ca1341",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "6f5c462a-f88b-4a88-a1ba-04d3af6ccafe",
+          "strategy": "Update discount test to correctly validate computeDiscount behavior, adding comprehensive happy, edge, and error case coverage.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 1,
+        "changedBytes": 1170,
+        "runtimeMs": 28030,
+        "investigationReads": 2,
+        "contextBytes": 128,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Finance needs computeDiscount(price, percent) under src/pricing to apply percent discounts correctly for production. Make the calculator trustworthy and ensure tests match correct business behavior for normal and edge inputs. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/pricing/discount.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 1",
+            "src/pricing/discount.test.js | 43 ++++++++++++++++++++++++++++++++++++++-----\n 1 file changed, 38 insertions(+), 5 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "Tests cover valid discount calculations, zero price, zero percent, full discount, and edge cases correctly.",
+            "Invalid inputs (negative price or percent, non-numeric arguments, percent > 100) are properly rejected."
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "6f5c462a-f88b-4a88-a1ba-04d3af6ccafe",
+          "summary": "Update discount test to correctly validate computeDiscount behavior, adding comprehensive happy, edge, and error case coverage.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/5183fdc5-a460-4b04-ac90-1bcf81ca1341",
+        "branchName": "engineer/726ba8c8/5183fdc5-20260820224844",
+        "baseRevision": "dc428463e30fc43d134cd85501f2e6c11776b68d",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "chose_correct_side": "PASS",
+          "did_not_blind_fit_impl": "PASS",
+          "functional_correctness": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "state_counter",
+      "matrixClasses": [
+        "state_concurrency"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Shared counter integrity",
+      "objective": "Operators need incrementCounter(store, key, by) under src/state to update a shared numeric counter safely for sequential callers, preserving prior totals and rejecting invalid keys. Add tests for increment and invalid input. Do not open a PR or deploy.",
+      "elapsedMs": 260834,
+      "taskId": "2929f50c-0ac9-4be8-94f1-9123a338690e",
+      "runId": "e4d960eb-2d0a-40a7-b5c9-c5cf3b6e85ba",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "e4d960eb-2d0a-40a7-b5c9-c5cf3b6e85ba",
+        "state": "exhausted",
+        "failureClass": "BUDGET_EXHAUSTED",
+        "deliveryCandidateStatus": "blocked",
+        "paused": false,
+        "message": "Budget exhausted after diagnosis."
+      },
+      "currentState": "exhausted",
+      "iterationNumber": 6,
+      "deliveryCandidateStatus": "blocked",
+      "primaryFailureCategory": "GENERATION_BUDGET_EXHAUSTED",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis",
+          "replan",
+          "diagnosis"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "377831bb-565e-4fed-b463-3b48c03a54c5",
+          "strategy": "Implement safe incrementCounter in src/state/counter.js and add comprehensive tests for increment and invalid key handling.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "workerPlanId": "c4969970-e518-4770-a485-7dd5b3100b65",
+          "strategy": "Fix failing test assertions in counter.test.js and add robust coverage for incrementCounter including invalid key and non-finite increments.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "workerPlanId": "51ac9375-05cc-417f-a303-09b3a104a305",
+          "strategy": "Fix incrementCounter key validation and add regression tests for sequential increments and invalid inputs.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "workerPlanId": "a405efd2-6ee1-4479-842d-54c420a5e59b",
+          "strategy": "Fix counter implementation and add robust increment and invalid input tests.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "workerPlanId": "666d6f5b-fda5-4b71-9390-da284cc44667",
+          "strategy": "Rewrite counter test files to use the built-in node:test API correctly, removing the erroneous TAP harness usage and adding comprehensive tests for increment behavior and invalid inputs while preserving sequential call expectations.",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "workerPlanId": "4d2dbb1a-9c1c-4fe0-8f84-39bc8a433a05",
+          "strategy": "Fix incrementCounter implementation and add comprehensive tests for increment and invalid input",
+          "outcome": "failed",
+          "failureClass": "ENGINEERING_FAILURE",
+          "summary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test",
+          "qcSummary": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "failedHypotheses": [
+        {
+          "iteration": 1,
+          "hypothesis": "Implement safe incrementCounter in src/state/counter.js and add comprehensive tests for increment and invalid key handling.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 2,
+          "hypothesis": "Fix failing test assertions in counter.test.js and add robust coverage for incrementCounter including invalid key and non-finite increments.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 3,
+          "hypothesis": "Fix incrementCounter key validation and add regression tests for sequential increments and invalid inputs.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 4,
+          "hypothesis": "Fix counter implementation and add robust increment and invalid input tests.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 5,
+          "hypothesis": "Rewrite counter test files to use the built-in node:test API correctly, removing the erroneous TAP harness usage and adding comprehensive tests for increment behavior and invalid inputs while preserving sequential call expectations.",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        },
+        {
+          "iteration": 6,
+          "hypothesis": "Fix incrementCounter implementation and add comprehensive tests for increment and invalid input",
+          "whyFailed": "QC vs baseline: new=1, changed=0, pre_existing=0, resolved=0. Failed gates: npm test"
+        }
+      ],
+      "usage": {
+        "iterations": 6,
+        "plans": 6,
+        "modelCalls": 20,
+        "changedFiles": 2,
+        "changedBytes": 10084,
+        "runtimeMs": 260832,
+        "investigationReads": 2,
+        "contextBytes": 123,
+        "planRepairs": 3,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [
+        {
+          "at": "2026-08-20T22:50:45.416Z",
+          "semanticIteration": 3,
+          "kind": "invalid_content",
+          "reason": "src/state/counter.js: file content appears to contain literal \\n escapes instead of real newlines.; src/state/counter.test.js: file content appears to contain literal \\n escapes instead of real newlines.",
+          "evidence": [
+            "src/state/counter.js: file content appears to contain literal \\n escapes instead of real newlines.; src/state/counter.test.js: file content appears to contain literal \\n escapes instead of real newlines."
+          ]
+        },
+        {
+          "at": "2026-08-20T22:52:30.978Z",
+          "semanticIteration": 5,
+          "kind": "model_output",
+          "reason": "Bad escaped character in JSON at position 593 (line 12 column 135); Could not extract a single JSON object from model output; Parsed JSON object is required",
+          "evidence": [
+            "Bad escaped character in JSON at position 593 (line 12 column 135); Could not extract a single JSON object from model output; Parsed JSON object is required"
+          ]
+        },
+        {
+          "at": "2026-08-20T22:53:12.827Z",
+          "semanticIteration": 5,
+          "kind": "model_output",
+          "reason": "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000",
+          "evidence": [
+            "GENERATION_BUDGET_EXHAUSTED: finish_reason=length under max_tokens=10000"
+          ]
+        }
+      ],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 1,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 1,
+        "objectiveQcPassed": false
+      },
+      "plans": [
+        {
+          "id": "4d2dbb1a-9c1c-4fe0-8f84-39bc8a433a05",
+          "summary": "Fix incrementCounter implementation and add comprehensive tests for increment and invalid input",
+          "iterationNumber": 6,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "666d6f5b-fda5-4b71-9390-da284cc44667",
+          "summary": "Rewrite counter test files to use the built-in node:test API correctly, removing the erroneous TAP harness usage and adding comprehensive tests for increment behavior and invalid inputs while preserving sequential call expectations.",
+          "iterationNumber": 5,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "a405efd2-6ee1-4479-842d-54c420a5e59b",
+          "summary": "Fix counter implementation and add robust increment and invalid input tests.",
+          "iterationNumber": 4,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "51ac9375-05cc-417f-a303-09b3a104a305",
+          "summary": "Fix incrementCounter key validation and add regression tests for sequential increments and invalid inputs.",
+          "iterationNumber": 3,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "c4969970-e518-4770-a485-7dd5b3100b65",
+          "summary": "Fix failing test assertions in counter.test.js and add robust coverage for incrementCounter including invalid key and non-finite increments.",
+          "iterationNumber": 2,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        },
+        {
+          "id": "377831bb-565e-4fed-b463-3b48c03a54c5",
+          "summary": "Implement safe incrementCounter in src/state/counter.js and add comprehensive tests for increment and invalid key handling.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/e4d960eb-2d0a-40a7-b5c9-c5cf3b6e85ba",
+        "branchName": "engineer/2929f50c/e4d960eb-20260820224912",
+        "baseRevision": "c62feb55ca12aaf6fdcc605503d0807e2b1bcc68",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "state_integrity": "PASS",
+          "validation": "PASS",
+          "tests": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "backward_compat_greet",
+      "matrixClasses": [
+        "backward_compat"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Greeting API compatibility",
+      "objective": "Product needs formatGreeting under src/compat to support a preferred 'displayName' argument while remaining compatible with existing callers that pass 'name'. Keep both call shapes working with tests. Do not open a PR or deploy.",
+      "elapsedMs": 18968,
+      "taskId": "e526b632-0685-4e5c-82e6-6fa6c79f6b0b",
+      "runId": "a0d30113-c5c8-4c71-adce-7381fcabe309",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "a0d30113-c5c8-4c71-adce-7381fcabe309",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "cf7e8ebc-1950-4fca-b1b1-94ebf57913fc",
+          "strategy": "Add displayName support to formatGreeting while preserving name compatibility, and extend tests with happy, negative, and precedence cases",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 2,
+        "changedBytes": 883,
+        "runtimeMs": 18503,
+        "investigationReads": 2,
+        "contextBytes": 123,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Product needs formatGreeting under src/compat to support a preferred 'displayName' argument while remaining compatible with existing callers that pass 'name'. Keep both call shapes working with tests. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/compat/greet.js",
+            "Changed src/compat/greet.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 2",
+            "src/compat/greet.js      | 10 +++++++---\n src/compat/greet.test.js | 15 +++++++++++++++\n 2 files changed, 22 insertions(+), 3 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "cf7e8ebc-1950-4fca-b1b1-94ebf57913fc",
+          "summary": "Add displayName support to formatGreeting while preserving name compatibility, and extend tests with happy, negative, and precedence cases",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/a0d30113-c5c8-4c71-adce-7381fcabe309",
+        "branchName": "engineer/e526b632/a0d30113-20260820225333",
+        "baseRevision": "3c2986292190d3d2ffd34f7eae0a656bbb5477b9",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "backward_compat": "PASS",
+          "new_shape": "PASS",
+          "tests": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "cross_cutting_label",
+      "matrixClasses": [
+        "cross_cutting"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Shared label formatter",
+      "objective": "Directors need a shared label formatter used by both src/ui/badge.js and src/reports/line.js under src/shared so labels are consistent, validated, and tested. Keep changes inside authorized prefixes. Do not open a PR or deploy.",
+      "elapsedMs": 34576,
+      "taskId": "9edbf2ed-baff-4ebe-a5eb-70ac9c6d16fa",
+      "runId": "f5257343-3bb3-4304-b1bb-576928c7cb54",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "f5257343-3bb3-4304-b1bb-576928c7cb54",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "a49b9055-8e73-41e4-b84f-ad8a6a95f3a1",
+          "strategy": "Introduce a shared label formatter under src/shared, update badge.js and line.js to use it, and add comprehensive tests",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 4,
+        "changedBytes": 1316,
+        "runtimeMs": 32768,
+        "investigationReads": 2,
+        "contextBytes": 143,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need a shared label formatter used by both src/ui/badge.js and src/reports/line.js under src/shared so labels are consistent, validated, and tested. Keep changes inside authorized prefixes. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/reports/line.js",
+            "Changed src/shared/label.js",
+            "Changed src/shared/label.test.js",
+            "Changed src/ui/badge.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 4",
+            "src/reports/line.js | 7 ++++++-\n src/ui/badge.js     | 6 +++++-\n 2 files changed, 11 insertions(+), 2 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "Shared label formatter exists at src/shared/label.js and is imported by both src/ui/badge.js and src/reports/line.js.",
+            "Invalid label inputs are validated and rejected with an Error.",
+            "Unit tests in src/shared/label.test.js cover happy path, whitespace trimming, and rejection of empty or non‑string inputs.",
+            "All changes are confined to the authorized src/shared directory."
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "a49b9055-8e73-41e4-b84f-ad8a6a95f3a1",
+          "summary": "Introduce a shared label formatter under src/shared, update badge.js and line.js to use it, and add comprehensive tests",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/f5257343-3bb3-4304-b1bb-576928c7cb54",
+        "branchName": "engineer/9edbf2ed/f5257343-20260820225352",
+        "baseRevision": "5cd2799b4b96f8fcb697aea3eead9493fa8bb34a",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "cross_cutting": "PASS",
+          "scope_discipline": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "agent_bad_code",
+      "matrixClasses": [
+        "agent_generated_bad_code"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Normalize helper cleanup",
+      "objective": "Directors need normalizeToken under src/normalize to trim and lowercase tokens for production use with clear tests. Improve the existing helper so it is coherent and trustworthy. Do not open a PR or deploy.",
+      "elapsedMs": 25797,
+      "taskId": "b5616d7b-30c1-42ab-850f-da4a3cc19938",
+      "runId": "561dac86-fd97-4ca5-9629-67dcb2270dcc",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "561dac86-fd97-4ca5-9629-67dcb2270dcc",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "1f6595bd-9f13-446f-9b1f-261d89c761d9",
+          "strategy": "Implement a robust normalizeToken that consistently trims and lowercases tokens, remove the special-case hack, and add comprehensive tests covering happy, negative, and edge cases.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 2,
+        "changedBytes": 1816,
+        "runtimeMs": 24130,
+        "investigationReads": 2,
+        "contextBytes": 129,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Directors need normalizeToken under src/normalize to trim and lowercase tokens for production use with clear tests. Improve the existing helper so it is coherent and trustworthy. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/normalize/token.js",
+            "Changed src/normalize/token.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 2",
+            "src/normalize/token.js      | 26 ++++++++++++++++++++------\n src/normalize/token.test.js | 29 ++++++++++++++++++++++++++++-\n 2 files changed, 48 insertions(+), 7 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [
+            "The new normalizeToken trims and lowercases tokens as required; test suite validates whitespace handling, empty strings, numeric/NULL coercion, and mixed-case inputs; legacy helpers are commented and not exported, eliminating duplicated dead code; no regression risk indicated by quality gates."
+          ],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "1f6595bd-9f13-446f-9b1f-261d89c761d9",
+          "summary": "Implement a robust normalizeToken that consistently trims and lowercases tokens, remove the special-case hack, and add comprehensive tests covering happy, negative, and edge cases.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/561dac86-fd97-4ca5-9629-67dcb2270dcc",
+        "branchName": "engineer/b5616d7b/561dac86-20260820225427",
+        "baseRevision": "cd24e00c929cca885604b390ef6887d50eaab150",
+        "status": "active"
+      },
+      "score": {
+        "pass": false,
+        "notes": [
+          "duplicate helpers remain"
+        ],
+        "robustScorecard": {
+          "remediated_agent_mess": "FAIL",
+          "no_workaround_stack": "PASS",
+          "validation": "PASS"
+        },
+        "badCodeScorecard": {
+          "repaired_design_not_hack": "FAIL",
+          "removed_obsolete_patterns": "FAIL"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    },
+    {
+      "specimenId": "perf_lookup",
+      "matrixClasses": [
+        "performance_awareness"
+      ],
+      "hardClass": null,
+      "variant": null,
+      "title": "Index lookup helper",
+      "objective": "Operators need findById(items, id) under src/perf to look up records efficiently for lists that can grow large. Prefer an approach suitable for repeated lookups, with tests for found/missing. Do not open a PR or deploy.",
+      "elapsedMs": 19480,
+      "taskId": "02500939-57d6-41d9-a331-d5ba236256b9",
+      "runId": "dfd28b66-5758-4482-a124-3567293f4f6e",
+      "maxIterations": 6,
+      "nanoRuntimeMode": "FAITHFUL",
+      "result": {
+        "runId": "dfd28b66-5758-4482-a124-3567293f4f6e",
+        "state": "waiting_for_approval",
+        "failureClass": null,
+        "deliveryCandidateStatus": "ready",
+        "paused": false,
+        "message": "Delivery candidate ready for human release decision."
+      },
+      "currentState": "waiting_for_approval",
+      "iterationNumber": 1,
+      "deliveryCandidateStatus": "ready",
+      "primaryFailureCategory": "SUCCESS",
+      "workerModel": {
+        "route": "live_default_worker",
+        "providerName": "local_openai_compatible",
+        "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+        "rolesInvoked": [
+          "investigation",
+          "interpretation",
+          "planning",
+          "review",
+          "completion"
+        ]
+      },
+      "priorAttempts": [
+        {
+          "iteration": 1,
+          "workerPlanId": "03daea77-8796-4ec8-b039-0776879f9c33",
+          "strategy": "Replace pathological nested-loop findById with a linear scan and add a missing-id test case.",
+          "outcome": "passed",
+          "failureClass": null,
+          "summary": "Worker plan executed and quality gates passed.",
+          "qcSummary": "Quality gates passed or skipped."
+        }
+      ],
+      "failedHypotheses": [],
+      "usage": {
+        "iterations": 1,
+        "plans": 1,
+        "modelCalls": 5,
+        "changedFiles": 2,
+        "changedBytes": 478,
+        "runtimeMs": 18537,
+        "investigationReads": 2,
+        "contextBytes": 120,
+        "planRepairs": 0,
+        "postReviewRepairs": 0
+      },
+      "budget": {
+        "max_iterations": 6,
+        "max_plans": 8,
+        "max_model_calls": 28,
+        "max_changed_files": 40,
+        "max_changed_bytes": 500000,
+        "max_runtime_ms": 2700000,
+        "max_investigation_reads": 80,
+        "max_context_bytes": 200000,
+        "max_plan_repairs": 8,
+        "max_post_review_repairs": 2
+      },
+      "planRepairHistory": [],
+      "lastIterationChargeKind": "ENGINEERING_ITERATION",
+      "reviews": [
+        {
+          "review": "requirements",
+          "passed": true,
+          "findings": [
+            "Operators need findById(items, id) under src/perf to look up records efficiently for lists that can grow large. Prefer an approach suitable for repeated lookups, with tests for found/missing. Do not open a PR or deploy."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "diff_quality",
+          "passed": true,
+          "findings": [
+            "Changed src/perf/lookup.js",
+            "Changed src/perf/lookup.test.js"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "regression_risk",
+          "passed": true,
+          "findings": [
+            "Allowlisted quality gates passed."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "scope",
+          "passed": true,
+          "findings": [
+            "Changed file count: 2",
+            "src/perf/lookup.js      | 8 ++++----\n src/perf/lookup.test.js | 5 +++++\n 2 files changed, 9 insertions(+), 4 deletions(-)"
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "engineering_quality",
+          "passed": true,
+          "findings": [
+            "No deterministic engineering-quality blockers in changed sources."
+          ],
+          "actionableDefects": []
+        },
+        {
+          "review": "worker_adversarial",
+          "passed": true,
+          "findings": [],
+          "actionableDefects": []
+        }
+      ],
+      "unresolvedDefects": [],
+      "qcDelta": {
+        "new": 0,
+        "preExisting": 0,
+        "changed": 0,
+        "owned": 0,
+        "objectiveQcPassed": true
+      },
+      "plans": [
+        {
+          "id": "03daea77-8796-4ec8-b039-0776879f9c33",
+          "summary": "Replace pathological nested-loop findById with a linear scan and add a missing-id test case.",
+          "iterationNumber": 1,
+          "validationStatus": "valid",
+          "executionStatus": "executed"
+        }
+      ],
+      "worktree": {
+        "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/dfd28b66-5758-4482-a124-3567293f4f6e",
+        "branchName": "engineer/02500939/dfd28b66-20260820225453",
+        "baseRevision": "9d902b4d451a377452719e34f54945b6468277bf",
+        "status": "active"
+      },
+      "score": {
+        "pass": true,
+        "notes": [],
+        "robustScorecard": {
+          "performance_awareness": "PASS",
+          "functional_correctness": "PASS",
+          "tests": "PASS"
+        }
+      },
+      "humanCodingInterventions": 0,
+      "validQualificationRun": true
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "validRuns": 8,
+    "scorePass": 6,
+    "deliveryReady": 7,
+    "byFailure": {
+      "SUCCESS": 7,
+      "GENERATION_BUDGET_EXHAUSTED": 1
+    }
+  }
+}

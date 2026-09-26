@@ -1,0 +1,14 @@
+{"specimen":"agent_bad_code","hardClass":null,"variant":null,"runId":"12a1615b-785a-4a8b-ada3-1832718577e4","maxIterations":6,"status":"starting"}
+{"specimen":"agent_bad_code","runId":"12a1615b-785a-4a8b-ada3-1832718577e4","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":30331,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-generation-budget/agent_bad_code-12a1615b.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-generation-budget/batch-2026-08-21T06-30-24-676Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}

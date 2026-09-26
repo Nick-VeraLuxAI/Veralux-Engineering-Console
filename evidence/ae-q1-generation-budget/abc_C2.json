@@ -1,0 +1,24 @@
+{
+  "rep": "C2",
+  "mode": "two_phase_early_stop",
+  "rb": 6000,
+  "max_tokens": 16000,
+  "lat": 14.98,
+  "fr": "stop",
+  "prompt": 604,
+  "comp": 4186,
+  "r_chars": 13779,
+  "f_chars": 3411,
+  "r_tok_est": 3444,
+  "f_tok_est": 852,
+  "json_ok": true,
+  "err": null,
+  "ops": 2,
+  "src": 2541,
+  "paths": [
+    "src/lease/lease.js",
+    "src/lease/lease.test.js"
+  ],
+  "cls": "OK",
+  "phase": "early"
+}

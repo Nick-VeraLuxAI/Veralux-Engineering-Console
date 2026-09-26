@@ -1,0 +1,38 @@
+{
+  "name": "abc_jobs_B_faithful_8082",
+  "base": "http://127.0.0.1:8082/v1",
+  "elapsed_s": 11.65,
+  "finish_reason": "stop",
+  "usage": {
+    "prompt_tokens": 200,
+    "total_tokens": 3467,
+    "completion_tokens": 3267,
+    "prompt_tokens_details": null
+  },
+  "has_reasoning_field": true,
+  "reasoning_preview": "We need to output a JSON object with runId, summary, allowedFiles, operations: each operation type with path, content, reason. Should include files only, not directories. We need to create async job runner under src/jobs/. Likely we need a file src/jobs/runner.js or something, plus maybe a test file src/jobs/runner.test.js, maybe also a package.json or module setup? The request: \"Build an idempote",
+  "content_preview": "{\n  \"runId\": \"jobs-hard\",\n  \"summary\": \"Idempotent async job runner with pending/success/failure tracking, duplicate safety, and resume support, accompanied by a test suite.\",\n  \"allowedFiles\": [\n    \"src/jobs/runner.js\",\n    \"src/jobs/runner.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"create_file\",\n      \"path\": \"src/jobs/runner.js\",\n      \"content\": \"export async function applyJob(jobId, payload, store) {\\n  // Initialize job tracking map if missing\\n  if (!store.jobs) store.jobs = {};\\n\\n  const currentState = store.jobs[jobId];\\n\\n  // Already finished \u2013 nothing to do\\n  if (curre",
+  "think_tags_in_content": false,
+  "parse_error": null,
+  "plan_summary": "Idempotent async job runner with pending/success/failure tracking, duplicate safety, and resume support, accompanied by a test suite.",
+  "request": {
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "max_tokens": 10000,
+    "chat_template_kwargs": {
+      "enable_thinking": true
+    }
+  },
+  "score": {
+    "parse": true,
+    "semantic": "PASS",
+    "notes": [
+      "async_await=Y",
+      "assert_rejects=Y",
+      "no_throwsAsync=Y",
+      "no_require=Y",
+      "pending_or_status=Y",
+      "dup_guard=Y"
+    ]
+  }
+}

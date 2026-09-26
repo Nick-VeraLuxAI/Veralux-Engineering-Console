@@ -1,0 +1,14 @@
+{"specimen":"rate_limit_feature_v5","hardClass":null,"variant":null,"runId":"88295df6-9b04-4af9-bbd2-ea0e9feafcba","maxIterations":6,"status":"starting"}
+{"specimen":"rate_limit_feature_v5","runId":"88295df6-9b04-4af9-bbd2-ea0e9feafcba","delivery":"blocked","primaryFailureCategory":"PRIMARY_QC_NONCONVERGENCE","scorePass":false,"iterations":6,"elapsedMs":192966,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-greenfield-closure/rate_limit_feature_v5-88295df6.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-greenfield-closure/batch-2026-08-21T03-33-11-679Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 0,
+    "deliveryReady": 0,
+    "byFailure": {
+      "PRIMARY_QC_NONCONVERGENCE": 1
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{"specimen":"rate_limit_feature","hardClass":null,"variant":null,"runId":"11f4f8f2-e705-4277-93b6-f6671438418f","maxIterations":6,"status":"starting"}
+{"specimen":"rate_limit_feature","runId":"11f4f8f2-e705-4277-93b6-f6671438418f","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":5,"elapsedMs":178812,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/rate_limit_feature-11f4f8f2.json"}
+{"specimen":"passing_wrong_auth","hardClass":null,"variant":null,"runId":"9a7afce4-a223-4aab-96aa-87a8eb094c4b","maxIterations":6,"status":"starting"}
+{"specimen":"passing_wrong_auth","runId":"9a7afce4-a223-4aab-96aa-87a8eb094c4b","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":false,"iterations":1,"elapsedMs":20522,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/passing_wrong_auth-9a7afce4.json"}
+{"specimen":"bad_test_vs_impl","hardClass":null,"variant":null,"runId":"5183fdc5-a460-4b04-ac90-1bcf81ca1341","maxIterations":6,"status":"starting"}
+{"specimen":"bad_test_vs_impl","runId":"5183fdc5-a460-4b04-ac90-1bcf81ca1341","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":28759,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/bad_test_vs_impl-5183fdc5.json"}
+{"specimen":"state_counter","hardClass":null,"variant":null,"runId":"e4d960eb-2d0a-40a7-b5c9-c5cf3b6e85ba","maxIterations":6,"status":"starting"}
+{"specimen":"state_counter","runId":"e4d960eb-2d0a-40a7-b5c9-c5cf3b6e85ba","delivery":"blocked","primaryFailureCategory":"GENERATION_BUDGET_EXHAUSTED","scorePass":true,"iterations":6,"elapsedMs":260834,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/state_counter-e4d960eb.json"}
+{"specimen":"backward_compat_greet","hardClass":null,"variant":null,"runId":"a0d30113-c5c8-4c71-adce-7381fcabe309","maxIterations":6,"status":"starting"}
+{"specimen":"backward_compat_greet","runId":"a0d30113-c5c8-4c71-adce-7381fcabe309","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":18968,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/backward_compat_greet-a0d30113.json"}
+{"specimen":"cross_cutting_label","hardClass":null,"variant":null,"runId":"f5257343-3bb3-4304-b1bb-576928c7cb54","maxIterations":6,"status":"starting"}
+{"specimen":"cross_cutting_label","runId":"f5257343-3bb3-4304-b1bb-576928c7cb54","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":34576,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/cross_cutting_label-f5257343.json"}
+{"specimen":"agent_bad_code","hardClass":null,"variant":null,"runId":"561dac86-fd97-4ca5-9629-67dcb2270dcc","maxIterations":6,"status":"starting"}
+{"specimen":"agent_bad_code","runId":"561dac86-fd97-4ca5-9629-67dcb2270dcc","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":false,"iterations":1,"elapsedMs":25797,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/agent_bad_code-561dac86.json"}
+{"specimen":"perf_lookup","hardClass":null,"variant":null,"runId":"dfd28b66-5758-4482-a124-3567293f4f6e","maxIterations":6,"status":"starting"}
+{"specimen":"perf_lookup","runId":"dfd28b66-5758-4482-a124-3567293f4f6e","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":19480,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/perf_lookup-dfd28b66.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-robust-requalification/batch-2026-08-20T22-45-24-615Z.json",
+  "summary": {
+    "total": 8,
+    "validRuns": 8,
+    "scorePass": 6,
+    "deliveryReady": 7,
+    "byFailure": {
+      "SUCCESS": 7,
+      "GENERATION_BUDGET_EXHAUSTED": 1
+    }
+  }
+}

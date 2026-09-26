@@ -1,0 +1,8 @@
+{
+  "command": "npm test -- src/lib/engineer-console/autonomous-engineer/*.test.ts src/lib/engineer-console/worker-plan/*.test.ts src/lib/engineer-console/quality-gates/*.test.ts",
+  "testFiles": 21,
+  "tests": 152,
+  "passed": 152,
+  "failed": 0,
+  "notes": "Includes false-completion-protection C1\u2013C4 (+6), fixture v2/v3 (+2), executor delete (+2); baseline prior targeted pass was 20/142"
+}

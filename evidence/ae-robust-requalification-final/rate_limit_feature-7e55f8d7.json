@@ -1,0 +1,246 @@
+{
+  "specimenId": "rate_limit_feature",
+  "matrixClasses": [
+    "robust_new_feature"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Request rate window helper",
+  "objective": "Directors need a small rate-limit helper under src/ratelimit that tracks allow/deny for a caller key within a window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+  "elapsedMs": 217292,
+  "taskId": "4838b1cf-c3b5-4d4f-9d85-c1b032eed2d9",
+  "runId": "7e55f8d7-3669-44ad-b961-cbdc66b7535b",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "7e55f8d7-3669-44ad-b961-cbdc66b7535b",
+    "state": "exhausted",
+    "failureClass": "BUDGET_EXHAUSTED",
+    "deliveryCandidateStatus": "blocked",
+    "paused": false,
+    "message": "Budget exhausted after diagnosis."
+  },
+  "currentState": "exhausted",
+  "iterationNumber": 6,
+  "deliveryCandidateStatus": "blocked",
+  "primaryFailureCategory": "PRIMARY_QC_NONCONVERGENCE",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis",
+      "replan",
+      "diagnosis"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "44b6b6af-5188-4e35-b2a6-3443fce6c50f",
+      "strategy": "Fix escaped newline literals in rate-limit source and test files",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "workerPlanId": "4bb8dfe8-830a-4b93-bb05-8a21d3d61e48",
+      "strategy": "Add missing store fixture to satisfy referenced variable in tests",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "workerPlanId": "c9411430-2db6-489f-8870-e6a95c2f9b5e",
+      "strategy": "Fix undefined store reference, add input validation to rate limiter creator, expand tests to cover allow/deny behavior and validation errors, ensure store import works",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "workerPlanId": "151022df-e0e7-4a55-92d3-f5a7d5255b53",
+      "strategy": "Added a clear method to the in‑memory store so tests can reset state between runs, fixing the ReferenceError: beforeEach and enabling deterministic test execution.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "workerPlanId": "c4dea869-196c-454e-a6fe-49cd7bb8afa8",
+      "strategy": "Rewrite rate.test.js to use Node's native test runner with explicit imports of test and beforeEach, eliminating ReferenceError.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "workerPlanId": "73b9b95b-c5ee-4f8e-a481-a4acf384d530",
+      "strategy": "Migrate rate.test.js to use node:test API with proper lifecycle hooks, removing ReferenceError: beforeEach and ensuring test compatibility with the ESM environment.",
+      "outcome": "failed",
+      "failureClass": "ENGINEERING_FAILURE",
+      "summary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test",
+      "qcSummary": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "failedHypotheses": [
+    {
+      "iteration": 1,
+      "hypothesis": "Fix escaped newline literals in rate-limit source and test files",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 2,
+      "hypothesis": "Add missing store fixture to satisfy referenced variable in tests",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 3,
+      "hypothesis": "Fix undefined store reference, add input validation to rate limiter creator, expand tests to cover allow/deny behavior and validation errors, ensure store import works",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 4,
+      "hypothesis": "Added a clear method to the in‑memory store so tests can reset state between runs, fixing the ReferenceError: beforeEach and enabling deterministic test execution.",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 5,
+      "hypothesis": "Rewrite rate.test.js to use Node's native test runner with explicit imports of test and beforeEach, eliminating ReferenceError.",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    },
+    {
+      "iteration": 6,
+      "hypothesis": "Migrate rate.test.js to use node:test API with proper lifecycle hooks, removing ReferenceError: beforeEach and ensuring test compatibility with the ESM environment.",
+      "whyFailed": "QC vs baseline: new=0, changed=1, pre_existing=0, resolved=0. Failed gates: npm test"
+    }
+  ],
+  "usage": {
+    "iterations": 6,
+    "plans": 6,
+    "modelCalls": 17,
+    "changedFiles": 2,
+    "changedBytes": 9516,
+    "runtimeMs": 217288,
+    "investigationReads": 2,
+    "contextBytes": 127,
+    "planRepairs": 1,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [
+    {
+      "at": "2026-08-21T01:09:50.570Z",
+      "semanticIteration": 0,
+      "kind": "invalid_content",
+      "reason": "src/ratelimit/rateLimiter.js: file content appears to contain literal \\n escapes instead of real newlines.; src/ratelimit/rate.test.js: file content appears to contain literal \\n escapes instead of real newlines.",
+      "evidence": [
+        "src/ratelimit/rateLimiter.js: file content appears to contain literal \\n escapes instead of real newlines.; src/ratelimit/rate.test.js: file content appears to contain literal \\n escapes instead of real newlines."
+      ]
+    }
+  ],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 1,
+    "owned": 1,
+    "objectiveQcPassed": false
+  },
+  "plans": [
+    {
+      "id": "73b9b95b-c5ee-4f8e-a481-a4acf384d530",
+      "summary": "Migrate rate.test.js to use node:test API with proper lifecycle hooks, removing ReferenceError: beforeEach and ensuring test compatibility with the ESM environment.",
+      "iterationNumber": 6,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "c4dea869-196c-454e-a6fe-49cd7bb8afa8",
+      "summary": "Rewrite rate.test.js to use Node's native test runner with explicit imports of test and beforeEach, eliminating ReferenceError.",
+      "iterationNumber": 5,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "151022df-e0e7-4a55-92d3-f5a7d5255b53",
+      "summary": "Added a clear method to the in‑memory store so tests can reset state between runs, fixing the ReferenceError: beforeEach and enabling deterministic test execution.",
+      "iterationNumber": 4,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "c9411430-2db6-489f-8870-e6a95c2f9b5e",
+      "summary": "Fix undefined store reference, add input validation to rate limiter creator, expand tests to cover allow/deny behavior and validation errors, ensure store import works",
+      "iterationNumber": 3,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "4bb8dfe8-830a-4b93-bb05-8a21d3d61e48",
+      "summary": "Add missing store fixture to satisfy referenced variable in tests",
+      "iterationNumber": 2,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    },
+    {
+      "id": "44b6b6af-5188-4e35-b2a6-3443fce6c50f",
+      "summary": "Fix escaped newline literals in rate-limit source and test files",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/7e55f8d7-3669-44ad-b961-cbdc66b7535b",
+    "branchName": "engineer/4838b1cf/7e55f8d7-20260821010855",
+    "baseRevision": "3fb8c42e3f299ea74e2410708de4b517fefb1098",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "validation_error_handling": "PASS",
+      "tests_negative_path": "PASS",
+      "maintainable_structure": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

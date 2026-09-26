@@ -1,0 +1,11 @@
+{"runId":"8bd437c0-1fd3-48ec-807c-2106cd026f07","taskId":"2f39f031-1947-49e5-b439-08c818ed8725","status":"starting"}
+{
+  "outFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/test-results/ae-v1-qual-live-dogfood.json",
+  "runId": "8bd437c0-1fd3-48ec-807c-2106cd026f07",
+  "state": "exhausted",
+  "delivery": "blocked",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "provider": "local_openai_compatible",
+  "iterations": 8,
+  "newFailures": 72
+}

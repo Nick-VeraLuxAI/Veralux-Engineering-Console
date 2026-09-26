@@ -160,10 +160,11 @@ describe("run navigation helpers", () => {
     const items = buildRunQuickNavItems(summary, guidance);
 
     expect(items.map((item) => item.label)).toEqual([
-      "Current action",
+      "What to do now",
       "Worker plan",
       "Approval",
       "Evidence",
+      "Senior Review Advisory",
       "Replay",
       "Policy",
       "Reviews",
@@ -174,11 +175,41 @@ describe("run navigation helpers", () => {
       "Sign-off",
       "Audit",
     ]);
+    expect(RUN_PANEL_IDS.seniorReviewAdvisory).toBe("senior-review-advisory");
+    const seniorNav = items.find((item) => item.id === "senior-review-advisory");
+    expect(seniorNav?.href).toBe(`#${RUN_PANEL_IDS.seniorReviewAdvisory}`);
+    expect(seniorNav?.label).toBe("Senior Review Advisory");
+    expect(JSON.stringify(items)).not.toMatch(
+      /127\.0\.0\.1|:1919|:8081|:8082|ENGINEER_CONSOLE|\/mnt\/model-storage|localhost/i,
+    );
     expect(items.find((item) => item.id === "pr")?.href).toBe(`#${RUN_PANEL_IDS.prCreation}`);
     expect(items.find((item) => item.id === "audit")?.href).toBe(`#${RUN_PANEL_IDS.auditTimeline}`);
     expect(items.find((item) => item.id === "current-action")?.href).toBe(
       `#${RUN_NAV_TARGET_IDS.currentAction}`,
     );
+  });
+
+  it("keeps the senior review advisory jump when evidence is missing", () => {
+    const summary = buildSummary({ evidence: { exists: false, updatedAt: null } });
+    const guidance = deriveRunCommandCenterState(summary);
+    const items = buildRunQuickNavItems(summary, guidance);
+    const seniorNav = items.find((item) => item.id === "senior-review-advisory");
+    expect(seniorNav?.href).toBe(`#${RUN_PANEL_IDS.seniorReviewAdvisory}`);
+    expect(seniorNav?.statusLabel).toBe("empty");
+  });
+
+  it("expands governance review for the senior review advisory hash", () => {
+    const expanded = expandGroupForTarget(
+      {
+        active_work: false,
+        governance_review: false,
+        pr_release: false,
+        technical_audit: false,
+      },
+      RUN_PANEL_IDS.seniorReviewAdvisory,
+    );
+
+    expect(expanded.governance_review).toBe(true);
   });
 
   it("expands the PR and release group for PR targets", () => {

@@ -1,0 +1,163 @@
+{
+  "specimenId": "rate_limit_feature_v3",
+  "matrixClasses": [
+    "robust_new_feature"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Throttle gate helper",
+  "objective": "Directors need a small throttle helper under src/throttle that decides whether a subject key may proceed inside a time window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy.",
+  "elapsedMs": 52742,
+  "taskId": "4a63b252-c3b9-4da0-8a8c-ceb91dbae037",
+  "runId": "49b825d6-8444-4b59-b4c6-c5f0fa0fe974",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "49b825d6-8444-4b59-b4c6-c5f0fa0fe974",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "c2f4fdbb-f95c-4457-bd37-8e0e368d7983",
+      "strategy": "Add throttle helper gate.js with input validation and tests covering allow, deny, and invalid inputs, using node:test and node:assert/strict.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 1307,
+    "runtimeMs": 49755,
+    "investigationReads": 2,
+    "contextBytes": 122,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a small throttle helper under src/throttle that decides whether a subject key may proceed inside a time window, validates inputs, covers allow and deny paths with tests, and stays maintainable. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/throttle/gate.js",
+        "Changed src/throttle/gate.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "Working tree changes not yet in HEAD:\n src/throttle/gate.js | 21 lines\n src/throttle/gate.test.js | 23 lines"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "c2f4fdbb-f95c-4457-bd37-8e0e368d7983",
+      "summary": "Add throttle helper gate.js with input validation and tests covering allow, deny, and invalid inputs, using node:test and node:assert/strict.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/49b825d6-8444-4b59-b4c6-c5f0fa0fe974",
+    "branchName": "engineer/4a63b252/49b825d6-20260821032257",
+    "baseRevision": "05ac7879b86752879f842173e658f7b10ef65dc2",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "validation_error_handling": "PASS",
+      "tests_negative_path": "PASS",
+      "maintainable_structure": "PASS"
+    },
+    "rescoredAt": "2026-08-21T03:42:50.613Z"
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

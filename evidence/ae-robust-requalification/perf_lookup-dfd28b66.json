@@ -1,0 +1,161 @@
+{
+  "specimenId": "perf_lookup",
+  "matrixClasses": [
+    "performance_awareness"
+  ],
+  "hardClass": null,
+  "variant": null,
+  "title": "Index lookup helper",
+  "objective": "Operators need findById(items, id) under src/perf to look up records efficiently for lists that can grow large. Prefer an approach suitable for repeated lookups, with tests for found/missing. Do not open a PR or deploy.",
+  "elapsedMs": 19480,
+  "taskId": "02500939-57d6-41d9-a331-d5ba236256b9",
+  "runId": "dfd28b66-5758-4482-a124-3567293f4f6e",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "dfd28b66-5758-4482-a124-3567293f4f6e",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "03daea77-8796-4ec8-b039-0776879f9c33",
+      "strategy": "Replace pathological nested-loop findById with a linear scan and add a missing-id test case.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 478,
+    "runtimeMs": 18537,
+    "investigationReads": 2,
+    "contextBytes": 120,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Operators need findById(items, id) under src/perf to look up records efficiently for lists that can grow large. Prefer an approach suitable for repeated lookups, with tests for found/missing. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/perf/lookup.js",
+        "Changed src/perf/lookup.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/perf/lookup.js      | 8 ++++----\n src/perf/lookup.test.js | 5 +++++\n 2 files changed, 9 insertions(+), 4 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "03daea77-8796-4ec8-b039-0776879f9c33",
+      "summary": "Replace pathological nested-loop findById with a linear scan and add a missing-id test case.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/dfd28b66-5758-4482-a124-3567293f4f6e",
+    "branchName": "engineer/02500939/dfd28b66-20260820225453",
+    "baseRevision": "9d902b4d451a377452719e34f54945b6468277bf",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "performance_awareness": "PASS",
+      "functional_correctness": "PASS",
+      "tests": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

@@ -1,0 +1,7 @@
+{
+  "final_verdict": "boot_probe_failed",
+  "child_process": {
+    "stdout_summary": "model_load_failed configuration_nemotron_h.py missing at canonical Super path",
+    "stderr_summary": "Could not locate configuration_nemotron_h.py under nvidia_NVIDIA-Nemotron-3-Super-120B-A12B-FP8"
+  }
+}

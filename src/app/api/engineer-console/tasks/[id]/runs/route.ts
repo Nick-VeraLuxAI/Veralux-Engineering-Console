@@ -4,6 +4,7 @@ import { createRun, listRunsForTask } from "@/lib/engineer-console/run-manager/r
 import { getTaskById, updateTask } from "@/lib/engineer-console/task-manager/task-manager";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import { authorizeMutation, authorizeRead } from "@/lib/engineer-console/security/route-guards";
+import { createAutonomousState } from "@/lib/engineer-console/autonomous-engineer/state-store";
 
 export const runtime = "nodejs";
 
@@ -35,12 +36,40 @@ export async function POST(
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
-  const run = createRun(id);
+  let body: {
+    mode?: string;
+    objective?: string;
+    acceptanceCriteria?: string[];
+    constraints?: string[];
+    authorizedPathPrefixes?: string[];
+  } = {};
+  try {
+    const text = await request.text();
+    if (text.trim()) {
+      body = JSON.parse(text) as typeof body;
+    }
+  } catch {
+    return NextResponse.json({ error: "Request body must be valid JSON" }, { status: 400 });
+  }
+
+  const autonomous = body.mode === "autonomous";
+  const run = createRun(id, autonomous ? "autonomous_engineer" : "engineer");
   updateTask(id, { status: "queued" });
+
+  if (autonomous) {
+    createAutonomousState({
+      runId: run.id,
+      task,
+      objective: (body.objective ?? task.description ?? task.title).trim(),
+      acceptanceCriteria: body.acceptanceCriteria,
+      constraints: body.constraints,
+      authorizedPathPrefixes: body.authorizedPathPrefixes,
+    });
+  }
 
   void executeRun(run.id).catch((error) => {
     console.error(`Run ${run.id} failed:`, error);
   });
 
-  return NextResponse.json({ run }, { status: 201 });
+  return NextResponse.json({ run, autonomous }, { status: 201 });
 }

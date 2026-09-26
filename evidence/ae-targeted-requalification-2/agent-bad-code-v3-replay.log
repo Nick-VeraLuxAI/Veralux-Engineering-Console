@@ -1,0 +1,14 @@
+{"specimen":"agent_bad_code_v3","hardClass":null,"variant":3,"runId":"60152a50-11c9-4e97-a0a2-6c0825dc6414","maxIterations":6,"status":"starting"}
+{"specimen":"agent_bad_code_v3","runId":"60152a50-11c9-4e97-a0a2-6c0825dc6414","delivery":"ready","primaryFailureCategory":"SUCCESS","scorePass":true,"iterations":1,"elapsedMs":33437,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-targeted-requalification-2/agent_bad_code_v3-60152a50.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-targeted-requalification-2/batch-2026-08-21T00-45-57-260Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 1,
+    "byFailure": {
+      "SUCCESS": 1
+    }
+  }
+}

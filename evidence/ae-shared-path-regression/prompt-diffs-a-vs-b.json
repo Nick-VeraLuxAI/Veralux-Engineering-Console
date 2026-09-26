@@ -1,0 +1,23 @@
+{
+  "KNOWN_GOOD": "0e44223da6eff251181a104cc073ec2695e92687",
+  "CURRENT": "604f2ed94ed3b35ab4698560f019651db3d76f51",
+  "planning_replan_template_chars": {
+    "A": 8075,
+    "B": 8383,
+    "delta": 308
+  },
+  "diagnosis_template_chars": {
+    "A": 952,
+    "B": 1251,
+    "delta": 299
+  },
+  "always_on_additions_B": [
+    "If QC shows ReferenceError '<name> is not defined' with a stack frame in a non-test src file, import or define that name in the production file first...",
+    "Diagnosis: If evidence shows ReferenceError '<name> is not defined' with a stack frame in a non-test production file..."
+  ],
+  "signature_gated_additions_B": [
+    "unboundHint via formatUnboundDependencyHint (empty when no unbound evidence)",
+    "dependencyNeighborhood candidate modules into focusPaths/exemplars when unbound present"
+  ],
+  "assessment": "Q1 improvements added always-on generic import-wiring bias to ALL classes (~300 chars planning + ~300 diagnosis). Combined with strong node:assert exemplars, this can bias jobs/ledger/state toward harness repair and assert-in-prod. Neighborhood hints when STATUS-like ReferenceErrors appear further bias ledger. Conclusion: SHARED_PROMPT_POLLUTION primary suspect; helpers must inject only when unbound evidence signature present."
+}

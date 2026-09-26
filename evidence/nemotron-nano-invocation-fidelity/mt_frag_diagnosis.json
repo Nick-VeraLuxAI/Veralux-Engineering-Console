@@ -1,0 +1,72 @@
+{
+  "summary": {
+    "label": "mt_frag_diagnosis",
+    "elapsed_s": 1.49,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 310,
+      "total_tokens": 715,
+      "completion_tokens": 405,
+      "prompt_tokens_details": null
+    },
+    "content_len": 1799,
+    "final_len": 1799,
+    "has_think_close": false,
+    "content_preview": "{\n  \"whyPreviousFailed\": \"The test 'resume pending' expected a synchronous return value 'done' but applyJob returned a Promise, causing an AssertionError. The prior strategy of making applyJob return a promise was incomplete because it did not properly handle the asynchronous nature of the work function, leading to a mismatch between the resolved promise value and the expected 'done' string.\",\n  \"",
+    "final_preview": "{\n  \"whyPreviousFailed\": \"The test 'resume pending' expected a synchronous return value 'done' but applyJob returned a Promise, causing an AssertionError. The prior strategy of making applyJob return a promise was incomplete because it did not properly handle the asynchronous nature of the work function, leading to a mismatch between the resolved promise value and the expected 'done' string.\",\n  \"suggestedStrategy\": \"Implement proper async handling in applyJob to await the work function and resolve with the correct value, ensuring the returned promise resolves to 'done' when expected. Also, up",
+    "request_meta": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 0.1,
+      "max_tokens": 768,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    }
+  },
+  "messages": [
+    {
+      "role": "system",
+      "content": "You diagnose a failed iteration using ONLY the supplied QC evidence. Output JSON only: {whyPreviousFailed, suggestedStrategy, filesToInspect, observed_failure, evidence_quote_or_signature, affected_file_or_gate, root_cause_hypothesis, confidence, contradictory_evidence, recommended_strategy_change, avoid_repeating}."
+    },
+    {
+      "role": "user",
+      "content": "QC evidence:\nQC vs baseline: new=1 Failed gates: npm test. Evidence: AssertionError [ERR_ASSERTION]: Values have no relation: Promise { 'done' } !== 'done'. Test 'resume pending' compared applyJob(...) return value to 'done' without await.\nPrior strategy: make applyJob return promise.\nFiles:\n// Half-built: only first success path sketched.\nexport const store = { applied: {}, pending: {} };\nexport function applyJob(id, work) {\n  // TODO: resume / duplicate / failure recording\n  const result = work();\n  store.applied[id] = (store.applied[id] || 0) + 1;\n  return result;\n}\n\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { applyJob, store } from './jobs.js';\ntest('applies once', () => {\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\n  assert.equal(applyJob('j1', () => 1), 1);\n});\n"
+    }
+  ],
+  "response": {
+    "id": "chatcmpl-ad324818304b8a9d",
+    "object": "chat.completion",
+    "created": 1787254842,
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"whyPreviousFailed\": \"The test 'resume pending' expected a synchronous return value 'done' but applyJob returned a Promise, causing an AssertionError. The prior strategy of making applyJob return a promise was incomplete because it did not properly handle the asynchronous nature of the work function, leading to a mismatch between the resolved promise value and the expected 'done' string.\",\n  \"suggestedStrategy\": \"Implement proper async handling in applyJob to await the work function and resolve with the correct value, ensuring the returned promise resolves to 'done' when expected. Also, update the test to await the promise or check the resolved value appropriately.\",\n  \"filesToInspect\": [\n    \"jobs.js\"\n  ],\n  \"observed_failure\": \"AssertionError [ERR_ASSERTION]: Values have no relation: Promise { 'done' } !== 'done'\",\n  \"evidence_quote_or_signature\": \"Values have no relation: Promise { 'done' } !== 'done'\",\n  \"affected_file_or_gate\": \"jobs.js\",\n  \"root_cause_hypothesis\": \"applyJob does not await the work function, so it returns a pending Promise, but the test expects a resolved value 'done' without awaiting, causing a type mismatch in the assertion.\",\n  \"confidence\": 0.95,\n  \"contradictory_evidence\": \"The prior strategy of making applyJob return a promise was partially correct but failed to resolve the promise with the expected value, indicating the fix must include proper awaiting and value resolution.\",\n  \"recommended_strategy_change\": \"Modify applyJob to await the work function and return its resolved value, and update the test to properly handle the asynchronous return (e.g., using async/await or .then()).\",\n  \"avoid_repeating\": \"Do not assume synchronous behavior; always handle promises with await or proper async testing patterns to prevent value mismatches.\"\n}",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "tool_calls": [],
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "prompt_tokens": 310,
+      "total_tokens": 715,
+      "completion_tokens": 405,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "kv_transfer_params": null
+  }
+}

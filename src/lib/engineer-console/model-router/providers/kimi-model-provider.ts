@@ -38,6 +38,14 @@ function isWorkerPlan(value: unknown): value is WorkerPlan {
   );
 }
 
+export interface KimiStructuredJsonResult {
+  providerName: string;
+  modelName: string;
+  rawResponse: string;
+  parsed: unknown | null;
+  parseErrors: string[];
+}
+
 export class KimiModelProvider implements ModelProvider {
   readonly name = "kimi";
 
@@ -53,13 +61,79 @@ export class KimiModelProvider implements ModelProvider {
     }
   }
 
+  async completeStructuredJson(input: {
+    system: string;
+    user: string;
+  }): Promise<KimiStructuredJsonResult> {
+    const payload = await this.chatJson(input.system, input.user);
+    const rawResponse = payload.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!rawResponse) {
+      return {
+        providerName: this.name,
+        modelName: this.config.kimiModel,
+        rawResponse: "",
+        parsed: null,
+        parseErrors: ["Kimi returned an empty completion"],
+      };
+    }
+    const parsed = parseJsonModelOutput(rawResponse);
+    return {
+      providerName: this.name,
+      modelName: this.config.kimiModel,
+      rawResponse,
+      parsed: parsed.success ? parsed.parsed : null,
+      parseErrors: parsed.errors,
+    };
+  }
+
   async generateWorkerPlanDraft(
     input: GenerateWorkerPlanDraftInput,
   ): Promise<GenerateWorkerPlanDraftResult> {
     const createdAt = new Date().toISOString();
+    const payload = await this.chatJson(
+      "You are a worker plan generator for VeraLux Engineer Console. Output only a single JSON object matching the worker plan schema. No markdown, commentary, or shell commands. Never write files, never run shell, never approve release.",
+      input.prompt,
+    );
+
+    const rawResponse = payload.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!rawResponse) {
+      return {
+        providerName: this.name,
+        modelName: this.config.kimiModel,
+        rawResponse: "",
+        parsedPlan: null,
+        parseErrors: ["Kimi returned an empty completion"],
+        usage: mapUsage(payload.usage),
+        createdAt,
+      };
+    }
+
+    const parsed = parseJsonModelOutput(rawResponse);
+    const parseErrors = [...parsed.errors];
+    let parsedPlan: WorkerPlan | null = null;
+
+    if (parsed.success && parsed.parsed) {
+      if (isWorkerPlan(parsed.parsed)) {
+        parsedPlan = parsed.parsed;
+      } else {
+        parseErrors.push("Parsed JSON does not match worker plan schema");
+      }
+    }
+
+    return {
+      providerName: this.name,
+      modelName: this.config.kimiModel,
+      rawResponse,
+      parsedPlan,
+      parseErrors,
+      usage: mapUsage(payload.usage),
+      createdAt,
+    };
+  }
+
+  private async chatJson(system: string, user: string): Promise<ChatCompletionResponse> {
     const apiKey = this.config.kimiApiKey!;
     const url = `${this.config.kimiBaseUrl.replace(/\/$/, "")}/chat/completions`;
-
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.requestTimeoutMs);
 
@@ -74,15 +148,8 @@ export class KimiModelProvider implements ModelProvider {
         body: JSON.stringify({
           model: this.config.kimiModel,
           messages: [
-            {
-              role: "system",
-              content:
-                "You are a worker plan generator for VeraLux Engineer Console. Output only a single JSON object matching the worker plan schema. No markdown, commentary, or shell commands.",
-            },
-            {
-              role: "user",
-              content: input.prompt,
-            },
+            { role: "system", content: system },
+            { role: "user", content: user },
           ],
           temperature: 0.2,
           response_format: { type: "json_object" },
@@ -122,41 +189,7 @@ export class KimiModelProvider implements ModelProvider {
         `Kimi API error (HTTP ${response.status}): ${apiMessage}`,
       );
     }
-
-    const rawResponse = payload.choices?.[0]?.message?.content?.trim() ?? "";
-    if (!rawResponse) {
-      return {
-        providerName: this.name,
-        modelName: this.config.kimiModel,
-        rawResponse: bodyText,
-        parsedPlan: null,
-        parseErrors: ["Kimi returned an empty completion"],
-        usage: mapUsage(payload.usage),
-        createdAt,
-      };
-    }
-
-    const parsed = parseJsonModelOutput(rawResponse);
-    const parseErrors = [...parsed.errors];
-    let parsedPlan: WorkerPlan | null = null;
-
-    if (parsed.success && parsed.parsed) {
-      if (isWorkerPlan(parsed.parsed)) {
-        parsedPlan = parsed.parsed;
-      } else {
-        parseErrors.push("Parsed JSON does not match worker plan schema");
-      }
-    }
-
-    return {
-      providerName: this.name,
-      modelName: this.config.kimiModel,
-      rawResponse,
-      parsedPlan,
-      parseErrors,
-      usage: mapUsage(payload.usage),
-      createdAt,
-    };
+    return payload;
   }
 }
 

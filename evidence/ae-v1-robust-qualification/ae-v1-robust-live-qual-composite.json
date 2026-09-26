@@ -1,0 +1,60 @@
+{
+  "at": "2026-08-20T02:27:00.000Z",
+  "qualification": "NOT_ROBUST_CODE_QUALIFIED",
+  "branch": "feature/autonomous-engineer-v1",
+  "startCommit": "ff56c7b",
+  "worker": "Nemotron-Nano-30B-A3B-NVFP4",
+  "endpoint": "http://127.0.0.1:8081/v1",
+  "docker": "nemotron-nano-vera-8081",
+  "superUsed": false,
+  "humanCodingInterventions": 0,
+  "specimens": [
+    {
+      "specimenId": "passing_wrong_auth",
+      "class": ["passing_but_wrong", "bad_code_remediation", "authorization"],
+      "runId": "6d60df15-6559-409e-95fc-85775f971122",
+      "deliveryCandidateStatus": "ready",
+      "iterationNumber": 1,
+      "scorePass": true,
+      "notes": "Repaired success-fallback authorizeAction to fail-closed; node:test coverage for allow/deny; delivered waiting_for_approval"
+    },
+    {
+      "specimenId": "console_feature",
+      "class": ["robust_new_feature"],
+      "runId": "29bd7cbe-f90e-4bed-87aa-8518a794452a",
+      "deliveryCandidateStatus": "ready",
+      "iterationNumber": 4,
+      "scorePass": true,
+      "notes": "Director risk-line helper after planning max_tokens/context headroom fix; objective QC passed with pre-existing disclosed"
+    },
+    {
+      "specimenId": "bad_legacy_ledger",
+      "class": ["bad_code_remediation"],
+      "runId": "455d700b-a847-487b-b070-5ad4c5b5e879",
+      "deliveryCandidateStatus": "blocked",
+      "iterationNumber": 8,
+      "scorePass": false,
+      "notes": "EXHAUSTED: repeatedly emitted invalid ESM/CJS hybrid tests (require in type:module, expect from node:test) despite diagnosis hints"
+    },
+    {
+      "specimenId": "idempotent_job_runner",
+      "class": ["failure_recovery", "idempotency"],
+      "runId": "90702b1f-45d4-4eac-b732-d9224522724e",
+      "deliveryCandidateStatus": "blocked",
+      "iterationNumber": 6,
+      "scorePass": true,
+      "notes": "Implementation often healthier but tests keep inventing assert.throwsAsync; prior run reached QC green then over-blocked by adversarial inventiveness"
+    }
+  ],
+  "summary": {
+    "deliveryReady": 2,
+    "scorePass": 3,
+    "total": 4,
+    "blockers": [
+      "Dedicated nested/duplicated legacy ledger specimen never reached delivery",
+      "Nano cannot reliably author node:assert/node:test APIs across iterations",
+      "Console-sized planning originally exceeded 8192 context (fixed partially; still fragile)",
+      "Scenarios 1-15 not all proven as live senior-grade engineering; several only controlled"
+    ]
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "A": {
+    "mode": "A_current_faithful",
+    "reasoning_budget": null,
+    "max_tokens": 10000,
+    "latency_s": 19.99,
+    "finish_reason": "stop",
+    "prompt_tokens": 268,
+    "completion_tokens": 5604,
+    "reasoning_tokens_reported": null,
+    "reasoning_tokens_derived": 4298,
+    "final_tokens_derived": 850,
+    "reasoning_chars": 17195,
+    "final_chars": 3402,
+    "truncation_class": "D",
+    "score": {
+      "json_ok": false,
+      "parse_err": "Expecting ',' delimiter: line 18 column 1727 (char 3314)",
+      "ops": 0,
+      "src_bytes": 0,
+      "paths": [],
+      "semantic": {
+        "has_lease_path": false,
+        "has_test": false,
+        "has_node_test": false,
+        "mentions_ttl_or_expire": false,
+        "has_deny_or_false_path": false,
+        "not_always_true_stub": true
+      },
+      "semantic_pass": false
+    },
+    "final_tail": "n    lease.releaseLease('subject1');\\n    assert.strictEqual(lease._isLeaseActive('subject1'), false);\\n  });\\n\");\n      \"reason\": \"Add unit tests covering validation and grant/deny paths\"\n    }\n  ]\n}",
+    "reasoning_tail": "Active('subject1'), false);\\n  });\\n}\");\n      \"reason\": \"Add unit tests covering validation and grant/deny paths\"\n    }\n  ]\n}\n\nMake sure no trailing commas. Ensure JSON is valid.\n\nNow produce final.\n"
+  },
+  "B": {
+    "mode": "B_bounded_reasoning_4000",
+    "reasoning_budget": 4000,
+    "max_tokens": 10000,
+    "phase": "single_phase_complete",
+    "latency_s": 8.27,
+    "finish_reason": "stop",
+    "prompt_tokens": 268,
+    "completion_tokens": 2311,
+    "reasoning_tokens_reported": null,
+    "reasoning_tokens_derived": 1226,
+    "final_tokens_derived": 883,
+    "reasoning_chars": 4906,
+    "final_chars": 3532,
+    "truncation_class": "D",
+    "score": {
+      "json_ok": false,
+      "parse_err": "Invalid \\escape: line 12 column 991 (char 1256)",
+      "ops": 0,
+      "src_bytes": 0,
+      "paths": [],
+      "semantic": {
+        "has_lease_path": false,
+        "has_test": false,
+        "has_node_test": false,
+        "mentions_ttl_or_expire": false,
+        "has_deny_or_false_path": false,
+        "not_always_true_stub": true
+      },
+      "semantic_pass": false
+    },
+    "final_tail": "assert.doesNotThrow(() => helper.validateSubjectKey('validKey'));\\n});\\n\",\n      \"reason\": \"Covers grant, deny (implicit via delete), validation, and TTL checks with node:test assertions.\"\n    }\n  ]\n}",
+    "reasoning_tail": "ake sure we never import expect from node:test.\n\nNow ensure allowedFiles includes \"src/lease/lease.js\" and \"src/lease/lease.test.js\".\n\nCreate file operations with type create_file.\n\nNow produce JSON.\n"
+  },
+  "C": {
+    "mode": "C_larger_max_reserved_final",
+    "reasoning_budget": 5000,
+    "max_tokens": 14000,
+    "phase": "single_phase_complete",
+    "latency_s": 17.63,
+    "finish_reason": "stop",
+    "prompt_tokens": 268,
+    "completion_tokens": 4938,
+    "reasoning_tokens_reported": null,
+    "reasoning_tokens_derived": 3476,
+    "final_tokens_derived": 1105,
+    "reasoning_chars": 13905,
+    "final_chars": 4421,
+    "truncation_class": "F",
+    "score": {
+      "json_ok": true,
+      "parse_err": null,
+      "ops": 2,
+      "src_bytes": 3754,
+      "paths": [
+        "src/lease/lease.js",
+        "src/lease/lease.test.js"
+      ],
+      "semantic": {
+        "has_lease_path": true,
+        "has_test": true,
+        "has_node_test": true,
+        "mentions_ttl_or_expire": true,
+        "has_deny_or_false_path": true,
+        "not_always_true_stub": true
+      },
+      "semantic_pass": true
+    },
+    "final_tail": "n\\ntest('denyLease on non\u2011existent subject returns false', async () => {\\n  assert.strictEqual(denyLease('nonexistent'), false);\\n});\\n\",\n      \"reason\": \"Add unit tests for lease manager\"\n    }\n  ]\n}",
+    "reasoning_tail": " line breaks with \\n and maybe also escape backslashes? Not needed.\n\nWe also need to escape any backslashes? Not present.\n\nSo final JSON will contain escaped \\n for newlines.\n\nNow produce final JSON.\n"
+  }
+}

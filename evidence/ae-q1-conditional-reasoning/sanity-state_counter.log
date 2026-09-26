@@ -1,0 +1,14 @@
+{"specimen":"state_counter","hardClass":null,"variant":null,"runId":"71429eab-36e0-4619-bc71-78d46ad34acf","maxIterations":6,"status":"starting"}
+{"specimen":"state_counter","runId":"71429eab-36e0-4619-bc71-78d46ad34acf","delivery":"blocked","primaryFailureCategory":"PRIMARY_QC_NONCONVERGENCE","scorePass":true,"iterations":6,"elapsedMs":119166,"evidence":"/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-conditional-reasoning/state_counter-71429eab.json"}
+{
+  "batchFile": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/evidence/ae-q1-conditional-reasoning/batch-2026-08-21T16-37-05-127Z.json",
+  "summary": {
+    "total": 1,
+    "validRuns": 1,
+    "scorePass": 1,
+    "deliveryReady": 0,
+    "byFailure": {
+      "PRIMARY_QC_NONCONVERGENCE": 1
+    }
+  }
+}

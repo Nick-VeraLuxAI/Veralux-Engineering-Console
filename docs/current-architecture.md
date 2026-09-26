@@ -4,9 +4,9 @@ Snapshot of the VeraLux Engineering Console as implemented through Phase 8F (rel
 
 ## System purpose
 
-A **governed AI engineering control plane**: tasks and runs, model-assisted worker plan drafts, deterministic worker plan execution (only repo file-write boundary), quality gates, governance/policy/replay/evidence, human approval, and release lifecycle records (PR, merge, deploy, health, checklist, sign-off).
+It is a **governed AI engineering control plane** with an Autonomous Engineer orchestration layer: tasks and runs, model-assisted worker plan drafts, deterministic worker plan execution (only repo file-write boundary), quality gates, governance/policy/replay/evidence, human approval, and release lifecycle records (PR, merge, deploy, health, checklist, sign-off).
 
-It is **not** autonomous coding, not a multi-repo IDE, and not auto-deploy by default.
+Autonomous Engineer V1 plans, executes, and retries **inside** those primitives. It is not unrestricted coding, not a multi-repo IDE, and not auto-deploy. Human gates remain for PR/merge/deploy/sign-off.
 
 ## Stack
 
@@ -16,7 +16,7 @@ It is **not** autonomous coding, not a multi-repo IDE, and not auto-deploy by de
 | API | Next.js Route Handlers (`runtime = nodejs`) |
 | Data | SQLite (`better-sqlite3`), WAL, foreign keys |
 | Tests | Vitest (unit/integration under `src/lib/engineer-console`) |
-| Models | Mock (default), Kimi (OpenAI-compatible HTTP) |
+| Models | Mock (default), Kimi (OpenAI-compatible HTTP). Local role split: Nano 8081 short worker, Nano 8082 long worker, DeepSeek FTW senior on demand — see [source-of-truth/local-model-runtime-strategy.md](./source-of-truth/local-model-runtime-strategy.md). Named AE profiles (switchboard only): [source-of-truth/ae-runtime-profiles-v1.md](./source-of-truth/ae-runtime-profiles-v1.md). Senior escalation package: [source-of-truth/ae-senior-escalation-package-v1.md](./source-of-truth/ae-senior-escalation-package-v1.md). Governed live senior invocation (operator-requested only): [source-of-truth/ae-governed-live-senior-invocation-v2.md](./source-of-truth/ae-governed-live-senior-invocation-v2.md). Senior review queue / operator command: [source-of-truth/ae-senior-review-queue-v1.md](./source-of-truth/ae-senior-review-queue-v1.md). Run-detail panel: [source-of-truth/ae-senior-review-panel-v1.md](./source-of-truth/ae-senior-review-panel-v1.md) |
 
 ## Module map (`src/lib/engineer-console/`)
 
@@ -25,11 +25,13 @@ It is **not** autonomous coding, not a multi-repo IDE, and not auto-deploy by de
 | Database | `db/` | Schema, client, init, bootstrap admin |
 | Security | `security/` | Auth config, sessions, CSRF, route guards, roles |
 | Tasks / runs | `task-manager/`, `run-manager/` | CRUD, run lifecycle fields |
-| Workspace | `workspace/` | Git checkout, diff, controlled git for PR/merge |
-| Orchestrator | `orchestrator/` | Start run, approval actions, worker plan submit |
+| Workspace | `workspace/` | Git checkout, **per-run isolated worktrees**, diff, controlled git for PR/merge |
+| Orchestrator | `orchestrator/` | Start run, approval actions, worker plan submit; Autonomous Engineer loop for AE-mode runs |
+| Autonomous Engineer | `autonomous-engineer/` | Investigate → (clarify) → plan → validate → execute → baseline-aware QC → diagnose/replan → director completion package |
 | Worker plan | `worker-plan/` | Validate, execute UTF-8 file ops only |
 | Model router | `model-router/` | Draft generation, providers, prompts |
-| Quality gates | `quality-gates/` | Run repo `npm test` / build / lint when present |
+| Senior escalation | `senior-escalation/` | Escalation package + operator-requested DeepSeek review (not AE worker, not loop-wired) |
+| Quality gates | `quality-gates/` | Allowlisted `npm test` / build / lint / typecheck; AE compares post-change results to a pre-mutation baseline |
 | Approval | `approval/` | Approval report JSON |
 | Governance | `governance/` | Audit ledger, evidence, decisions, replay, policy, review stages |
 | Repo intelligence | `repo-intelligence/` | Register repos, file/code index, compatibility |
@@ -37,7 +39,10 @@ It is **not** autonomous coding, not a multi-repo IDE, and not auto-deploy by de
 | Server | `server.ts` | `ensureEngineerConsoleReady()` — DB + config validation |
 
 UI components: `src/components/engineer-console/*`  
-Client fetch (CSRF): `src/lib/engineer-console-client/fetch.ts`
+Client fetch (CSRF): `src/lib/engineer-console-client/fetch.ts`  
+Frontend audit (routes, components, senior-review fit, evidence path): [source-of-truth/frontend-engineering-console-audit.md](./source-of-truth/frontend-engineering-console-audit.md)  
+Durable senior-review evidence (state_json + redacted evidence summary): [source-of-truth/ae-senior-review-durable-evidence-v1.md](./source-of-truth/ae-senior-review-durable-evidence-v1.md)  
+Review-workspace Evidence panel senior summary: [source-of-truth/ae-senior-review-evidence-panel-v1.md](./source-of-truth/ae-senior-review-evidence-panel-v1.md)
 
 ## UI routes
 
@@ -63,12 +68,14 @@ flowchart TB
   end
 
   subgraph execution [Execution]
-    RUN[Start run / branch]
-    DRAFT[Model worker plan draft]
+    AE[Autonomous loop]
+    RUN[Start run / isolated worktree]
+    DRAFT[Worker plan draft]
     WP[Validate and execute worker plan]
     QG[Quality gates]
+    DIAG[Diagnose and replan if QC fails]
     GOV[Governance risk]
-    AR[Approval report]
+    AR[Approval report / delivery candidate]
   end
 
   subgraph human [Human governance]
@@ -99,7 +106,10 @@ flowchart TB
   R --> FI --> CI
   R --> T
   CA --> T
-  T --> RUN --> DRAFT --> WP --> QG --> GOV --> AR
+  T --> RUN --> AE
+  AE --> DRAFT --> WP --> QG
+  QG --> DIAG --> AE
+  QG --> GOV --> AR
   AR --> AP
   AP --> RS
   AP --> DR
@@ -116,6 +126,7 @@ flowchart TB
 |-------|--------|
 | `engineer_registered_repos`, `engineer_package_scripts`, `engineer_test_profiles` | Repo registration |
 | `engineering_tasks`, `engineering_runs` | Work tracking |
+| `engineer_autonomous_run_states`, `engineer_run_worktrees` | Autonomous Engineer V1 |
 | `quality_gate_results`, `approval_reports` | Run outcomes |
 | `engineer_worker_plans`, `engineer_worker_operations`, `engineer_worker_plan_drafts` | Plans |
 | `engineer_audit_events` | Append-only audit |
@@ -158,6 +169,7 @@ Base: `/api/engineer-console`
 | GET | `/tasks/[id]` | viewer |
 | GET, POST | `/tasks/[id]/runs` | operator |
 | GET | `/runs/[id]` | viewer |
+| GET, POST | `/runs/[id]/senior-review` | viewer / operator (advisory only; exact confirmation) |
 | POST | `/runs/[id]/actions` | operator (approve → admin via assert) |
 | POST | `/runs/[id]/worker-plan` | operator |
 | POST | `/runs/[id]/worker-plan-drafts` | operator |

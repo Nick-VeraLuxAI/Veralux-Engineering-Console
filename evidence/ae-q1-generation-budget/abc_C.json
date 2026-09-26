@@ -1,0 +1,37 @@
+{
+  "mode": "C_larger_max_reserved_final",
+  "reasoning_budget": 5000,
+  "max_tokens": 14000,
+  "phase": "single_phase_complete",
+  "latency_s": 17.63,
+  "finish_reason": "stop",
+  "prompt_tokens": 268,
+  "completion_tokens": 4938,
+  "reasoning_tokens_reported": null,
+  "reasoning_tokens_derived": 3476,
+  "final_tokens_derived": 1105,
+  "reasoning_chars": 13905,
+  "final_chars": 4421,
+  "truncation_class": "F",
+  "score": {
+    "json_ok": true,
+    "parse_err": null,
+    "ops": 2,
+    "src_bytes": 3754,
+    "paths": [
+      "src/lease/lease.js",
+      "src/lease/lease.test.js"
+    ],
+    "semantic": {
+      "has_lease_path": true,
+      "has_test": true,
+      "has_node_test": true,
+      "mentions_ttl_or_expire": true,
+      "has_deny_or_false_path": true,
+      "not_always_true_stub": true
+    },
+    "semantic_pass": true
+  },
+  "final_tail": "n\\ntest('denyLease on non\u2011existent subject returns false', async () => {\\n  assert.strictEqual(denyLease('nonexistent'), false);\\n});\\n\",\n      \"reason\": \"Add unit tests for lease manager\"\n    }\n  ]\n}",
+  "reasoning_tail": " line breaks with \\n and maybe also escape backslashes? Not needed.\n\nWe also need to escape any backslashes? Not present.\n\nSo final JSON will contain escaped \\n for newlines.\n\nNow produce final JSON.\n"
+}

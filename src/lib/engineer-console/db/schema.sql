@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS engineer_worker_plans (
   execution_status TEXT NOT NULL DEFAULT 'pending',
   execution_errors_json TEXT NOT NULL DEFAULT '[]',
   executed_operations_json TEXT NOT NULL DEFAULT '[]',
+  iteration_number INTEGER,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
@@ -954,3 +955,137 @@ CREATE INDEX IF NOT EXISTS idx_engineer_operator_sessions_operator_id
 
 CREATE INDEX IF NOT EXISTS idx_engineer_operator_sessions_expires_at
   ON engineer_operator_sessions (expires_at);
+
+-- Autonomous Engineer V1: durable, rehydratable orchestration state (not Vera governance JSON)
+CREATE TABLE IF NOT EXISTS engineer_autonomous_run_states (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL UNIQUE,
+  version INTEGER NOT NULL DEFAULT 1,
+  mode TEXT NOT NULL DEFAULT 'autonomous_engineer_v1',
+  current_state TEXT NOT NULL,
+  iteration_number INTEGER NOT NULL DEFAULT 0,
+  failure_class TEXT,
+  delivery_candidate_status TEXT,
+  state_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_autonomous_run_states_run_id
+  ON engineer_autonomous_run_states (run_id);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_autonomous_run_states_current_state
+  ON engineer_autonomous_run_states (current_state);
+
+-- Autonomous Engineer V1: per-run isolated git worktrees (never the director working tree)
+CREATE TABLE IF NOT EXISTS engineer_run_worktrees (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL UNIQUE,
+  repo_path TEXT NOT NULL,
+  worktree_path TEXT NOT NULL UNIQUE,
+  branch_name TEXT NOT NULL,
+  base_revision TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  dirty_paths_json TEXT NOT NULL DEFAULT '[]',
+  cleanup_blocked_reason TEXT,
+  cleanup_recorded_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES engineering_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_run_worktrees_run_id
+  ON engineer_run_worktrees (run_id);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_run_worktrees_status
+  ON engineer_run_worktrees (status);
+
+-- SkillOpt V1: passive institutional memory (no production prompt injection)
+CREATE TABLE IF NOT EXISTS engineer_skills (
+  id TEXT PRIMARY KEY NOT NULL,
+  status TEXT NOT NULL,
+  lesson_type TEXT NOT NULL,
+  model_scope TEXT NOT NULL,
+  model_family TEXT,
+  model_id TEXT,
+  signature TEXT NOT NULL,
+  title TEXT NOT NULL,
+  lesson TEXT NOT NULL,
+  anti_patterns_json TEXT NOT NULL DEFAULT '[]',
+  tags_json TEXT NOT NULL DEFAULT '[]',
+  confidence REAL NOT NULL DEFAULT 0,
+  validation_count INTEGER NOT NULL DEFAULT 0,
+  rejection_count INTEGER NOT NULL DEFAULT 0,
+  current_version INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_skills_status ON engineer_skills (status);
+CREATE INDEX IF NOT EXISTS idx_engineer_skills_signature ON engineer_skills (signature);
+CREATE INDEX IF NOT EXISTS idx_engineer_skills_model_scope ON engineer_skills (model_scope, model_id);
+
+CREATE TABLE IF NOT EXISTS engineer_skill_versions (
+  id TEXT PRIMARY KEY NOT NULL,
+  skill_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  lesson TEXT NOT NULL,
+  anti_patterns_json TEXT NOT NULL DEFAULT '[]',
+  change_reason TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (skill_id) REFERENCES engineer_skills (id) ON DELETE CASCADE,
+  UNIQUE (skill_id, version)
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_skill_versions_skill_id
+  ON engineer_skill_versions (skill_id, version DESC);
+
+CREATE TABLE IF NOT EXISTS engineer_skill_evidence (
+  id TEXT PRIMARY KEY NOT NULL,
+  skill_id TEXT NOT NULL,
+  polarity TEXT NOT NULL,
+  ref_path TEXT NOT NULL,
+  ref_kind TEXT NOT NULL,
+  run_id TEXT,
+  task_id TEXT,
+  summary TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (skill_id) REFERENCES engineer_skills (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_skill_evidence_skill_id
+  ON engineer_skill_evidence (skill_id);
+
+CREATE TABLE IF NOT EXISTS engineer_skill_validations (
+  id TEXT PRIMARY KEY NOT NULL,
+  skill_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (skill_id) REFERENCES engineer_skills (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_skill_validations_skill_id
+  ON engineer_skill_validations (skill_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS engineer_skill_shadow_retrievals (
+  id TEXT PRIMARY KEY NOT NULL,
+  run_id TEXT NOT NULL,
+  task_id TEXT,
+  model_id TEXT,
+  model_family TEXT,
+  query_signature TEXT NOT NULL,
+  task_context_digest TEXT NOT NULL,
+  matched_skill_ids_json TEXT NOT NULL DEFAULT '[]',
+  would_inject TEXT NOT NULL DEFAULT '',
+  actually_injected INTEGER NOT NULL DEFAULT 0,
+  prompt_hash_before TEXT NOT NULL,
+  prompt_hash_after TEXT NOT NULL,
+  ranking_scores_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_engineer_skill_shadow_retrievals_run_id
+  ON engineer_skill_shadow_retrievals (run_id, created_at DESC);

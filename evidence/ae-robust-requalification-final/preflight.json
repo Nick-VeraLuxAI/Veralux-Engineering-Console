@@ -1,0 +1,96 @@
+{
+  "at": "2026-08-21T00:56:07.749564Z",
+  "phase": "final-full-robust-requalification",
+  "branch": "feature/autonomous-engineer-v1",
+  "tip": "0e44223da6eff251181a104cc073ec2695e92687",
+  "tipExpected": "0e44223da6eff251181a104cc073ec2695e92687",
+  "tipMatch": true,
+  "statusLine": "## feature/autonomous-engineer-v1",
+  "runtime": {
+    "endpoint": "http://127.0.0.1:8082/v1",
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "root": "/models/nano-30b-a3b-nvfp4",
+    "max_model_len": 262144,
+    "container": "nemotron-nano-faithful-8082",
+    "serveCmd": [
+      "vllm",
+      "serve",
+      "/models/nano-30b-a3b-nvfp4",
+      "--served-model-name",
+      "Nemotron-Nano-30B-A3B-NVFP4",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "8082",
+      "--trust-remote-code",
+      "--kv-cache-dtype",
+      "fp8",
+      "--tensor-parallel-size",
+      "1",
+      "--max-model-len",
+      "262144",
+      "--max-num-seqs",
+      "1",
+      "--max-num-batched-tokens",
+      "2048",
+      "--gpu-memory-utilization",
+      "0.82",
+      "--enable-auto-tool-choice",
+      "--tool-call-parser",
+      "qwen3_coder",
+      "--reasoning-parser-plugin",
+      "/models/nano-30b-a3b-nvfp4/nano_v3_reasoning_parser.py",
+      "--reasoning-parser",
+      "nano_v3"
+    ]
+  },
+  "faithfulRequirements": {
+    "max_model_len": 262144,
+    "max_num_batched_tokens": 2048,
+    "max_num_seqs": 1,
+    "reasoning_parser": "nano_v3",
+    "tool_call_parser": "qwen3_coder",
+    "enable_auto_tool_choice": true
+  },
+  "probe": {
+    "think_on_reasoning_field": true,
+    "health_http": 200
+  },
+  "regressionBaseline": {
+    "files": 21,
+    "tests": 153,
+    "passed": 153,
+    "failed": 0,
+    "note": "+1 state_counter_v3 fixture freeze vs prior 152 baseline; no AE product regression"
+  },
+  "evidenceRoot": "evidence/ae-robust-requalification-final",
+  "nonGoals": [
+    "no SkillOpt",
+    "no Super-as-worker",
+    "no ceiling raise",
+    "no QC weaken",
+    "no push/PR/merge/deploy"
+  ],
+  "fixtureFreshness": {
+    "ledgerApis": [
+      "bookPayment",
+      "captureCharge",
+      "closeInvoice"
+    ],
+    "jobApis": [
+      "enqueueJob",
+      "dispatchTask",
+      "finalizeWork"
+    ],
+    "stateVariants": [
+      "state_counter",
+      "state_counter_v2",
+      "state_counter_v3"
+    ],
+    "agentBadVariants": [
+      "agent_bad_code",
+      "agent_bad_code_v2",
+      "agent_bad_code_v3"
+    ]
+  }
+}

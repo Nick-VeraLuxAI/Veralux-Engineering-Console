@@ -1,0 +1,66 @@
+{
+  "tip": "896db6e (pre-change) \u2192 commit after this audit",
+  "faithful": "http://127.0.0.1:8082/v1 max_model_len=262144",
+  "reasoning_budget_env": "ENGINEER_CONSOLE_AE_NANO_REASONING_BUDGET=4000 for triad/sanity",
+  "default_behavior": "unset = legacy single-shot (reversible)",
+  "triad": [
+    {
+      "specimen": "lease_window_feature",
+      "runId": "f989d92e-5f84-4229-93e5-93831437bd55",
+      "delivery": "blocked",
+      "category": "PRIMARY_QC_NONCONVERGENCE",
+      "scorePass": false,
+      "iters": 6,
+      "gbe": false
+    },
+    {
+      "specimen": "attempt_limiter_feature",
+      "runId": "fdd16500-6f2e-4f2b-9f24-34585d2fc71e",
+      "delivery": "blocked",
+      "category": "MATERIAL_REVIEW_BLOCK",
+      "scorePass": false,
+      "iters": 6,
+      "gbe": false
+    },
+    {
+      "specimen": "slot_reservation_feature",
+      "runId": "f2160315-aabf-4428-a802-15f50034e768",
+      "delivery": "ready",
+      "category": "SUCCESS",
+      "scorePass": true,
+      "iters": 1,
+      "gbe": false
+    }
+  ],
+  "triad_gate": "ready\u2227score PASS = 1/3 (need \u22652/3) \u2014 FAIL",
+  "gbe_on_triad": 0,
+  "sanity": [
+    {
+      "specimen": "idempotent_job_runner_v1",
+      "delivery": "blocked",
+      "category": "PRIMARY_QC_NONCONVERGENCE",
+      "scorePass": true
+    },
+    {
+      "specimen": "bad_legacy_ledger_v1",
+      "delivery": "blocked",
+      "category": "PRIMARY_QC_NONCONVERGENCE",
+      "scorePass": true
+    },
+    {
+      "specimen": "state_counter",
+      "delivery": "blocked",
+      "category": "PRIMARY_QC_NONCONVERGENCE",
+      "scorePass": true
+    },
+    {
+      "specimen": "agent_bad_code",
+      "delivery": "ready",
+      "category": "SUCCESS",
+      "scorePass": true
+    }
+  ],
+  "sanity_gate": "all four ready \u2014 FAIL (1/4 ready)",
+  "verdict": "Q1 STILL UNSTABLE \u2014 NOT ROBUST CODE QUALIFIED",
+  "skillopt": "OFF"
+}

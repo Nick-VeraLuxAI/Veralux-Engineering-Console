@@ -1,0 +1,72 @@
+{
+  "summary": {
+    "label": "mt_frag_replan",
+    "elapsed_s": 6.49,
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 923,
+      "total_tokens": 2730,
+      "completion_tokens": 1807,
+      "prompt_tokens_details": null
+    },
+    "content_len": 6235,
+    "final_len": 6235,
+    "has_think_close": false,
+    "content_preview": "{\n  \"runId\": \"replay-jobs-1\",\n  \"summary\": \"Complete the applyJob helper to be idempotent, record partial failures, and pass all tests.\",\n  \"allowedFiles\": [\n    \"src/jobs/jobs.js\",\n    \"src/jobs/jobs.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"update_file\",\n      \"path\": \"src/jobs/jobs.js\",\n      \"content\": \"export const store = { applied: {}, pending: {} };\\n\\n/**\\n * Apply a job by id.",
+    "final_preview": "{\n  \"runId\": \"replay-jobs-1\",\n  \"summary\": \"Complete the applyJob helper to be idempotent, record partial failures, and pass all tests.\",\n  \"allowedFiles\": [\n    \"src/jobs/jobs.js\",\n    \"src/jobs/jobs.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"update_file\",\n      \"path\": \"src/jobs/jobs.js\",\n      \"content\": \"export const store = { applied: {}, pending: {} };\\n\\n/**\\n * Apply a job by id. The operation is idempotent \u2013 calling it again with the same id\\n * has no effect and returns the cached result. Partial failures are recorded in\\n * `pending` so they can be retried later.\\n * @para",
+    "request_meta": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 0.1,
+      "max_tokens": 2048,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    }
+  },
+  "messages": [
+    {
+      "role": "system",
+      "content": "You generate a worker plan JSON object only: {runId, summary, allowedFiles, operations:[{type: create_file|update_file|append_file, path, content, reason}]}. Never write files yourself, never run shell, never approve release. JSON only. Include complete file contents. allowedFiles must list every operation path. Use update_file when the path already exists and create_file only for new paths. Match package.json test runner: node --test. Use only: import test from 'node:test'; import assert from 'node:assert/strict'. Never import expect from node:test. Never assert.throwsAsync."
+    },
+    {
+      "role": "user",
+      "content": "Run ID: replay-jobs-1\nObjective: Directors need a small job apply helper under src/jobs that can apply a job by id once, survive retries after a partial failure, and never double-apply the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.\nRequirements: applyJob is idempotent for the same job id; Partial failure leaves a recoverable recorded state; Tests cover first apply, duplicate apply, and a failure/resume case\nConstraints: Stay inside src/jobs/; Do not change PR, merge, or deploy behavior\nAllowed path prefixes: src/jobs/\nExisting files under those prefixes (truncated): src/jobs/jobs.js, src/jobs/jobs.test.js\npackage.json scripts: {\"test\":\"node --test src/jobs/jobs.test.js\"}\nAuthorized source snippets (read these before mutating):\n--- src/jobs/jobs.js ---\n// Half-built: only first success path sketched.\nexport const store = { applied: {}, pending: {} };\nexport function applyJob(id, work) {\n  // TODO: resume / duplicate / failure recording\n  const result = work();\n  store.applied[id] = (store.applied[id] || 0) + 1;\n  return result;\n}\n\n--- src/jobs/jobs.test.js ---\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { applyJob, store } from './jobs.js';\ntest('applies once', () => {\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\n  assert.equal(applyJob('j1', () => 1), 1);\n});\n\nReturn worker plan JSON with runId matching the run, allowedFiles, and file operations with full content.\n\nDiagnosis: {\"whyPreviousFailed\": \"The test 'resume pending' expected a synchronous return value 'done' but applyJob returned a Promise, causing an AssertionError. The prior strategy of making applyJob return a promise was incomplete because it did not properly handle the asynchronous nature of the work function, leading to a mismatch between the resolved promise value and the expected 'done' string.\", \"suggestedStrategy\": \"Implement proper async handling in applyJob to await the work function and resolve with the correct value, ensuring the returned promise resolves to 'done' when expected. Also, update the test to await the promise or check the resolved value appropriately.\", \"filesToInspect\": [\"jobs.js\"], \"observed_failure\": \"AssertionError [ERR_ASSERTION]: Values have no relation: Promise { 'done' } !== 'done'\", \"evidence_quote_or_signature\": \"Values have no relation: Promise { 'done' } !== 'done'\", \"affected_file_or_gate\": \"jobs.js\", \"root_cause_hypothesis\": \"applyJob does not await the work function, so it returns a pending Promise, but the test expects a resolved value 'done' without awaiting, causing a type mismatch in the assertion.\", \"confidence\": 0.95, \"contradictory_evidence\": \"The prior strategy of making applyJob return a promise was partially correct but failed to resolve the promise with the expected value, indicating the fix must include proper awaiting and value resolution.\", \"recommended_strategy_change\": \"Modify applyJob to await the work function and return its resolved value, and update the test to properly handle the asynchronous return (e.g., using async/await or .then()).\", \"avoid_repeating\": \"Do not assume synchronous behavior; always handle promises with await or proper async testing patterns to prevent value mismatches.\"}\nDo not repeat prior failed approaches."
+    }
+  ],
+  "response": {
+    "id": "chatcmpl-96931eef03061d7e",
+    "object": "chat.completion",
+    "created": 1787254843,
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"runId\": \"replay-jobs-1\",\n  \"summary\": \"Complete the applyJob helper to be idempotent, record partial failures, and pass all tests.\",\n  \"allowedFiles\": [\n    \"src/jobs/jobs.js\",\n    \"src/jobs/jobs.test.js\"\n  ],\n  \"operations\": [\n    {\n      \"type\": \"update_file\",\n      \"path\": \"src/jobs/jobs.js\",\n      \"content\": \"export const store = { applied: {}, pending: {} };\\n\\n/**\\n * Apply a job by id. The operation is idempotent \u2013 calling it again with the same id\\n * has no effect and returns the cached result. Partial failures are recorded in\\n * `pending` so they can be retried later.\\n * @param {string} id - Job identifier.\\n * @param {() => Promise<any>} work - Async function that performs the job.\\n * @returns {Promise<any>} Resolved with the work result or cached result.\\n */\\nexport async function applyJob(id, work) {\\n  // If job is already applied, return cached result.\\n  if (store.applied[id]) {\\n    return store.applied[id];\\n  }\\n\\n  // If a previous attempt failed and is still pending, reuse that promise.\\n  if (store.pending[id]) {\\n    try {\\n      const result = await store.pending[id];\\n      // Mark as applied on success.\\n      store.applied[id] = result;\\n      delete store.pending[id];\\n      return result;\\n    } catch (err) {\\n      // Keep it pending until a new attempt succeeds or is manually cleared.\\n      // Optionally, you could rethrow or handle differently.\\n      throw err;\\n    }\\n  }\\n\\n  // Mark this job as pending before starting work.\\n  const promise = work();\\n  store.pending[id] = promise;\\n\\n  try {\\n    const result = await promise;\\n    // Record success.\\n    store.applied[id] = result;\\n    return result;\\n  } catch (err) {\\n    // Record failure but keep the promise pending so retries can resume.\\n    // The promise stays in `pending` so subsequent calls will wait for it.\\n    // Optionally, you could delete it here if you want to drop failed attempts.\\n    throw err;\\n  }\\n}\",\n      \"reason\": \"Replace the stub with a full implementation that handles idempotency, pending failures, and proper async resolution.\"\n    },\n    {\n      \"type\": \"update_file\",\n      \"path\": \"src/jobs/jobs.test.js\",\n      \"content\": \"import test from 'node:test';\\nimport assert from 'node:assert/strict';\\nimport { applyJob, store } from './jobs.js';\\n\\ntest('applies once', async () => {\\n  // Reset store before each test.\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n\\n  const result = await applyJob('j1', () => Promise.resolve(1));\\n  assert.strictEqual(result, 1);\\n});\\n\\ntest('duplicate apply returns cached result', async () => {\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n\\n  const first = await applyJob('j2', () => Promise.resolve('done'));\\n  const second = await applyJob('j2', () => Promise.resolve('ignored'));\\n  assert.strictEqual(first, 'done');\\n  assert.strictEqual(second, 'done');\\n  assert.strictEqual(first, second);\\n});\\n\\ntest('failure is recorded and can be retried', async () => {\\n  const testId = 'failId';\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n\\n  // First call fails.\\n  await assert.rejects(applyJob(testId, () => {\\n    throw new Error('boom');\\n  }), /boom/);\\n\\n  // Ensure the failure is recorded as pending.\\n  assert.ok(store.pending[testId]);\\n\\n  // Retry should re\u2011try the same failing work.\\n  await assert.rejects(applyJob(testId, () => {\\n    throw new Error('boom');\\n  }), /boom/);\\n});\\n\\ntest('success after failure is idempotent', async () => {\\n  const testId = 'recoverId';\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n\\n  // Simulate a failure first.\\n  await assert.rejects(applyJob(testId, () => {\\n    throw new Error('boom');\\n  }), /boom/);\\n\\n  // Now provide a successful work.\\n  const result = await applyJob(testId, () => Promise.resolve('fixed'));\\n  assert.strictEqual(result, 'fixed');\\n\\n  // Duplicate call returns the same cached result.\\n  const again = await applyJob(testId, () => Promise.resolve('ignored'));\\n  assert.strictEqual(again, 'fixed');\\n});\\n\\ntest('pending promise is reused on duplicate call', async () => {\\n  const testId = 'reuseId';\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n\\n  const workPromise = Promise.resolve('reused');\\n  const first = await applyJob(testId, () => workPromise);\\n  const second = await applyJob(testId, () => Promise.resolve('ignored'));\\n  assert.strictEqual(first, 'reused');\\n  assert.strictEqual(second, 'reused');\\n});\\n\\ntest('applies multiple distinct jobs', async () => {\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n\\n  const r1 = await applyJob('a', () => Promise.resolve(10));\\n  const r2 = await applyJob('b', () => Promise.resolve(20));\\n  assert.strictEqual(r1, 10);\\n  assert.strictEqual(r2, 20);\\n  assert.notStrictEqual(r1, r2);\\n});\\n\\ntest('store state reflects applied and pending correctly', async () => {\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n\\n  await applyJob('x', () => Promise.resolve('ok'));\\n  assert.strictEqual(store.applied['x'], 'ok');\\n  assert.strictEqual(store.pending['x'], undefined);\\n});\\n\\ntest('applyJob returns rejected error on failure', async () => {\\n  const testId = 'errorId';\\n  Object.keys(store.applied).forEach((k) => delete store.applied[k]);\\n  Object.keys(store.pending).forEach((k) => delete store.pending[k]);\\n\\n  await assert.rejects(applyJob(testId, () => {\\n    throw new Error('final');\\n  }), /final/);\\n});\"\n      ,\n      \"reason\": \"Rewrite the test suite to use async/await, properly handle promises, and verify idempotency, duplicate apply, failure recording, and retry behavior.\"\n    }\n  ]\n}",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "tool_calls": [],
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "prompt_tokens": 923,
+      "total_tokens": 2730,
+      "completion_tokens": 1807,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "kv_transfer_params": null
+  }
+}

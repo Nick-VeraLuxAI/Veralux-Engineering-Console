@@ -42,9 +42,9 @@ export function WorkflowCanvasToolbar({
         aria-label={toggleLabel}
         title={toggleLabel}
         onClick={onToggleCollapsed}
-        className={`inline-flex items-center justify-center border border-white/8 bg-[#07101c]/82 text-white shadow-[0_14px_28px_rgba(2,6,23,0.26)] backdrop-blur-xl motion-safe:transition-[transform,background-color,border-color,box-shadow] motion-safe:duration-200 hover:border-white/15 hover:bg-[#0c1627]/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070d] ${
+        className={`inline-flex items-center justify-center border border-white/8 bg-[#07101c]/82 text-white shadow-[0_14px_28px_rgba(2,6,23,0.26)] backdrop-blur-xl motion-safe:transition-[transform,opacity,background-color,border-color,box-shadow] motion-safe:duration-200 hover:border-white/15 hover:bg-[#0c1627]/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070d] ${
           collapsed
-            ? "h-14 w-8 rounded-r-full rounded-l-[1rem]"
+            ? "h-14 w-8 rounded-r-full rounded-l-[1rem] opacity-0 hover:opacity-100 focus-visible:opacity-100"
             : "absolute left-full top-4 z-10 h-12 w-8 -translate-x-[30%] rounded-r-full rounded-l-[1rem]"
         }`}
       >

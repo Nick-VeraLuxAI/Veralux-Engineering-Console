@@ -170,13 +170,17 @@ describe("review stages", () => {
     ).rejects.toThrow(/blocked/i);
   });
 
-  it("pending required stage blocks final approval", async () => {
+  it("pending required stage is recorded by a reasoned approval", async () => {
     const { run } = await seedWithPolicyAndStages(["package-lock.json"]);
     await expect(
-      handleApprovalAction(run.id, "approve", { rationale: "attempt approve" }),
-    ).rejects.toThrow(/blocked/i);
-    const types = listAuditEventsForRun(run.id).map((e) => e.eventType);
-    expect(types).toContain(AUDIT_EVENT_TYPES.REVIEW_STAGE_BLOCKED_APPROVAL);
+      handleApprovalAction(run.id, "approve", { rationale: "" }),
+    ).rejects.toThrow(/reason/i);
+    const result = await handleApprovalAction(run.id, "approve", {
+      rationale: "I reviewed the change and accept the skipped checks.",
+    });
+    expect(result?.status).toBe("approve");
+    const stages = listReviewStagesForRun(run.id).filter((s) => s.required);
+    expect(stages.every((s) => s.status === "approved")).toBe(true);
   });
 
   it("skipped optional stage allowed with rationale", async () => {

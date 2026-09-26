@@ -2,52 +2,45 @@
 
 import React from "react";
 import type { WorkflowMapNode, WorkflowMapNodeId } from "@/lib/engineer-console/dashboard/workflow-map";
+import { WORKFLOW_CANVAS_NODE_SIZE } from "@/lib/engineer-console/dashboard/workflow-canvas-layout";
 
-const TONE_CLASSES: Record<WorkflowMapNode["tone"], string> = {
-  ready: "border-emerald-400/28 bg-emerald-500/8 shadow-[0_18px_36px_rgba(16,185,129,0.09)]",
-  warning: "border-amber-400/32 bg-amber-500/8 shadow-[0_18px_36px_rgba(245,158,11,0.1)]",
-  blocked: "border-red-400/32 bg-red-500/8 shadow-[0_18px_36px_rgba(239,68,68,0.1)]",
-  active: "border-sky-400/32 bg-sky-500/8 shadow-[0_18px_36px_rgba(59,130,246,0.12)]",
-  inactive: "border-white/8 bg-white/[0.025] shadow-[0_18px_36px_rgba(15,23,42,0.16)]",
-  completed: "border-emerald-300/26 bg-emerald-500/6 shadow-[0_18px_36px_rgba(52,211,153,0.08)]",
+function attentionTone(
+  node: WorkflowMapNode,
+  selected: boolean,
+  attention: boolean,
+): WorkflowMapNode["tone"] | "neutral" {
+  if (selected || attention) return node.tone;
+  return "neutral";
+}
+
+const TONE_CLASSES: Record<WorkflowMapNode["tone"] | "neutral", string> = {
+  ready: "border-white/14 bg-white/[0.05]",
+  warning: "border-amber-200/35 bg-amber-500/8",
+  blocked: "border-red-300/40 bg-red-500/8",
+  active: "border-white/16 bg-white/[0.06]",
+  inactive: "border-white/8 bg-white/[0.03]",
+  completed: "border-white/10 bg-white/[0.04]",
+  neutral: "border-white/8 bg-white/[0.03]",
 };
 
-const DOT_CLASSES: Record<WorkflowMapNode["tone"], string> = {
-  ready: "bg-emerald-300",
+const DOT_CLASSES: Record<WorkflowMapNode["tone"] | "neutral", string> = {
+  ready: "bg-white/45",
   warning: "bg-amber-300",
   blocked: "bg-red-300",
-  active: "bg-sky-300",
-  inactive: "bg-zinc-500",
-  completed: "bg-emerald-200",
+  active: "bg-white/70",
+  inactive: "bg-white/25",
+  completed: "bg-white/40",
+  neutral: "bg-white/25",
 };
-
-function glyphForNode(nodeId: WorkflowMapNodeId): string {
-  switch (nodeId) {
-    case "setup":
-      return "ST";
-    case "repository":
-      return "RP";
-    case "task":
-      return "TK";
-    case "run":
-      return "RN";
-    case "review":
-      return "RV";
-    case "pr":
-      return "PR";
-    case "release":
-      return "RL";
-    case "audit":
-      return "AU";
-  }
-}
 
 export function WorkflowCanvasNode({
   node,
   selected,
+  attention = false,
   connected,
   dimmed,
   dragging,
+  arriving = false,
   style,
   className,
   onSelect,
@@ -55,9 +48,11 @@ export function WorkflowCanvasNode({
 }: {
   node: WorkflowMapNode;
   selected: boolean;
+  attention?: boolean;
   connected?: boolean;
   dimmed?: boolean;
   dragging?: boolean;
+  arriving?: boolean;
   style?: React.CSSProperties;
   className?: string;
   onSelect: (nodeId: WorkflowMapNodeId) => void;
@@ -65,6 +60,8 @@ export function WorkflowCanvasNode({
 }) {
   const leftValue = typeof style?.left === "number" ? Math.round(style.left) : undefined;
   const topValue = typeof style?.top === "number" ? Math.round(style.top) : undefined;
+  const visualTone = attentionTone(node, selected, attention);
+  const isHub = node.id === "run";
 
   return (
     <button
@@ -75,41 +72,35 @@ export function WorkflowCanvasNode({
       data-node-selected={selected ? "true" : "false"}
       data-node-connected={connected ? "true" : "false"}
       data-node-dimmed={dimmed ? "true" : "false"}
+      data-node-hub={isHub ? "true" : "false"}
+      data-node-arriving={arriving ? "true" : "false"}
       data-node-depth={selected ? "selected" : connected ? "connected" : dimmed ? "subdued" : "default"}
       aria-pressed={selected}
       onPointerDown={(event) => onPointerDown?.(node.id, event)}
       onClick={() => onSelect(node.id)}
-      style={style}
-      className={`group absolute flex h-32 w-52 flex-col justify-between rounded-2xl border px-4 py-3 text-left backdrop-blur motion-safe:transition-[transform,opacity,box-shadow,border-color,background-color,filter] motion-safe:duration-[220ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070d] ${TONE_CLASSES[node.tone]} ${
-        selected
-          ? "scale-[1.02] border-white/28 bg-white/[0.07] shadow-[0_0_0_1px_rgba(255,255,255,0.16),0_30px_72px_rgba(15,23,42,0.36)]"
-          : connected
-            ? "border-white/16 shadow-[0_24px_52px_rgba(15,23,42,0.24)]"
-            : "hover:-translate-y-0.5 hover:border-white/14 hover:bg-white/[0.04]"
-      } ${dimmed && !selected ? "opacity-58 saturate-75" : ""} ${dragging ? "cursor-grabbing shadow-[0_32px_72px_rgba(15,23,42,0.42)]" : "cursor-grab"} ${className ?? ""}`}
+      style={{
+        ...style,
+        width: WORKFLOW_CANVAS_NODE_SIZE.width,
+        height: WORKFLOW_CANVAS_NODE_SIZE.height,
+      }}
+      className={`group absolute flex flex-col justify-center rounded-[1.35rem] border px-4 text-left backdrop-blur-xl transition-[transform,opacity,border-color,background-color] duration-[var(--motion-standard)] ease-[var(--motion-ease-emphasis)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${TONE_CLASSES[visualTone]} ${
+        dragging
+          ? "scale-[1.075] border-white/35 bg-white/[0.1]"
+          : selected
+            ? "scale-[1.04] border-white/28 bg-white/[0.08]"
+          : isHub
+            ? "border-white/14 bg-white/[0.05]"
+            : "hover:border-white/16 hover:bg-white/[0.05]"
+      } ${dimmed && !selected ? "opacity-40" : ""} ${dragging ? "cursor-grabbing" : "cursor-grab"} ${className ?? ""}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/8 bg-black/15 text-[11px] font-semibold tracking-[0.08em] text-white">
-            {glyphForNode(node.id)}
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-white">{node.label}</p>
-            <p className="mt-0.5 text-[11px] text-[var(--muted)]">{node.state}</p>
-          </div>
-        </div>
-        {node.issueCount > 0 ? (
-          <span className="rounded-full border border-white/8 bg-black/15 px-2 py-0.5 text-[11px] text-white/92">
-            {node.issueCount}
-          </span>
-        ) : null}
-      </div>
-
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[12px] text-white">{node.shortState}</p>
+          <p className={`truncate text-[15px] tracking-tight text-white ${isHub ? "font-semibold" : "font-medium"}`}>
+            {node.label}
+          </p>
+          <p className="mt-0.5 truncate text-[12px] text-white/60">{node.state}</p>
         </div>
-        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOT_CLASSES[node.tone]}`} />
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT_CLASSES[visualTone]}`} />
       </div>
     </button>
   );

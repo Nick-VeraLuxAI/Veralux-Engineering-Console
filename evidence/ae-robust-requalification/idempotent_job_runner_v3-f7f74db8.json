@@ -1,0 +1,162 @@
+{
+  "specimenId": "idempotent_job_runner_v3",
+  "matrixClasses": [
+    "failure_recovery"
+  ],
+  "hardClass": "idempotent_job_runner",
+  "variant": 3,
+  "title": "Work commit resume v3",
+  "objective": "Directors need a small work commit helper under src/jobs that can commit work by id once, survive retries after a partial failure, and never double-commit the same work id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+  "elapsedMs": 42791,
+  "taskId": "4c362c5f-c1a9-4655-9fc7-207485943046",
+  "runId": "f7f74db8-f237-494a-b6ed-29dc42684825",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "f7f74db8-f237-494a-b6ed-29dc42684825",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "d3b45f3d-a285-433c-bffa-3534956dfc2a",
+      "strategy": "Complete src/jobs/work.js and its test to implement an idempotent commitWork helper that guards against double commits, handles failures, and supports retries.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 1570,
+    "runtimeMs": 41082,
+    "investigationReads": 2,
+    "contextBytes": 121,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a small work commit helper under src/jobs that can commit work by id once, survive retries after a partial failure, and never double-commit the same work id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/jobs/work.js",
+        "Changed src/jobs/work.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/jobs/work.js      | 19 ++++++++++++++-----\n src/jobs/work.test.js | 38 ++++++++++++++++++++++++++++++++++++++\n 2 files changed, 52 insertions(+), 5 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "d3b45f3d-a285-433c-bffa-3534956dfc2a",
+      "summary": "Complete src/jobs/work.js and its test to implement an idempotent commitWork helper that guards against double commits, handles failures, and supports retries.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/f7f74db8-f237-494a-b6ed-29dc42684825",
+    "branchName": "engineer/4c362c5f/f7f74db8-20260820224027",
+    "baseRevision": "d984189615385ce61076b7cebfc4903c7ccbcd6d",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "failure_recovery": "PASS",
+      "idempotency": "PASS",
+      "vertical_slice_complete": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

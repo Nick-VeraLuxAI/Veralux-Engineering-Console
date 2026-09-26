@@ -1,0 +1,166 @@
+{
+  "specimenId": "idempotent_job_runner_v1",
+  "matrixClasses": [
+    "partial_feature",
+    "failure_recovery"
+  ],
+  "hardClass": "idempotent_job_runner",
+  "variant": 1,
+  "title": "Job enqueue resume v1",
+  "objective": "Directors need a small job enqueue helper under src/jobs that can enqueue a job by id once, survive retries after a partial failure, and never double-enqueue the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy.",
+  "elapsedMs": 52401,
+  "taskId": "89d9d01b-3af6-45ce-8668-0e5dcc76ecb2",
+  "runId": "26ed2b8c-1332-442d-a412-18623bae921c",
+  "maxIterations": 6,
+  "nanoRuntimeMode": "FAITHFUL",
+  "result": {
+    "runId": "26ed2b8c-1332-442d-a412-18623bae921c",
+    "state": "waiting_for_approval",
+    "failureClass": null,
+    "deliveryCandidateStatus": "ready",
+    "paused": false,
+    "message": "Delivery candidate ready for human release decision."
+  },
+  "currentState": "waiting_for_approval",
+  "iterationNumber": 1,
+  "deliveryCandidateStatus": "ready",
+  "primaryFailureCategory": "SUCCESS",
+  "workerModel": {
+    "route": "live_default_worker",
+    "providerName": "local_openai_compatible",
+    "modelName": "Nemotron-Nano-30B-A3B-NVFP4",
+    "rolesInvoked": [
+      "investigation",
+      "interpretation",
+      "planning",
+      "review",
+      "completion"
+    ]
+  },
+  "priorAttempts": [
+    {
+      "iteration": 1,
+      "workerPlanId": "f8d4be6d-27a0-4140-89aa-1d323394d4ee",
+      "strategy": "Complete job enqueue helper with idempotent enqueue, duplicate protection, and retry‑safe behavior; add comprehensive tests.",
+      "outcome": "passed",
+      "failureClass": null,
+      "summary": "Worker plan executed and quality gates passed.",
+      "qcSummary": "Quality gates passed or skipped."
+    }
+  ],
+  "failedHypotheses": [],
+  "usage": {
+    "iterations": 1,
+    "plans": 1,
+    "modelCalls": 5,
+    "changedFiles": 2,
+    "changedBytes": 2091,
+    "runtimeMs": 50568,
+    "investigationReads": 2,
+    "contextBytes": 121,
+    "planRepairs": 0,
+    "postReviewRepairs": 0
+  },
+  "budget": {
+    "max_iterations": 6,
+    "max_plans": 8,
+    "max_model_calls": 28,
+    "max_changed_files": 40,
+    "max_changed_bytes": 500000,
+    "max_runtime_ms": 2700000,
+    "max_investigation_reads": 80,
+    "max_context_bytes": 200000,
+    "max_plan_repairs": 8,
+    "max_post_review_repairs": 2
+  },
+  "planRepairHistory": [],
+  "lastIterationChargeKind": "ENGINEERING_ITERATION",
+  "reviews": [
+    {
+      "review": "requirements",
+      "passed": true,
+      "findings": [
+        "Directors need a small job enqueue helper under src/jobs that can enqueue a job by id once, survive retries after a partial failure, and never double-enqueue the same job id. Complete the half-built module into a coherent tested vertical slice. Do not open a PR or deploy."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "diff_quality",
+      "passed": true,
+      "findings": [
+        "Changed src/jobs/queue.js",
+        "Changed src/jobs/queue.test.js"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "regression_risk",
+      "passed": true,
+      "findings": [
+        "Allowlisted quality gates passed."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "scope",
+      "passed": true,
+      "findings": [
+        "Changed file count: 2",
+        "src/jobs/queue.js      | 26 ++++++++++++++++++++------\n src/jobs/queue.test.js | 42 ++++++++++++++++++++++++++++++++++++++++--\n 2 files changed, 60 insertions(+), 8 deletions(-)"
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "engineering_quality",
+      "passed": true,
+      "findings": [
+        "No deterministic engineering-quality blockers in changed sources."
+      ],
+      "actionableDefects": []
+    },
+    {
+      "review": "worker_adversarial",
+      "passed": true,
+      "findings": [
+        "Potential missing handling of retry after failure; pending set not cleared on error may block legitimate retries, violating survive-retries requirement.",
+        "Advisory (non-blocking): Pending set not cleared on work failure causes job to be permanently blocked, violating the requirement that enqueueJob must survive retries after a partial failure. [non-material advisory finding]"
+      ],
+      "actionableDefects": []
+    }
+  ],
+  "unresolvedDefects": [],
+  "qcDelta": {
+    "new": 0,
+    "preExisting": 0,
+    "changed": 0,
+    "owned": 0,
+    "objectiveQcPassed": true
+  },
+  "plans": [
+    {
+      "id": "f8d4be6d-27a0-4140-89aa-1d323394d4ee",
+      "summary": "Complete job enqueue helper with idempotent enqueue, duplicate protection, and retry‑safe behavior; add comprehensive tests.",
+      "iterationNumber": 1,
+      "validationStatus": "valid",
+      "executionStatus": "executed"
+    }
+  ],
+  "worktree": {
+    "path": "/home/ndesantis/Documents/GitHub/Veralux-Engineering-Console/data/worktrees/26ed2b8c-1332-442d-a412-18623bae921c",
+    "branchName": "engineer/89d9d01b/26ed2b8c-20260821010329",
+    "baseRevision": "9384ee45436ee7414963724f62b4650c1208fd3b",
+    "status": "active"
+  },
+  "score": {
+    "pass": true,
+    "notes": [],
+    "robustScorecard": {
+      "functional_correctness": "PASS",
+      "failure_recovery": "PASS",
+      "idempotency": "PASS",
+      "vertical_slice_complete": "PASS"
+    }
+  },
+  "humanCodingInterventions": 0,
+  "validQualificationRun": true
+}

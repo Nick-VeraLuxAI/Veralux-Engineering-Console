@@ -178,6 +178,7 @@ export function deriveRunSectionGroups(
         "Evidence and review panels that explain why the run can or cannot move forward. Use this group for evidence, replay, policy, review stages, approval report details, and decision history.",
       panelIds: [
         RUN_PANEL_IDS.evidence,
+        RUN_PANEL_IDS.seniorReviewAdvisory,
         RUN_PANEL_IDS.replay,
         RUN_PANEL_IDS.policy,
         RUN_PANEL_IDS.reviewStages,
@@ -214,21 +215,21 @@ export function deriveRunSectionGroups(
 }
 
 const STAGE_DESCRIPTIONS: Record<RunCommandCenterState["currentStageId"], string> = {
-  task: "Review the task definition and confirm the run context before continuing.",
-  branch: "Confirm the working branch is ready before the run moves into file changes and review.",
-  worker_plan: "Review the planned file operations and complete the active work needed to prepare this run.",
-  quality_gates: "Use the recorded gate results to confirm the change set is safe to move into governance review.",
-  evidence: "Capture and inspect the run facts that later policy, replay, and approval decisions depend on.",
-  replay: "Confirm the recorded run history is internally consistent before policy and approval continue.",
-  policy: "Review governance evaluation results and resolve policy blockers or review requirements.",
-  review: "Complete the required review stages before final approval.",
-  approval: "Record the final human decision for this run without changing any governance authority.",
-  pr: "Create or record the draft PR after approval readiness checks pass.",
-  merge: "Review the merge controls after PR creation is complete and release gates allow it.",
-  deployment: "Use deployment gates and execution panels when the release path is active.",
-  health: "Run and review health verification before final release checklist and sign-off work.",
-  checklist: "Complete the release checklist before final sign-off.",
-  signoff: "Record the final release sign-off once the release checklist is ready.",
+  task: "Confirm this is the job you meant to start.",
+  branch: "The workspace for this job is being prepared.",
+  worker_plan: "The change is being planned and applied in an isolated copy of the repo.",
+  quality_gates: "Automatic checks ran. Failed checks must be fixed before you can approve.",
+  evidence: "A record of what happened is being saved so later decisions have a trail.",
+  replay: "The record is being checked for consistency.",
+  policy: "Safety rules are being checked. Clear any blocks before you decide.",
+  review: "A review step is still open. Finish it before the final yes or no.",
+  approval: "This is your decision point: approve, ask for a fix, or stop.",
+  pr: "Share the change as a pull request when you are ready.",
+  merge: "The pull request can be merged when the remaining gates allow it.",
+  deployment: "Deployment is the next live step after merge.",
+  health: "Confirm the live system looks healthy before sign-off.",
+  checklist: "Walk the release checklist, then sign off.",
+  signoff: "Record that this release is accepted.",
 };
 
 export function deriveRunCurrentActionZoneState(
@@ -239,8 +240,8 @@ export function deriveRunCurrentActionZoneState(
   const warnings = guidance.warnings.slice(0, 3);
 
   return {
-    title: `Current action: ${guidance.currentStageLabel}`,
-    description: STAGE_DESCRIPTIONS[guidance.currentStageId],
+    title: "What to do now",
+    description: `${guidance.currentStageLabel}. ${STAGE_DESCRIPTIONS[guidance.currentStageId]}`,
     currentStateLabel: guidance.nextRecommendedAction,
     currentStateDetail: guidance.explanation,
     primaryAction: guidance.primaryAction,

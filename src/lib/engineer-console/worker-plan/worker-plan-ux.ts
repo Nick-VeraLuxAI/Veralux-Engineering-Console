@@ -111,8 +111,12 @@ export function buildGuidedWorkerPlan(
       if (!path) {
         errors.push(`Operation ${index + 1}: path is required.`);
       }
-      if (!content) {
+      const isDelete = operation.type === "delete_file";
+      if (!isDelete && !content) {
         errors.push(`Operation ${index + 1}: content is required.`);
+      }
+      if (isDelete && !reason) {
+        errors.push(`Operation ${index + 1}: delete_file reason is required.`);
       }
       if (!WORKER_OPERATION_TYPES.includes(operation.type)) {
         errors.push(`Operation ${index + 1}: type is invalid.`);
@@ -122,10 +126,10 @@ export function buildGuidedWorkerPlan(
         type: operation.type,
         path,
         reason,
-        content,
+        content: isDelete ? "" : content,
       };
     })
-    .filter((operation) => operation.path && operation.content);
+    .filter((operation) => operation.path && (operation.type === "delete_file" || operation.content));
 
   if (errors.length > 0) {
     return { plan: null, errors };
@@ -208,7 +212,11 @@ export function buildWorkerPlanPreview(plan: WorkerPlan): WorkerPlanPreviewItem[
         ? "create file"
         : operation.type === "update_file"
           ? "replace file contents"
-          : "append to file",
+          : operation.type === "append_file"
+            ? "append to file"
+            : operation.type === "delete_file"
+              ? "delete file"
+              : String(operation.type),
   }));
 }
 

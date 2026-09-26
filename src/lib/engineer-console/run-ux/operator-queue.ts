@@ -571,12 +571,13 @@ export function buildSetupAttentionQueueItems(
         href:
           item.id === "compatibility"
             ? "/engineer/compatibility"
-            : item.id === "registered-repos" ||
-                item.id === "verified-repo" ||
-                item.id === "file-index" ||
-                item.id === "code-index" ||
-                item.id === "repo-roots"
-              ? "/engineer/repos"
+            : item.id === "registered-repos"
+              ? "/engineer?focus=repository&start=repo"
+              : item.id === "verified-repo" ||
+                  item.id === "file-index" ||
+                  item.id === "code-index" ||
+                  item.id === "repo-roots"
+                ? "/engineer/repos"
               : "/engineer",
         priority,
         bucket: "setup_attention",

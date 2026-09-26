@@ -1,0 +1,68 @@
+{
+  "summary": {
+    "label": "starve_trunc_128",
+    "elapsed_s": 0.5,
+    "finish_reason": "length",
+    "usage": {
+      "prompt_tokens": 41,
+      "total_tokens": 169,
+      "completion_tokens": 128,
+      "prompt_tokens_details": null
+    },
+    "content_len": 357,
+    "final_len": 357,
+    "has_think_close": false,
+    "content_preview": "{\n  \"content\": \"const fs = require('fs');\\nconst path = require('path');\\nconst crypto = require('crypto');\\nconst readline = require('readline');\\nconst { stdin, stdout } = require('process');\\n\\nconst MIN_PASSWORD_LENGTH = 8;\\nconst MAX_PASSWORD_LENGTH = 64;\\nconst CHARACTER_SET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()",
+    "final_preview": "{\n  \"content\": \"const fs = require('fs');\\nconst path = require('path');\\nconst crypto = require('crypto');\\nconst readline = require('readline');\\nconst { stdin, stdout } = require('process');\\n\\nconst MIN_PASSWORD_LENGTH = 8;\\nconst MAX_PASSWORD_LENGTH = 64;\\nconst CHARACTER_SET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()",
+    "request_meta": {
+      "model": "Nemotron-Nano-30B-A3B-NVFP4",
+      "temperature": 0.1,
+      "max_tokens": 128,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    }
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": "Write a complete 200-line JavaScript module as a JSON string field content inside {\"content\":\"...\"} only."
+    }
+  ],
+  "response": {
+    "id": "chatcmpl-9e3f1749b05a306c",
+    "object": "chat.completion",
+    "created": 1787254884,
+    "model": "Nemotron-Nano-30B-A3B-NVFP4",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"content\": \"const fs = require('fs');\\nconst path = require('path');\\nconst crypto = require('crypto');\\nconst readline = require('readline');\\nconst { stdin, stdout } = require('process');\\n\\nconst MIN_PASSWORD_LENGTH = 8;\\nconst MAX_PASSWORD_LENGTH = 64;\\nconst CHARACTER_SET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "tool_calls": [],
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "length",
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "prompt_tokens": 41,
+      "total_tokens": 169,
+      "completion_tokens": 128,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "kv_transfer_params": null
+  }
+}

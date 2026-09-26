@@ -1,0 +1,26 @@
+{
+  "rep": "B_force",
+  "mode": "two_phase",
+  "rb": 4000,
+  "max_tokens": 10000,
+  "lat": 17.46,
+  "fr": "stop",
+  "p1_fr": "length",
+  "prompt": 604,
+  "comp_p1": 4000,
+  "comp_p2": 833,
+  "r_chars": 16264,
+  "f_chars": 2714,
+  "r_tok_est": 4066,
+  "f_tok_est": 678,
+  "json_ok": true,
+  "err": null,
+  "ops": 2,
+  "src": 1977,
+  "paths": [
+    "src/lease/leaseHelper.js",
+    "src/lease/leaseHelper.test.js"
+  ],
+  "cls": "OK",
+  "rem": 6000
+}

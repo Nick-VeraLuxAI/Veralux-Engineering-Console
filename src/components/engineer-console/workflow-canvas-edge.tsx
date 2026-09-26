@@ -16,12 +16,16 @@ export function WorkflowCanvasEdge({
   animated,
   connected = false,
   dimmed = false,
+  role = "sequence",
+  transient = false,
 }: {
   path: string;
   tone: WorkflowMapTone;
   animated: boolean;
   connected?: boolean;
   dimmed?: boolean;
+  role?: "sequence" | "record";
+  transient?: boolean;
 }) {
   const emphasisFilter = connected
     ? tone === "blocked"
@@ -39,20 +43,22 @@ export function WorkflowCanvasEdge({
       data-edge-tone={tone}
       data-edge-connected={connected ? "true" : "false"}
       data-edge-dimmed={dimmed ? "true" : "false"}
+      data-edge-role={role}
+      data-edge-animated={animated && !connected ? "true" : "false"}
+      data-edge-transient={transient ? "true" : "false"}
       data-edge-emphasis={connected ? "connected" : dimmed ? "subdued" : "ambient"}
       d={path}
       fill="none"
       className={`${EDGE_STROKE_CLASSES[tone]} motion-safe:transition-[opacity,filter,stroke-width] motion-safe:duration-[220ms]`}
-      strokeWidth={connected ? 2.6 : tone === "active" || tone === "warning" ? 2 : 1.55}
+      strokeWidth={connected ? 1.8 : 1.35}
       strokeLinecap="round"
-      strokeDasharray={tone === "inactive" ? "6 10" : undefined}
-      opacity={dimmed ? 0.16 : connected ? 0.98 : tone === "inactive" ? 0.38 : 0.72}
-      markerEnd="url(#workflow-edge-arrow)"
+      markerEnd={role === "sequence" ? "url(#workflow-edge-arrow)" : undefined}
+      strokeDasharray={transient ? "8 6" : role === "record" || tone === "inactive" ? "5 8" : undefined}
+      opacity={dimmed ? 0.22 : connected ? 0.92 : tone === "inactive" ? 0.38 : 0.55}
       style={
         emphasisFilter
           ? {
               filter: emphasisFilter,
-              animation: animated && !connected ? "workflow-edge-pulse 2200ms ease-in-out infinite" : undefined,
             }
           : undefined
       }

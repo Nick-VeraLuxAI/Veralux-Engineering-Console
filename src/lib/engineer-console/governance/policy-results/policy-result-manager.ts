@@ -275,7 +275,7 @@ export function runPolicyEvaluation(
 export function assertPolicyAllowsApproval(
   runId: string,
   rationale: string,
-  options: { reevaluate?: boolean } = {},
+  options: { reevaluate?: boolean; observationalReview?: boolean } = {},
 ): PolicyEvaluationResult {
   const reevaluate = options.reevaluate ?? true;
   const result = reevaluate
@@ -288,7 +288,13 @@ export function assertPolicyAllowsApproval(
     );
   }
 
-  if (result.status === "requires_review" && !rationale.trim()) {
+  // Build/observe: requires_review is observational — rationale still preferred for audit,
+  // but do not hard-block when a short reason was already captured for review stages.
+  if (
+    result.status === "requires_review" &&
+    !rationale.trim() &&
+    !options.observationalReview
+  ) {
     throw new PolicyEvaluationError(
       "Rationale required: policy evaluation requires senior review before approval.",
     );

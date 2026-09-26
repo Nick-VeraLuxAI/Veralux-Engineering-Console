@@ -198,7 +198,7 @@ function seedCommitProposalReadyRun() {
   applyVeraApprovedPatchContentDraft({
     runId: run.id,
     confirmationText: VERA_APPROVED_PATCH_CONTENT_APPLICATION_CONFIRMATION_PHRASE,
-    requestedBy: "operator@test",
+    requestedBy: "executor@test",
   });
   runVeraPostPatchQualityGates({
     runId: run.id,

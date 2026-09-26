@@ -185,7 +185,7 @@ export function buildRunQuickNavItems(
   return [
     {
       id: "current-action",
-      label: "Current action",
+      label: "What to do now",
       href: panelHref(RUN_NAV_TARGET_IDS.currentAction),
       targetId: RUN_NAV_TARGET_IDS.currentAction,
       shortcutKey: undefined,
@@ -217,6 +217,13 @@ export function buildRunQuickNavItems(
       targetId: RUN_PANEL_IDS.evidence,
       shortcutKey: "g e",
       ...(summary.evidence.exists ? badgeStatus("complete", "ready") : badgeStatus("ready", "missing")),
+    },
+    {
+      id: "senior-review-advisory",
+      label: "Senior Review Advisory",
+      href: panelHref(RUN_PANEL_IDS.seniorReviewAdvisory),
+      targetId: RUN_PANEL_IDS.seniorReviewAdvisory,
+      ...(summary.evidence.exists ? badgeStatus("complete", "advisory") : badgeStatus("ready", "empty")),
     },
     {
       id: "replay",
@@ -347,6 +354,7 @@ const PANEL_LINK_LABELS: Record<string, string> = {
   [RUN_PANEL_IDS.workerPlan]: "Go to Worker plan",
   [RUN_PANEL_IDS.qualityGates]: "Go to Quality gates",
   [RUN_PANEL_IDS.evidence]: "Go to Evidence bundle",
+  [RUN_PANEL_IDS.seniorReviewAdvisory]: "Go to Senior Review Advisory",
   [RUN_PANEL_IDS.replay]: "Go to Replay verification",
   [RUN_PANEL_IDS.policy]: "Go to Policy results",
   [RUN_PANEL_IDS.reviewStages]: "Go to Review stages",
@@ -377,6 +385,7 @@ export function runSectionGroupIdForTarget(targetId: string): RunSectionGroupId 
   if (
     [
       RUN_PANEL_IDS.evidence,
+      RUN_PANEL_IDS.seniorReviewAdvisory,
       RUN_PANEL_IDS.replay,
       RUN_PANEL_IDS.policy,
       RUN_PANEL_IDS.reviewStages,
