@@ -5,7 +5,7 @@ model:
   base_url: http://127.0.0.1:3900/v1
   api_key: <ENGINEER_CONSOLE_MODEL_API_KEY>
   api_mode: chat_completions
-  context_length: <configured context of the default model>
+  context_length: 1048576   # configured context of the default model (deepseek-v4-flash)
 delegation:
   model: deepseek-v4-flash
   provider: custom

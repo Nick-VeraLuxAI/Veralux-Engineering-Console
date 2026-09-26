@@ -36,3 +36,17 @@ Models are declared in `src/lib/engineer-console/model-control/catalog.ts` (or a
 needs, readiness probe) lives in the catalog entry; the manager/router/MCP code is model-agnostic.
 Protected (`kind: "external"`) entries such as the Receptionist vLLM are routable but never started
 or stopped by the console.
+
+## DeepSeek-V4-Flash long context (verified 2026-09-25)
+
+| Profile | GPUs | Allocated ctx | Load | Prefill | Decode | 3-needle retrieval |
+|---|---|---|---|---|---|---|
+| `deepseek-v4-flash` (default) | GPU0 only | 1,048,576 | 31-38 s | 2,331 tok/s @100K, 2,039 @250K, 1,612 @500K, 1,151 @1M | 20-22 tok/s | pass at 100K, 250K, 500K, **1,005,676** tokens |
+| `deepseek-v4-flash-tp2` | GPU0+1 | 1,048,576 | ~50 s | ~340 tok/s | ~3.6 tok/s | pass 100K, **fail 250K** |
+| `deepseek-v4-flash-64k` | GPU0 | 65,536 | ~38 s | - | 20-27 tok/s | coexists with Receptionist GPU tenants |
+
+Launcher `scripts/runtime/model-control/ft-serve-longctx.py` is required for 1M on a 32 GB card:
+`FT_SWA_FULL_TOKENS_RATIO=0.015` shrinks the sliding-window page pool (1M KV = 8.77 GiB instead of 34 GiB at the
+FreeToken default 0.2), and a row-block patch of `dsv4_indexer.indexer_select_prefill` (`FT_INDEXER_MAX_ELEMS`)
+keeps the indexer's score/mask temporaries bounded so deep prefills do not OOM. Neither changes attention results.
+The 1M profile needs GPU0 essentially empty (Receptionist Whisper/Kokoro stopped).

@@ -143,7 +143,7 @@ export function defaultCatalog(env: NodeJS.ProcessEnv = process.env): CatalogMod
       gpuReserveMiB: 0,
       swaRatio: env.ENGINEER_CONSOLE_DEEPSEEK_SWA_RATIO?.trim() || "0.015",
       longContextLauncher: true,
-      notes: "Native max 1,048,576 tokens (YaRN x16 over 64K). Full 1M KV allocated (8.77 GiB, SWA ratio 0.015). Measured TP1: ~31 s load, ~2.3K tok/s prefill, ~22 tok/s decode at 100K depth.",
+      notes: "Native max 1,048,576 tokens (YaRN x16 over 64K). Full 1M KV allocated (8.77 GiB, SWA ratio 0.015). Verified 2026-09-25: 3-needle retrieval passed at 100K/250K/500K/1,005,676 prompt tokens; ~31-38 s load; prefill 2.3K tok/s @100K -> 1.15K tok/s @1M; decode ~20-22 tok/s; peak ~30 GiB VRAM.",
     }),
     deepseekFtwProfile({
       env,
@@ -160,7 +160,7 @@ export function defaultCatalog(env: NodeJS.ProcessEnv = process.env): CatalogMod
       gpuReserveMiB: 0,
       swaRatio: "0.015",
       longContextLauncher: true,
-      notes: "Measured TP2: ~50 s load, ~340 tok/s prefill, ~3.6 tok/s decode at 100K depth.",
+      notes: "Measured TP2: ~50 s load, ~340 tok/s prefill, ~3.6 tok/s decode. Passed 3-needle retrieval at 100K but FAILED at 250K (same prompt/temperature 0 passes on TP1) -- prefer the single-GPU profile.",
     }),
     deepseekFtwProfile({
       env,
