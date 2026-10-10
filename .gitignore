@@ -51,3 +51,7 @@ vendor/airllm-nemotronh/**/__pycache__/
 
 # super download logs (S1 Commit 2, not committed)
 .download-logs/
+
+# Local model virtualenv. Too large for GitHub and not source.
+.venv-airllm/
+.venv*/
