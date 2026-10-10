@@ -28,7 +28,7 @@ test.describe("Release lifecycle panels (fixture-driven)", () => {
     await gotoRunDetailResilient(page, runId, request, baseURL!);
     await expectReleasePanelsVisible(page);
 
-    await page.getByRole("tab", { name: "PR", exact: true }).click();
+    await page.getByRole("tab", { name: "Later", exact: true }).click();
 
     const prSection = page
       .locator("section")
@@ -38,7 +38,7 @@ test.describe("Release lifecycle panels (fixture-driven)", () => {
     await expect(prSection.getByText("base main")).toBeVisible();
     await expect(prSection.getByRole("button", { name: "Existing PR recorded" })).toBeDisabled();
 
-    await page.getByRole("tab", { name: "Release", exact: true }).click();
+    await page.getByRole("tab", { name: "Later", exact: true }).click();
 
     const mergeSection = page
       .locator("section")

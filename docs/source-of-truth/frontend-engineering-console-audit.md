@@ -5,7 +5,7 @@ Date: 2026-08-22
 Repo: `Veralux-Engineering-Console`  
 Does **not** change UI, routes, schema, Docker, models, or `.env.local`.
 
-Related live SoT: `docs/current-architecture.md`, `ae-senior-review-panel-v1.md`, `ae-senior-review-queue-v1.md`, `ae-senior-review-durable-evidence-v1.md`, `ae-senior-review-evidence-panel-v1.md`, `autonomous-engineer-v1.md`.
+Related live SoT: `docs/current-architecture.md`, `map-chat-vera-v1.md`, `ae-senior-review-panel-v1.md`, `ae-senior-review-queue-v1.md`, `ae-senior-review-durable-evidence-v1.md`, `ae-senior-review-evidence-panel-v1.md`, `autonomous-engineer-v1.md`.
 
 Historical inventories under `docs/source-of-truth/implementation-audit/` (especially `07-api-ui-service-inventory.md`) still mention `/engineer/projects` and prototype-loop UI. Those routes/modules are **not** the current AE control plane. Prefer this document and `docs/current-architecture.md`.
 

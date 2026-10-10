@@ -17,6 +17,8 @@ export type PlanRepairKind =
   | "invalid_content"
   | "harness_incompat"
   | "truncating_update"
+  | "scaffold_contract"
+  | "invalid_syntax"
   | "model_output"
   | "generation_repair";
 
@@ -116,6 +118,35 @@ export function classifyPreExecutionPlanFailure(input: {
       chargeKind: "PLAN_REPAIR",
       planRepairKind: "truncating_update",
       reason: message,
+      evidence,
+    };
+  }
+
+  if (/syntax error in src\/|operation \d+ syntax error|Expected '|parse error/i.test(message)) {
+    return {
+      chargeKind: "PLAN_REPAIR",
+      planRepairKind: "invalid_syntax",
+      reason: [
+        "Planned TypeScript does not parse — fix syntax before execution.",
+        "Common issues: missing commas, broken imports, truncated files, JSON-escaped quotes in content.",
+        "Use complete valid TypeScript file bodies in update_file/create_file operations.",
+        message,
+      ].join(" "),
+      evidence,
+    };
+  }
+
+  if (/SCAFFOLD_CONTRACT_REGRESSION|Protected export.*removed from src\/contracts|regresses protected scaffold|contracts\.ts is frozen|context-assembler lost|memory-record-store lost/i.test(message)) {
+    return {
+      chargeKind: "PLAN_REPAIR",
+      planRepairKind: "scaffold_contract",
+      reason: [
+        "Protected scaffold files (contracts.ts, context-assembler.ts, memory-record-store.ts, event-log.ts) must not regress.",
+        "For contracts.ts: use update_file with the COMPLETE current file plus additive edits only (new types, optional fields).",
+        "For implementers: add new modules (e.g. context-budget-assembler.ts) instead of rewriting InMemoryContextAssembler return shape.",
+        "Preserve MemoryRecord.kind, supersededById, AssembledContext fields (text, recordIds, eventIds, estimatedTokens), and store methods (upsert/get/list/supersede).",
+        message,
+      ].join(" "),
       evidence,
     };
   }

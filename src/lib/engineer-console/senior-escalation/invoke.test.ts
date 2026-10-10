@@ -309,16 +309,18 @@ describe("governed live senior invocation v2", () => {
       expect(result.failureMessage).toMatch(/ECONNREFUSED/);
       expect(result.humanGatesStillRequired).toBe(true);
     }
-    expect(getDefaultAeWorkerProfile().id).toBe("nano-fast");
-    expect(getDefaultAeWorkerProfile().openaiBaseUrl).toBe("http://127.0.0.1:8081/v1");
-    expect(getLocalModelCodingConfig({}).baseUrl).toBe("http://127.0.0.1:8081/v1");
+    expect(getDefaultAeWorkerProfile().id).toBe("nano-faithful");
+    expect(getDefaultAeWorkerProfile().openaiBaseUrl).toBe("http://127.0.0.1:8082/v1");
+    expect(getLocalModelCodingConfig({}).baseUrl).toBe("http://127.0.0.1:8082/v1");
     expect(getSeniorModelCodingConfig({}).enabled).toBe(false);
   });
 
-  it("is not imported by the AE loop and does not use live network in these tests", () => {
-    const root = path.join(__dirname, "..", "autonomous-engineer");
-    for (const file of ["loop.ts", "worker-client.ts", "worker-route.ts"]) {
-      const source = readFileSync(path.join(root, file), "utf8");
+  it("is env-gated in the AE loop and does not use live network in these tests", () => {
+    const loopSource = readFileSync(path.join(__dirname, "..", "autonomous-engineer", "loop.ts"), "utf8");
+    expect(loopSource).toMatch(/maybeAutoInvokeSeniorAfterQcFailure/);
+    expect(loopSource).not.toMatch(/invokeSeniorReview/);
+    for (const file of ["worker-client.ts", "worker-route.ts"]) {
+      const source = readFileSync(path.join(__dirname, "..", "autonomous-engineer", file), "utf8");
       expect(source).not.toMatch(/invokeSeniorReview/);
       expect(source).not.toMatch(/senior-escalation/);
     }

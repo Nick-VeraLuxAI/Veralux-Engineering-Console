@@ -29,7 +29,7 @@ function stagingInvokable(reasons: SeniorInvocationBlockedReason[]): boolean {
   return reasons.length === 1 && reasons[0] === STAGING_ONLY_BLOCK;
 }
 
-function applyInvocationToItem(
+export function applyInvocationToItem(
   item: SeniorReviewQueueItem,
   invocation: SeniorInvocationResult,
   clock: string,

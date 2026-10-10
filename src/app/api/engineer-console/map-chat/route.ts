@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { listMapChatModels, parseMapChatRequest, runMapChat } from "@/lib/engineer-console/dashboard/map-chat";
+import { loadPendingDecisionChatContext } from "@/lib/engineer-console/dashboard/pending-decision-chat-brief";
+import { loadRepoPurposeBrief } from "@/lib/engineer-console/dashboard/repo-purpose-brief-load";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import { authorizeRead } from "@/lib/engineer-console/security/route-guards";
 
@@ -27,7 +29,9 @@ export async function POST(request: Request) {
 
   try {
     const parsed = parseMapChatRequest(body);
-    const turn = await runMapChat(parsed);
+    const workingRepoBrief = parsed.workingRepoId ? loadRepoPurposeBrief(parsed.workingRepoId) : null;
+    const pendingDecision = parsed.pendingRunId ? loadPendingDecisionChatContext(parsed.pendingRunId) : null;
+    const turn = await runMapChat({ ...parsed, workingRepoBrief, pendingDecision });
     return NextResponse.json(turn);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Map chat failed";

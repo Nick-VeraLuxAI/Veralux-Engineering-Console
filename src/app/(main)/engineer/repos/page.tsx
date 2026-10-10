@@ -3,6 +3,7 @@ import { getLatestCompatibilityAnalysisRun } from "@/lib/engineer-console/repo-i
 import { listRegisteredRepos } from "@/lib/engineer-console/repo-intelligence/registered-repos/list-repos";
 import { toPublicRegisteredRepo } from "@/lib/engineer-console/repo-intelligence/registered-repos/register-repo";
 import {
+  getEffectiveRegistrationRoots,
   getRepoRootAllowlist,
   isRepoRootAllowlistConfigured,
 } from "@/lib/engineer-console/repo-intelligence/registered-repos/repo-path-policy";
@@ -15,14 +16,14 @@ export default function EngineerReposPage() {
   ensureEngineerConsoleReady();
   const repos = listRegisteredRepos().map(toPublicRegisteredRepo);
   const allowlistConfigured = isRepoRootAllowlistConfigured();
-  const repoRoots = getRepoRootAllowlist() ?? [];
+  const repoRoots = getEffectiveRegistrationRoots() ?? getRepoRootAllowlist() ?? [];
   const compatibilityAvailable = getLatestCompatibilityAnalysisRun()?.status === "completed";
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">Repositories</h1>
       {!allowlistConfigured && (
-        <p className="mb-4 text-sm text-white/40">
+        <p className="mb-4 text-sm text-white/60">
           Approved roots are open in this environment. Production should restrict them.
         </p>
       )}

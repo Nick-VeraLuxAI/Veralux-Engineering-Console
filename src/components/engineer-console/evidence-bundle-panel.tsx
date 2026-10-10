@@ -5,6 +5,7 @@ import { engineerConsoleFetch } from "@/lib/engineer-console-client/fetch";
 
 import { useCallback, useEffect, useState } from "react";
 import { RUN_NAV_TARGET_IDS } from "@/lib/engineer-console/run-ux/run-navigation";
+import { RUN_PANEL_IDS } from "@/lib/engineer-console/run-ux/run-ux-types";
 import type { EvidenceSeniorReviewSummary } from "@/lib/engineer-console/senior-escalation/durable-types";
 import { toSeniorReviewEvidencePanelView } from "@/lib/engineer-console/senior-escalation/evidence-panel-view";
 import { OperatorHelp } from "./operator-help";
@@ -202,9 +203,9 @@ export function EvidenceBundlePanel({ runId }: { runId: string }) {
 
       {seniorReview ? (
         <div
-          id="senior-review-advisory"
+          id={RUN_PANEL_IDS.seniorReviewAdvisory}
           className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3"
-          data-testid="senior-review-advisory"
+          data-testid={RUN_PANEL_IDS.seniorReviewAdvisory}
         >
           <h3 className="font-semibold">{seniorReview.title}</h3>
           <p className="mt-2 text-sm text-[var(--muted)]">{seniorReview.advisoryCopy}</p>

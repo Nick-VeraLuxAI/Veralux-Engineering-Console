@@ -225,14 +225,17 @@ describe("senior-review-queue-v1", () => {
     expect(result.item?.humanGatesStillRequired).toBe(true);
   });
 
-  it("does not change Nano worker defaults and stays out of the AE loop", () => {
-    expect(getDefaultAeWorkerProfile().id).toBe("nano-fast");
-    expect(getDefaultAeWorkerProfile().openaiBaseUrl).toBe("http://127.0.0.1:8081/v1");
-    expect(getLocalModelCodingConfig({}).baseUrl).toBe("http://127.0.0.1:8081/v1");
+  it("does not change Nano worker defaults; AE senior hook is env-gated", () => {
+    expect(getDefaultAeWorkerProfile().id).toBe("nano-faithful");
+    expect(getDefaultAeWorkerProfile().openaiBaseUrl).toBe("http://127.0.0.1:8082/v1");
+    expect(getLocalModelCodingConfig({}).baseUrl).toBe("http://127.0.0.1:8082/v1");
     expect(SENIOR_REVIEW_QUEUE_WIRED_INTO_AE_LOOP).toBe(false);
-    const root = path.join(__dirname, "..", "autonomous-engineer");
-    for (const file of ["loop.ts", "worker-client.ts", "worker-route.ts"]) {
-      const source = readFileSync(path.join(root, file), "utf8");
+    const loopSource = readFileSync(path.join(__dirname, "..", "autonomous-engineer", "loop.ts"), "utf8");
+    expect(loopSource).toMatch(/maybeAutoInvokeSeniorAfterQcFailure/);
+    expect(loopSource).not.toMatch(/requestSeniorReviewForPackage/);
+    expect(loopSource).not.toMatch(/invokeSeniorReview/);
+    for (const file of ["worker-client.ts", "worker-route.ts"]) {
+      const source = readFileSync(path.join(__dirname, "..", "autonomous-engineer", file), "utf8");
       expect(source).not.toMatch(/requestSeniorReviewForPackage/);
       expect(source).not.toMatch(/invokeSeniorReview/);
       expect(source).not.toMatch(/senior-escalation/);

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { RUN_PANEL_IDS } from "../run-ux/run-ux-types";
 import type { EvidenceSeniorReviewSummary } from "./durable-types";
 import {
   SENIOR_REVIEW_ADVISORY_COPY,
@@ -148,7 +149,8 @@ describe("senior-review-evidence-panel-v1", () => {
       path.join(process.cwd(), "src/components/engineer-console/evidence-bundle-panel.tsx"),
       "utf8",
     );
-    expect(panel).toContain("senior-review-advisory");
+    expect(RUN_PANEL_IDS.seniorReviewAdvisory).toBe("senior-review-advisory");
+    expect(panel).toContain("RUN_PANEL_IDS.seniorReviewAdvisory");
     expect(panel).toContain("toSeniorReviewEvidencePanelView");
     expect(panel).not.toMatch(/decision-record|handleApprovalAction|merge-pr|production-deploy/);
     expect(readFileSync(path.join(__dirname, "evidence-panel-view.ts"), "utf8")).not.toMatch(

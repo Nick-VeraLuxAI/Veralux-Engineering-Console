@@ -303,4 +303,40 @@ describe("validateWorkerPlan", () => {
     expect(result.valid).toBe(true);
     expect(result.normalizedOperations).toHaveLength(2);
   });
+
+  it("rejects worker plans that remove exports from protected scaffold contracts", () => {
+    const hostRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ec-wp-host-"));
+    fs.mkdirSync(path.join(hostRoot, "src"), { recursive: true });
+    fs.writeFileSync(
+      path.join(hostRoot, "src/contracts.ts"),
+      "export interface EventLog {}\nexport interface MemoryRecordStore {}\n",
+    );
+    fs.mkdirSync(path.join(repoRoot, "src"), { recursive: true });
+    fs.writeFileSync(
+      path.join(repoRoot, "src/contracts.ts"),
+      "export interface EventLog {}\nexport interface MemoryRecordStore {}\n",
+    );
+
+    const result = validateWorkerPlan(
+      {
+        runId: "run-1",
+        summary: "rewrite contracts",
+        allowedFiles: ["src/contracts.ts"],
+        operations: [
+          {
+            type: "update_file",
+            path: "src/contracts.ts",
+            content: "export type MemoryRecord = { id: string };\n",
+            reason: "simplify",
+          },
+        ],
+      },
+      repoRoot,
+      "run-1",
+      { scaffoldBaselineRepoPath: hostRoot },
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.code === "SCAFFOLD_CONTRACT_REGRESSION")).toBe(true);
+    fs.rmSync(hostRoot, { recursive: true, force: true });
+  });
 });

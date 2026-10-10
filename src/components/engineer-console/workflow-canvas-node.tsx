@@ -40,6 +40,7 @@ export function WorkflowCanvasNode({
   connected,
   dimmed,
   dragging,
+  arriving = false,
   style,
   className,
   onSelect,
@@ -51,6 +52,7 @@ export function WorkflowCanvasNode({
   connected?: boolean;
   dimmed?: boolean;
   dragging?: boolean;
+  arriving?: boolean;
   style?: React.CSSProperties;
   className?: string;
   onSelect: (nodeId: WorkflowMapNodeId) => void;
@@ -71,6 +73,7 @@ export function WorkflowCanvasNode({
       data-node-connected={connected ? "true" : "false"}
       data-node-dimmed={dimmed ? "true" : "false"}
       data-node-hub={isHub ? "true" : "false"}
+      data-node-arriving={arriving ? "true" : "false"}
       data-node-depth={selected ? "selected" : connected ? "connected" : dimmed ? "subdued" : "default"}
       aria-pressed={selected}
       onPointerDown={(event) => onPointerDown?.(node.id, event)}
@@ -80,9 +83,11 @@ export function WorkflowCanvasNode({
         width: WORKFLOW_CANVAS_NODE_SIZE.width,
         height: WORKFLOW_CANVAS_NODE_SIZE.height,
       }}
-      className={`group absolute flex flex-col justify-center rounded-[1.35rem] border px-4 text-left backdrop-blur-xl motion-safe:transition-[transform,opacity,border-color,background-color] motion-safe:duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${TONE_CLASSES[visualTone]} ${
-        selected
-          ? "scale-[1.04] border-white/28 bg-white/[0.08]"
+      className={`group absolute flex flex-col justify-center rounded-[1.35rem] border px-4 text-left backdrop-blur-xl transition-[transform,opacity,border-color,background-color] duration-[var(--motion-standard)] ease-[var(--motion-ease-emphasis)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${TONE_CLASSES[visualTone]} ${
+        dragging
+          ? "scale-[1.075] border-white/35 bg-white/[0.1]"
+          : selected
+            ? "scale-[1.04] border-white/28 bg-white/[0.08]"
           : isHub
             ? "border-white/14 bg-white/[0.05]"
             : "hover:border-white/16 hover:bg-white/[0.05]"
@@ -93,7 +98,7 @@ export function WorkflowCanvasNode({
           <p className={`truncate text-[15px] tracking-tight text-white ${isHub ? "font-semibold" : "font-medium"}`}>
             {node.label}
           </p>
-          <p className="mt-0.5 truncate text-[12px] text-white/45">{node.state}</p>
+          <p className="mt-0.5 truncate text-[12px] text-white/60">{node.state}</p>
         </div>
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT_CLASSES[visualTone]}`} />
       </div>

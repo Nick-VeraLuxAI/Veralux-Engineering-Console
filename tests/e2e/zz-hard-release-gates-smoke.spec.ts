@@ -61,7 +61,7 @@ test.describe("Hard release gates (enabled)", () => {
     expect(["blocked", "needs_attention"]).toContain(status);
 
     await gotoRunDetailResilient(page, runId, request, baseURL!);
-    await page.getByRole("tab", { name: "Release", exact: true }).click();
+    await page.getByRole("tab", { name: "Later", exact: true }).click();
 
     const mergeSection = page.locator(`#merge-controls`);
     await expect(

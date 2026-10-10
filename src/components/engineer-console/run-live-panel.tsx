@@ -15,6 +15,7 @@ import {
   type RunWorkflowSummary,
 } from "@/lib/engineer-console/run-ux/run-ux-types";
 import { deriveRunCurrentActionZoneState } from "@/lib/engineer-console/run-ux/run-page-sections";
+import { buildRunDecisionBrief } from "@/lib/engineer-console/run-ux/run-decision-brief";
 import {
   RUN_NAV_TARGET_IDS,
   buildRunExpertSummaryItems,
@@ -25,12 +26,13 @@ import { deriveRunIssues, type RunIssue } from "@/lib/engineer-console/run-ux/ru
 import {
   DEFAULT_RUN_WORKSPACE_VIEW,
   getRunWorkspaceViewForTarget,
+  operatorTabForView,
   resolveRunWorkspaceViewForHash,
+  type RunOperatorTabId,
   type RunWorkspaceViewId,
 } from "@/lib/engineer-console/run-ux/run-workspace";
 import { Surface } from "@/components/ui/surface";
 import { StatusBadge } from "./status-badge";
-import { ApprovalActions } from "./approval-actions";
 import { CommitCandidatePanel } from "./commit-candidate-panel";
 import { EngineeringReviewSignoffPanel } from "./engineering-review-signoff-panel";
 import { HermesWorkerPanel } from "./hermes-worker-panel";
@@ -55,7 +57,7 @@ import { ReleaseChecklistPanel } from "./release-checklist-panel";
 import { ReleaseSignoffPanel } from "./release-signoff-panel";
 import { RunCommandCenter } from "./run-command-center";
 import { RunLifecycleStepper } from "./run-lifecycle-stepper";
-import { RunApprovalActionCard } from "./run-approval-action-card";
+import { RunDecisionPanel } from "./run-decision-dialog";
 import { RunCurrentActionZone } from "./run-current-action-zone";
 import { RunQuickNav } from "./run-quick-nav";
 import { RunExpertSummary } from "./run-expert-summary";
@@ -120,13 +122,61 @@ export function RunLivePanel({
   const approvalCardState = deriveRunApprovalActionCardState(data.uxSummary);
   const lifecycleSteps = deriveRunLifecycleSteps(data.uxSummary);
   const currentAction = deriveRunCurrentActionZoneState(data.uxSummary, guidance);
+  const needsDecision =
+    approvalCardState.showCard &&
+    (data.run.status === "waiting_for_approval" ||
+      approvalCardState.showApprove ||
+      approvalCardState.showRequestFix);
+  const skippedGates = data.qualityGates.some((gate) => gate.status === "skipped");
+  const pendingReview = data.uxSummary.review.pendingCount > 0;
+  const decisionBrief = useMemo(
+    () =>
+      buildRunDecisionBrief({
+        taskTitle: data.task.title,
+        happening: pendingReview || skippedGates
+          ? "The worker finished a change. Automatic tests did not fully run, or policy asked a person to look, so this job is waiting on you."
+          : [currentAction.description, approvalCardState.currentStateDetail]
+              .filter(Boolean)
+              .join(" "),
+        recommendation:
+          data.approvalReport?.recommendedNextAction?.trim() || approvalCardState.nextRequiredAction,
+        canApprove: approvalCardState.approvalAvailable,
+        hardBlocked:
+          data.uxSummary.policy.status === "blocked" || data.uxSummary.review.rejectedCount > 0,
+        changedFiles: data.changedFiles,
+        qualityGates: data.qualityGates,
+        governanceIssues:
+          data.approvalReport?.governanceIssues ?? data.uxSummary.approval.governanceIssues,
+        extraIssues: approvalCardState.blockers.map((item) => item.text),
+        pendingReviewCount: data.uxSummary.review.pendingCount,
+      }),
+    [
+      approvalCardState.approvalAvailable,
+      approvalCardState.blockers,
+      approvalCardState.currentStateDetail,
+      approvalCardState.nextRequiredAction,
+      currentAction.description,
+      data.approvalReport?.governanceIssues,
+      data.approvalReport?.recommendedNextAction,
+      data.changedFiles,
+      data.qualityGates,
+      data.task.title,
+      data.uxSummary.approval.governanceIssues,
+      data.uxSummary.policy.status,
+      data.uxSummary.review.pendingCount,
+      data.uxSummary.review.rejectedCount,
+      pendingReview,
+      skippedGates,
+    ],
+  );
   const quickNavItems = buildRunQuickNavItems(data.uxSummary, guidance);
   const expertSummaryItems = buildRunExpertSummaryItems(data.uxSummary, guidance);
   const issues = deriveRunIssues(data.uxSummary, guidance);
   const currentIssue = issues[0] ?? null;
   const viewIssueCounts = useMemo(() => {
-    return issues.reduce<Partial<Record<RunWorkspaceViewId, number>>>((counts, issue) => {
-      counts[issue.view] = (counts[issue.view] ?? 0) + 1;
+    return issues.reduce<Partial<Record<RunOperatorTabId, number>>>((counts, issue) => {
+      const tab = operatorTabForView(issue.view);
+      counts[tab] = (counts[tab] ?? 0) + 1;
       return counts;
     }, {});
   }, [issues]);
@@ -291,50 +341,39 @@ export function RunLivePanel({
         <RunWorkspaceViewPanel viewId="overview" activeView={visibleView}>
           <div className="space-y-4">
             <div id={RUN_NAV_TARGET_IDS.currentAction} className="scroll-mt-28">
-              <RunCurrentActionZone state={currentAction} />
+              <RunCurrentActionZone state={currentAction} hidePrimary={needsDecision} />
             </div>
+
+            {needsDecision ? (
+              <RunDecisionPanel
+                runId={runId}
+                brief={decisionBrief}
+                approval={approvalCardState}
+              />
+            ) : null}
 
             <details id="run-command-center" className="scroll-mt-28 rounded-xl border border-white/8 px-4 py-3">
               <summary className="cursor-pointer text-sm text-white/55">
-                <h2 className="inline text-sm font-medium text-white/70">Run Command Center</h2>
+                <h2 className="inline text-sm font-medium text-white/70">More status (optional)</h2>
               </summary>
-              <div className="mt-4">
+              <div className="mt-4 space-y-4">
                 <RunCommandCenter summary={data.uxSummary} guidance={guidance} />
+                <div id="run-lifecycle">
+                  <RunLifecycleStepper steps={lifecycleSteps} currentStageId={guidance.currentStageId} />
+                </div>
+                <div id="run-quick-nav">
+                  <RunQuickNav items={quickNavItems} />
+                </div>
+                <div id="run-expert-summary">
+                  <RunExpertSummary items={expertSummaryItems} />
+                </div>
               </div>
             </details>
-
-            <details id="run-lifecycle" className="scroll-mt-28 rounded-xl border border-white/8 px-4 py-3">
-              <summary className="cursor-pointer text-sm text-white/55">
-                <h2 className="inline text-sm font-medium text-white/70">Lifecycle</h2>
-              </summary>
-              <div className="mt-4">
-                <RunLifecycleStepper steps={lifecycleSteps} currentStageId={guidance.currentStageId} />
-              </div>
-            </details>
-
-            <details id="run-quick-nav" className="scroll-mt-28 rounded-xl border border-white/8 px-4 py-3">
-              <summary className="cursor-pointer text-sm text-white/55">
-                <h2 className="inline text-sm font-medium text-white/70">Quick navigation</h2>
-              </summary>
-              <div className="mt-4">
-                <RunQuickNav items={quickNavItems} />
-              </div>
-            </details>
-
-            <details id="run-expert-summary" className="scroll-mt-28 rounded-xl border border-white/8 px-4 py-3">
-              <summary className="cursor-pointer text-sm text-white/55">
-                <h2 className="inline text-sm font-medium text-white/70">Expert summary</h2>
-              </summary>
-              <div className="mt-4">
-                <RunExpertSummary items={expertSummaryItems} />
-              </div>
-            </details>
-          </div>
 
             {data.autonomous ? (
               <details className="rounded-xl border border-white/8 px-4 py-3">
                 <summary className="cursor-pointer text-sm text-white/55">
-                  <h2 className="inline text-sm font-medium text-white/70">Autonomous Engineer</h2>
+                  <h2 className="inline text-sm font-medium text-white/70">Autonomous Engineer (optional)</h2>
                 </summary>
                 <div className="mt-4 space-y-4">
                   <AutonomousEngineerPanel runId={runId} payload={data.autonomous} />
@@ -343,6 +382,13 @@ export function RunLivePanel({
               </details>
             ) : null}
 
+            <details
+              className="rounded-xl border border-white/8 px-4 py-3"
+            >
+              <summary className="cursor-pointer text-sm text-white/55">
+                <h2 className="inline text-sm font-medium text-white/70">Job record (optional)</h2>
+              </summary>
+              <div className="mt-4">
             <Surface
               as="section"
               id={RUN_PANEL_IDS.runState}
@@ -351,10 +397,7 @@ export function RunLivePanel({
           >
             <h2 className="mb-3 font-semibold">Run state</h2>
             <p className="mb-3 text-sm text-[var(--muted)]">
-              What this is: the recorded run status, branch, and risk summary. Why it matters: it
-              confirms the base context for every later workspace view. What to do next: use the
-              Current Action and Overview attention cards first, then return here if the run status
-              or branch looks unexpected.
+              Branch, status, and risk for this job. You can ignore this unless something looks off.
             </p>
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div>
@@ -382,10 +425,16 @@ export function RunLivePanel({
               </p>
             ) : null}
           </Surface>
+              </div>
+            </details>
+          </div>
         </RunWorkspaceViewPanel>
 
         <RunWorkspaceViewPanel viewId="work_plan" activeView={visibleView}>
           <div id="active-work" className="scroll-mt-28 space-y-4" tabIndex={-1}>
+            <p className="text-sm text-white/55">
+              Files and checks for this change. Open the optional details only if something looks stuck.
+            </p>
             {veraExecutionBlocked ? (
               <Surface padding="md" variant="inset" className="border-amber-500/40 text-amber-100">
                 <p className="font-medium">Vera handoff execution is gated</p>
@@ -505,7 +554,14 @@ export function RunLivePanel({
 
         <RunWorkspaceViewPanel viewId="review" activeView={visibleView}>
           <div id="governance-review" className="scroll-mt-28 space-y-4" tabIndex={-1}>
-            <RunApprovalActionCard runId={runId} state={approvalCardState} />
+            <details className="rounded-xl border border-white/8 px-4 py-3">
+              <summary className="cursor-pointer text-sm text-white/55">
+                <h2 className="inline text-sm font-medium text-white/70">Paper trail (optional)</h2>
+              </summary>
+              <div className="mt-4 space-y-4">
+            <p className="text-sm text-white/55">
+              You already decided above. These records stay here if something looks wrong later.
+            </p>
 
             <div id={RUN_PANEL_IDS.evidence} className="scroll-mt-28" tabIndex={-1}>
               <EvidenceBundlePanel runId={runId} />
@@ -564,32 +620,29 @@ export function RunLivePanel({
                 <pre className="mb-4 max-h-40 overflow-auto rounded bg-[var(--background)] p-3 text-xs">
                   {report.diffSummary}
                 </pre>
-                {(approvalCardState.showApprove ||
-                  approvalCardState.showRequestFix ||
-                  approvalCardState.showStop) ? (
-                  <ApprovalActions
-                    runId={runId}
-                    canApprove={approvalCardState.approvalAvailable}
-                    approvalRequiresRationale={approvalCardState.rationale.approve === "required"}
-                    showApprove={approvalCardState.showApprove}
-                    showRequestFix={approvalCardState.showRequestFix}
-                    showStop={approvalCardState.showStop}
-                    rationaleGuidance={approvalCardState.rationale.guidance}
-                  />
-                ) : null}
               </Surface>
             ) : null}
+              </div>
+            </details>
           </div>
         </RunWorkspaceViewPanel>
 
         <RunWorkspaceViewPanel viewId="pr" activeView={visibleView}>
           <div id={RUN_PANEL_IDS.prCreation} className="scroll-mt-28 space-y-4" tabIndex={-1}>
+            <p className="text-sm text-white/55">
+              Sharing creates a pull request. Skip Later until the job is approved and you are
+              ready to show the change.
+            </p>
             <PrCreationPanel runId={runId} />
           </div>
         </RunWorkspaceViewPanel>
 
         <RunWorkspaceViewPanel viewId="release" activeView={visibleView}>
           <div id="pr-release" className="scroll-mt-28 space-y-4" tabIndex={-1}>
+            <p className="text-sm text-white/55">
+              Merge, deploy, and sign-off. Leave this closed until the change is already shared
+              and you intend to ship.
+            </p>
             <div id={RUN_PANEL_IDS.mergeControls} className="scroll-mt-28" tabIndex={-1}>
               <MergeControlsPanel runId={runId} />
             </div>
@@ -623,12 +676,10 @@ export function RunLivePanel({
         <RunWorkspaceViewPanel viewId="audit" activeView={visibleView}>
           <div id="technical-audit" className="scroll-mt-28 space-y-4" tabIndex={-1}>
             <Surface as="section">
-              <h2 className="mb-3 font-semibold">Audit overview</h2>
+              <h2 className="mb-3 font-semibold">History overview</h2>
               <p className="mb-3 text-sm text-[var(--muted)]">
-                What this is: the audit-focused workspace for timeline verification and technical
-                traceability. Why it matters: audit history and chain diagnostics remain accessible
-                even when the main operator flow is focused on another workspace view. What to do
-                next: inspect the timeline, then open chain diagnostics if verification failed.
+                This is the paper trail. You do not need it to finish a normal job. Open it if
+                something looks wrong and you need to see what already happened.
               </p>
               <dl className="grid gap-3 text-sm sm:grid-cols-3">
                 <Surface padding="sm" variant="inset">

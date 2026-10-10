@@ -26,7 +26,8 @@ const ALLOWED_TRANSITIONS: Record<AutonomousState, AutonomousState[]> = {
     "failed",
     "aborted",
   ],
-  waiting_for_approval: ["aborted"],
+  // Continue engineering (build/observe modes) may return to diagnosing/planning.
+  waiting_for_approval: ["diagnosing", "planning", "aborted"],
   exhausted: [],
   failed: [],
   aborted: [],

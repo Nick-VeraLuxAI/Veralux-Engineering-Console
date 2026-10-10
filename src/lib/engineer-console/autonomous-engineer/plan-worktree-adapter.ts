@@ -1,6 +1,12 @@
 import fs from "fs";
 import path from "path";
 import type { WorkerPlan } from "../worker-plan/worker-plan-types";
+import {
+  isProtectedScaffoldPath,
+  normalizeScaffoldRelativePath,
+  SNIPPET_PRIORITY_PATHS,
+  validateProtectedScaffoldContent,
+} from "./scaffold-contract-guard";
 
 function walkFiles(root: string, prefix: string, acc: string[], limit: number): void {
   if (acc.length >= limit) return;
@@ -39,19 +45,47 @@ export function listAuthorizedWorktreeFiles(
 export function readAuthorizedWorktreeSnippets(
   repoPath: string,
   prefixes: string[],
-  options: { maxFiles?: number; maxBytesPerFile?: number; maxTotalBytes?: number } = {},
+  options: {
+    maxFiles?: number;
+    maxBytesPerFile?: number;
+    maxTotalBytes?: number;
+    priorityPaths?: readonly string[];
+  } = {},
 ): Array<{ path: string; content: string }> {
   // Keep defaults small enough for ~8k-token local workers after prompts/overhead.
   const maxFiles = options.maxFiles ?? 4;
   const maxBytesPerFile = options.maxBytesPerFile ?? 1_800;
   const maxTotalBytes = options.maxTotalBytes ?? 6_000;
+  const priorityPaths = options.priorityPaths ?? SNIPPET_PRIORITY_PATHS;
   const files = listAuthorizedWorktreeFiles(repoPath, prefixes, Math.max(maxFiles * 3, 24));
   const snippets: Array<{ path: string; content: string }> = [];
   let total = 0;
+
+  const readSnippet = (relative: string): boolean => {
+    if (snippets.length >= maxFiles || total >= maxTotalBytes) return false;
+    const absolute = path.join(repoPath, relative);
+    try {
+      if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) return false;
+      const raw = fs.readFileSync(absolute, "utf8");
+      const content = raw.slice(0, Math.min(maxBytesPerFile, maxTotalBytes - total));
+      snippets.push({ path: relative, content });
+      total += content.length;
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  for (const relative of priorityPaths) {
+    if (snippets.some((snippet) => snippet.path === relative)) continue;
+    readSnippet(relative.replace(/^\.?\//, ""));
+  }
+
   // Prefer smaller modules (easier to remediate) over giant orchestrators.
   const ranked = files
     .filter((relative) => /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(relative))
     .filter((relative) => !/\.test\.(ts|tsx|js|jsx)$/.test(relative) && !relative.includes("__tests__/"))
+    .filter((relative) => !snippets.some((snippet) => snippet.path === relative))
     .map((relative) => {
       const absolute = path.join(repoPath, relative);
       try {
@@ -64,16 +98,7 @@ export function readAuthorizedWorktreeSnippets(
     .map((entry) => entry.relative);
   for (const relative of ranked) {
     if (snippets.length >= maxFiles || total >= maxTotalBytes) break;
-    const absolute = path.join(repoPath, relative);
-    try {
-      if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) continue;
-      const raw = fs.readFileSync(absolute, "utf8");
-      const content = raw.slice(0, Math.min(maxBytesPerFile, maxTotalBytes - total));
-      snippets.push({ path: relative, content });
-      total += content.length;
-    } catch {
-      // Skip unreadable paths; planning still receives the path list.
-    }
+    readSnippet(relative);
   }
   return snippets;
 }
@@ -121,6 +146,17 @@ export function truncatingUpdateErrors(repoPath: string, plan: WorkerPlan): stri
       continue;
     }
     if (operation.type !== "update_file") continue;
+    if (isProtectedScaffoldPath(operation.path)) {
+      const regressions = validateProtectedScaffoldContent({
+        baselineRepoPath: repoPath,
+        relativePath: normalizeScaffoldRelativePath(operation.path),
+        nextContent: operation.content,
+      });
+      if (regressions.length > 0) {
+        errors.push(`operation ${index} regresses protected scaffold ${operation.path}: ${regressions[0]}`);
+        continue;
+      }
+    }
     if (operation.content.length >= existing.length * TRUNCATION_RATIO) continue;
     errors.push(
       `operation ${index} truncates ${operation.path} from ${existing.length} to ${operation.content.length} bytes; add a new small file instead of rewriting a large module`,

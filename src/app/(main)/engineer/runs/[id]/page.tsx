@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { assessVeraExecutionReadiness, isVeraRunExecutionBlocked } from "@/lib/engineer-console/bridge/vera-execution-readiness";
 import { assessVeraExecutionStartReadiness } from "@/lib/engineer-console/bridge/vera-execution-start-readiness";
@@ -201,12 +200,6 @@ export default async function RunDetailPage({
 
   return (
     <div>
-      <Link
-        href={`/engineer/tasks/${task.id}`}
-        className="text-sm text-white/40 hover:text-white"
-      >
-        {task.title}
-      </Link>
       <RunLivePanel
         runId={id}
         veraExecutionBlocked={veraExecutionBlocked}

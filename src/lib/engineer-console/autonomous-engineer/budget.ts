@@ -51,7 +51,7 @@ export function checkBudget(
 ): void {
   const maxKey = USAGE_TO_BUDGET[dimension];
   const next = usage[dimension] + increment;
-  const max = budget[maxKey];
+  const max = budget[maxKey] ?? Infinity;
   if (next > max) {
     throw new BudgetExhaustedError(maxKey, next, max);
   }
@@ -64,7 +64,8 @@ export function wouldExceedBudget(
   increment = 0,
 ): boolean {
   const maxKey = USAGE_TO_BUDGET[dimension];
-  return usage[dimension] + increment > budget[maxKey];
+  const max = budget[maxKey] ?? Infinity;
+  return usage[dimension] + increment > max;
 }
 
 export function remainingBudget(

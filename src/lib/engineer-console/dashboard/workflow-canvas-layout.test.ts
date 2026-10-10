@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WorkflowMapNode } from "./workflow-map";
+import { defaultMapChatFrame, mapChatBottomSafePadding } from "./map-chat-frame";
 import {
   areWorkflowCanvasNodesVisibleInView,
   buildWorkflowCanvasEdgePath,
@@ -7,6 +8,7 @@ import {
   fitWorkflowCanvasView,
   getDefaultWorkflowCanvasLayout,
   getDefaultWorkflowCanvasView,
+  getWorkflowCanvasBounds,
   getWorkflowCanvasSafeArea,
   moveWorkflowCanvasNode,
   zoomWorkflowCanvasView,
@@ -36,6 +38,43 @@ describe("workflow-canvas-layout", () => {
     expect(defaultView).toEqual(fitView);
   });
 
+  it("fits every node on a short laptop with the chat rail", () => {
+    const layout = getDefaultWorkflowCanvasLayout();
+    const cases = [
+      { width: 1280, height: 640 },
+      { width: 856, height: 640 },
+      { width: 1440, height: 700 },
+    ];
+
+    for (const viewport of cases) {
+      const safeArea = getWorkflowCanvasSafeArea(viewport.width, viewport.height, {
+        toolbarCollapsed: true,
+        chatSafeLeft: 356,
+      });
+      const view = fitWorkflowCanvasView(layout, viewport, safeArea);
+      expect(areWorkflowCanvasNodesVisibleInView(layout, view, viewport, safeArea)).toBe(true);
+    }
+  });
+
+  it("centers the pipeline in the remaining safe area", () => {
+    const layout = getDefaultWorkflowCanvasLayout();
+    const viewport = { width: 1440, height: 900 };
+    const safeArea = getWorkflowCanvasSafeArea(viewport.width, viewport.height, {
+      toolbarCollapsed: true,
+      chatSafeLeft: 356,
+    });
+    const view = fitWorkflowCanvasView(layout, viewport, safeArea);
+    const bounds = getWorkflowCanvasBounds(layout);
+    const midX = view.x + ((bounds.minX + bounds.maxX) / 2) * view.zoom;
+    const midY = view.y + ((bounds.minY + bounds.maxY) / 2) * view.zoom;
+    const safeMidX = safeArea.left + (viewport.width - safeArea.left - safeArea.right) / 2;
+    const safeMidY = safeArea.top + (viewport.height - safeArea.top - safeArea.bottom) / 2;
+
+    expect(Math.abs(midX - safeMidX)).toBeLessThan(2);
+    expect(Math.abs(midY - safeMidY)).toBeLessThan(2);
+    expect(areWorkflowCanvasNodesVisibleInView(layout, view, viewport, safeArea)).toBe(true);
+  });
+
   it("zooms around an anchor point", () => {
     const viewport = { width: 1280, height: 760 };
     const safeArea = getWorkflowCanvasSafeArea(viewport.width, viewport.height);
@@ -62,7 +101,19 @@ describe("workflow-canvas-layout", () => {
     });
 
     expect(withChat.left).toBe(withoutChat.left + 344);
+    expect(
+      getWorkflowCanvasSafeArea(viewport.width, viewport.height, {
+        toolbarCollapsed: true,
+        chatSafeLeft: 400,
+      }).left,
+    ).toBe(withoutChat.left + 400);
     expect(phone.left).toBeLessThan(80);
+    expect(
+      getWorkflowCanvasSafeArea(390, 844, {
+        toolbarCollapsed: true,
+        chatSafeBottom: 400,
+      }).bottom,
+    ).toBeGreaterThanOrEqual(400);
   });
 
   it("expands the left safe area when the toolbar is open", () => {
@@ -135,6 +186,59 @@ describe("workflow-canvas-layout", () => {
 
     expect(view.zoom).toBeGreaterThanOrEqual(0.28);
     expect(areWorkflowCanvasNodesVisibleInView(layout, view, viewport, safeArea)).toBe(true);
+  });
+
+  it("zooms out when the tree bounds grow", () => {
+    const layout = getDefaultWorkflowCanvasLayout();
+    const viewport = { width: 1112, height: 900 };
+    const safeArea = getWorkflowCanvasSafeArea(viewport.width, viewport.height, {
+      toolbarCollapsed: true,
+    });
+    const compact = fitWorkflowCanvasView(layout, viewport, safeArea);
+    const grown = moveWorkflowCanvasNode(
+      moveWorkflowCanvasNode(layout, "release", { x: 240, y: 0 }),
+      "setup",
+      { x: -90, y: 90 },
+    );
+    const grownView = fitWorkflowCanvasView(grown, viewport, safeArea);
+
+    expect(grownView.zoom).toBeLessThan(compact.zoom);
+    expect(areWorkflowCanvasNodesVisibleInView(grown, grownView, viewport, safeArea)).toBe(true);
+  });
+
+  it("fits the pipeline inside a split map pane without a chat-rail inset", () => {
+    const layout = getDefaultWorkflowCanvasLayout();
+    const pane = { width: 1440 - 328, height: 900 };
+    const safeArea = getWorkflowCanvasSafeArea(pane.width, pane.height, {
+      toolbarCollapsed: true,
+    });
+    const view = fitWorkflowCanvasView(layout, pane, safeArea);
+
+    expect(safeArea.left).toBeLessThan(80);
+    expect(areWorkflowCanvasNodesVisibleInView(layout, view, pane, safeArea)).toBe(true);
+  });
+
+  it("fits the map above a compact phone chat sheet", () => {
+    const layout = getDefaultWorkflowCanvasLayout();
+    const phone = { width: 390, height: 844 };
+    const short = { width: 320, height: 568 };
+    const phoneSafe = getWorkflowCanvasSafeArea(phone.width, phone.height, {
+      toolbarCollapsed: true,
+      chatSafeBottom: mapChatBottomSafePadding(defaultMapChatFrame(phone), phone.height, phone.width),
+    });
+    const shortSafe = getWorkflowCanvasSafeArea(short.width, short.height, {
+      toolbarCollapsed: true,
+      chatSafeBottom: mapChatBottomSafePadding(defaultMapChatFrame(short), short.height, short.width),
+    });
+
+    expect(phoneSafe.bottom).toBeGreaterThan(200);
+    expect(shortSafe.bottom).toBeGreaterThan(160);
+    expect(areWorkflowCanvasNodesVisibleInView(layout, fitWorkflowCanvasView(layout, phone, phoneSafe), phone, phoneSafe)).toBe(
+      true,
+    );
+    expect(areWorkflowCanvasNodesVisibleInView(layout, fitWorkflowCanvasView(layout, short, shortSafe), short, shortSafe)).toBe(
+      true,
+    );
   });
 
   it("restores default coordinates by rebuilding the default layout", () => {

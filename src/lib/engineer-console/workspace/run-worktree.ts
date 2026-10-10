@@ -5,9 +5,10 @@ import { v4 as uuidv4 } from "uuid";
 import { getEngineerConsoleDb, getEngineerConsoleDbPath } from "../db/client";
 import {
   addGitWorktree,
+  commitSeededScaffoldBaseline,
   generateBranchName,
   getChangedFiles,
-  getHeadRevision,
+  ensureHeadRevision,
   GitWorkspaceError,
   removeGitWorktree,
   verifyGitRepo,
@@ -82,6 +83,46 @@ export function linkWorktreeRuntimeDependencies(repoPath: string, worktreePath: 
   fs.symlinkSync(source, destination);
 }
 
+const SEED_SKIP_DIRS = new Set(["node_modules", ".git", ".next"]);
+
+/**
+ * Copy host working-tree files missing from an isolated worktree.
+ * Needed when the repo has uncommitted scaffold (empty HEAD checkout).
+ */
+export function seedWorktreeFromHostRepo(hostRepoPath: string, worktreePath: string): string[] {
+  const seeded: string[] = [];
+  const hostRoot = path.resolve(hostRepoPath);
+  const worktreeRoot = path.resolve(worktreePath);
+
+  function walk(relativeDir: string): void {
+    const hostDir = path.join(hostRoot, relativeDir);
+    if (!fs.existsSync(hostDir)) return;
+    const entries = fs.readdirSync(hostDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const relative = relativeDir ? path.join(relativeDir, entry.name) : entry.name;
+      const normalized = relative.replace(/\\/g, "/");
+      if (SEED_SKIP_DIRS.has(entry.name)) continue;
+      const hostAbs = path.join(hostRoot, relative);
+      const worktreeAbs = path.join(worktreeRoot, relative);
+      if (entry.isDirectory()) {
+        if (!fs.existsSync(worktreeAbs)) {
+          fs.mkdirSync(worktreeAbs, { recursive: true });
+        }
+        walk(relative);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      if (fs.existsSync(worktreeAbs)) continue;
+      fs.mkdirSync(path.dirname(worktreeAbs), { recursive: true });
+      fs.copyFileSync(hostAbs, worktreeAbs);
+      seeded.push(normalized);
+    }
+  }
+
+  walk("");
+  return seeded;
+}
+
 function mapRow(row: RunWorktreeRow): RunWorktreeRecord {
   return {
     id: row.id,
@@ -145,7 +186,7 @@ export async function createIsolatedRunWorktree(input: {
   }
 
   await verifyGitRepo(input.repoPath);
-  const baseRevision = await getHeadRevision(input.repoPath);
+  const baseRevision = await ensureHeadRevision(input.repoPath);
   const branchName = generateBranchName(input.taskId, input.runId);
   const worktreePath = path.join(getWorktreeRoot(), input.runId);
   fs.mkdirSync(path.dirname(worktreePath), { recursive: true });
@@ -163,6 +204,12 @@ export async function createIsolatedRunWorktree(input: {
   }
 
   linkWorktreeRuntimeDependencies(input.repoPath, worktreePath);
+  const seeded = seedWorktreeFromHostRepo(input.repoPath, worktreePath);
+  let baseRevisionAfterSeed = baseRevision;
+  if (seeded.length > 0) {
+    const seededHead = await commitSeededScaffoldBaseline(worktreePath, seeded);
+    if (seededHead) baseRevisionAfterSeed = seededHead;
+  }
 
   const now = nowIso();
   const record: RunWorktreeRecord = {
@@ -171,7 +218,7 @@ export async function createIsolatedRunWorktree(input: {
     repoPath: path.resolve(input.repoPath),
     worktreePath,
     branchName,
-    baseRevision,
+    baseRevision: baseRevisionAfterSeed,
     status: "active",
     dirtyPaths: [],
     cleanupBlockedReason: null,

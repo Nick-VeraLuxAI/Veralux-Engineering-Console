@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  authoritativeDiagnosisHint,
   buildDeterministicDiagnosisFromEvidence,
   buildPriorAttemptDigest,
   checkDiagnosisConsistency,
@@ -16,8 +17,8 @@ import {
   shouldBlockRepeatedHarnessStrategy,
   shouldBlockTestThrashWhileProductionUnbound,
   validatePlanHarnessGuards,
-  type FailureSignatureRecord,
 } from "./feedback-convergence";
+import type { FailureSignatureRecord } from "./types";
 import type { WorkerPlan } from "../worker-plan/worker-plan-types";
 
 let tmp: string | null = null;
@@ -311,5 +312,34 @@ describe("Q1 — unbound identifier / dependency neighborhood / test thrash", ()
     ].join("\n");
     const sigs = detectFailureSignaturesInText(evidence);
     expect(sigs[0]).toBe("UNBOUND_IDENTIFIER");
+  });
+});
+
+describe("senior hard constraint in planning hints", () => {
+  it("surfaces mandatory senior mission in authoritativeDiagnosisHint", () => {
+    const hints = authoritativeDiagnosisHint({
+      scaffoldGuard: {
+        contractsFrozen: true,
+        seniorHardConstraint: {
+          nextWorkerMission: "Add write-pipeline.ts only; do not touch contracts.ts",
+          rootCause: "Contract rewrite",
+          issuedAt: "2026-08-26T00:00:00.000Z",
+        },
+      },
+      diagnosis: {
+        advisory: true,
+        failureClass: "ENGINEERING_FAILURE",
+        summary: "failed",
+        failedHypothesis: "bad plan",
+        whyPreviousFailed: "QC failed",
+        suggestedStrategy: "retry",
+        filesToInspect: [],
+        doNotMutate: true,
+        authoritative: true,
+      },
+    } as unknown as import("./types").AutonomousDocument);
+    expect(hints[0]).toMatch(/HARD CONSTRAINT/);
+    expect(hints.join("\n")).toContain("write-pipeline.ts only");
+    expect(hints.join("\n")).toContain("FROZEN");
   });
 });

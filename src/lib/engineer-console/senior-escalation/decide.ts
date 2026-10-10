@@ -1,5 +1,5 @@
+import { isSeniorEscalationAutoCallAllowed } from "./auto-call-config";
 import {
-  SENIOR_ESCALATION_AUTO_CALL_ALLOWED,
   SENIOR_ESCALATION_AUTO_SERVE,
   SENIOR_ESCALATION_REASONS,
   type SeniorEscalationDecision,
@@ -122,9 +122,20 @@ export function isRepairBudgetExhausted(input: SeniorEscalationInput): boolean {
   return typeof max === "number" && max > 0 && used >= max;
 }
 
-function summarize(reasons: SeniorEscalationReason[], shouldEscalate: boolean): string {
+function summarize(
+  reasons: SeniorEscalationReason[],
+  shouldEscalate: boolean,
+  autoCallAllowed: boolean,
+): string {
   if (!shouldEscalate) {
     return "No senior escalation. Continue with the current Nano worker. DeepSeek remains on-demand and is not auto-called.";
+  }
+  if (autoCallAllowed) {
+    return [
+      `Recommend deepseek-senior review (${reasons.join(", ")}).`,
+      "AE auto-call enabled when senior endpoint is served on 127.0.0.1:1919.",
+      "Human approval gates remain required after any senior response.",
+    ].join(" ");
   }
   return [
     `Recommend on-demand deepseek-senior review (${reasons.join(", ")}).`,
@@ -133,7 +144,10 @@ function summarize(reasons: SeniorEscalationReason[], shouldEscalate: boolean): 
   ].join(" ");
 }
 
-export function decideSeniorEscalation(input: SeniorEscalationInput): SeniorEscalationDecision {
+export function decideSeniorEscalation(
+  input: SeniorEscalationInput,
+  env: NodeJS.ProcessEnv = process.env,
+): SeniorEscalationDecision {
   const reasons: SeniorEscalationReason[] = [];
   const repeated = collectRepeatedFailureClasses(input);
 
@@ -145,15 +159,16 @@ export function decideSeniorEscalation(input: SeniorEscalationInput): SeniorEsca
 
   const ordered = uniqueReasons(reasons);
   const shouldEscalate = ordered.length > 0;
+  const autoCallAllowed = isSeniorEscalationAutoCallAllowed(env);
 
   return {
     shouldEscalate,
     reasons: ordered,
     recommendedProfile: "deepseek-senior",
     requiresManualServe: true,
-    autoCallAllowed: SENIOR_ESCALATION_AUTO_CALL_ALLOWED,
+    autoCallAllowed,
     autoServe: SENIOR_ESCALATION_AUTO_SERVE,
-    humanReadableSummary: summarize(ordered, shouldEscalate),
+    humanReadableSummary: summarize(ordered, shouldEscalate, autoCallAllowed),
   };
 }
 

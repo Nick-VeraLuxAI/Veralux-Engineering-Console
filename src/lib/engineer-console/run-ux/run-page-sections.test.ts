@@ -273,5 +273,8 @@ describe("deriveRunSectionGroups", () => {
     expect(currentAction.primaryAction.href).toBe(`#${RUN_PANEL_IDS.prCreation}`);
     expect(steps.find((step) => step.id === "pr")?.href).toBe(`#${RUN_PANEL_IDS.prCreation}`);
     expect(groupContainsPanel(groups, "pr_release", RUN_PANEL_IDS.prCreation)).toBe(true);
+    expect(groupContainsPanel(groups, "governance_review", RUN_PANEL_IDS.seniorReviewAdvisory)).toBe(
+      true,
+    );
   });
 });

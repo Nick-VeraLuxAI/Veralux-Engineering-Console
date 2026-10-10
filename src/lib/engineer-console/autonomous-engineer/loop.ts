@@ -56,6 +56,7 @@ import {
 } from "./plan-repair";
 import {
   compareQcToBaseline,
+  formatQcDeltaRepairBlock,
   qcIterationShouldFail,
   snapshotQcResults,
 } from "./qc-baseline";
@@ -72,13 +73,25 @@ import {
   trackPostReviewFindings,
   wouldExceedPostReviewRepairs,
 } from "./post-review-repair";
-import { resolveNanoRuntimeMode } from "./nano-faithful-invocation";
+import { maybeAutoInvokeSeniorAfterQcFailure } from "../senior-escalation/ae-auto-senior";
+import {
+  assertLiveAeNanoEnvelope,
+  resolveNanoRuntimeMode,
+} from "./nano-faithful-invocation";
 import {
   coerceWorkerPlanToWorktree,
   listAuthorizedWorktreeFiles,
   readAuthorizedWorktreeSnippets,
   truncatingUpdateErrors,
 } from "./plan-worktree-adapter";
+import {
+  formatContractsContextBlock,
+  objectiveTouchesContracts,
+  shouldFreezeContractsAfterRepairs,
+  validatePlanScaffoldOperations,
+} from "./scaffold-contract-guard";
+import { buildIntegrationGroundingBlock } from "./integration-grounding";
+import { validatePlanTypeScriptSyntax } from "./plan-syntax-guard";
 import { invokeAutonomousWorker } from "./worker-client";
 import { describeWorkerRoute, resolveAutonomousWorkerRoute } from "./worker-route";
 import { autonomousStateToRunStatus, isPausedAutonomousState, isTerminalAutonomousState } from "./state-machine";
@@ -176,6 +189,17 @@ async function generatePlanForIteration(
   }
 
   const diagnosisHint = authoritativeDiagnosisHint(document);
+  const touchesContracts = objectiveTouchesContracts({
+    objective: document.originalObjective,
+    requirements: document.requirements,
+    acceptanceCriteria: document.acceptanceCriteria,
+  });
+  const integrationGrounding = buildIntegrationGroundingBlock(repoPath, {
+    objective: document.originalObjective,
+    requirements: document.requirements,
+    acceptanceCriteria: document.acceptanceCriteria,
+    extraCrib: document.scaffoldGuard?.integrationCrib,
+  });
   const grounding = readRepoTestGroundingFacts(repoPath);
   const priorDigest = buildPriorAttemptDigest({
     priorAttempts: document.priorAttempts,
@@ -240,12 +264,20 @@ async function generatePlanForIteration(
       `Existing files under those prefixes (truncated): ${existingFiles.slice(0, 24).join(", ") || "(none)"}`,
       `package.json scripts: ${packageScripts}`,
       grounding.factsBlock,
+      formatQcDeltaRepairBlock(document.qcDelta),
       formatSubjectCallModeBlock(subjectModes),
       priorDigest,
       unboundHint,
+      formatContractsContextBlock(repoPath, touchesContracts),
+      touchesContracts
+        ? "CONTRACT-EDIT MODE: src/contracts.ts is in context above. Use update_file with the COMPLETE file (baseline + additive edits). Never shorten or replace exports. Prefer new types in contracts and implementation in separate modules."
+        : "",
+      integrationGrounding,
       "Use update_file for paths that already exist and create_file only for new paths. Include complete file contents.",
       "When acceptance criteria require removing unused dead helpers/shims and the path is authorized/safe, include delete_file with a non-empty reason (content may be empty). Do not delete unrelated files.",
       "When authorized existing modules are defective, incomplete, or unsafe, repair them with update_file (complete corrected contents). Do not stack WORKAROUND/HACK conditionals or silent catch fallbacks. Prefer create_file only for genuinely new helpers/tests. Do not rewrite or append to unrelated large modules. Pre-existing Super/AirLLM QC failures are out of scope.",
+      "Do NOT rewrite src/contracts.ts except to add new exports/types and optional fields. Preserve MemoryRecord.kind, supersededById, and every existing export. Add memoryClass?: MemoryClass alongside kind — never rename kind. When contracts gain new optional fields, existing tests must still pass (store may infer defaults). Implement InMemoryMemoryRecordStore in src/memory-record-store.ts with upsert/get/list/supersede matching the MemoryRecordStore interface exactly (same pattern as InMemoryEventLog). Never invent create/update method aliases.",
+      "Do NOT rewrite src/context-assembler.ts, src/memory-record-store.ts, or src/event-log.ts except for minimal additive fixes. Preserve AssembledContext return shape (text, recordIds, eventIds, estimatedTokens) and store method names (upsert/get/list/supersede). Add new behavior in new modules (e.g. context-budget-assembler.ts) when possible.",
       "Match the existing test runner from package.json scripts. If test uses node --test / node:test, write ONLY: import test from 'node:test'; import assert from 'node:assert/strict'; and use test('name', () => { assert.equal(...) }). Do NOT import expect/describe/it from 'node:test' (those exports are invalid). Use Vitest only when package.json already runs vitest. Never import vitest, node:test, or node:assert from non-test production sources.",
       "For negative-path tests: sync subjects → assert.throws(() => ...); async/Promise subjects → await assert.rejects(async () => ...). Read subject call modes above before writing reject/throw tests.",
       // UNBOUND_IDENTIFIER guidance is signature-gated via unboundHint (empty unless evidence present).
@@ -254,6 +286,7 @@ async function generatePlanForIteration(
       `Authorized source snippets (read these before mutating):\n${snippetBlock}`,
       `Known-good test exemplars (1–3, proximity-ranked; match this harness style):\n${formatTestExemplarBlock(exemplars)}`,
       "Return worker plan JSON with runId matching the run, allowedFiles, and file operations with full content.",
+      "File operation content must be real source text — never JSON-escaped quotes (no \\\" sequences) or literal \\n blobs.",
     ].join("\n");
     // SkillOpt shadow retrieval: records wouldInject; prompt must remain unchanged.
     const shadowedUserPrompt = maybeShadowRetrieveForPlanning({
@@ -405,6 +438,11 @@ export async function executeAutonomousLoop(
     providerInfo.provider !== "kimi" &&
     localCoding.enabled &&
     Boolean(localCoding.model);
+  if (liveLocal) {
+    document.nanoRuntimeMode = assertLiveAeNanoEnvelope();
+  } else {
+    document.nanoRuntimeMode = resolveNanoRuntimeMode();
+  }
   document.workerModel = {
     route: workerRoute,
     providerName: liveLocal ? "local_openai_compatible" : providerInfo.provider,
@@ -460,7 +498,9 @@ export async function executeAutonomousLoop(
   if (!document.reviewFindingLedger) {
     document.reviewFindingLedger = [];
   }
-  document.nanoRuntimeMode = resolveNanoRuntimeMode();
+  if (!document.nanoRuntimeMode) {
+    document.nanoRuntimeMode = resolveNanoRuntimeMode();
+  }
 
   while (!isTerminalAutonomousState(document.currentState) && steps < loopGuard) {
     steps += 1;
@@ -668,6 +708,20 @@ export async function executeAutonomousLoop(
             planRepairKind: "truncating_update" as const,
           });
         }
+        const scaffoldErrors = validatePlanScaffoldOperations(repoPath, plan, document);
+        if (scaffoldErrors.length > 0) {
+          throw Object.assign(new Error(scaffoldErrors.join("; ")), {
+            failureClass: "VALIDATION_FAILURE" as const,
+            planRepairKind: "scaffold_contract" as const,
+          });
+        }
+        const syntaxErrors = validatePlanTypeScriptSyntax(repoPath, plan);
+        if (syntaxErrors.length > 0) {
+          throw Object.assign(new Error(syntaxErrors.join("; ")), {
+            failureClass: "VALIDATION_FAILURE" as const,
+            planRepairKind: "invalid_syntax" as const,
+          });
+        }
         const grounding = readRepoTestGroundingFacts(repoPath);
         const syncSubjects = readSubjectCallModes(repoPath, document.authorizedPathPrefixes)
           .filter((m) => m.mode === "sync")
@@ -798,6 +852,15 @@ export async function executeAutonomousLoop(
             evidence: classification.evidence,
           };
           document.planRepairHistory = [...(document.planRepairHistory ?? []), repairRecord];
+          if (
+            repairRecord.kind === "scaffold_contract"
+            && shouldFreezeContractsAfterRepairs(document.planRepairHistory)
+          ) {
+            document.scaffoldGuard = {
+              ...document.scaffoldGuard,
+              contractsFrozen: true,
+            };
+          }
           document.failureClass = failureClass;
           document.diagnosis = diagnoseIterationFailure({
             document,
@@ -891,6 +954,16 @@ export async function executeAutonomousLoop(
             evidence: classification.evidence,
           },
         ];
+        const orchestratorRepairKind = classification.planRepairKind ?? "invalid_op";
+        if (
+          orchestratorRepairKind === "scaffold_contract"
+          && shouldFreezeContractsAfterRepairs(document.planRepairHistory)
+        ) {
+          document.scaffoldGuard = {
+            ...document.scaffoldGuard,
+            contractsFrozen: true,
+          };
+        }
         document.failureClass = failureClass;
         document.diagnosis = diagnoseIterationFailure({
           document,
@@ -1092,6 +1165,17 @@ export async function executeAutonomousLoop(
           Boolean(deps.generatePlan),
           repoPath,
         );
+        document = await maybeAutoInvokeSeniorAfterQcFailure({
+          document,
+          runId,
+          taskId: task.id,
+          objective: document.originalObjective ?? task.title,
+          repoPath,
+          qcSummary: harnessSummary,
+          changedFiles,
+          delta,
+          qc,
+        });
         auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
           iteration: document.iterationNumber,
           failureClass,
@@ -1142,6 +1226,17 @@ export async function executeAutonomousLoop(
           Boolean(deps.generatePlan),
           repoPath,
         );
+        document = await maybeAutoInvokeSeniorAfterQcFailure({
+          document,
+          runId,
+          taskId: task.id,
+          objective: document.originalObjective ?? task.title,
+          repoPath,
+          qcSummary,
+          changedFiles,
+          delta,
+          qc,
+        });
         auditAutonomousEvent(AUDIT_EVENT_TYPES.AUTONOMOUS_ITERATION_FAILED, runId, task.id, {
           iteration: document.iterationNumber,
           failureClass,
@@ -1341,10 +1436,11 @@ export async function executeAutonomousLoop(
       const changedFiles = await getChangedFiles(repoPath);
       const evaluation = evaluateCompletion({
         document,
-        qcPassed: document.qcDelta?.objectiveQcPassed ?? true,
+        qcPassed: document.qcDelta?.objectiveQcPassed ?? false,
         changedFiles,
         reviews: document.reviews,
         repoPath,
+        qcDelta: document.qcDelta,
       });
       document.completionEvaluation = evaluation;
       await maybeInvokeWorker(

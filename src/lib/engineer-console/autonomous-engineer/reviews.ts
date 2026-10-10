@@ -1,5 +1,7 @@
 import type { AutonomousDocument, AutonomousReviewFinding } from "./types";
-import { isPathAuthorized } from "./authority";
+import { isPathInReviewScope } from "./authority";
+import { contractRegressionDefects } from "./scaffold-contract-guard";
+import { isWorktreeInfrastructurePath } from "../workspace/worktree-path-policy";
 
 const CONTENT_REVIEW_BLOCKERS = [
   /BEGIN (RSA )?PRIVATE KEY/,
@@ -60,6 +62,58 @@ function circularSelfImportDefects(fileContents: Record<string, string>): string
   return defects;
 }
 
+/** Require implementation classes to expose methods declared on exported interfaces (e.g. MemoryRecordStore). */
+export function interfaceMethodConformanceDefects(fileContents: Record<string, string>): string[] {
+  const contracts =
+    fileContents["src/contracts.ts"] ??
+    fileContents["contracts.ts"] ??
+    Object.entries(fileContents).find(([path]) => path.endsWith("/contracts.ts") || path === "contracts.ts")?.[1];
+  if (!contracts) return [];
+
+  const ifaceBlocks = [
+    ...contracts.matchAll(/export\s+interface\s+(\w+)\s*\{([^}]*)\}/gs),
+  ];
+  const defects: string[] = [];
+  const prodBodies = Object.entries(fileContents)
+    .filter(
+      ([file]) =>
+        /\.(ts|tsx|js|jsx)$/.test(file) &&
+        !file.includes(".test.") &&
+        !file.includes("__tests__/") &&
+        !file.endsWith("contracts.ts"),
+    )
+    .map(([, body]) => body)
+    .join("\n");
+
+  for (const match of ifaceBlocks) {
+    const ifaceName = match[1];
+    const body = match[2] ?? "";
+    const methods = [...body.matchAll(/^\s*(\w+)\s*\(/gm)].map((m) => m[1]);
+    if (methods.length === 0) continue;
+    // Only enforce for store/log-style domain interfaces that AE commonly misnames.
+    if (!/Store|Log|Assembler|Repository/i.test(ifaceName)) continue;
+    const missing = methods.filter((method) => {
+      const methodRe = new RegExp(String.raw`\b${method}\s*\(`);
+      return !methodRe.test(prodBodies);
+    });
+    if (missing.length > 0) {
+      defects.push(
+        `src/contracts.ts interface ${ifaceName} requires methods [${methods.join(", ")}] but production sources are missing [${missing.join(", ")}]. Implement InMemory${ifaceName.replace(/^I/, "")} with those exact method names (do not invent create/update aliases).`,
+      );
+    }
+    if (
+      /MemoryRecordStore/i.test(ifaceName) &&
+      /\bcreate\s*\(/.test(prodBodies) &&
+      !/\bupsert\s*\(/.test(prodBodies)
+    ) {
+      defects.push(
+        `MemoryRecordStore implementation uses create() instead of upsert(). Rename to upsert matching the interface.`,
+      );
+    }
+  }
+  return defects;
+}
+
 function engineeringQualityDefects(fileContents: Record<string, string>): string[] {
   const defects: string[] = [];
   for (const [file, content] of Object.entries(fileContents)) {
@@ -78,6 +132,7 @@ function engineeringQualityDefects(fileContents: Record<string, string>): string
     }
   }
   defects.push(...circularSelfImportDefects(fileContents));
+  defects.push(...interfaceMethodConformanceDefects(fileContents));
   return defects;
 }
 
@@ -137,7 +192,11 @@ export function runAutonomousReviews(input: {
       : ["Missing interpreted requirements."],
   };
 
-  const suspicious = input.changedFiles.filter(
+  const reviewableChangedFiles = input.changedFiles.filter(
+    (file) => !isWorktreeInfrastructurePath(file),
+  );
+
+  const suspicious = reviewableChangedFiles.filter(
     (file) =>
       file.endsWith(".env") ||
       file.includes("node_modules/") ||
@@ -148,17 +207,17 @@ export function runAutonomousReviews(input: {
     .map(([file]) => file);
   const diffQuality: AutonomousReviewFinding = {
     review: "diff_quality",
-    passed: suspicious.length === 0 && contentBlockers.length === 0 && input.changedFiles.length > 0,
+    passed: suspicious.length === 0 && contentBlockers.length === 0 && reviewableChangedFiles.length > 0,
     findings:
-      input.changedFiles.length === 0
+      reviewableChangedFiles.length === 0
         ? ["No changed files to review."]
-        : input.changedFiles.map((file) => `Changed ${file}`),
+        : reviewableChangedFiles.map((file) => `Changed ${file}`),
     actionableDefects:
       suspicious.length > 0
         ? suspicious.map((file) => `Protected or unsafe path in diff: ${file}`)
         : contentBlockers.length > 0
           ? contentBlockers.map((file) => `Secret or review-blocker marker in diff: ${file}`)
-        : input.changedFiles.length === 0
+        : reviewableChangedFiles.length === 0
           ? ["Delivery candidate has an empty diff."]
           : [],
   };
@@ -172,14 +231,14 @@ export function runAutonomousReviews(input: {
     actionableDefects: input.qcPassed ? [] : ["Replan to address failing quality gates before disclose."],
   };
 
-  const outOfScope = input.changedFiles.filter(
-    (file) => !isPathAuthorized(input.document.authorityEnvelope, file),
+  const outOfScope = reviewableChangedFiles.filter(
+    (file) => !isPathInReviewScope(input.document.authorityEnvelope, file),
   );
   const scope: AutonomousReviewFinding = {
     review: "scope",
     passed: outOfScope.length === 0,
     findings: [
-      `Changed file count: ${input.changedFiles.length}`,
+      `Changed file count: ${reviewableChangedFiles.length}`,
       input.diffSummary.slice(0, 300) || "No diff summary",
     ],
     actionableDefects: outOfScope.map((file) => `Out of authorized scope: ${file}`),
@@ -193,6 +252,10 @@ export function runAutonomousReviews(input: {
       objective: input.document.originalObjective,
       authorizedTree: input.authorizedTree,
       fileContents: input.fileContents,
+    }),
+    ...contractRegressionDefects({
+      hostRepoPath: input.document.authorizedRepoPath,
+      worktreeContents: input.fileContents ?? {},
     }),
   ];
   const engineeringQuality: AutonomousReviewFinding = {

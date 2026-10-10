@@ -1,4 +1,11 @@
 export {
+  isSeniorEscalationAutoCallAllowed,
+  isSeniorEscalationWiredIntoAeLoop,
+  isSeniorInvocationWiredIntoAeLoop,
+  SENIOR_ESCALATION_AUTO_CALL_ENV,
+} from "./auto-call-config";
+export { maybeAutoInvokeSeniorAfterQcFailure } from "./ae-auto-senior";
+export {
   collectRepeatedFailureClasses,
   decideSeniorEscalation,
   defaultSeniorQuestion,

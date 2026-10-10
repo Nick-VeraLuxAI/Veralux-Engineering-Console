@@ -3,6 +3,7 @@ import type { RegisteredRepo } from "@/lib/engineer-console/repo-intelligence/re
 import type { DashboardSetupSummary } from "@/lib/engineer-console/setup/build-setup-readiness-summary";
 import type { EngineeringTask } from "@/lib/engineer-console/types";
 import type { OperatorQueueItem } from "@/lib/engineer-console/run-ux/operator-queue";
+import { emptyRepoControlFacts } from "./repo-control-plane";
 import { buildEngineeringWorkflowMapData } from "./workflow-map";
 
 function buildSetupSummary(
@@ -145,7 +146,8 @@ describe("buildEngineeringWorkflowMapData", () => {
       }),
     });
 
-    expect(data.primaryChip.label).toBe("Register repo");
+    expect(data.primaryChip.label).toBe("Start a repo");
+    expect(data.primaryChip.href).toContain("start=repo");
     expect(data.defaultSelectedNodeId).toBe("repository");
     expect(data.nodes.find((node) => node.id === "repository")?.state).toBe("Needs repo");
   });
@@ -160,6 +162,23 @@ describe("buildEngineeringWorkflowMapData", () => {
 
     expect(data.primaryChip.label).toBe("Create task");
     expect(data.nodes.find((node) => node.id === "task")?.state).toBe("No task");
+    expect(data.mappedRepos).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "repo-1",
+          name: "repo",
+        }),
+      ]),
+    );
+    expect(data.projects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "repo:repo-1",
+          label: "repo",
+          nodeId: "repository",
+        }),
+      ]),
+    );
   });
 
   it("routes a waiting approval run into review-focused status", () => {
@@ -171,11 +190,16 @@ describe("buildEngineeringWorkflowMapData", () => {
     });
 
     expect(data.primaryChip.label).toBe("Run waiting approval");
-    expect(data.defaultSelectedNodeId).toBe("review");
+    expect(data.defaultSelectedNodeId).toBe("task");
     expect(data.nodes.find((node) => node.id === "review")?.state).toBe("Required");
     expect(data.nodes.find((node) => node.id === "audit")?.state).toBe("Recording");
     expect(data.issues[0]?.nodeId).toBe("review");
     expect(data.featuredIssue?.title).toBe("Run waiting approval");
+    expect(data.pendingChatApproval).toEqual({
+      runId: "run-1",
+      title: "Example task",
+      href: "/engineer",
+    });
   });
 
   it("shows PR retry availability as a PR issue", () => {
@@ -197,5 +221,29 @@ describe("buildEngineeringWorkflowMapData", () => {
 
     expect(data.nodes.find((node) => node.id === "pr")?.state).toBe("Failed");
     expect(data.issues[0]?.title).toBe("PR retry available");
+  });
+
+  it("attaches a repo control plane without putting index dumps on the workflow nodes", () => {
+    const data = buildEngineeringWorkflowMapData({
+      tasks: [buildTask()],
+      repos: [buildRepo()],
+      queueItems: [buildQueueItem()],
+      setup: buildSetupSummary(),
+      indexedPathsByRepo: { "repo-1": ["src/lib/a.ts"] },
+      controlFactsByRepo: {
+        "repo-1": {
+          ...emptyRepoControlFacts(),
+          files: [{ relativePath: "src/lib/a.ts", language: "typescript" }],
+          symbols: [{ name: "buildMap", kind: "function", relativePath: "src/lib/a.ts", exported: true }],
+          fileIndexedAt: "2026-08-23T10:00:00.000Z",
+          codeIndexedAt: "2026-08-23T11:00:00.000Z",
+        },
+      },
+    });
+
+    expect(data.mappedRepos[0]?.control.freshness).toBe("current");
+    expect(data.mappedRepos[0]?.control.contracts["folder:src"]?.exportedCount).toBe(1);
+    expect(data.nodes.find((node) => node.id === "repository")?.label).toBe("Repository");
+    expect(JSON.stringify(data.nodes)).not.toContain("buildMap");
   });
 });

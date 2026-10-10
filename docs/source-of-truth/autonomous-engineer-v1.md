@@ -118,3 +118,15 @@ Super remains optional, advisory, gated, and non-authoritative. It is not the de
 - Repo-wide `npm test` / `tsc` still report pre-existing Super/AirLLM and unrelated test typing failures. Those are not AE V1 repair fuel.
 - Live Nano can still exhaust budgets on hard/ambiguous specimen repos; fail-closed `EXHAUSTED`/`blocked` is correct V1 behavior (not a false delivery).
 - **Robust engineering (not yet qualified):** planning prompts must stay within local model context (`max_model_len` ≈ 8192); planning `max_tokens` is capped for headroom. Worker adversarial review gates only **material** defects (invented product requirements are advisory). Engineering-quality heuristics block empty/success-fallback catches, WORKAROUND markers, vitest-in-production, and `expect` imports from `node:test`. Even with these, Nano may still fail to converge on correct test-harness APIs for non-Vitest specimen repos within budget — that is why robust-code qualification remains open.
+
+## Delivery readiness (autonomy gap close)
+
+False “delivery ready” is blocked when:
+
+1. QC is missing or **skipped-only** (no executable `npm test` evidence).
+2. Build/foundation objectives lack a test script / test files.
+3. TypeScript objectives deliver JS-only stubs.
+4. Memory/event-log objectives lack domain contracts.
+5. Thin `Map` get/set stubs are treated as incomplete for module foundations.
+
+See `delivery-readiness.ts` and `governance-modes-v1.md` (build mode Continue engineering).

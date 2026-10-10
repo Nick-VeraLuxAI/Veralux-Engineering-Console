@@ -8,6 +8,8 @@ import type {
 } from "./worker-plan-types";
 import { WORKER_OPERATION_TYPES } from "./worker-plan-types";
 import { isProtectedWorkerPath, resolvePathWithinRepo } from "./path-safety";
+import { sanitizeWorkerPlanFileContent } from "./worker-plan-content-sanitize";
+import { validateProtectedContractContent } from "../autonomous-engineer/scaffold-contract-guard";
 
 const FORBIDDEN_OPERATION_TYPES = new Set([
   "remove_file",
@@ -308,7 +310,7 @@ export function validateWorkerPlan(
     normalizedOperations.push({
       type: op.type,
       path: relativePath,
-      content: op.content,
+      content: op.type === "delete_file" ? op.content : sanitizeWorkerPlanFileContent(op.content),
       reason: op.reason,
       absolutePath: resolved.resolved.absolutePath,
     });
@@ -324,6 +326,43 @@ export function validateWorkerPlan(
       });
     }
     duplicatePaths.add(op.path);
+  }
+
+  if (options.scaffoldBaselineRepoPath) {
+    for (let index = 0; index < normalizedOperations.length; index++) {
+      const op = normalizedOperations[index];
+      if (op.type === "delete_file") {
+        const contractErrors = validateProtectedContractContent({
+          hostRepoPath: options.scaffoldBaselineRepoPath,
+          relativePath: op.path,
+          nextContent: "",
+        });
+        if (contractErrors.length > 0) {
+          errors.push({
+            code: "SCAFFOLD_CONTRACT_REGRESSION",
+            message: `Cannot delete protected scaffold contract file: ${op.path}`,
+            path: op.path,
+            operationIndex: index,
+          });
+        }
+        continue;
+      }
+      if (op.type !== "create_file" && op.type !== "update_file" && op.type !== "append_file") {
+        continue;
+      }
+      for (const message of validateProtectedContractContent({
+        hostRepoPath: options.scaffoldBaselineRepoPath,
+        relativePath: op.path,
+        nextContent: op.content,
+      })) {
+        errors.push({
+          code: "SCAFFOLD_CONTRACT_REGRESSION",
+          message,
+          path: op.path,
+          operationIndex: index,
+        });
+      }
+    }
   }
 
   return {

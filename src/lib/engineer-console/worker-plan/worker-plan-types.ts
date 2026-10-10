@@ -26,6 +26,8 @@ export interface WorkerPlanValidationOptions {
   allowMigrations?: boolean;
   /** Relative paths from latest file index; used for non-blocking warnings only. */
   indexedFilePaths?: Set<string>;
+  /** Host repo path for scaffold contract export preservation (e.g. task targetRepoPath). */
+  scaffoldBaselineRepoPath?: string;
 }
 
 export interface WorkerPlanValidationError {

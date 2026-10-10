@@ -5,6 +5,7 @@ import {
   createEngineeringRequestFromVeraluxOsBridge,
   parseVeraluxOsBridgeCreateRequestBody,
 } from "@/lib/engineer-console/bridge/create-engineering-request";
+import { authorizeVeraPlaceholderBridgeServiceToken } from "@/lib/engineer-console/bridge/placeholder-module-card-service-auth";
 import { ensureEngineerConsoleReady } from "@/lib/engineer-console/server";
 import { authorizeMutation } from "@/lib/engineer-console/security/route-guards";
 import { RegisteredRepoError } from "@/lib/engineer-console/repo-intelligence/registered-repos/registered-repo-types";
@@ -13,8 +14,11 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   ensureEngineerConsoleReady();
-  const auth = await authorizeMutation(request, { minRole: "operator" });
-  if (auth instanceof NextResponse) return auth;
+  const serviceAuth = authorizeVeraPlaceholderBridgeServiceToken(request);
+  if (!serviceAuth.ok) {
+    const auth = await authorizeMutation(request, { minRole: "operator" });
+    if (auth instanceof NextResponse) return auth;
+  }
 
   let raw: unknown;
   try {

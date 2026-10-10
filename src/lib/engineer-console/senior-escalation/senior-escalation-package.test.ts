@@ -237,17 +237,20 @@ describe("senior-escalation-package-v1", () => {
     }
   });
 
-  it("keeps default Nano worker behavior unchanged and stays out of the AE loop", () => {
-    expect(getDefaultAeWorkerProfile().id).toBe("nano-fast");
-    expect(getDefaultAeWorkerProfile().openaiBaseUrl).toBe("http://127.0.0.1:8081/v1");
-    expect(getLocalModelCodingConfig({}).baseUrl).toBe("http://127.0.0.1:8081/v1");
+  it("keeps default Nano worker on FAITHFUL 8082; senior auto-call is env-gated", () => {
+    expect(getDefaultAeWorkerProfile().id).toBe("nano-faithful");
+    expect(getDefaultAeWorkerProfile().openaiBaseUrl).toBe("http://127.0.0.1:8082/v1");
+    expect(getLocalModelCodingConfig({}).baseUrl).toBe("http://127.0.0.1:8082/v1");
     expect(getSeniorModelCodingConfig({}).enabled).toBe(false);
     expect(AE_RUNTIME_PROFILES_WIRED_INTO_AE_LOOP).toBe(false);
     expect(SENIOR_ESCALATION_WIRED_INTO_AE_LOOP).toBe(false);
 
-    const root = path.join(__dirname, "..", "autonomous-engineer");
-    for (const file of ["loop.ts", "worker-client.ts", "worker-route.ts"]) {
-      expect(readFileSync(path.join(root, file), "utf8")).not.toMatch(/senior-escalation/);
+    const loopSource = readFileSync(path.join(__dirname, "..", "autonomous-engineer", "loop.ts"), "utf8");
+    expect(loopSource).toMatch(/maybeAutoInvokeSeniorAfterQcFailure/);
+    for (const file of ["worker-client.ts", "worker-route.ts"]) {
+      expect(readFileSync(path.join(__dirname, "..", "autonomous-engineer", file), "utf8")).not.toMatch(
+        /senior-escalation/,
+      );
     }
   });
 });

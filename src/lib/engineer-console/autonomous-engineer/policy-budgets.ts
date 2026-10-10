@@ -2,8 +2,8 @@ import type { AutonomousBudgetConfig } from "./types";
 
 /** Policy-configurable AE budgets. Orchestrator must read these — never hardcode limits. */
 export const DEFAULT_AUTONOMOUS_BUDGETS: AutonomousBudgetConfig = {
-  max_iterations: 8,
-  max_plans: 8,
+  max_iterations: 10,
+  max_plans: 12,
   max_model_calls: 24,
   max_changed_files: 40,
   max_changed_bytes: 500_000,
@@ -11,7 +11,7 @@ export const DEFAULT_AUTONOMOUS_BUDGETS: AutonomousBudgetConfig = {
   max_investigation_reads: 80,
   max_context_bytes: 200_000,
   max_plan_repairs: 8,
-  max_post_review_repairs: 2,
+  max_post_review_repairs: 4,
 };
 
 function envInt(name: string, fallback: number): number {

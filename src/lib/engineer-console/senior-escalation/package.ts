@@ -31,8 +31,11 @@ function resolveWorkerProfile(input: SeniorEscalationInput) {
  * Build a storeable senior-review package. Never starts FreeToken or calls DeepSeek.
  * Still builds when DeepSeek is not serving.
  */
-export function buildSeniorEscalationPackage(input: SeniorEscalationInput): SeniorEscalationPackage {
-  const decision = decideSeniorEscalation(input);
+export function buildSeniorEscalationPackage(
+  input: SeniorEscalationInput,
+  env: NodeJS.ProcessEnv = process.env,
+): SeniorEscalationPackage {
+  const decision = decideSeniorEscalation(input, env);
   const repeatedFailureClasses = collectRepeatedFailureClasses(input);
   const repairAttempts = input.repairAttempts ?? input.priorAttempts?.filter((item) => item.outcome === "failed").length ?? 0;
   const exhausted = isRepairBudgetExhausted(input);
@@ -71,7 +74,7 @@ export function buildSeniorEscalationPackage(input: SeniorEscalationInput): Seni
       openaiBaseUrl: DEEPSEEK_SENIOR_PROFILE.openaiBaseUrl,
       model: DEEPSEEK_SENIOR_PROFILE.model,
       autoServe: false,
-      autoCallAllowed: false,
+      autoCallAllowed: decision.autoCallAllowed,
       requiresManualServe: true,
       concurrentWithNano: false,
       manuallyServing: input.deepSeekManuallyServing === true,

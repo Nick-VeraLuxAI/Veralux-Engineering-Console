@@ -25,6 +25,8 @@ export interface WorkflowCanvasChromeOptions {
   toolbarCollapsed?: boolean;
   hasMinimizedBar?: boolean;
   hasChatRail?: boolean;
+  chatSafeLeft?: number;
+  chatSafeBottom?: number;
 }
 
 export const WORKFLOW_CANVAS_CHAT_RAIL_WIDTH = 344;
@@ -102,12 +104,15 @@ function normalizeAxis(
   viewportExtent: number,
   worldExtent: number,
   overscroll = WORKFLOW_CANVAS_OVERSCROLL,
+  insetStart = 0,
+  insetEnd = 0,
 ): number {
-  if (worldExtent <= viewportExtent) {
-    return (viewportExtent - worldExtent) / 2;
+  const available = Math.max(1, viewportExtent - insetStart - insetEnd);
+  if (worldExtent <= available) {
+    return insetStart + (available - worldExtent) / 2;
   }
 
-  return clamp(offset, viewportExtent - worldExtent - overscroll, overscroll);
+  return clamp(offset, viewportExtent - insetEnd - worldExtent - overscroll, insetStart + overscroll);
 }
 
 function controlDistance(from: WorkflowCanvasPoint, to: WorkflowCanvasPoint): number {
@@ -165,24 +170,33 @@ export function getWorkflowCanvasSafeArea(
   const leftToolbarPadding = chromeOptions.toolbarCollapsed ? 20 : 72;
   const dockPadding = chromeOptions.hasMinimizedBar ? 148 : 112;
   const chatRailPadding =
-    chromeOptions.hasChatRail && viewportWidth >= WORKFLOW_CANVAS_CHAT_RAIL_MIN_VIEWPORT
-      ? WORKFLOW_CANVAS_CHAT_RAIL_WIDTH
+    viewportWidth >= WORKFLOW_CANVAS_CHAT_RAIL_MIN_VIEWPORT
+      ? chromeOptions.chatSafeLeft ??
+        (chromeOptions.hasChatRail ? WORKFLOW_CANVAS_CHAT_RAIL_WIDTH : 0)
       : 0;
+  const chatBottom = chromeOptions.chatSafeBottom ?? 0;
   if (viewportWidth >= 1280) {
-    return { top: 88, right: 28, bottom: dockPadding, left: leftToolbarPadding + chatRailPadding };
+    return {
+      top: 88,
+      right: 28,
+      bottom: Math.max(dockPadding, chatBottom),
+      left: leftToolbarPadding + chatRailPadding,
+    };
   }
   if (viewportWidth >= 768) {
+    const tabletBottom = chromeOptions.hasMinimizedBar ? 156 : 120;
     return {
       top: 84,
       right: 24,
-      bottom: chromeOptions.hasMinimizedBar ? 156 : 120,
+      bottom: Math.max(tabletBottom, chatBottom),
       left: (chromeOptions.toolbarCollapsed ? 18 : 64) + chatRailPadding,
     };
   }
+  const phoneBottom = chromeOptions.hasMinimizedBar ? 168 : 128;
   return {
     top: 76,
     right: 16,
-    bottom: chromeOptions.hasMinimizedBar ? 168 : 128,
+    bottom: Math.max(phoneBottom, chatBottom),
     left: chromeOptions.toolbarCollapsed ? 12 : 48,
   };
 }
@@ -254,36 +268,36 @@ export function fitWorkflowCanvasView(
   safeArea: WorkflowCanvasSafeArea,
 ): WorkflowCanvasViewState {
   const bounds = getWorkflowCanvasBounds(layout);
-  const padding = 56;
-  const availableWidth = Math.max(1, viewportSize.width - safeArea.left - safeArea.right - padding);
-  const availableHeight = Math.max(1, viewportSize.height - safeArea.top - safeArea.bottom - padding);
+  const margin = 40;
+  const safeWidth = Math.max(1, viewportSize.width - safeArea.left - safeArea.right);
+  const safeHeight = Math.max(1, viewportSize.height - safeArea.top - safeArea.bottom);
+  const availableWidth = Math.max(1, safeWidth - margin * 2);
+  const availableHeight = Math.max(1, safeHeight - margin * 2);
   const boundsWidth = Math.max(1, bounds.maxX - bounds.minX);
   const boundsHeight = Math.max(1, bounds.maxY - bounds.minY);
   const zoom = clampWorkflowCanvasZoom(
     Math.min(availableWidth / boundsWidth, availableHeight / boundsHeight),
   );
 
-  return normalizeWorkflowCanvasView(
-    {
-      x: safeArea.left + (availableWidth - boundsWidth * zoom) / 2 - bounds.minX * zoom,
-      y: safeArea.top + (availableHeight - boundsHeight * zoom) / 2 - bounds.minY * zoom,
-      zoom,
-    },
-    viewportSize,
-  );
+  return {
+    x: safeArea.left + (safeWidth - boundsWidth * zoom) / 2 - bounds.minX * zoom,
+    y: safeArea.top + (safeHeight - boundsHeight * zoom) / 2 - bounds.minY * zoom,
+    zoom,
+  };
 }
 
 export function normalizeWorkflowCanvasView(
   view: WorkflowCanvasViewState,
   viewportSize: WorkflowCanvasSize,
+  safeArea?: WorkflowCanvasSafeArea,
 ): WorkflowCanvasViewState {
   const zoom = clampWorkflowCanvasZoom(view.zoom);
   const worldWidth = WORKFLOW_CANVAS_WORLD_SIZE.width * zoom;
   const worldHeight = WORKFLOW_CANVAS_WORLD_SIZE.height * zoom;
 
   return {
-    x: normalizeAxis(view.x, viewportSize.width, worldWidth),
-    y: normalizeAxis(view.y, viewportSize.height, worldHeight),
+    x: normalizeAxis(view.x, viewportSize.width, worldWidth, WORKFLOW_CANVAS_OVERSCROLL, safeArea?.left ?? 0, safeArea?.right ?? 0),
+    y: normalizeAxis(view.y, viewportSize.height, worldHeight, WORKFLOW_CANVAS_OVERSCROLL, safeArea?.top ?? 0, safeArea?.bottom ?? 0),
     zoom,
   };
 }
@@ -292,6 +306,7 @@ export function panWorkflowCanvasView(
   view: WorkflowCanvasViewState,
   delta: WorkflowCanvasPoint,
   viewportSize: WorkflowCanvasSize,
+  safeArea?: WorkflowCanvasSafeArea,
 ): WorkflowCanvasViewState {
   return normalizeWorkflowCanvasView(
     {
@@ -300,6 +315,7 @@ export function panWorkflowCanvasView(
       y: view.y + delta.y,
     },
     viewportSize,
+    safeArea,
   );
 }
 
@@ -308,6 +324,7 @@ export function zoomWorkflowCanvasView(
   nextZoom: number,
   anchorPoint: WorkflowCanvasPoint,
   viewportSize: WorkflowCanvasSize,
+  safeArea?: WorkflowCanvasSafeArea,
 ): WorkflowCanvasViewState {
   const zoom = clampWorkflowCanvasZoom(nextZoom);
   const worldX = (anchorPoint.x - view.x) / view.zoom;
@@ -320,6 +337,7 @@ export function zoomWorkflowCanvasView(
       zoom,
     },
     viewportSize,
+    safeArea,
   );
 }
 
@@ -357,7 +375,7 @@ export function focusNodeInWorkflowCanvasView(
     nextY += minY - screenTop;
   }
 
-  return normalizeWorkflowCanvasView({ ...view, x: nextX, y: nextY }, viewportSize);
+  return normalizeWorkflowCanvasView({ ...view, x: nextX, y: nextY }, viewportSize, safeArea);
 }
 
 export function moveWorkflowCanvasNode(

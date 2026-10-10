@@ -274,10 +274,8 @@ export const RELEASE_PANEL_HEADINGS = [
 ] as const;
 
 export async function expectReleasePanelsVisible(page: Page): Promise<void> {
-  await page.getByRole("tab", { name: "PR", exact: true }).click();
+  await page.getByRole("tab", { name: "Later", exact: true }).click();
   await page.getByRole("heading", { name: "PR creation", exact: true }).waitFor({ state: "visible" });
-
-  await page.getByRole("tab", { name: "Release", exact: true }).click();
 
   for (const heading of RELEASE_PANEL_HEADINGS.filter((heading) => heading !== "PR creation")) {
     const locator = page.getByRole("heading", { name: heading, exact: true });

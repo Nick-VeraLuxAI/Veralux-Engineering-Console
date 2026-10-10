@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import type { RunIssue } from "@/lib/engineer-console/run-ux/run-issues";
-import { getRunWorkspaceView } from "@/lib/engineer-console/run-ux/run-workspace";
+import { operatorTabForView } from "@/lib/engineer-console/run-ux/run-workspace";
 
 const SEVERITY_STYLES: Record<RunIssue["severity"], string> = {
   critical: "border-red-500/40 bg-red-950/20 text-red-200",
@@ -59,7 +59,7 @@ export function RunIssueCenter({
 
   return (
     <aside
-      className="pointer-events-none fixed right-4 bottom-4 left-4 z-30 flex flex-col items-stretch gap-2 sm:left-auto sm:max-w-sm sm:items-end"
+      className="pointer-events-none fixed right-4 bottom-20 left-4 z-30 flex flex-col items-stretch gap-2 sm:left-auto sm:max-w-sm sm:items-end"
       aria-live="polite"
     >
       <button
@@ -90,7 +90,7 @@ export function RunIssueCenter({
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+          <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
             {criticalCount > 0 ? (
               <span className="rounded-full border border-red-500/40 bg-red-950/30 px-2 py-0.5 text-red-100">
                 {criticalCount} critical
@@ -133,15 +133,15 @@ export function RunIssueCenter({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${SEVERITY_STYLES[issue.severity]}`}
+                          className={`rounded-full border px-2 py-0.5 text-[12px] font-medium ${SEVERITY_STYLES[issue.severity]}`}
                         >
                           {severityLabel(issue.severity)}
                         </span>
-                        <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--muted)]">
-                          {getRunWorkspaceView(issue.view).label}
+                        <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[12px] text-[var(--muted)]">
+                          {operatorTabForView(issue.view) === "later" ? "Later" : "This job"}
                         </span>
                       </div>
-                      <span className="text-[11px] text-[var(--muted)]">Open workspace</span>
+                      <span className="text-[12px] text-[var(--muted)]">Open workspace</span>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span

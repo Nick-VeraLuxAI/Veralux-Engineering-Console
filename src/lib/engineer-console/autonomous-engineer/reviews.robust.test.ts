@@ -137,6 +137,23 @@ describe("engineering quality + adversarial review merge", () => {
     );
   });
 
+  it("ignores worktree node_modules symlink in scope and diff reviews", () => {
+    const reviews = runAutonomousReviews({
+      document: doc(),
+      changedFiles: ["node_modules", "src/ledger.ts"],
+      diffSummary: "update ledger",
+      qcPassed: true,
+      fileContents: {
+        "src/ledger.ts": "export const ledger = 1;\n",
+      },
+    });
+    const scope = reviews.find((review) => review.review === "scope");
+    const diff = reviews.find((review) => review.review === "diff_quality");
+    expect(scope?.passed).toBe(true);
+    expect(scope?.actionableDefects).toEqual([]);
+    expect(diff?.actionableDefects).toEqual([]);
+  });
+
   it("blocks invalid expect imports from node:test in test files", () => {
     const reviews = runAutonomousReviews({
       document: doc(),

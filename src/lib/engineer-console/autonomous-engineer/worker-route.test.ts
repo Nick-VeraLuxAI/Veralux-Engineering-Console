@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { assertNotSuperWorker, resolveAutonomousWorkerRoute } from "./worker-route";
 
@@ -35,5 +37,12 @@ describe("autonomous worker route", () => {
 
   it("forbids Super/AirLLM as the AE worker", () => {
     expect(() => assertNotSuperWorker("super-airllm")).toThrow(/forbids Super/i);
+  });
+
+  it("does not import senior review evidence-panel or hash-nav into worker routing", () => {
+    const source = readFileSync(path.join(__dirname, "worker-route.ts"), "utf8");
+    expect(source).not.toMatch(
+      /evidence-panel-view|toSeniorReviewEvidencePanelView|RUN_PANEL_IDS|run-navigation/,
+    );
   });
 });

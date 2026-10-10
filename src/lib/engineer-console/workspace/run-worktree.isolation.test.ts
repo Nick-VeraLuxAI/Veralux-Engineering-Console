@@ -7,7 +7,7 @@ import { closeEngineerConsoleDb, resetEngineerConsoleDbForTests } from "../db/cl
 import { initializeEngineerConsoleDatabase } from "../db/init";
 import { createTask } from "../task-manager/task-manager";
 import { createRun } from "../run-manager/run-manager";
-import { createIsolatedRunWorktree } from "../workspace/run-worktree";
+import { createIsolatedRunWorktree, seedWorktreeFromHostRepo } from "../workspace/run-worktree";
 import { getChangedFiles } from "../workspace/git-workspace";
 
 let tmpDb: string;
@@ -90,5 +90,33 @@ describe("concurrent run worktrees", () => {
     const linked = path.join(worktree.worktreePath, "node_modules", "example", "index.js");
     expect(fs.existsSync(linked)).toBe(true);
     expect(fs.lstatSync(path.join(worktree.worktreePath, "node_modules")).isSymbolicLink()).toBe(true);
+  });
+
+  it("seeds uncommitted host scaffold into an empty worktree checkout", async () => {
+    const hostScaffold = fs.mkdtempSync(path.join(os.tmpdir(), "ec-wt-host-"));
+    execSync("git init", { cwd: hostScaffold, stdio: "ignore" });
+    execSync('git config user.email "test@test.com"', { cwd: hostScaffold, stdio: "ignore" });
+    execSync('git config user.name "Test"', { cwd: hostScaffold, stdio: "ignore" });
+    fs.mkdirSync(path.join(hostScaffold, "src"), { recursive: true });
+    fs.writeFileSync(path.join(hostScaffold, "package.json"), '{"name":"seed-test","scripts":{"test":"vitest run"}}\n');
+    fs.writeFileSync(path.join(hostScaffold, "src", "index.ts"), "export const x = 1;\n");
+
+    const task = createTask({ title: "seed", targetRepoPath: hostScaffold });
+    const run = createRun(task.id);
+    const worktree = await createIsolatedRunWorktree({
+      runId: run.id,
+      taskId: task.id,
+      repoPath: hostScaffold,
+    });
+
+    expect(fs.existsSync(path.join(worktree.worktreePath, "package.json"))).toBe(true);
+    expect(fs.existsSync(path.join(worktree.worktreePath, "src", "index.ts"))).toBe(true);
+    const changed = await getChangedFiles(worktree.worktreePath);
+    expect(changed).not.toContain("node_modules");
+    // Seeded scaffold is committed as baseline — AE scope review must not see it as a mutation.
+    expect(changed).not.toContain("package.json");
+    expect(changed).not.toContain("src/index.ts");
+    expect(changed).toEqual([]);
+    fs.rmSync(hostScaffold, { recursive: true, force: true });
   });
 });

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { HardReleaseGateBannerContent } from "@/components/engineer-console/hard-release-gate-banner";
 import { PrStateCard } from "@/components/engineer-console/pr-state-card";
 import { RunApprovalActionCard } from "@/components/engineer-console/run-approval-action-card";
+import { RunDecisionPanel } from "@/components/engineer-console/run-decision-dialog";
 import { ReviewStagesPanel } from "@/components/engineer-console/review-stages-panel";
 import { RunCommandCenter } from "@/components/engineer-console/run-command-center";
 import { RunLifecycleStepper } from "@/components/engineer-console/run-lifecycle-stepper";
@@ -175,6 +176,7 @@ function buildSummary(
       signoffExceptionsBlockers: [],
       ...(overrides.hardGates ?? {}),
     },
+    governance: overrides.governance,
     audit: {
       eventCount: 8,
       chainOk: true,
@@ -308,6 +310,34 @@ describe("UX-1 run guidance", () => {
 
     expect(html).toContain("Approval actions");
     expect(html).toContain("Current approval state");
+  });
+
+  it("decision popup shows happening, evidence, recommendation, and actions", () => {
+    const summary = buildSummary();
+    const state = deriveRunApprovalActionCardState(summary);
+    const html = renderToStaticMarkup(
+      React.createElement(RunDecisionPanel, {
+        runId: "run-1",
+        brief: {
+          title: "Memory Module V0",
+          happening: "This is your decision point.",
+          recommendation: "Approve to mark the run ready.",
+          canApprove: true,
+          blocked: false,
+          files: ["src/index.ts"],
+          gates: [{ label: "npm", status: "passed" }],
+          issues: [],
+          checks: [],
+        },
+        approval: state,
+      }),
+    );
+
+    expect(html).toContain("What is happening");
+    expect(html).toContain("Evidence");
+    expect(html).toContain("Recommendation");
+    expect(html).toContain("src/index.ts");
+    expect(html).toContain("Approve run");
   });
 
   it("PR state card renders and shows commit will be created before first attempt", () => {
@@ -766,6 +796,36 @@ describe("UX-1 run guidance", () => {
     expect(guidance.nextRecommendedAction).toBe(
       "Evaluate PR readiness and create a draft PR.",
     );
+  });
+
+  it("approved run in build mode prefers worktree sandbox over PR", () => {
+    const summary = buildSummary({
+      run: {
+        id: "run-1",
+        status: "completed",
+        currentStep: "approved_by_operator",
+        branchName: "engineer/test-run",
+        riskLevel: "low",
+        agentMessage: null,
+      },
+      approval: {
+        reportAvailable: true,
+        canApprove: false,
+        governanceIssues: [],
+        recommendedNextAction: null,
+        decisionCount: 1,
+        latestDecision: "approved",
+      },
+      governance: {
+        mode: "build",
+        continueEngineeringResumesAe: true,
+        preferSandboxAfterApprove: true,
+      },
+    });
+
+    const guidance = deriveRunCommandCenterState(summary);
+    expect(guidance.nextRecommendedAction).toMatch(/worktree sandbox/i);
+    expect(guidance.primaryAction.label).toMatch(/changed files/i);
   });
 
   it("rendering guidance components does not call fetch", () => {

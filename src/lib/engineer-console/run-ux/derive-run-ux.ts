@@ -917,12 +917,19 @@ export function deriveRunCommandCenterState(
     return {
       currentStageId: "pr",
       currentStageLabel: STEP_LABELS.pr,
-      nextRecommendedAction: "Evaluate PR readiness and create a draft PR.",
-      explanation:
-        "The run is approved. Review PR readiness before opening a draft PR for downstream merge and release steps.",
+      nextRecommendedAction: summary.governance?.preferSandboxAfterApprove
+        ? "Verify the worktree sandbox (npm test). Continue engineering if incomplete, or accept delivery when ready."
+        : "Evaluate PR readiness and create a draft PR.",
+      explanation: summary.governance?.preferSandboxAfterApprove
+        ? "Build/observe mode: functional code in the isolated worktree comes first. PR and release stay optional until you switch to release mode."
+        : "The run is approved. Review PR readiness before opening a draft PR for downstream merge and release steps.",
       primaryAction: {
-        label: "Open PR creation",
-        href: panelHref(RUN_PANEL_IDS.prCreation),
+        label: summary.governance?.preferSandboxAfterApprove
+          ? "Open changed files"
+          : "Open PR creation",
+        href: summary.governance?.preferSandboxAfterApprove
+          ? panelHref(RUN_PANEL_IDS.changedFiles)
+          : panelHref(RUN_PANEL_IDS.prCreation),
       },
       blockers,
       warnings,

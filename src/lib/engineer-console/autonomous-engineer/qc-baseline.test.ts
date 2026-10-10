@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   compareQcToBaseline,
   extractFailureIdentities,
+  formatQcDeltaRepairBlock,
   qcIterationShouldFail,
   snapshotQcResults,
   type QcGateSnapshot,
@@ -201,5 +202,63 @@ describe("baseline-aware QC classification", () => {
     );
     expect(identities[0]?.key).toBe("typescript:src/a.ts:TS2304:3:2");
     expect(identities[0]?.location).toBe("src/a.ts:3:2");
+  });
+
+  it("extracts multiline Vitest failure with error message and stack", () => {
+    const vitestOutput = `
+ FAIL  src/memory-service.test.ts > MemoryService end‑to‑end > creates, commits, recalls and explains a record
+Error: Record dummy-id not found
+ ❯ Module.explainMemory src/explain.ts:24:11
+ ❯ MemoryService.explain src/memory-service.ts:41:12
+ ❯ src/memory-service.test.ts:56:43
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+`;
+    const identities = extractFailureIdentities(
+      gate({
+        command: "npm test",
+        status: "failed",
+        stdout: vitestOutput,
+      }),
+    );
+    expect(identities).toHaveLength(1);
+    expect(identities[0]?.key).toBe("test:src/memory-service.test.ts:creates, commits, recalls and explains a record");
+    expect(identities[0]?.rawEvidence).toContain("Error: Record dummy-id not found");
+    expect(identities[0]?.rawEvidence).toContain("src/explain.ts:24:11");
+  });
+});
+
+describe("formatQcDeltaRepairBlock", () => {
+  it("formats actionable QC failures for planning prompts", () => {
+    const block = formatQcDeltaRepairBlock({
+      capturedAt: new Date().toISOString(),
+      findings: [],
+      newFailures: [
+        {
+          identity: {
+            key: "typescript:src/a.ts:TS2345:1:2",
+            kind: "typescript",
+            command: "npm run typecheck",
+            name: "src/a.ts TS2345",
+            location: "src/a.ts:1:2",
+            fingerprint: "fp",
+            rawEvidence: "src/a.ts(1,2): error TS2345: bad arg",
+          },
+          classification: "NEW_FAILURE",
+          baselineFingerprint: null,
+          currentFingerprint: "fp",
+        },
+      ],
+      preExistingFailures: [],
+      changedFailures: [],
+      resolvedBaselineFailures: [],
+      infrastructureFailures: [],
+      skipped: [],
+      objectiveQcPassed: false,
+      ownedIterationFailures: [],
+    });
+    expect(block).toMatch(/Active QC failures/);
+    expect(block).toMatch(/TS2345/);
+    expect(block).toMatch(/TypeScript repair rules/);
   });
 });

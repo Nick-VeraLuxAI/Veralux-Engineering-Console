@@ -96,7 +96,7 @@ export type SeniorEscalationDecision = {
   reasons: SeniorEscalationReason[];
   recommendedProfile: "deepseek-senior";
   requiresManualServe: true;
-  autoCallAllowed: false;
+  autoCallAllowed: boolean;
   autoServe: false;
   humanReadableSummary: string;
 };
@@ -135,7 +135,7 @@ export type SeniorEscalationPackage = {
     openaiBaseUrl: string;
     model: string;
     autoServe: false;
-    autoCallAllowed: false;
+    autoCallAllowed: boolean;
     requiresManualServe: true;
     concurrentWithNano: false;
     manuallyServing: boolean;

@@ -8,6 +8,7 @@ Does **not** add a database table, new frontend, or release gate.
 Does **not** let senior output approve, merge, or deploy.
 
 UI: `src/components/engineer-console/evidence-bundle-panel.tsx` (`#senior-review-advisory`)  
+Nav: Review workspace hash-nav / `RUN_PANEL_IDS.seniorReviewAdvisory` (`#senior-review-advisory`, label **Senior Review Advisory**)  
 View model: `src/lib/engineer-console/senior-escalation/evidence-panel-view.ts`  
 Persistence: `ae-senior-review-durable-evidence-v1.md`
 
@@ -59,5 +60,6 @@ Empty: **No senior review advisory evidence for this run.**
 - The section appears only after an evidence bundle exists (Generate or refresh evidence)
 - Older bundles without `seniorReview` show the empty state until regenerate
 - Overview still has the request panel; this surface is display-only
+- Hash-nav always includes **Senior Review Advisory**. If the evidence bundle is missing, the section is not mounted yet; the Review Evidence panel still receives the jump.
 
 Related: `ae-senior-review-durable-evidence-v1.md`, `ae-senior-review-panel-v1.md`.

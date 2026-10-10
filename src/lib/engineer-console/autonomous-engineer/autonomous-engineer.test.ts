@@ -80,7 +80,9 @@ describe("state transitions", () => {
   it("allows iteration diagnose → plan and blocks illegal jumps", () => {
     expect(canTransition("diagnosing", "planning")).toBe(true);
     expect(canTransition("evaluating_completion", "waiting_for_approval")).toBe(true);
-    expect(canTransition("waiting_for_approval", "planning")).toBe(false);
+    expect(canTransition("waiting_for_approval", "diagnosing")).toBe(true);
+    expect(canTransition("waiting_for_approval", "planning")).toBe(true);
+    expect(canTransition("waiting_for_approval", "executing")).toBe(false);
     expect(() => assertTransition("failed", "planning")).toThrow(/Illegal/);
     expect(autonomousStateToRunStatus("waiting_for_director")).toBe("waiting_for_director");
     expect(autonomousStateToRunStatus("diagnosing")).toBe("diagnosing");

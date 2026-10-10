@@ -154,6 +154,32 @@ export function resolveNanoRuntimeMode(
   return "FAITHFUL";
 }
 
+function isTruthyEnv(raw: string | undefined): boolean {
+  const v = raw?.trim().toLowerCase();
+  return v === "true" || v === "1" || v === "on" || v === "yes";
+}
+
+/**
+ * Live AE must not silently run the DEGRADED (8081/8k think-off) envelope.
+ * Explicit CONTROL rollback (FAITHFUL_INVOCATION=false) remains allowed.
+ * Escape hatch: ENGINEER_CONSOLE_AE_ALLOW_DEGRADED=true.
+ */
+export function assertLiveAeNanoEnvelope(
+  env: NodeJS.ProcessEnv = process.env,
+): NanoRuntimeMode {
+  const mode = resolveNanoRuntimeMode(env);
+  if (mode !== "DEGRADED") return mode;
+  if (isTruthyEnv(env.ENGINEER_CONSOLE_AE_ALLOW_DEGRADED)) return mode;
+  const base = env.ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL?.trim() || "(unset)";
+  const maxLen = resolveConfiguredMaxModelLen(env);
+  throw new Error(
+    `Live AE refused DEGRADED Nano envelope (baseUrl=${base}, max_model_len=${maxLen ?? "unset"}). ` +
+      `Point ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL at FAITHFUL 8082 with ` +
+      `ENGINEER_CONSOLE_AE_NANO_MAX_MODEL_LEN=262144, or set ENGINEER_CONSOLE_AE_ALLOW_DEGRADED=true ` +
+      `for an intentional short-context run.`,
+  );
+}
+
 function controlProfile(role: AutonomousWorkerRole): NanoFaithfulInvocationProfile {
   return {
     enabled: false,

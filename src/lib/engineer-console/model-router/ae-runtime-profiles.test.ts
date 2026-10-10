@@ -25,34 +25,34 @@ import {
 } from "./ae-runtime-profiles";
 
 describe("ae-runtime-profiles-v1", () => {
-  it("registers nano-fast as the default worker profile", () => {
+  it("registers nano-faithful as the default AE worker profile", () => {
     expect(AE_RUNTIME_PROFILES_V1_ID).toBe("ae-runtime-profiles-v1");
-    expect(AE_DEFAULT_WORKER_PROFILE_ID).toBe("nano-fast");
-    expect(getDefaultAeWorkerProfile()).toEqual(NANO_FAST_PROFILE);
-    expect(NANO_FAST_PROFILE.isDefault).toBe(true);
-    expect(NANO_FAST_PROFILE.enabledByDefault).toBe(true);
-    expect(NANO_FAST_PROFILE.openaiBaseUrl).toBe("http://127.0.0.1:8081/v1");
-    expect(NANO_FAST_PROFILE.model).toBe("Nemotron-Nano-30B-A3B-NVFP4");
-    expect(NANO_FAST_PROFILE.maxModelLen).toBe(8192);
-    expect(NANO_FAST_PROFILE.avgOutputTps).toBe(278.82);
-    expect(NANO_FAST_PROFILE.role).toBe("short-context fast implementation worker");
-    expect(resolveAeWorkerProfile().profile.id).toBe("nano-fast");
-    expect(resolveAeRuntimeProfile().profile.id).toBe("nano-fast");
+    expect(AE_DEFAULT_WORKER_PROFILE_ID).toBe("nano-faithful");
+    expect(getDefaultAeWorkerProfile()).toEqual(NANO_FAITHFUL_PROFILE);
+    expect(NANO_FAITHFUL_PROFILE.isDefault).toBe(true);
+    expect(NANO_FAITHFUL_PROFILE.enabledByDefault).toBe(true);
+    expect(NANO_FAITHFUL_PROFILE.openaiBaseUrl).toBe("http://127.0.0.1:8082/v1");
+    expect(NANO_FAITHFUL_PROFILE.model).toBe("Nemotron-Nano-30B-A3B-NVFP4");
+    expect(NANO_FAITHFUL_PROFILE.maxModelLen).toBe(262144);
+    expect(NANO_FAITHFUL_PROFILE.avgOutputTps).toBe(279.83);
+    expect(NANO_FAITHFUL_PROFILE.role).toBe("long-context / diagnostic / FAITHFUL worker");
+    expect(resolveAeWorkerProfile().profile.id).toBe("nano-faithful");
+    expect(resolveAeRuntimeProfile().profile.id).toBe("nano-faithful");
   });
 
-  it("registers nano-faithful as a non-default worker profile", () => {
-    const profile = getAeRuntimeProfile("nano-faithful");
-    expect(profile).toEqual(NANO_FAITHFUL_PROFILE);
+  it("registers nano-fast as the short-context worker profile", () => {
+    const profile = getAeRuntimeProfile("nano-fast");
+    expect(profile).toEqual(NANO_FAST_PROFILE);
     expect(profile.isDefault).toBe(false);
-    expect(profile.enabledByDefault).toBe(false);
+    expect(profile.enabledByDefault).toBe(true);
     expect(profile.kind).toBe("worker");
-    expect(profile.openaiBaseUrl).toBe("http://127.0.0.1:8082/v1");
+    expect(profile.openaiBaseUrl).toBe("http://127.0.0.1:8081/v1");
     expect(profile.model).toBe("Nemotron-Nano-30B-A3B-NVFP4");
-    expect(profile.maxModelLen).toBe(262144);
-    expect(profile.avgOutputTps).toBe(279.83);
-    expect(profile.role).toBe("long-context / diagnostic / FAITHFUL worker");
+    expect(profile.maxModelLen).toBe(8192);
+    expect(profile.avgOutputTps).toBe(278.82);
+    expect(profile.role).toBe("short-context fast implementation worker");
     expect(listAeWorkerProfiles().map((item) => item.id)).toEqual(["nano-fast", "nano-faithful"]);
-    expect(getDefaultAeWorkerProfile().id).not.toBe("nano-faithful");
+    expect(getDefaultAeWorkerProfile().id).not.toBe("nano-fast");
   });
 
   it("registers deepseek-senior as disabled / on-demand and not concurrent with Nano", () => {
@@ -122,20 +122,20 @@ describe("ae-runtime-profiles-v1", () => {
     const seniorUrlAsWorker = resolveAeWorkerProfile({
       env: { ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL: "http://127.0.0.1:1919/v1" },
     });
-    expect(seniorUrlAsWorker.profile.id).toBe("nano-fast");
+    expect(seniorUrlAsWorker.profile.id).toBe("nano-faithful");
     expect(seniorUrlAsWorker.source).toBe("default_worker");
   });
 
-  it("preserves the existing 8081 env-selected worker default and leaves senior disabled", () => {
+  it("defaults the coding worker URL to FAITHFUL 8082 and leaves senior disabled", () => {
     const local = getLocalModelCodingConfig({});
-    expect(local.baseUrl).toBe("http://127.0.0.1:8081/v1");
+    expect(local.baseUrl).toBe("http://127.0.0.1:8082/v1");
     expect(local.model).toBe("Nemotron-Nano-30B-A3B-NVFP4");
 
     const senior = getSeniorModelCodingConfig({});
     expect(senior.enabled).toBe(false);
 
     expect(AE_RUNTIME_PROFILES_WIRED_INTO_AE_LOOP).toBe(false);
-    expect(AE_RUNTIME_PROFILES["nano-fast"].openaiBaseUrl).toBe(local.baseUrl);
+    expect(AE_RUNTIME_PROFILES["nano-faithful"].openaiBaseUrl).toBe(local.baseUrl);
     expect(AE_RUNTIME_PROFILE_SELECTION["nano-fast"]).toMatch(/under 8k/i);
     expect(AE_RUNTIME_PROFILE_SELECTION["nano-faithful"]).toMatch(/>8k|more than 8k/i);
     expect(AE_RUNTIME_PROFILE_SELECTION["deepseek-senior"]).toMatch(/PR-readiness/i);

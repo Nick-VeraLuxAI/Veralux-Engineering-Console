@@ -1,6 +1,8 @@
 import {
+  areWorkflowCanvasNodesVisibleInView,
   clampWorkflowCanvasZoom,
   fitWorkflowCanvasView,
+  focusNodeInWorkflowCanvasView,
   getWorkflowCanvasNodeRect,
   normalizeWorkflowCanvasView,
   type WorkflowCanvasSafeArea,
@@ -57,14 +59,23 @@ export function centerNodeInWorkflowCanvasView(
   const nodeCenterX = rect.x + rect.width / 2;
   const nodeCenterY = rect.y + rect.height / 2;
 
-  return normalizeWorkflowCanvasView(
+  const fitted = fitWorkflowCanvasView(layout, viewportSize, safeArea);
+  const centered = normalizeWorkflowCanvasView(
     {
       x: availableCenterX - nodeCenterX * view.zoom,
       y: availableCenterY - nodeCenterY * view.zoom,
       zoom: view.zoom,
     },
     viewportSize,
+    safeArea,
   );
+  if (areWorkflowCanvasNodesVisibleInView(layout, centered, viewportSize, safeArea)) {
+    return centered;
+  }
+  if (view.zoom > fitted.zoom + 0.05) {
+    return centered;
+  }
+  return focusNodeInWorkflowCanvasView(fitted, layout, nodeId, viewportSize, safeArea);
 }
 
 export function focusActivityRegionInWorkflowCanvasView(
@@ -88,6 +99,7 @@ export function focusActivityRegionInWorkflowCanvasView(
       zoom,
     },
     viewportSize,
+    safeArea,
   );
 }
 

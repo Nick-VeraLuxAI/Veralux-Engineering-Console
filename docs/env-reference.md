@@ -76,6 +76,7 @@ node -e "import('bcryptjs').then(b => b.default.hash('your-password', 12).then(c
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `ENGINEER_CONSOLE_REPO_ROOTS` | Recommended prod | unset | Comma-separated absolute directories; registered repo paths must resolve inside a root |
+| `ENGINEER_CONSOLE_GITHUB_CLONE_ROOT` | No | trusted-local `~/Documents/GitHub` | Destination for GitHub imports; host `gh auth login` is used and no token is stored |
 | `ENGINEER_CONSOLE_MAX_INDEX_FILE_BYTES` | No | `524288` (512 KiB) | Skip indexing files larger than this size |
 
 See [registered-repos.md](./registered-repos.md), [file-index.md](./file-index.md).
@@ -100,6 +101,19 @@ See [engineer-console-mvp.md](./engineer-console-mvp.md).
 | `ENGINEER_CONSOLE_RELEASE_GATES_ENABLED` | No | `false` | When `true`, fail-closed checks on merge, deployment approval/execution, and sign-off |
 
 See [hard-release-gates.md](./hard-release-gates.md).
+
+## Governance mode (Build / Observe / Release)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ENGINEER_CONSOLE_GOVERNANCE_MODE` | No | See below | `build`, `observe`, or `release` |
+
+When unset: `release` if `ENGINEER_CONSOLE_RELEASE_GATES_ENABLED=true`, otherwise `build`.
+
+- **build / observe** — Continue engineering resumes Autonomous Engineer on the same run; policy `requires_review` is observational; post-accept guidance prefers the worktree sandbox.
+- **release** — Send back ends the run; full PR / merge / deploy posture.
+
+See [source-of-truth/governance-modes-v1.md](./source-of-truth/governance-modes-v1.md).
 
 ## Deployment execution profiles
 

@@ -84,6 +84,8 @@ export type SeniorInvocationRequest = {
   fetchFn?: typeof fetch;
   maxTokens?: number;
   skipHealthCheck?: boolean;
+  /** AE loop auto path when ENGINEER_CONSOLE_SENIOR_ESCALATION_AUTO_CALL=true. */
+  autoInvocation?: boolean;
 };
 
 export type SeniorInvocationGateDecision = {

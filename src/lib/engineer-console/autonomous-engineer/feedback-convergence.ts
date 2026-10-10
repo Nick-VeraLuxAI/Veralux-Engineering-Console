@@ -8,6 +8,7 @@ import type {
   AutonomousDocument,
   DiagnosisResult,
   FailedHypothesis,
+  FailureSignatureRecord,
   PriorAttemptRecord,
   QcObservation,
 } from "./types";
@@ -78,12 +79,6 @@ export interface TestExemplar {
   path: string;
   content: string;
   proximityScore: number;
-}
-
-export interface FailureSignatureRecord {
-  signature: FailureSignature;
-  iterations: number[];
-  count: number;
 }
 
 export interface DiagnosisConsistencyResult {
@@ -1159,24 +1154,53 @@ export function mergeStructuredDiagnosis(
   };
 }
 
+export function formatSeniorHardConstraintBlock(document: AutonomousDocument): string[] {
+  const constraint = document.scaffoldGuard?.seniorHardConstraint;
+  if (!constraint?.nextWorkerMission) return [];
+  const lines = [
+    "HARD CONSTRAINT (senior review — mandatory for this replan; do not contradict):",
+    constraint.nextWorkerMission,
+  ];
+  if (document.scaffoldGuard?.contractsFrozen) {
+    lines.push(
+      "src/contracts.ts is FROZEN after repeated contract regressions — do not plan update_file, append_file, or delete_file on contracts.ts; add types in new modules or skip contract edits.",
+    );
+  }
+  if (document.scaffoldGuard?.integrationCrib) {
+    lines.push("Integration API crib (senior + specimen):", document.scaffoldGuard.integrationCrib);
+  }
+  if (constraint.rootCause) {
+    lines.push(`Senior root cause: ${constraint.rootCause}`);
+  }
+  return lines;
+}
+
 export function authoritativeDiagnosisHint(document: AutonomousDocument): string[] {
+  const seniorHard = formatSeniorHardConstraintBlock(document);
   const diagnosis = document.diagnosis;
-  if (!diagnosis) return [];
+  if (!diagnosis) return seniorHard;
   if (diagnosis.authoritative === false) {
     return [
+      ...seniorHard,
       `Non-authoritative prior diagnosis (ignored for strategy): ${diagnosis.whyPreviousFailed}`,
       `Use deterministic QC evidence instead: ${diagnosis.evidence_quote_or_signature ?? diagnosis.observed_failure ?? ""}`,
       diagnosis.suggestedStrategy ? `Fallback strategy: ${diagnosis.suggestedStrategy}` : "",
     ].filter(Boolean);
   }
+  const strategyLine = seniorHard.length > 0
+    ? `Worker strategy (senior overrides when HARD CONSTRAINT present): ${diagnosis.suggestedStrategy}`
+    : `Suggested strategy: ${diagnosis.suggestedStrategy}`;
   return [
+    ...seniorHard,
     `Previous iteration failed: ${diagnosis.whyPreviousFailed}`,
-    `Suggested strategy: ${diagnosis.suggestedStrategy}`,
+    strategyLine,
     diagnosis.avoid_repeating ? `Avoid repeating: ${diagnosis.avoid_repeating}` : "",
     diagnosis.evidence_quote_or_signature
       ? `Evidence: ${diagnosis.evidence_quote_or_signature.slice(0, 280)}`
       : "",
-    "Produce a revised worker plan that addresses the failure. Do not repeat the failed hypothesis.",
+    seniorHard.length === 0
+      ? "Produce a revised worker plan that addresses the failure. Do not repeat the failed hypothesis."
+      : "Produce a worker plan that satisfies the HARD CONSTRAINT above. Do not repeat failed contract rewrites.",
   ].filter(Boolean);
 }
 

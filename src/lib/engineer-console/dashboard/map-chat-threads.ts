@@ -1,8 +1,10 @@
 import type { MapChatBackendId, MapChatMode, MapChatModelId } from "./map-chat";
+import { parseMapChatProposal, type MapChatProposal } from "./map-chat-proposal";
+import { parseFleetJobs, type FleetJobRef } from "./multitask-fleet-intent";
 import { MAP_CHAT_OPENING } from "./map-chat-self-model";
 import type { WorkflowMapNodeId } from "./workflow-map";
 
-export const MAP_CHAT_THREADS_KEY = "veralux.map.chat.threads.v1";
+export const MAP_CHAT_THREADS_KEY = "veralux.map.chat.threads.v2";
 export const MAP_CHAT_ACTIVE_THREAD_KEY = "veralux.map.chat.active-thread";
 
 export type MapChatThreadLine = {
@@ -10,6 +12,8 @@ export type MapChatThreadLine = {
   content: string;
   workingLabel?: string;
   escalated?: boolean;
+  proposal?: MapChatProposal;
+  jobs?: FleetJobRef[];
 };
 
 export type MapChatProject = {
@@ -49,6 +53,8 @@ const NODE_ALIASES: Array<{ nodeId: WorkflowMapNodeId; aliases: string[] }> = [
   { nodeId: "audit", aliases: ["audit", "evidence"] },
 ];
 
+export const MAP_CHAT_SSR_THREAD_ID = "thread-ssr";
+
 function newId(): string {
   return `thread-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -57,7 +63,21 @@ export function openingThreadLine(): MapChatThreadLine {
   return { role: "assistant", content: MAP_CHAT_OPENING, workingLabel: "Nano 30B" };
 }
 
-export function createMapChatThread(): MapChatThread {
+export function createPlaceholderMapChatThread(): MapChatThread {
+  return {
+    id: MAP_CHAT_SSR_THREAD_ID,
+    title: "New",
+    updatedAt: 0,
+    mode: "agent",
+    model: "nano30b",
+    working: "nano30b",
+    workingLabel: "Nano 30B",
+    lines: [openingThreadLine()],
+    focus: null,
+  };
+}
+
+export function createMapChatThread(focus: MapChatThreadFocus | null = null): MapChatThread {
   return {
     id: newId(),
     title: "New",
@@ -67,7 +87,7 @@ export function createMapChatThread(): MapChatThread {
     working: "nano30b",
     workingLabel: "Nano 30B",
     lines: [openingThreadLine()],
-    focus: null,
+    focus,
   };
 }
 
@@ -94,12 +114,15 @@ export function parseMapChatThreads(raw: unknown): MapChatThread[] {
       if ((next.role !== "user" && next.role !== "assistant") || typeof next.content !== "string") {
         return [];
       }
+      const proposal = parseMapChatProposal(next.proposal);
       return [
         {
           role: next.role,
           content: next.content,
           workingLabel: typeof next.workingLabel === "string" ? next.workingLabel : undefined,
           escalated: next.escalated === true,
+          proposal,
+          jobs: parseFleetJobs(next.jobs),
         },
       ];
     });
@@ -137,7 +160,7 @@ export function loadMapChatThreads(storage: Pick<Storage, "getItem"> | null = ty
   threads: MapChatThread[];
   activeId: string;
 } {
-  const fallback = createMapChatThread();
+  const fallback = createPlaceholderMapChatThread();
   if (!storage) {
     return { threads: [fallback], activeId: fallback.id };
   }
@@ -176,7 +199,7 @@ export function buildMapChatProjects(input: {
       id: `repo:${repo.id}`,
       kind: "repo" as const,
       label: repo.name,
-      aliases: [repo.name, base, repo.path].filter((item) => item.trim().length >= 3),
+      aliases: [repo.name, base].filter((item) => item.trim().length >= 3),
       nodeId: "repository" as const,
     };
   });
@@ -223,6 +246,14 @@ export function resolveThreadFocus(
     projectId: project?.id ?? null,
     projectLabel: project?.label ?? null,
   };
+}
+
+export function resolveThreadFocusFromLines(
+  lines: MapChatThreadLine[],
+  projects: MapChatProject[] = [],
+): MapChatThreadFocus | null {
+  const latestUser = [...lines].reverse().find((line) => line.role === "user" && line.content.trim());
+  return latestUser ? resolveThreadFocus(latestUser.content, projects) : null;
 }
 
 export function mergeThreadFocus(

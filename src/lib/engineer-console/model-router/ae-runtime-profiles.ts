@@ -4,7 +4,7 @@
  *
  * This module can resolve a profile by ID. It is not imported by the AE loop,
  * worker-client, or worker-route. Do not use it to auto-start DeepSeek, change
- * the live 8081 default, or replace ENGINEER_CONSOLE_LOCAL_MODEL_CODING_*.
+ * the live FAITHFUL 8082 default, or replace ENGINEER_CONSOLE_LOCAL_MODEL_CODING_*.
  */
 
 import { normalizeLocalModelCodingBaseUrl } from "../bridge/local-model-coding-config";
@@ -25,7 +25,7 @@ export const AE_RUNTIME_PROFILES_WIRED_INTO_AE_LOOP = false;
 export const AE_RUNTIME_PROFILE_IDS = ["nano-fast", "nano-faithful", "deepseek-senior"] as const;
 export type AeRuntimeProfileId = (typeof AE_RUNTIME_PROFILE_IDS)[number];
 
-export const AE_DEFAULT_WORKER_PROFILE_ID = "nano-fast" as const satisfies AeRuntimeProfileId;
+export const AE_DEFAULT_WORKER_PROFILE_ID = "nano-faithful" as const satisfies AeRuntimeProfileId;
 
 export type AeRuntimeProfileKind = "worker" | "senior";
 export type AeRuntimeProfileStatus = "ready" | "on_demand";
@@ -87,7 +87,7 @@ export const NANO_FAST_PROFILE = {
   model: NANO_SHORT_WORKER.model,
   maxModelLen: NANO_SHORT_WORKER.maxModelLen,
   avgOutputTps: NANO_SHORT_WORKER.avgOutputTokPerSec,
-  isDefault: true,
+  isDefault: false,
   enabledByDefault: true,
   autoServe: false,
   concurrentWithNano: true,
@@ -104,8 +104,8 @@ export const NANO_FAITHFUL_PROFILE = {
   model: NANO_LONG_WORKER.model,
   maxModelLen: NANO_LONG_WORKER.maxModelLen,
   avgOutputTps: NANO_LONG_WORKER.avgOutputTokPerSec,
-  isDefault: false,
-  enabledByDefault: false,
+  isDefault: true,
+  enabledByDefault: true,
   autoServe: false,
   concurrentWithNano: true,
   requiresManualServe: false,
@@ -162,7 +162,7 @@ export function listAeWorkerProfiles(): AeWorkerRuntimeProfile[] {
 }
 
 export function getDefaultAeWorkerProfile(): AeWorkerRuntimeProfile {
-  return NANO_FAST_PROFILE;
+  return NANO_FAITHFUL_PROFILE;
 }
 
 function requestedProfileId(

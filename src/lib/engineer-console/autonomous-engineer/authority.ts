@@ -59,6 +59,16 @@ export function isPathAuthorized(
   );
 }
 
+/** Scope review may see seeded harness files without treating them as AE mutations. */
+export function isPathInReviewScope(
+  envelope: AutonomousAuthorityEnvelope,
+  relativePath: string,
+): boolean {
+  const normalized = relativePath.replace(/\\/g, "/").replace(/^\.\//, "");
+  if (INVESTIGATION_DISCOVERY_FILES.has(normalized)) return true;
+  return isPathAuthorized(envelope, normalized);
+}
+
 const INVESTIGATION_DISCOVERY_FILES = new Set([
   "package.json",
   "tsconfig.json",

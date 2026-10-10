@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { CanvasBottomDock } from "./canvas-bottom-dock";
 import { CanvasFloatingMenu } from "./canvas-floating-menu";
+import { EngineerBackLink } from "./engineer-back-link";
 
 const SHEET_DOCK = [
   { id: "workflow", label: "Map", href: "/engineer" },
@@ -41,19 +42,22 @@ export function EngineerRouteShell({
   useEffect(() => {
     if (loginRoute) return;
 
-    const previousOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
     const previousOverscroll = document.body.style.overscrollBehavior;
+    document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = immersiveHome ? "hidden" : "";
     document.body.style.overscrollBehavior = "none";
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
       document.body.style.overscrollBehavior = previousOverscroll;
     };
   }, [immersiveHome, loginRoute]);
 
   if (loginRoute) {
-    return <div className="min-h-screen">{children}</div>;
+    return <div className="min-h-dvh">{children}</div>;
   }
 
   if (immersiveHome) {
@@ -61,9 +65,11 @@ export function EngineerRouteShell({
       <div
         data-engineer-route-shell="immersive"
         data-engineer-surface="map"
-        className="fixed inset-0 z-0 h-[100dvh] w-screen overflow-hidden bg-[#05060a]"
+        className="fixed inset-0 z-0 overflow-hidden bg-[#05060a]"
       >
-        {children}
+        <div key={pathname} data-engineer-route-content="true" className="h-full">
+          {children}
+        </div>
       </div>
     );
   }
@@ -72,22 +78,41 @@ export function EngineerRouteShell({
     <div
       data-engineer-route-shell="immersive"
       data-engineer-surface="sheet"
-      className="fixed inset-0 z-0 h-[100dvh] w-screen overflow-hidden bg-[#05060a] text-white"
+      className="fixed inset-0 z-0 flex flex-col overflow-hidden bg-[#05060a] text-white"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.03),transparent_42%)]" />
-      <CanvasFloatingMenu />
-      <div className="pointer-events-none absolute left-1/2 top-5 z-40 -translate-x-1/2">
-        <div className="pointer-events-auto flex items-baseline gap-2 rounded-full border border-white/8 bg-black/40 px-4 py-1.5 backdrop-blur-xl">
-          <p className="text-[15px] font-medium tracking-tight">Engineering Console</p>
-          <p className="text-[13px] text-white/40">{contextLabel(pathname)}</p>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.03),transparent_42%)]" />
+      <header className="relative z-40 flex min-h-12 shrink-0 items-center gap-2 border-b border-white/8 bg-[#070a12] px-3 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] sm:px-4">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <CanvasFloatingMenu placement="inline" />
+          <EngineerBackLink />
         </div>
-      </div>
-      <main className="absolute inset-0 overflow-y-auto px-5 pb-28 pt-24 sm:px-8">
-        <div className="mx-auto w-full max-w-4xl">{children}</div>
+        <div className="ml-auto min-w-0 text-right">
+          <p className="truncate text-[13px] font-medium tracking-tight text-white sm:hidden">
+            {contextLabel(pathname)}
+          </p>
+          <p className="hidden min-w-0 items-baseline gap-2 sm:flex">
+            <span className="truncate text-[14px] font-medium tracking-tight text-white">
+              Engineering Console
+            </span>
+            <span className="truncate text-[12px] text-white/60">{contextLabel(pathname)}</span>
+          </p>
+        </div>
+      </header>
+      <main className="relative min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
+        <div
+          key={pathname}
+          data-engineer-route-content="true"
+          className="mx-auto w-full max-w-4xl"
+        >
+          {children}
+        </div>
       </main>
-      <div className="absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
+      <footer
+        data-engineer-bottom-dock-slot="true"
+        className="relative z-30 flex shrink-0 justify-center border-t border-white/8 bg-[#070a12] px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4"
+      >
         <CanvasBottomDock links={SHEET_DOCK} activeId={dockActiveId(pathname)} />
-      </div>
+      </footer>
     </div>
   );
 }

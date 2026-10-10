@@ -8,6 +8,11 @@ import type {
 } from "./types";
 import { isPathAuthorized } from "./authority";
 import { listAuthorizedWorktreeFiles } from "./plan-worktree-adapter";
+import type { QcDelta } from "./qc-baseline";
+import {
+  evaluateStructuralDeliveryGates,
+  qcEvidenceSupportsDelivery,
+} from "./delivery-readiness";
 
 export type { AcceptanceCriterionEvidence };
 
@@ -180,13 +185,34 @@ export function evaluateCompletion(input: {
   changedFiles: string[];
   reviews: AutonomousReviewFinding[];
   repoPath?: string;
+  qcDelta?: QcDelta | null;
 }): CompletionEvaluation {
   const interpretation = input.document.interpretedObjective;
   const unmetAcceptanceCriteria: string[] = [];
   const unmetRequirements: string[] = [];
 
-  if (!input.qcPassed) {
-    unmetAcceptanceCriteria.push("Quality gates have not passed.");
+  const delta = input.qcDelta !== undefined ? input.qcDelta : input.document.qcDelta;
+  const qcOk =
+    input.qcPassed &&
+    (delta == null ? input.qcPassed : qcEvidenceSupportsDelivery(delta));
+
+  if (!qcOk) {
+    unmetAcceptanceCriteria.push(
+      "Quality gates have not passed with executable evidence (skipped-only or missing QC does not count).",
+    );
+  }
+
+  const structuralBlockers = evaluateStructuralDeliveryGates({
+    document: input.document,
+    repoPath: input.repoPath,
+    qcDelta: delta,
+    changedFiles: input.changedFiles,
+  });
+  // Avoid duplicating the same QC skipped message
+  for (const blocker of structuralBlockers) {
+    if (!unmetAcceptanceCriteria.includes(blocker)) {
+      unmetAcceptanceCriteria.push(blocker);
+    }
   }
 
   const actionableReviewDefects = input.reviews.flatMap((review) => review.actionableDefects);
@@ -201,7 +227,7 @@ export function evaluateCompletion(input: {
   const criteria = interpretation?.acceptanceCriteria ?? input.document.acceptanceCriteria;
   for (const criterion of criteria) {
     const lower = criterion.toLowerCase();
-    if (lower.includes("file") && input.changedFiles.length === 0 && input.qcPassed === false) {
+    if (lower.includes("file") && input.changedFiles.length === 0 && !qcOk) {
       unmetAcceptanceCriteria.push(criterion);
     }
   }
@@ -210,7 +236,7 @@ export function evaluateCompletion(input: {
     criteria,
     repoPath: input.repoPath,
     authorizedPathPrefixes: input.document.authorizedPathPrefixes,
-    qcPassed: input.qcPassed,
+    qcPassed: qcOk,
   });
   for (const row of acEvidence) {
     if (row.status === "UNSATISFIED") {
@@ -245,7 +271,7 @@ export function evaluateCompletion(input: {
     input.reviews.every((review) => review.passed && review.actionableDefects.length === 0);
 
   const complete =
-    input.qcPassed &&
+    qcOk &&
     withinAuthority &&
     reviewsPassed &&
     unmetAcceptanceCriteria.length === 0 &&
@@ -256,12 +282,12 @@ export function evaluateCompletion(input: {
   return {
     complete,
     summary: complete
-      ? "Objective-level completion: requirements, QC, reviews, and authority checks passed."
+      ? "Objective-level completion: requirements, QC, reviews, structural gates, and authority checks passed."
       : "Objective is not complete; remaining defects require another iteration.",
     unmetAcceptanceCriteria,
     unmetRequirements,
     defectsBlocking: [...blockingDefects, ...actionableReviewDefects],
-    qcPassed: input.qcPassed,
+    qcPassed: qcOk,
     reviewsPassed,
     withinAuthority,
     acceptanceEvidence: acEvidence,

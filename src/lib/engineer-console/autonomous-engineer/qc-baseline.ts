@@ -143,15 +143,30 @@ function extractTestFailures(command: string, output: string): QcFailureIdentity
   const identities: QcFailureIdentity[] = [];
   const seen = new Set<string>();
 
-  const failFile = /FAIL\s+(\S+\.(?:test|spec)\.[jt]sx?)\s+>\s+(.+)/g;
+  // Extract vitest failure blocks with error message / stack frames
+  const failBlockRegex =
+    /(?:FAIL|×|x)\s+(\S+\.(?:test|spec)\.[jt]sx?)\s+>\s+([^\n]+)([\s\S]*?)(?=(?:FAIL|×|x)\s+\S+\.(?:test|spec)\.[jt]sx?|⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯|Test Files|$)/g;
   let match: RegExpExecArray | null;
-  while ((match = failFile.exec(output)) !== null) {
+  while ((match = failBlockRegex.exec(output)) !== null) {
     const file = match[1].trim();
     const rest = stripVitestTiming(match[2]);
     const leaf = leafTestName(rest);
     const key = `test:${file}:${leaf}`;
     if (seen.has(key)) continue;
     seen.add(key);
+
+    const rawBody = (match[3] || "").trim();
+    const cleanedBody = rawBody
+      .split("\n")
+      .map((l) => l.trimEnd())
+      .filter((l) => !l.startsWith("⎯⎯⎯") && !l.startsWith("RUN  v") && !l.startsWith("Test Files"))
+      .join("\n")
+      .trim();
+
+    const fullEvidence = cleanedBody
+      ? `FAIL  ${file} > ${rest}\n${cleanedBody}`
+      : `FAIL  ${file} > ${rest}`;
+
     identities.push({
       key,
       kind: "test",
@@ -159,8 +174,30 @@ function extractTestFailures(command: string, output: string): QcFailureIdentity
       name: rest,
       location: file,
       fingerprint: fingerprint(`${file} ${leaf}`),
-      rawEvidence: match[0],
+      rawEvidence: fullEvidence.slice(0, 1200),
     });
+  }
+
+  // Fallback simple line match if multiline block extraction didn't catch anything
+  if (identities.length === 0) {
+    const failFile = /FAIL\s+(\S+\.(?:test|spec)\.[jt]sx?)\s+>\s+(.+)/g;
+    while ((match = failFile.exec(output)) !== null) {
+      const file = match[1].trim();
+      const rest = stripVitestTiming(match[2]);
+      const leaf = leafTestName(rest);
+      const key = `test:${file}:${leaf}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      identities.push({
+        key,
+        kind: "test",
+        command,
+        name: rest,
+        location: file,
+        fingerprint: fingerprint(`${file} ${leaf}`),
+        rawEvidence: match[0],
+      });
+    }
   }
 
   if (identities.length === 0) {
@@ -420,4 +457,150 @@ export function compareQcToBaseline(
 
 export function qcIterationShouldFail(delta: QcDelta): boolean {
   return delta.ownedIterationFailures.length > 0;
+}
+
+/** Structured QC failure block for planning/replan prompts. */
+export function formatQcDeltaRepairBlock(delta: QcDelta | null | undefined): string {
+  if (!delta || delta.objectiveQcPassed) return "";
+  const actionable = [...delta.newFailures, ...delta.changedFailures, ...delta.infrastructureFailures];
+  if (actionable.length === 0) return "";
+
+  const lines = ["Active QC failures to fix before delivery (address every line):"];
+  for (const finding of actionable.slice(0, 16)) {
+    const id = finding.identity;
+    const where = id.location ?? id.name;
+    lines.push(`- [${id.kind}] ${where}: ${id.rawEvidence}`);
+  }
+  if (actionable.some((finding) => finding.identity.kind === "typescript")) {
+    lines.push(
+      "TypeScript repair rules: fix call sites and signatures together; use Partial<> or optional fields for patch/supersede inputs; never import Omit from application modules (Omit is a TS utility); do not read fields omitted from a parameter type.",
+    );
+    lines.push(
+      "Vitest fixture rules: nest tenantId/projectId/runId/taskId inside scope (not at the record root); avoid `as const` on whole fixture objects — instead type kind as MemoryRecordKind ('durable' | 'transient' | 'summary'); use plain string[] for provenanceEventIds; name the class InMemoryMemoryRecordStore and import MemoryRecordStore as a type alias; use expect(x).toHaveLength(n) — Vitest has no toContainLength.",
+    );
+    lines.push(
+      "MemoryRecordStore semantics: upsert({ ...fields, id }) MUST update the existing record and keep the same id; upsert without id creates a new record. When a test expects the same id after update, the second upsert MUST include id: first.id. supersede(id, partial) inherits missing fields from the prior record.",
+    );
+    if (
+      actionable.some((finding) =>
+        /Property 'memoryClass' is missing|Property 'kind' is missing/i.test(finding.identity.rawEvidence),
+      )
+    ) {
+      lines.push(
+        "Schema evolution: when adding memoryClass to contracts, keep kind and make memoryClass optional on MemoryRecordWriteInput OR infer memoryClass from kind inside the store so existing tests unchanged.",
+      );
+    }
+    if (actionable.some((finding) => /Failed to load url \.\./i.test(finding.identity.rawEvidence))) {
+      lines.push(
+        "Vitest imports must use .js extension and same-directory paths (e.g. ./memory-record-store.js) — never bare ../module without .js.",
+      );
+    }
+    if (
+      actionable.some((finding) =>
+        /TS2352|Conversion of type|missing the following properties/i.test(finding.identity.rawEvidence),
+      )
+    ) {
+      lines.push(
+        "Cast repair: do not cast incomplete objects to MemoryRecordWriteInput. Build a full object with statement, kind (MemoryRecordKind), confidence (number), scope, and optional provenanceEventIds — or use `as unknown as MemoryRecordWriteInput` only as last resort.",
+      );
+    }
+    if (
+      actionable.some((finding) =>
+        /TS1005|TS1128|TS1109|'\)' expected/i.test(finding.identity.rawEvidence),
+      )
+    ) {
+      lines.push(
+        "Syntax repair: helper files need valid TypeScript — one parameter type block only; import types from ./contracts.js (e.g. MemoryScope, MemoryRecordKind, MemoryRecordWriteInput); never duplicate `}: {` parameter annotations.",
+      );
+    }
+    if (
+      actionable.some((finding) =>
+        /Cannot read properties of undefined \(reading '0'\)|buildMemoryProposal/i.test(
+          finding.identity.rawEvidence,
+        ),
+      )
+    ) {
+      lines.push(
+        "buildMemoryProposal repair: pass `candidates ?? []` (or `candidates ?? [\"semantic\"]`) to buildMemoryProposal so candidates is never undefined.",
+      );
+    }
+    if (
+      actionable.some((finding) =>
+        /Cannot find name '(MemoryEvent|MemoryRecord|AssembledContext|RetrievalQuery|MemoryClass|commitProposal|buildMemoryProposal|shouldIgnoreEvent|explainMemory|hybridRetrieve|BudgetedContextAssembler|InMemoryContextAssembler|ExplainResult)'|ReferenceError: (commitProposal|buildMemoryProposal|shouldIgnoreEvent|explainMemory|hybridRetrieve|InMemoryContextAssembler|ExplainResult)/i.test(
+          finding.identity.rawEvidence,
+        ),
+      )
+    ) {
+      lines.push(
+        "Import repair: In src/memory-service.ts ensure all functions and types are imported:\n" +
+        "- import type { EventLog, MemoryRecordStore, MemoryEvent, MemoryRecord, MemoryClass, RetrievalQuery, AssembledContext, MemoryProposal, RetrievalFeedback, FeedbackLog } from \"./contracts.js\";\n" +
+        "- import { shouldIgnoreEvent, buildMemoryProposal, commitProposal } from \"./write-pipeline.js\";\n" +
+        "- import { hybridRetrieve } from \"./retrieval-engine.js\";\n" +
+        "- import { BudgetedContextAssembler } from \"./context-budget-assembler.js\";\n" +
+        "- import { explainMemory, type ExplainResult } from \"./explain.js\";\n" +
+        "Note: Use `new BudgetedContextAssembler()` for context assembly, NOT `InMemoryContextAssembler`.",
+      );
+    }
+    if (
+      actionable.some((finding) =>
+        /Cannot read properties of undefined \(reading 'feedbackLog'\)|TS2322.*feedbackLog/i.test(
+          finding.identity.rawEvidence,
+        ),
+      )
+    ) {
+      lines.push(
+        "Options repair: in MemoryService, declare `private readonly options?: { feedbackLog?: FeedbackLog };` (make options optional with `?`) and access with optional chaining `this.options?.feedbackLog`.",
+      );
+    }
+    if (
+      actionable.some((finding) =>
+        /TS2613.*has no default export|default is not a constructor/i.test(finding.identity.rawEvidence),
+      )
+    ) {
+      lines.push(
+        "Import style repair (TS2613): Use named imports `import { InMemoryFeedbackLog } from \"./feedback-log.js\";` (not default import `import InMemoryFeedbackLog from ...`).",
+      );
+    }
+    if (
+      actionable.some((finding) =>
+        /TS2459|TS2305.*(?:declares '.*' locally, but it is not exported|has no exported member)/i.test(
+          finding.identity.rawEvidence,
+        ),
+      )
+    ) {
+      lines.push(
+        "Re-export repair (TS2459/TS2305): Export types (EventLog, MemoryRecordStore, MemoryRecord, MemoryEvent, MemoryProposal, RetrievalFeedback, FeedbackLog, MemoryClass, RetrievalQuery, AssembledContext) from \"./contracts.js\". Export implementations from their respective files (InMemoryEventLog from \"./event-log.js\", InMemoryMemoryRecordStore from \"./memory-record-store.js\", InMemoryFeedbackLog from \"./feedback-log.js\", MemoryService from \"./memory-service.js\").",
+      );
+    }
+    if (
+      actionable.some((finding) =>
+        /TS1232|An import declaration can only be used at the top level/i.test(
+          finding.identity.rawEvidence,
+        ),
+      )
+    ) {
+      lines.push(
+        "Top-level import repair (TS1232): Place ALL `import` declarations at the very top of the file, outside of `describe(...)` or `it(...)` blocks.",
+      );
+    }
+    if (
+      actionable.some((finding) =>
+        /TS2741: Property 'id' is missing/i.test(finding.identity.rawEvidence),
+      )
+    ) {
+      lines.push(
+        "Event fixture repair: MemoryEvent requires { id: \"evt-1\", occurredAt: new Date().toISOString(), scope: { projectId: \"p1\" }, type: \"user_action\", content: \"hello\", metadata: {} }.",
+      );
+    }
+    if (
+      actionable.some((finding) =>
+        /TS18047.*(?:'record' is possibly 'null'|possibly 'null')/i.test(finding.identity.rawEvidence),
+      )
+    ) {
+      lines.push(
+        "Null check repair (TS18047): in src/memory-service.test.ts, proposeAndCommit returns MemoryRecord | null. Immediately after const record = svc.proposeAndCommit(...); add `expect(record).not.toBeNull();` and `if (!record) throw new Error(\"record was null\");` so TypeScript narrows record to MemoryRecord for the rest of the test.",
+      );
+    }
+  }
+  return lines.join("\n");
 }

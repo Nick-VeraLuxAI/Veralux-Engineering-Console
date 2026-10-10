@@ -60,10 +60,14 @@ function validationOptionsWithIndex(
   task: EngineeringTask,
   options: WorkerPlanValidationOptions = {},
 ): WorkerPlanValidationOptions {
-  if (!task.registeredRepoId) return options;
+  const merged: WorkerPlanValidationOptions = { ...options };
+  if (task.targetRepoPath) {
+    merged.scaffoldBaselineRepoPath = task.targetRepoPath;
+  }
+  if (!task.registeredRepoId) return merged;
   const indexedFilePaths = getIndexedFilePathSet(task.registeredRepoId);
-  if (indexedFilePaths.size === 0) return options;
-  return { ...options, indexedFilePaths };
+  if (indexedFilePaths.size === 0) return merged;
+  return { ...merged, indexedFilePaths };
 }
 
 function buildWorkerPlanReportSummary(

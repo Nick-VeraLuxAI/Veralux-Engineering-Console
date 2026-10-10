@@ -45,8 +45,10 @@ export function CanvasIssueCard({
       position={overlayState.position}
       onMove={onMove}
       draggable
-      placementClassName={subdued ? "top-36 right-4" : "top-24 right-4"}
-      containerClassName="w-[min(20rem,calc(100vw-2rem))]"
+      placementClassName={
+        subdued ? "left-3 right-3 top-36 sm:left-auto sm:right-4" : "left-3 right-3 top-24 sm:left-auto sm:right-4"
+      }
+      containerClassName="w-auto sm:w-[min(20rem,calc(100vw-2rem))]"
       bodyClassName="p-4"
       surfaceClassName={
         subdued
@@ -71,7 +73,7 @@ export function CanvasIssueCard({
           className="mt-4 inline-flex items-center rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2 text-sm font-medium text-white transition hover:border-white/20 hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070d]"
         >
           {issue.nodeId === "repository"
-            ? "Register repo"
+            ? "Start a repo"
             : issue.nodeId === "release"
               ? "Open release"
               : issue.nodeId === "review"

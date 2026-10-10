@@ -32,10 +32,10 @@ const STATUS_VARIANTS: Record<string, BadgeVariant> = {
   blocked: "blocked",
 };
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status, label }: { status: string; label?: string }) {
   return (
     <Badge variant={STATUS_VARIANTS[status] ?? "muted"} size="md">
-      {status.replace(/_/g, " ")}
+      {label ?? status.replace(/_/g, " ")}
     </Badge>
   );
 }

@@ -352,6 +352,16 @@ export interface AutonomousDocument {
    * Preserved when the AE loop persists a document that omits this field.
    */
   seniorReview?: import("../senior-escalation/durable-types").DurableSeniorReviewState;
+  /** Scaffold protection state (contract freeze, senior hard constraints). */
+  scaffoldGuard?: {
+    contractsFrozen?: boolean;
+    integrationCrib?: string;
+    seniorHardConstraint?: {
+      nextWorkerMission: string;
+      rootCause?: string;
+      issuedAt: string;
+    };
+  };
 }
 
 export interface AutonomousRunStateRecord {

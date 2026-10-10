@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertLiveAeNanoEnvelope,
   extractNanoFinalContent,
   isGenerationBudgetExhausted,
   isNanoFaithfulInvocationEnabled,
@@ -85,6 +86,32 @@ describe("nano faithful invocation", () => {
       ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL: "http://127.0.0.1:8081/v1",
     };
     expect(resolveNanoRuntimeMode(env)).toBe("DEGRADED");
+  });
+
+  it("refuses live AE on DEGRADED unless ALLOW_DEGRADED", () => {
+    const degraded = {
+      ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL: "http://127.0.0.1:8081/v1",
+      ENGINEER_CONSOLE_AE_NANO_MAX_MODEL_LEN: "8192",
+    };
+    expect(() => assertLiveAeNanoEnvelope(degraded)).toThrow(/refused DEGRADED/i);
+    expect(
+      assertLiveAeNanoEnvelope({
+        ...degraded,
+        ENGINEER_CONSOLE_AE_ALLOW_DEGRADED: "true",
+      }),
+    ).toBe("DEGRADED");
+    expect(
+      assertLiveAeNanoEnvelope({
+        ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL: "http://127.0.0.1:8082/v1",
+        ENGINEER_CONSOLE_AE_NANO_MAX_MODEL_LEN: "262144",
+      }),
+    ).toBe("FAITHFUL");
+    expect(
+      assertLiveAeNanoEnvelope({
+        ENGINEER_CONSOLE_AE_NANO_FAITHFUL_INVOCATION: "false",
+        ENGINEER_CONSOLE_LOCAL_MODEL_CODING_BASE_URL: "http://127.0.0.1:8081/v1",
+      }),
+    ).toBe("CONTROL");
   });
 
   it("resolves optional reasoning budget from env (unset = null)", () => {

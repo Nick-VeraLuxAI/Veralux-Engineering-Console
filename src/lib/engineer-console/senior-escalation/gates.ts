@@ -1,5 +1,6 @@
 import { normalizeLocalModelCodingBaseUrl } from "../bridge/local-model-coding-config";
 import { getSeniorModelCodingConfig } from "../bridge/senior-model-coding-config";
+import { isSeniorEscalationAutoCallAllowed } from "./auto-call-config";
 import { DEEPSEEK_SENIOR_PROFILE } from "../model-router/ae-runtime-profiles";
 import {
   REQUIRED_SENIOR_MODEL_NAME,
@@ -51,6 +52,7 @@ export function checkSeniorInvocationGates(
   const reasons: SeniorInvocationBlockedReason[] = [];
   const gates: SeniorInvocationGate[] = [];
   const env = input.env ?? {};
+  const autoInvocation = input.autoInvocation === true && isSeniorEscalationAutoCallAllowed(env);
   const pkg = input.package ?? null;
   const config = getSeniorModelCodingConfig(env);
   const explicitUrl = env.ENGINEER_CONSOLE_SENIOR_MODEL_CODING_BASE_URL?.trim() || "";
@@ -58,6 +60,14 @@ export function checkSeniorInvocationGates(
   const baseUrl = explicitUrl ? normalizeLocalModelCodingBaseUrl(explicitUrl) : null;
   const model = explicitModel || null;
   const approval = input.operatorApproval ?? null;
+  const approvalOk = Boolean(
+    approval
+    && approval.approved === true
+    && approval.invocationRequested === true
+    && approval.approvedBy.trim().length > 0
+    && (approval.packageTaskId == null || approval.packageTaskId === (pkg?.taskId ?? approval.packageTaskId))
+    && (approval.packageRunId == null || approval.packageRunId === (pkg?.runId ?? approval.packageRunId)),
+  );
 
   push(reasons, gates, "package_missing", Boolean(pkg), pkg ? "Senior escalation package is present." : "Senior escalation package is required.");
 
@@ -97,12 +107,18 @@ export function checkSeniorInvocationGates(
       pkg.seniorProfile.concurrentWithNano === false && DEEPSEEK_SENIOR_PROFILE.concurrentWithNano === false,
       "deepseek-senior must not be concurrent with Nano.",
     );
+    const manualOnlyPackage =
+      pkg.decision.autoCallAllowed === false && pkg.seniorProfile.autoCallAllowed === false;
     push(
       reasons,
       gates,
       "auto_call_not_manual",
-      pkg.decision.autoCallAllowed === false && pkg.seniorProfile.autoCallAllowed === false,
-      "V2 treats autoCallAllowed=false as operator/manual invocation only.",
+      autoInvocation || manualOnlyPackage || approvalOk,
+      autoInvocation
+        ? "AE loop auto-invocation with ENGINEER_CONSOLE_SENIOR_ESCALATION_AUTO_CALL=true."
+        : manualOnlyPackage
+          ? "V2 treats autoCallAllowed=false as operator/manual invocation only."
+          : "Operator-requested invocation with auto-call enabled in env.",
     );
     push(
       reasons,
@@ -113,22 +129,16 @@ export function checkSeniorInvocationGates(
     );
   }
 
-  const approvalOk = Boolean(
-    approval
-    && approval.approved === true
-    && approval.invocationRequested === true
-    && approval.approvedBy.trim().length > 0
-    && (approval.packageTaskId == null || approval.packageTaskId === (pkg?.taskId ?? approval.packageTaskId))
-    && (approval.packageRunId == null || approval.packageRunId === (pkg?.runId ?? approval.packageRunId)),
-  );
   push(
     reasons,
     gates,
     "operator_approval_missing",
-    approvalOk,
-    approvalOk
-      ? `Operator ${approval!.approvedBy} requested this senior invocation.`
-      : "Operator must explicitly approve and request this senior invocation.",
+    autoInvocation || approvalOk,
+    autoInvocation
+      ? "AE loop auto-invocation bypasses manual operator confirmation."
+      : approvalOk
+        ? `Operator ${approval!.approvedBy} requested this senior invocation.`
+        : "Operator must explicitly approve and request this senior invocation.",
   );
 
   push(

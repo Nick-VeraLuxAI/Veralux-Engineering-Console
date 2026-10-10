@@ -69,7 +69,7 @@ function failed(
 }
 
 /**
- * Operator-requested live senior invocation. Never auto-runs from the AE loop.
+ * Live senior invocation. Operator-requested by default; AE loop may auto-call when env enables it.
  * Does not start FreeToken or change the Nano worker.
  */
 export async function invokeSeniorReview(

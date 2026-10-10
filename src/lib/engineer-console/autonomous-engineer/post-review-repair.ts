@@ -16,7 +16,7 @@ export interface ReviewFindingRecord {
 }
 
 /** Small bounded budget: enough for one targeted repair + one regression check. */
-export const DEFAULT_MAX_POST_REVIEW_REPAIRS = 2;
+export const DEFAULT_MAX_POST_REVIEW_REPAIRS = 4;
 
 export function resolveMaxPostReviewRepairs(budget: AutonomousBudgetConfig): number {
   if (typeof budget.max_post_review_repairs === "number" && budget.max_post_review_repairs > 0) {

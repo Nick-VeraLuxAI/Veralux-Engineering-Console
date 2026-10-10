@@ -1,4 +1,5 @@
 import { execFile } from "child_process";
+import fs from "fs";
 import { mkdir, readFile, stat, writeFile } from "fs/promises";
 import path from "path";
 import { promisify } from "util";
@@ -288,7 +289,7 @@ export function simulateNemotronSplit(input: {
   const missingShardFiles: string[] = [];
   let weightMap: Record<string, string> = {};
   try {
-    const index = JSON.parse(require("fs").readFileSync(path.join(input.modelPath, "model.safetensors.index.json"), "utf8")) as { weight_map?: Record<string, string> };
+    const index = JSON.parse(fs.readFileSync(path.join(input.modelPath, "model.safetensors.index.json"), "utf8")) as { weight_map?: Record<string, string> };
     weightMap = index.weight_map ?? {};
     for (const layer of names) {
       const prefix = `${layer}.`;
@@ -296,7 +297,7 @@ export function simulateNemotronSplit(input: {
       layerToShardCounts[layer] = shards.length;
       if (shards.length === 0) emptyLayers.push(layer);
       for (const shard of shards) {
-        if (!require("fs").existsSync(path.join(input.modelPath, shard))) missingShardFiles.push(shard);
+        if (!fs.existsSync(path.join(input.modelPath, shard))) missingShardFiles.push(shard);
       }
     }
   } catch {
